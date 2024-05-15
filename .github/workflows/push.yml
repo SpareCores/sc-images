@@ -28,6 +28,9 @@ jobs:
     strategy:
       matrix:
         folder: ${{ fromJson(needs.find-jobs.outputs.folders )}}
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: checkout
         uses: actions/checkout@v4
