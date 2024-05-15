@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: jobs
-        uses: philips-labs/list-folders-action@v1
+        uses: kmanimaran/list-folder-action@v4
         with:
           path: ./images
 
