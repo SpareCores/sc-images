@@ -24,7 +24,7 @@ jobs:
     needs: [find-jobs]
     defaults:
       run:
-        working-directory: images/${{ matrix.folder }}
+        working-directory: ${{ github.workspace }}/images/${{ matrix.folder }}
     strategy:
       matrix:
         folder: ${{ fromJson(needs.find-jobs.outputs.folders )}}
