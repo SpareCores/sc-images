@@ -1,0 +1,33 @@
+name: Build and publish Spare Cores images
+on:
+  push:
+    branches:
+      - main
+env:
+  REGISTRY: ghcr.io
+jobs:
+  find-jobs:
+    runs-on: ubuntu-latest
+    name: Find Jobs
+    outputs:
+      folders: ${{ steps.jobs.outputs.folders }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: jobs
+        uses: philips-labs/list-folders-action@v1
+        with:
+          path: ./images
+
+  matrix:
+    runs-on: ubuntu-latest
+    name: Matrix Jobs
+    needs: [find-jobs]
+    defaults:
+      run:
+        working-directory: ${{ matrix.folder }}
+    strategy:
+      matrix:
+        folder: ${{ fromJson(needs.find-jobs.outputs.folders )}}
+    steps:
+      - name: do something
+        run: echo ${{ matrix.folder }}
