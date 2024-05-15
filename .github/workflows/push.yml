@@ -24,7 +24,7 @@ jobs:
     needs: [find-jobs]
     defaults:
       run:
-        working-directory: ${{ matrix.folder }}
+        working-directory: images/${{ matrix.folder }}
     strategy:
       matrix:
         folder: ${{ fromJson(needs.find-jobs.outputs.folders )}}
