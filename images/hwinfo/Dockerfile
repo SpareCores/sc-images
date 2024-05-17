@@ -22,7 +22,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_lib_apt_final,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
     apt-get upgrade -y && \
-    apt-get install -y lshw
+    apt-get install -y lshw jq
 ENV PATH=${PATH}:/usr/local/bin
 COPY --from=build /usr/local /usr/local
 
