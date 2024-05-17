@@ -1,5 +1,5 @@
 FROM ubuntu:24.04 as base
-ENV TURBOBENCH_VER = d68171773d7576c4323bb7966d01b7d4d2491b65
+ENV TURBOBENCH_VER=d68171773d7576c4323bb7966d01b7d4d2491b65
 
 FROM base as build
 RUN --mount=type=tmpfs,target=/tmp,rw \
