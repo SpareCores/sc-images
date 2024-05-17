@@ -17,6 +17,12 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
 
 
 FROM base as final
+RUN --mount=type=tmpfs,target=/tmp,rw \
+    --mount=id=var_cache_apt_final,type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=id=var_lib_apt_final,type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update --error-on=any && \
+    apt-get upgrade -y && \
+    apt-get install -y lshw
 ENV PATH=${PATH}:/usr/local/bin
 COPY --from=build /usr/local /usr/local
 
