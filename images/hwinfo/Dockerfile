@@ -12,7 +12,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     mkdir /tmp/likwid && \
     curl -sSLfo - https://github.com/RRZE-HPC/likwid/archive/refs/tags/v"${LIKWID_VERSION}".tar.gz | tar zxf - -C /tmp/likwid --strip-components=1 && \
     cd /tmp/likwid && \
-    [ "${BUILDPLATFORM}" = "linux/arm64" ] && sed -i "s/COMPILER = GCC#/COMPILER = GCCARMv8#/" config.mk; \
+    [ $(uname -m) = arm64 -o $(uname -m) = aarch64 ] && sed -i "s/COMPILER = GCC#/COMPILER = GCCARMv8#/" config.mk; \
     make && make install
 
 
