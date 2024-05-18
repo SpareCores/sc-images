@@ -12,7 +12,8 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
       git clone --recursive https://github.com/powturbo/TurboBench.git && \
       cd /tmp/TurboBench && \
       git checkout $TURBOBENCH_VER && \
-      make -C /tmp/TurboBench && \
+      # disable some parts, we don't use them and don't compile on ARM for various reasons
+      make -C /tmp/TurboBench SSERC=0 TURBORC=0 TURBORLE=0 -j4 && \
       mkdir /usr/local/turbobench && \
     git clone https://github.com/MiloszKrajewski/SilesiaCorpus.git /tmp/silesia && \
       cd /tmp/silesia && \
