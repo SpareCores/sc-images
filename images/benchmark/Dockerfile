@@ -26,7 +26,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_lib_apt_final,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
     apt-get upgrade -y && \
-    apt-get install -y colorized-logs
+    apt-get install -y colorized-logs openssl
 ENV PATH=${PATH}:/usr/local/bin
 ADD turbobench.ini /usr/local/turbobench/turbobench.ini
 COPY --from=build /usr/local/turbobench /usr/local/turbobench
