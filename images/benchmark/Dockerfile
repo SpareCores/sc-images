@@ -37,6 +37,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     apt-get install -y colorized-logs
 ENV PATH=${PATH}:/usr/local/bin
 ADD turbobench.ini /usr/local/turbobench/turbobench.ini
+ADD openssl.sh /usr/local/bin/openssl.sh
 COPY --from=turbobench /usr/local/turbobench /usr/local/turbobench
 COPY --from=openssl /usr/local /usr/local
 RUN echo -e "/usr/local/lib\n/usr/local/lib64" > /etc/ld.so.conf.d/local.conf && ldconfig -v
