@@ -27,6 +27,11 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     mkdir /tmp/openssl && \
       curl -sSLfo - https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz | tar zxf - -C /tmp/openssl --strip-components=1 && \
       cd /tmp/openssl && ./Configure && make -j $(nproc) && make install_sw
+FROM build_base as stream
+RUN --mount=type=tmpfs,target=/tmp,rw \
+    cd /tmp && \
+      git clone https://github.com/jeffhammond/STREAM.git && \
+      make -C /tmp/STREAM stream_c.exe && cp /tmp/STREAM/stream_c.exe /usr/local/bin/
 
 FROM base as final
 RUN --mount=type=tmpfs,target=/tmp,rw \
@@ -34,11 +39,12 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_lib_apt_final,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
     apt-get upgrade -y && \
-    apt-get install -y colorized-logs
+    apt-get install -y colorized-logs libgomp1
 ENV PATH=${PATH}:/usr/local/bin
 ADD turbobench.ini /usr/local/turbobench/turbobench.ini
 ADD openssl.sh /usr/local/bin/openssl.sh
 COPY --from=turbobench /usr/local/turbobench /usr/local/turbobench
 COPY --from=openssl /usr/local /usr/local
+COPY --from=stream /usr/local/bin /usr/local/bin
 RUN echo -e "/usr/local/lib\n/usr/local/lib64" > /etc/ld.so.conf.d/local.conf && ldconfig -v
 
