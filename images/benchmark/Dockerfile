@@ -26,7 +26,13 @@ ENV OPENSSL_VER=3.3.0
 RUN --mount=type=tmpfs,target=/tmp,rw \
     mkdir /tmp/openssl && \
       curl -sSLfo - https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz | tar zxf - -C /tmp/openssl --strip-components=1 && \
-      cd /tmp/openssl && ./Configure && make -j $(nproc) && make install_sw
+      cd /tmp/openssl && \
+      # leave out unnecessary stuff to make it compile faster
+      ./Configure no-afalgeng no-async no-autoerrinit no-capieng no-cmp no-cms no-comp no-ct no-dgram no-docs no-fips-securitychecks \
+        no-gost no-http no-multiblock no-nextprotoneg no-ocsp no-rfc3779 no-sock no-srp no-srtp no-ssl-trace no-tests no-quic no-ts no-ui-console \
+        no-uplink no-tls no-dtls no-bf no-cast no-chacha no-cmac no-des no-dh no-dsa no-ecdh no-ecdsa no-idea no-md4 no-mdc2 no-ocb no-poly1305 \
+        no-rc2 no-rc4 no-rmd160 no-scrypt no-seed no-siphash no-siv no-sm2 no-sm3 no-whirlpool && \
+      make -j $(nproc) && make install_sw
 FROM build_base as lmbench
 RUN apt-get update --error-on=any && apt-get install -y lmbench && \
     # different path by CPU architecture
