@@ -6,6 +6,6 @@ for what in rd wr rdwr
       do
         echo -n "$what "
         # writes to stderr
-        bw_mem -P $(nproc) $size $what 2>&1
+        nice -n -20 bw_mem -P $(nproc) $size $what 2>&1
       done
   done

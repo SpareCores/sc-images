@@ -1,6 +1,6 @@
 #!/bin/sh
 
-CMD="openssl speed -mr -mlock -elapsed -multi $(nproc)"
+CMD="nice -n -20 openssl speed -mr -mlock -elapsed -multi $(nproc)"
 
 # https://github.com/openssl/openssl/issues/22545
 echo blake2b512 sha256 sha512 \
