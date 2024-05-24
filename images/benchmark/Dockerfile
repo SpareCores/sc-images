@@ -43,6 +43,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
 ENV PATH=${PATH}:/usr/local/bin
 ADD turbobench.ini /usr/local/turbobench/turbobench.ini
 ADD openssl.sh /usr/local/bin/openssl.sh
+ADD bw_mem.sh /usr/local/bin/bw_mem.sh
 COPY --from=turbobench /usr/local/turbobench /usr/local/turbobench
 COPY --from=openssl /usr/local /usr/local
 COPY --from=lmbench /bw_mem /usr/local/bin/bw_mem
