@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# use locally installed OpenSSL
+export LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64
 CMD="nice -n -20 openssl speed -mr -mlock -elapsed -multi $(nproc)"
 
 # https://github.com/openssl/openssl/issues/22545
