@@ -5,6 +5,7 @@ import bz2
 import bz3
 import gzip
 import json
+import lz4.frame
 import lzma
 import math
 import os
@@ -71,6 +72,16 @@ TASKS = {
         "levels": [1, 3, 5],
         "compress": lambda level, threads, kwargs: zpaq.compress(DATA, level),
         "decompress": lambda data, threads: zpaq.decompress(data),
+    },
+    "lz4": {
+        "levels": [1, 6, 12, 16],
+        "compress": lambda level, threads, kwargs: lz4.frame.compress(DATA, level, **kwargs),
+        "decompress": lambda data, threads: lz4.frame.decompress(data),
+        "extra_args": [
+            dict(block_size=0),  # default, currently 64k
+            dict(block_size=6),  # 1M
+            dict(block_size=7),  # 4M
+        ],
     },
 }
 
