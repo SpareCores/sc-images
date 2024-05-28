@@ -57,6 +57,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
 ADD openssl.sh /usr/local/bin/openssl.sh
 ADD bw_mem.sh /usr/local/bin/bw_mem.sh
 ADD geekbench.sh /usr/local/bin/geekbench.sh
+ADD compress.py /usr/local/bin/compress.py
 ADD secrets.enc /secrets.enc
 COPY --from=geekbench /usr/local/geekbench-x86_64 /usr/local/geekbench-x86_64
 COPY --from=geekbench /usr/local/geekbench-aarch64 /usr/local/geekbench-aarch64
