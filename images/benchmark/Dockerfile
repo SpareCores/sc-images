@@ -40,7 +40,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
 FROM build_base as python
 RUN apt-get update && apt-get install -y python3-dev && python3 -m venv --without-pip /venv && \
     curl -sSLf https://bootstrap.pypa.io/get-pip.py | /venv/bin/python - && \
-    /venv/bin/pip install brotli bzip3 pyzstd https://github.com/bra-fsn/pyzpaq/archive/master.zip psutil && \
+    /venv/bin/pip install brotli bzip3 pyzstd lz4 https://github.com/bra-fsn/pyzpaq/archive/master.zip psutil && \
     git clone https://github.com/MiloszKrajewski/SilesiaCorpus.git /tmp/silesia && \
       cd /tmp/silesia && \
       find . -name "*.zip" | xargs -n 1 unzip && rm -f *.zip *.md && \
