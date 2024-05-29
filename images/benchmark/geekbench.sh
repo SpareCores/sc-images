@@ -12,5 +12,5 @@ if [ "${arch}" = aarch64 ]; then
   /usr/local/geekbench-${arch}/geekbench6 | egrep -v 'geekbench\.com.*claim'
 else
   # write the JSON output to stderr, so we can gather it separately from the stdout
-  /usr/local/geekbench-${arch}/geekbench6 --export-json /dev/stderr
+  /usr/local/geekbench-${arch}/geekbench6 --export-json /dev/stderr --upload | egrep -v 'geekbench\.com.*claim'
 fi
