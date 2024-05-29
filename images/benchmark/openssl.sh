@@ -11,4 +11,4 @@ echo blake2b512 sha256 sha512 \
         camellia-256-cbc sm4-cbc | \
 xargs -n 1 ${CMD} -evp 2>&1
 
-${CMD} rsa2048 ECP-384 X25519 X448 2>&1
+${CMD} rsa2048 ECP-384 ed25519 X25519 X448 2>&1
