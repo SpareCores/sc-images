@@ -2,6 +2,7 @@ FROM ubuntu:24.04 as base
 
 ENV PATH=/venv/bin:/usr/local/bin:${PATH}
 ENV VIRTUAL_ENV="/venv"
+ENV LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64"
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
