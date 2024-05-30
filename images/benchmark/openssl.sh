@@ -15,8 +15,7 @@ for algo in \
   "-evp aes-256-cbc" \
   "-evp aria-256-cbc" \
   "-evp camellia-256-cbc" \
-  "-evp sm4-cbc" \
-  rsa2048 ECP-384 ed25519 X25519 X448
+  "-evp sm4-cbc"
 do
   # print a delimiter, so we can break up the output
   echo "ALGO: $algo ----------------------------------------"
