@@ -6,7 +6,7 @@ for what in rd wr rdwr
       do
         # writes to stderr
         result=$(nice -n -20 bw_mem -P $(nproc) $size $what 2>&1)
-        if [ $? -eq 0 ]; then
+        if [ $? -eq 0 ] && [ -n "$result" ]; then
           echo $what $result
         fi
       done
