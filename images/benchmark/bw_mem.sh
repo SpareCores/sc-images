@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ulimit -v $(grep MemAvailable: /proc/meminfo  | awk '{print $2*1024}')
+ulimit -v $(grep MemAvailable: /proc/meminfo | awk '{print $2*1024}')
 
 for what in rd wr rdwr
   do
