@@ -20,7 +20,7 @@ FROM build_base as openssl
 ENV OPENSSL_VER=3.3.0
 RUN --mount=type=tmpfs,target=/tmp,rw \
     mkdir /tmp/openssl && \
-      curl -sSLfo - https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz | tar zxf - -C /tmp/openssl --strip-components=1 && \
+      curl -sSLfo --retry 2 - https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz | tar zxf - -C /tmp/openssl --strip-components=1 && \
       cd /tmp/openssl && \
       # leave out unnecessary stuff to make it compile faster
       ./Configure no-afalgeng no-async no-autoerrinit no-capieng no-cmp no-cms no-comp no-ct no-dgram no-docs no-fips-securitychecks \
