@@ -15,7 +15,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
-    apt-get install -y build-essential curl git unzip
+    apt-get install -y build-essential curl git unzip cargo
 FROM build_base as openssl
 ENV OPENSSL_VER=3.3.0
 RUN --mount=type=tmpfs,target=/tmp,rw \
@@ -47,6 +47,11 @@ RUN apt-get update && apt-get install -y python3-dev && python3 -m venv --withou
       find . -name "*.zip" | xargs -n 1 unzip && rm -f *.zip *.md && \
       mkdir /usr/local/silesia && \
       cp /tmp/silesia/* /usr/local/silesia/
+FROM build_base as binserve
+ENV BINSERVE_VER=1e32f94
+RUN --mount=type=tmpfs,target=/tmp,rw \
+    cargo install --git https://github.com/mufeedvh/binserve.git --rev ${BINSERVE_VER}
+
 
 FROM base as final
 RUN --mount=type=tmpfs,target=/tmp,rw \
@@ -54,15 +59,17 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_lib_apt_final,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
     apt-get upgrade -y && \
-    apt-get install -y colorized-logs libgomp1
+    apt-get install -y colorized-logs libgomp1 wrk
 ADD openssl.sh /usr/local/bin/openssl.sh
 ADD bw_mem.sh /usr/local/bin/bw_mem.sh
 ADD geekbench.sh /usr/local/bin/geekbench.sh
 ADD compress.py /usr/local/bin/compress.py
 ADD secrets.enc /secrets.enc
+ADD binserve/ /usr/local/binserve/
 COPY --from=geekbench /usr/local/geekbench-x86_64 /usr/local/geekbench-x86_64
 COPY --from=geekbench /usr/local/geekbench-aarch64 /usr/local/geekbench-aarch64
 COPY --from=openssl /usr/local /usr/local
 COPY --from=lmbench /bw_mem /usr/local/bin/bw_mem
 COPY --from=python /venv /venv
 COPY --from=python /usr/local/silesia /usr/local/silesia
+COPY --from=binserve /root/.cargo/bin/binserve /usr/local/bin/binserve
