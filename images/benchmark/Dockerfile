@@ -11,17 +11,17 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     apt-get install -y python3-venv
 
 FROM base as build_base
+ENV OPENSSL_VER=3.3.0
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
-    apt-get install -y build-essential curl git unzip cargo
+    apt-get install -y build-essential curl git unzip cargo && \
+    mkdir /usr/src/openssl && \
+    curl -sSLfo - https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz | tar zxf - -C /usr/src/openssl --strip-components=1
 FROM build_base as openssl
-ENV OPENSSL_VER=3.3.0
 RUN --mount=type=tmpfs,target=/tmp,rw \
-    mkdir /tmp/openssl && \
-      curl --retry 2 -sSLfo - https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz | tar zxf - -C /tmp/openssl --strip-components=1 && \
-      cd /tmp/openssl && \
+    cd /usr/src/openssl && \
       # leave out unnecessary stuff to make it compile faster
       ./Configure no-afalgeng no-async no-autoerrinit no-capieng no-cmp no-cms no-comp no-ct no-dgram no-docs no-fips-securitychecks \
         no-gost no-http no-multiblock no-nextprotoneg no-ocsp no-rfc3779 no-sock no-srp no-srtp no-ssl-trace no-tests no-quic no-ts no-ui-console \
