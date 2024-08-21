@@ -12,15 +12,20 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
 
 FROM base as build_base
 ENV OPENSSL_VER=3.3.0
+ENV CCACHE_DIR=/ccache
+ENV CCACHE_NOHASHDIR=true
+ENV CCACHE_SLOPPINESS=include_file_ctime
+ENV PATH=/usr/lib/ccache:${PATH}
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
-    apt-get install -y build-essential curl git unzip cargo && \
+    apt-get install -y build-essential curl git unzip cargo ccache && \
     mkdir /usr/src/openssl && \
     curl -sSLfo - https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz | tar zxf - -C /usr/src/openssl --strip-components=1
 FROM build_base as openssl
 RUN --mount=type=tmpfs,target=/tmp,rw \
+    --mount=id=ccache,type=cache,target=/ccache,sharing=shared \
     cd /usr/src/openssl && \
       # leave out unnecessary stuff to make it compile faster
       ./Configure no-afalgeng no-async no-autoerrinit no-capieng no-cmp no-cms no-comp no-ct no-dgram no-docs no-fips-securitychecks \
@@ -39,7 +44,9 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     curl -sSLfo - https://cdn.geekbench.com/Geekbench-${GEEKBENCH_VER}-Linux.tar.gz | tar zxf - -C /usr/local/geekbench-x86_64 --strip-components=1 && \
     curl -sSLfo - https://cdn.geekbench.com/Geekbench-${GEEKBENCH_VER}-LinuxARMPreview.tar.gz | tar zxf - -C /usr/local/geekbench-aarch64 --strip-components=1
 FROM build_base as python
-RUN apt-get update && apt-get install -y python3-dev && python3 -m venv --without-pip /venv && \
+RUN apt-get update \
+    --mount=id=ccache,type=cache,target=/ccache,sharing=shared \
+    && apt-get install -y python3-dev && python3 -m venv --without-pip /venv && \
     curl -sSLf https://bootstrap.pypa.io/get-pip.py | /venv/bin/python - && \
     /venv/bin/pip install brotli bzip3 pyzstd lz4 https://github.com/bra-fsn/pyzpaq/archive/master.zip psutil && \
     git clone https://github.com/MiloszKrajewski/SilesiaCorpus.git /tmp/silesia && \
