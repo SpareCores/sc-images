@@ -70,6 +70,7 @@ ADD openssl.sh /usr/local/bin/openssl.sh
 ADD bw_mem.sh /usr/local/bin/bw_mem.sh
 ADD geekbench.sh /usr/local/bin/geekbench.sh
 ADD compress.py /usr/local/bin/compress.py
+ADD static-web.sh /usr/local/bin/static-web.sh
 ADD secrets.enc /secrets.enc
 ADD binserve/ /usr/local/binserve/
 COPY --from=geekbench /usr/local/geekbench-x86_64 /usr/local/geekbench-x86_64
