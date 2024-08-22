@@ -52,7 +52,12 @@ FROM build_base as binserve
 ENV BINSERVE_VER=1e32f94
 RUN --mount=type=tmpfs,target=/tmp,rw \
     cargo install --git https://github.com/mufeedvh/binserve.git --rev ${BINSERVE_VER}
-
+FROM build_base as wrk
+ENV WRK_VER=4.2.0
+RUN --mount=type=tmpfs,target=/tmp,rw \
+    git clone --depth 1 --branch 4.2.0 https://github.com/wg/wrk.git /usr/local/wrk && \
+    cd /usr/local/wrk && \
+    make -j $(nproc)
 
 FROM base as final
 RUN --mount=type=tmpfs,target=/tmp,rw \
@@ -60,7 +65,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_lib_apt_final,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
     apt-get upgrade -y && \
-    apt-get install -y colorized-logs libgomp1 wrk
+    apt-get install -y colorized-logs libgomp1
 ADD openssl.sh /usr/local/bin/openssl.sh
 ADD bw_mem.sh /usr/local/bin/bw_mem.sh
 ADD geekbench.sh /usr/local/bin/geekbench.sh
@@ -74,3 +79,4 @@ COPY --from=lmbench /bw_mem /usr/local/bin/bw_mem
 COPY --from=python /venv /venv
 COPY --from=python /usr/local/silesia /usr/local/silesia
 COPY --from=binserve /root/.cargo/bin/binserve /usr/local/bin/binserve
+COPY --from=wrk /usr/local/wrk/wrk /usr/local/bin/wrk
