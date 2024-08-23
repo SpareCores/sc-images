@@ -2,7 +2,6 @@
 
 base_port=7000
 procs=$(nproc)
-procs=2
 mkdir /results
 
 increment=50000
