@@ -43,7 +43,7 @@ while true; do
     n=$((n + increment))
 done
 
-for test in PING_INLINE PING_MBULK SET GET INCR LPUSH RPUSH LPOP RPOP SADD \
+for test in PING_INLINE PING_MBULK SET GET INCR RPUSH LPOP RPOP SADD \
   HSET SPOP ZADD ZPOPMIN LRANGE_600 MSET XADD
 do
   pids=""
