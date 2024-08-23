@@ -12,7 +12,7 @@ for i in $(seq $procs)
 do
   port=$((base_port + i))
   mkdir -p /data/redis$port
-  redis-server --dir /data/redis$port --port $port &
+  redis-server --dir /data/redis$port --port $port > /dev/null 2>&1 &
 done
 
 sleep 5
