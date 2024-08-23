@@ -5,7 +5,7 @@ procs=$(nproc)
 mkdir /results
 
 increment=50000
-runtime_target=2
+runtime_target=5
 n=100000
 
 for i in $(seq $procs)
