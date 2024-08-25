@@ -30,7 +30,7 @@ do
     for i in $(seq $procs)
     do
       port=$((base_port + i))
-      memtier_benchmark -p $port --ratio=1:0 --test-time=10 -t $thread --hide-histogram --pipeline=$pipeline --json-out-file=/tmp/port=$port,t=$thread,p=$pipeline -o /dev/null &
+      memtier_benchmark -4 -p $port --ratio=1:0 --test-time=10 -t $thread --hide-histogram --pipeline=$pipeline --json-out-file=/tmp/port=$port,t=$thread,p=$pipeline -o /dev/null &
       pids="$pids $!"
     done
 
