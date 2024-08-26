@@ -8,7 +8,8 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/redis.list && \
     apt-get update --error-on=any && \
-    apt-get install -y memtier-benchmark
-COPY benchmark.sh /usr/local/bin/
+    apt-get install -y memtier-benchmark python-is-python3 python3-psutil
+COPY benchmark.py /usr/local/bin/
 # Override the ENTRYPOINT, so we can get redis version easier
 ENTRYPOINT []
+CMD ["python", "/usr/local/bin/benchmark.py"]
