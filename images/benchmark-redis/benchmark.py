@@ -157,7 +157,8 @@ def parse_outputs(outputs):
 
 servers = start_server()
 print("operation,threads,pipeline,rps,latency,server_usr,server_sys,client_usr,client_sys")
-for thread in (1, 2, 4):
+# we start a redis-memtier_benchmark pair for each CPU, so using more threads doesn't improve performance
+for thread in (1,):
     for pipeline in (1, 4, 16, 64, 256, 512):
         flushall(wait=True)
         # record the user, sys CPU resource usage
