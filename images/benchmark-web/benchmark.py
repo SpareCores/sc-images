@@ -5,7 +5,9 @@ import resource
 import select
 import subprocess
 import time
+import traceback
 import urllib.request
+import sys
 
 
 BASE_PORT = 8080
@@ -150,16 +152,20 @@ def parse_outputs(outputs):
     """
     parsed = {"rps": 0, "latency": 0, "failed": 0}
     for port, output in outputs.items():
-        if m := re.search(r"Latency[\s]+([0-9.]+)(us|ms|s)", output["stdout"]):
-            parsed["latency"] = float(m.group(1))
-            suffix = m.group(2)
-            if suffix == "us":
-                parsed["latency"] = parsed["latency"] * 10**-6
-            elif suffix == "ms":
-                parsed["latency"] = parsed["latency"] * 10**-3
-        parsed["rps"] = int(re.search(r"Requests/sec: ([0-9]+)", output["stdout"]).group(1))
-        if m := re.search(r"Non-2xx or 3xx responses: ([0-9]+)", output["stdout"]):
-            parsed["failed"] = int(m.group(1))
+        try:
+            if m := re.search(r"Latency[\s]+([0-9.]+)(us|ms|s)", output["stdout"]):
+                parsed["latency"] = float(m.group(1))
+                suffix = m.group(2)
+                if suffix == "us":
+                    parsed["latency"] = parsed["latency"] * 10**-6
+                elif suffix == "ms":
+                    parsed["latency"] = parsed["latency"] * 10**-3
+            parsed["rps"] = int(re.search(r"Requests/sec: ([0-9]+)", output["stdout"]).group(1))
+            if m := re.search(r"Non-2xx or 3xx responses: ([0-9]+)", output["stdout"]):
+                parsed["failed"] = int(m.group(1))
+        except Exception:
+            traceback.print_exc()
+            print("Failing output: ", output["stdout"], file=sys.stderr)
 
     return parsed
 
