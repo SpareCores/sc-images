@@ -48,16 +48,6 @@ RUN apt-get update \
       find . -name "*.zip" | xargs -n 1 unzip && rm -f *.zip *.md && \
       mkdir /usr/local/silesia && \
       cp /tmp/silesia/* /usr/local/silesia/
-FROM build_base as binserve
-ENV BINSERVE_VER=1e32f94
-RUN --mount=type=tmpfs,target=/tmp,rw \
-    cargo install --git https://github.com/mufeedvh/binserve.git --rev ${BINSERVE_VER}
-FROM build_base as wrk
-ENV WRK_VER=4.2.0
-RUN --mount=type=tmpfs,target=/tmp,rw \
-    git clone --depth 1 --branch 4.2.0 https://github.com/wg/wrk.git /usr/local/wrk && \
-    cd /usr/local/wrk && \
-    make -j $(nproc)
 
 FROM base as final
 RUN --mount=type=tmpfs,target=/tmp,rw \
@@ -70,14 +60,11 @@ ADD openssl.sh /usr/local/bin/openssl.sh
 ADD bw_mem.sh /usr/local/bin/bw_mem.sh
 ADD geekbench.sh /usr/local/bin/geekbench.sh
 ADD compress.py /usr/local/bin/compress.py
-ADD static-web.sh /usr/local/bin/static-web.sh
 ADD secrets.enc /secrets.enc
-ADD binserve/ /usr/local/binserve/
 COPY --from=geekbench /usr/local/geekbench-x86_64 /usr/local/geekbench-x86_64
 COPY --from=geekbench /usr/local/geekbench-aarch64 /usr/local/geekbench-aarch64
 COPY --from=openssl /usr/local /usr/local
 COPY --from=lmbench /bw_mem /usr/local/bin/bw_mem
 COPY --from=python /venv /venv
 COPY --from=python /usr/local/silesia /usr/local/silesia
-COPY --from=binserve /root/.cargo/bin/binserve /usr/local/bin/binserve
-COPY --from=wrk /usr/local/wrk/wrk /usr/local/bin/wrk
+
