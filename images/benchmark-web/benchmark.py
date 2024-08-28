@@ -174,7 +174,8 @@ def parse_outputs(outputs):
 
 
 servers = start_server()
-print("size,threads,connections,rps,latency,failed,server_usr,server_sys,client_usr,client_sys")
+header = "size,threads,connections,rps,latency,failed,server_usr,server_sys,client_usr,client_sys"
+print(",".join([f'"{word}"' for word in header.split(',')]))
 # we start a redis-memtier_benchmark pair for each CPU, so using more threads doesn't improve performance
 for size in ("1k", "16k", "64k", "256k", "512k"):
     for threadmulti in (1, 2, 4):
