@@ -174,6 +174,6 @@ for thread in (1,):
         server_usr, server_sys = sum_cpu_times(start_server_cpu_times, end_server_cpu_times)
         parsed = parse_outputs(outputs)
         print(
-            f"SET,{thread},{pipeline},{int(parsed['rps'])},{parsed['latency']:.2f},"
+            f"\"SET\",{thread},{pipeline},{int(parsed['rps'])},{parsed['latency']:.2f},"
             f"{server_usr:.2f},{server_sys:.2f},{client_usr:.2f},{client_sys:.2f}"
         )

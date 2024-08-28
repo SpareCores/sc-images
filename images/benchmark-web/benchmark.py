@@ -200,6 +200,6 @@ for size in ("1k", "16k", "64k", "256k", "512k"):
             server_usr, server_sys = sum_cpu_times(start_server_cpu_times, end_server_cpu_times)
             parsed = parse_outputs(outputs)
             print(
-                f"{size},{threads},{conns},{int(parsed['rps'])},{parsed['latency']:.9f},{parsed['failed']},"
+                f"\"{size}\",{threads},{conns},{int(parsed['rps'])},{parsed['latency']:.9f},{parsed['failed']},"
                 f"{server_usr:.2f},{server_sys:.2f},{client_usr:.2f},{client_sys:.2f}"
             )
