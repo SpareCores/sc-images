@@ -15,6 +15,9 @@ BINSERVE_PATH = "/usr/local/binserve"
 # keep this in sync with binserve config
 SIZES = [1, 16, 64, 256, 512]
 
+# raise open files limit
+resource.setrlimit(resource.RLIMIT_NOFILE, (1024**2, 1024**2))
+
 
 def create_or_truncate_file(file_path, size):
     # Open the file with write and create permissions
@@ -79,10 +82,10 @@ def start_server():
             assert r.status == 200
             break
         except Exception as e:
-            print(e)
             time.sleep(1)
     else:
-        return {}
+        print("Couldn't start server")
+        sys.exit(1)
     return processes
 
 
@@ -160,12 +163,12 @@ def parse_outputs(outputs):
                     parsed["latency"] = parsed["latency"] * 10**-6
                 elif suffix == "ms":
                     parsed["latency"] = parsed["latency"] * 10**-3
-            parsed["rps"] = int(re.search(r"Requests/sec: ([0-9]+)", output["stdout"]).group(1))
-            if m := re.search(r"Non-2xx or 3xx responses: ([0-9]+)", output["stdout"]):
+            parsed["rps"] = int(re.search(r"Requests/sec:[\s]+([0-9]+)", output["stdout"]).group(1))
+            if m := re.search(r"Non-2xx or 3xx responses:[\s]+([0-9]+)", output["stdout"]):
                 parsed["failed"] = int(m.group(1))
         except Exception:
             traceback.print_exc()
-            print("Failing output: ", output["stdout"], file=sys.stderr)
+            print("Failing output: \n", output["stdout"], file=sys.stderr)
 
     return parsed
 
@@ -197,6 +200,6 @@ for size in ("1k", "16k", "64k", "256k", "512k"):
             server_usr, server_sys = sum_cpu_times(start_server_cpu_times, end_server_cpu_times)
             parsed = parse_outputs(outputs)
             print(
-                f"{size},{threads},{conns},{int(parsed['rps'])},{parsed['latency']:.9f},"
+                f"{size},{threads},{conns},{int(parsed['rps'])},{parsed['latency']:.9f},{parsed['failed']},"
                 f"{server_usr:.2f},{server_sys:.2f},{client_usr:.2f},{client_sys:.2f}"
             )
