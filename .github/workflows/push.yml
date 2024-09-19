@@ -19,8 +19,8 @@ jobs:
           path: ./images
 
   matrix:
-    runs-on: ubuntu-latest
-#    runs-on: self-hosted
+#    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Matrix Jobs
     needs: [find-jobs]
     defaults:
