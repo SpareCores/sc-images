@@ -1,4 +1,5 @@
 FROM nvidia/cuda:12.6.1-devel-ubuntu24.04 AS builder
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update --error-on=any && apt-get install -y build-essential git cmake python-is-python3 curl
 RUN mkdir /tmp/cutlass && \
     curl -sSLfo - https://github.com/NVIDIA/cutlass/archive/refs/tags/v3.5.1.tar.gz | tar zxf - -C /tmp/cutlass --strip-components=1
