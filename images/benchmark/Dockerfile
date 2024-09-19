@@ -1,5 +1,5 @@
 FROM ubuntu:24.04 as base
-
+ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH=/venv/bin:/usr/local/bin:${PATH}
 ENV VIRTUAL_ENV="/venv"
 ENV LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64"
