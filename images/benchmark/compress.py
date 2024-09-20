@@ -30,44 +30,43 @@ TASKS = {
     "brotli": {
         "levels": [0, 4, 8, 11],
         "threads": [1, NUMCPUS],
-        "compress": lambda level, threads, kwargs: brotli.compress(DATA, quality=level),
-        "decompress": lambda data, threads: brotli.decompress(data),
+        "compress": lambda level, kwargs: brotli.compress(DATA, quality=level),
+        "decompress": lambda data: brotli.decompress(data),
     },
     "gzip": {
         "levels": [1, 5, 9],
         "threads": [1, NUMCPUS],
-        "compress": lambda level, threads, kwargs: gzip.compress(DATA, compresslevel=level),
-        "decompress": lambda data, threads: gzip.decompress(data),
+        "compress": lambda level, kwargs: gzip.compress(DATA, compresslevel=level),
+        "decompress": lambda data: gzip.decompress(data),
     },
     "bzip2": {
         "levels": [1, 5, 9],
         "threads": [1, NUMCPUS],
-        "compress": lambda level, threads, kwargs: bz2.compress(DATA, compresslevel=level),
-        "decompress": lambda data, threads: bz2.decompress(data),
+        "compress": lambda level, kwargs: bz2.compress(DATA, compresslevel=level),
+        "decompress": lambda data: bz2.decompress(data),
     },
     "lzma": {
         "levels": [1, 5, 9],
         "threads": [1, NUMCPUS],
-        "compress": lambda level, threads, kwargs: lzma.compress(DATA, preset=level),
-        "decompress": lambda data, threads: lzma.decompress(data),
+        "compress": lambda level, kwargs: lzma.compress(DATA, preset=level),
+        "decompress": lambda data: lzma.decompress(data),
     },
     "zstd": {
         "levels": [1, 7, 14, 22],
         "threads": [1, NUMCPUS],
         # https://pyzstd.readthedocs.io/en/stable/#cparameter
-        "compress": lambda level, threads, kwargs: pyzstd.compress(DATA,
+        "compress": lambda level, kwargs: pyzstd.compress(DATA,
                                                                    level_or_option={
                                                                        pyzstd.CParameter.compressionLevel: level,
-                                                                       pyzstd.CParameter.nbWorkers: threads,
                                                                        **kwargs,
                                                                    }),
-        "decompress": lambda data, threads: pyzstd.decompress(data),
+        "decompress": lambda data: pyzstd.decompress(data),
     },
     "bzip3": {
         "levels": [None],
         "threads": [1, NUMCPUS],
-        "compress": lambda level, threads, kwargs: bz3.compress(DATA, num_threads=threads, **kwargs),
-        "decompress": lambda data, threads: bz3.decompress(data, num_threads=threads),
+        "compress": lambda level, kwargs: bz3.compress(DATA, **kwargs),
+        "decompress": lambda data: bz3.decompress(data),
         "extra_args": [
             dict(block_size=1024 ** 2),  # default
             dict(block_size=64 * 1024 ** 2),
@@ -76,14 +75,14 @@ TASKS = {
     "zpaq": {
         "levels": [1, 3, 5],
         "threads": [1, NUMCPUS],
-        "compress": lambda level, threads, kwargs: zpaq.compress(DATA, level),
-        "decompress": lambda data, threads: zpaq.decompress(data),
+        "compress": lambda level, kwargs: zpaq.compress(DATA, level),
+        "decompress": lambda data: zpaq.decompress(data),
     },
     "lz4": {
         "levels": [1, 6, 12, 16],
         "threads": [1, NUMCPUS],
-        "compress": lambda level, threads, kwargs: lz4.frame.compress(DATA, level, **kwargs),
-        "decompress": lambda data, threads: lz4.frame.decompress(data),
+        "compress": lambda level, kwargs: lz4.frame.compress(DATA, level, **kwargs),
+        "decompress": lambda data: lz4.frame.decompress(data),
         "extra_args": [
             dict(block_size=0),  # default, currently 64k
             dict(block_size=6),  # 1M
@@ -114,9 +113,9 @@ def measure(compressor, idx, threads, extra_args):
     # measure compression level
     level = TASKS[compressor]["levels"][idx]
     # first we measure the compression ratio on one thread because we don't want to pass data between processes
-    compressed_data = TASKS[compressor]["compress"](level, threads, extra_args)
+    compressed_data = TASKS[compressor]["compress"](level, extra_args)
     res["ratio"] = len(compressed_data) / len(DATA) * 100
-    decompressed_data = TASKS[compressor]["decompress"](compressed_data, threads)
+    decompressed_data = TASKS[compressor]["decompress"](compressed_data)
     # test if the compression/decompression cycle is working
     assert decompressed_data == DATA
 
@@ -125,7 +124,7 @@ def measure(compressor, idx, threads, extra_args):
         with ProcessPoolExecutor() as executor:
             with multiprocessing.Manager() as manager:
                 event = manager.Event()
-                futures = {executor.submit(measured_f, event, "compress", level, threads, extra_args) for i in range(threads)}
+                futures = {executor.submit(measured_f, event, "compress", level, extra_args) for i in range(threads)}
                 time.sleep(1)
                 event.set()
                 elapsed = sum([future.result() for future in as_completed(futures)]) / threads
@@ -137,7 +136,7 @@ def measure(compressor, idx, threads, extra_args):
         with ProcessPoolExecutor() as executor:
             with multiprocessing.Manager() as manager:
                 event = manager.Event()
-                futures = {executor.submit(measured_f, event, "decompress", compressed_data, threads) for i in range(threads)}
+                futures = {executor.submit(measured_f, event, "decompress", compressed_data) for i in range(threads)}
                 time.sleep(1)
                 event.set()
                 elapsed = sum([future.result() for future in as_completed(futures)]) / threads
