@@ -50,7 +50,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
-      - name: Build and push Docker image
+      # idea taken from: https://github.com/docker/buildx/discussions/1382#discussioncomment-6252049
+      # we need to have two buildcache tags, but they conflict/race on the first build, so let's (re)build the amd64/arm64
+      # images from the cache and push their buildcaches individually
+      - name: Build and push amd64/arm64 Docker image
         uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}/images/${{ matrix.folder }}
@@ -58,5 +61,24 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache,mode=max
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-arm64
+            type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-amd64
+      - name: Push amd64 Docker image's buildcache
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ github.workspace }}/images/${{ matrix.folder }}
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-amd64
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-amd64,mode=max
+      - name: Push arm64 Docker image's buildcache
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ github.workspace }}/images/${{ matrix.folder }}
+          platforms: linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-arm64
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-arm64,mode=max
