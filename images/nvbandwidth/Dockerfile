@@ -23,5 +23,10 @@ RUN cd /tmp/nvbandwidth && ./debian_install.sh
 
 FROM nvidia/cuda:12.6.1-runtime-ubuntu24.04
 
+RUN --mount=type=tmpfs,target=/tmp,rw \
+    --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
+    apt update && apt-get install -y cuda-nvml-dev-12-6
+RUN echo "/usr/local/cuda-12.6/compat\n/usr/local/cuda-12.6/targets/x86_64-linux/lib/stubs" > /etc/ld.so.conf.d/cuda_compat.conf && ldconfig
 COPY --from=builder /tmp/nvbandwidth/nvbandwidth /usr/local/bin/
 CMD ["/usr/local/bin/nvbandwidth"]
