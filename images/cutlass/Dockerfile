@@ -21,11 +21,13 @@ RUN mkdir /tmp/cutlass && \
 #        sm_86
 RUN mkdir /tmp/cutlass/build && cd /tmp/cutlass/build && \
     # 37 and 53 are not supported by the current version
-    cmake .. -DCUTLASS_NVCC_ARCHS="60;61;70;75;80;86" && \
+    cmake .. -DCUTLASS_NVCC_ARCHS="60;61;70;75;80;86" -DCUTLASS_ENABLE_TESTS=OFF -DCUTLASS_UNITY_BUILD_ENABLED=ON && \
     # installs to build/install
     make install -j $(nproc)
 
 FROM nvidia/cuda:12.6.1-runtime-ubuntu24.04
 
 COPY --from=builder /tmp/cutlass/build/install /usr/local
+# disable nvidia/cuda entrypoint, which prints a banner
+ENTRYPOINT []
 CMD ["/usr/local/bin/cutlass_profiler"]
