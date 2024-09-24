@@ -29,4 +29,6 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     apt update && apt-get install -y cuda-nvml-dev-12-6
 RUN echo "/usr/local/cuda-12.6/compat\n/usr/local/cuda-12.6/targets/x86_64-linux/lib/stubs" > /etc/ld.so.conf.d/cuda_compat.conf && ldconfig
 COPY --from=builder /tmp/nvbandwidth/nvbandwidth /usr/local/bin/
+# disable nvidia/cuda entrypoint, which prints a banner
+ENTRYPOINT []
 CMD ["/usr/local/bin/nvbandwidth"]
