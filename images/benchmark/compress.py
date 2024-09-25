@@ -29,31 +29,31 @@ NO_RESULT = {
 TASKS = {
     "brotli": {
         "levels": [0, 4, 8, 11],
-        "threads": [1, NUMCPUS],
+        "threads": {1, NUMCPUS},
         "compress": lambda level, kwargs: brotli.compress(DATA, quality=level),
         "decompress": lambda data: brotli.decompress(data),
     },
     "gzip": {
         "levels": [1, 5, 9],
-        "threads": [1, NUMCPUS],
+        "threads": {1, NUMCPUS},
         "compress": lambda level, kwargs: gzip.compress(DATA, compresslevel=level),
         "decompress": lambda data: gzip.decompress(data),
     },
     "bzip2": {
         "levels": [1, 5, 9],
-        "threads": [1, NUMCPUS],
+        "threads": {1, NUMCPUS},
         "compress": lambda level, kwargs: bz2.compress(DATA, compresslevel=level),
         "decompress": lambda data: bz2.decompress(data),
     },
     "lzma": {
         "levels": [1, 5, 9],
-        "threads": [1, NUMCPUS],
+        "threads": {1, NUMCPUS},
         "compress": lambda level, kwargs: lzma.compress(DATA, preset=level),
         "decompress": lambda data: lzma.decompress(data),
     },
     "zstd": {
         "levels": [1, 7, 14, 22],
-        "threads": [1, NUMCPUS],
+        "threads": {1, NUMCPUS},
         # https://pyzstd.readthedocs.io/en/stable/#cparameter
         "compress": lambda level, kwargs: pyzstd.compress(DATA,
                                                                    level_or_option={
@@ -64,7 +64,7 @@ TASKS = {
     },
     "bzip3": {
         "levels": [None],
-        "threads": [1, NUMCPUS],
+        "threads": {1, NUMCPUS},
         "compress": lambda level, kwargs: bz3.compress(DATA, **kwargs),
         "decompress": lambda data: bz3.decompress(data),
         "extra_args": [
@@ -74,13 +74,13 @@ TASKS = {
     },
     "zpaq": {
         "levels": [1, 3, 5],
-        "threads": [1, NUMCPUS],
+        "threads": {1, NUMCPUS},
         "compress": lambda level, kwargs: zpaq.compress(DATA, level),
         "decompress": lambda data: zpaq.decompress(data),
     },
     "lz4": {
         "levels": [1, 6, 12, 16],
-        "threads": [1, NUMCPUS],
+        "threads": {1, NUMCPUS},
         "compress": lambda level, kwargs: lz4.frame.compress(DATA, level, **kwargs),
         "decompress": lambda data: lz4.frame.decompress(data),
         "extra_args": [
