@@ -37,6 +37,7 @@ RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
 
 RUN chmod +x /usr/local/bin/pt_linux
 
+ADD passmark.sh /usr/local/bin/passmark.sh
 # PassMark expects a terminal
 ENV TERM=xterm
-CMD ["bash", "-c", "nice -n -20 /usr/local/bin/pt_linux -r 3 1>&2; cat results_all.yml"]
+CMD /usr/local/bin/passmark.sh
