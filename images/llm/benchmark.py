@@ -155,7 +155,8 @@ for model in models:
         try:
             run(
                 COMMAND
-                + ["-m", model_path, "-ngl", str(ngl), "-p", str(n_prompt), "-n", "0"]
+                + ["-m", model_path, "-ngl", str(ngl), "-p", str(n_prompt), "-n", "0"],
+                timeout=TIMEOUT,
             )
         except Exception as e:
             logger.error(
@@ -176,7 +177,8 @@ for model in models:
                     str(n_generation),
                     "-p",
                     "0",
-                ]
+                ],
+                timeout=TIMEOUT,
             )
         except Exception as e:
             logger.error(
