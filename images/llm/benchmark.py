@@ -3,7 +3,7 @@
 from argparse import ArgumentParser
 from functools import cache
 from logging import DEBUG, StreamHandler, basicConfig, getLogger
-from os import path
+from os import chdir, path
 from subprocess import run
 from sys import stderr
 from urllib.request import urlretrieve
@@ -55,9 +55,12 @@ def download_models(model_urls: list[str], models_dir: str):
     for model_url in model_urls:
         model_name = model_url.split("/")[-1]
         model_path = path.join(models_dir, model_name)
-        if not path.exists(model_path):
+        if path.exists(model_path):
+            logger.debug(f"Model {model_name} already exists, skipping download")
+        else:
+            logger.debug(f"Downloading model {model_name} from {model_url}")
             urlretrieve(model_url, model_path)
 
 
-get_llama_cpp_path()
+chdir(get_llama_cpp_path())
 download_models(model_urls=cli_args.model_urls, models_dir=cli_args.models_dir)
