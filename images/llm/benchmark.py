@@ -2,9 +2,18 @@
 
 from argparse import ArgumentParser
 from functools import cache
+from logging import DEBUG, StreamHandler, basicConfig, getLogger
 from os import path
 from subprocess import run
+from sys import stderr
 from urllib.request import urlretrieve
+
+basicConfig(
+    level=DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[StreamHandler(stderr)],
+)
+logger = getLogger("benchmark")
 
 cli_parser = ArgumentParser(description="Benchmark LLM model inference speed")
 cli_parser.add_argument(
@@ -36,6 +45,9 @@ def get_llama_cpp_path():
     result = run(["./llama-cli", "--version"], cwd=llama_cpp_path, capture_output=True)
     if result.returncode != 0:
         llama_cpp_path = "/llama_cpp_cpu"
+        logger.debug("Using CPU-build of llama.cpp")
+    else:
+        logger.debug("Using GPU-build of llama.cpp")
     return llama_cpp_path
 
 
@@ -47,5 +59,5 @@ def download_models(model_urls: list[str], models_dir: str):
             urlretrieve(model_url, model_path)
 
 
-print(get_llama_cpp_path())
+get_llama_cpp_path()
 download_models(model_urls=cli_args.model_urls, models_dir=cli_args.models_dir)
