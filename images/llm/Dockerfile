@@ -9,7 +9,6 @@ FROM ghcr.io/ggerganov/llama.cpp:full-cuda AS base_amd64
 RUN mv /app /llama_cpp_gpu
 
 FROM ghcr.io/ggerganov/llama.cpp:full AS base_arm64
-RUN echo 2
 
 ARG TARGETARCH
 FROM base_${TARGETARCH} AS final
