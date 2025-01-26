@@ -135,7 +135,11 @@ def max_ngl(model: str):
 
 chdir(get_llama_cpp_path())
 download_models(model_urls=cli_args.model_urls, models_dir=cli_args.models_dir)
-models = list_models(cli_args.models_dir)
+models = [
+    m
+    for m in list_models(cli_args.models_dir)
+    if m in [fn.split("/")[-1] for fn in cli_args.model_urls]
+]
 
 
 #     -p 0,16,32,128,256,512,1024,2048,4096,8192,16384,32768 \
