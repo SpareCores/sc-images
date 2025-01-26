@@ -23,11 +23,12 @@ cli_parser.add_argument(
     nargs="+",
     type=str,
     default=[
-        "https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q4_K_M.gguf",
-        "https://huggingface.co/Qwen/Qwen1.5-0.5B-Chat-GGUF/resolve/main/qwen1_5-0_5b-chat-q4_k_m.gguf",
-        # "https://huggingface.co/bartowski/codegemma-2b-GGUF/blob/main/codegemma-2b-Q4_K_M.gguf",
-        # "https://huggingface.co/microsoft/phi-4-gguf/blob/main/phi-4-q4.gguf",
-        # "https://huggingface.co/unsloth/Llama-3.3-70B-Instruct-GGUF/blob/main/Llama-3.3-70B-Instruct-Q4_K_M.gguf",
+        "https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q4_K_M.gguf",  # 135 M / 100 MB
+        "https://huggingface.co/Qwen/Qwen1.5-0.5B-Chat-GGUF/resolve/main/qwen1_5-0_5b-chat-q4_k_m.gguf",  # 0.5 B / 400 MB
+        "https://huggingface.co/mlabonne/gemma-2b-GGUF/resolve/main/gemma-2b.Q4_K_M.gguf",  # 2B / 1.5 GB
+        "https://huggingface.co/TheBloke/LLaMA-7b-GGUF/resolve/main/llama-7b.Q4_K_M.gguf",  # 7B / 4 GB
+        "https://huggingface.co/microsoft/phi-4-gguf/resolve/main/phi-4-q4.gguf",  # 14 B / 9 GB
+        "https://huggingface.co/unsloth/Llama-3.3-70B-Instruct-GGUF/resolve/main/Llama-3.3-70B-Instruct-Q4_K_M.gguf",  # 70 B / 42 GB
     ],
     help="List of URLs of quantized LLM models (gguf) to download andbenchmark.",
 )
