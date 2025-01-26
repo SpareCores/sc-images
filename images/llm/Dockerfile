@@ -14,6 +14,7 @@ RUN echo 2
 ARG TARGETARCH
 FROM base_${TARGETARCH} AS final
 COPY --from=base_cpu /llama_cpp_cpu /llama_cpp_cpu
+RUN pip install psutil
 RUN mkdir -p /models
 
 COPY benchmark.py /benchmark.py
