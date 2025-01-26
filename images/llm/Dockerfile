@@ -27,3 +27,7 @@ COPY --from=base_cpu /llama_cpp_cpu /llama_cpp_cpu
 #   # 70 B / 50 GB
 #   https://huggingface.co/unsloth/Llama-3.3-70B-Instruct-GGUF/blob/main/Llama-3.3-70B-Instruct-Q4_K_M.gguf \
 #   /models/
+
+COPY benchmark.py /benchmark.py
+ENTRYPOINT ["/bin/bash"]
+CMD ["/benchmark.py"]
