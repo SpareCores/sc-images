@@ -41,7 +41,10 @@ cli_args = cli_parser.parse_args()
 
 # #############################################################################
 
+# max number of seconds to wait for a benchmark to finish
 TIMEOUT = 60
+
+# default command for llama-bench
 COMMAND = [
     "./llama-bench",
     # best performance is achieved with all physical cores
@@ -55,9 +58,6 @@ COMMAND = [
     # flash attention is always faster
     "-fa",
     "1",
-    # offload as many layers as possible
-    "-ngl",
-    "999",  # TODO update after testing per model
     # use default batch sizes
     "-ub",
     "512",
@@ -68,6 +68,10 @@ COMMAND = [
     "jsonl",
 ]
 
+# prompt processing batch sizes
+N_PROMPTS = [0, 16, 32, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+# text generation batch sizes
+N_GENERATIONS = [1, 16, 32, 128, 512, 1024, 2048, 4096, 8192]
 
 # #############################################################################
 
@@ -112,7 +116,7 @@ def list_models(models_dir: str):
 
 
 def max_ngl(model: str):
-    """Find max ngl that doesn't fail."""
+    """Find max ngl that doesn't fail so that we can offload as many layers as possible."""
     if not cuda_available():
         return 0
     for ngl in [999, 40, 24, 12]:
@@ -141,17 +145,26 @@ models = [
     if m in [fn.split("/")[-1] for fn in cli_args.model_urls]
 ]
 
-
-#     -p 0,16,32,128,256,512,1024,2048,4096,8192,16384,32768 \
-#     -n 1,16,32,128,512,1024,2048,4096,8192 \
-#     -o jsonl
-
-
 for model in models:
-    try:
-        ngl = max_ngl(path.join(cli_args.models_dir, model))
-        print(ngl)
-        # run(COMMAND + ["-m", model, "-ngl", str(ngl)])
-    except Exception as e:
-        logger.error(f"Failed to process model {model}: {e}")
-        continue
+    logger.info(f"Benchmarking model {model}")
+    model_path = path.join(cli_args.models_dir, model)
+    ngl = max_ngl(model_path)
+    logger.debug(f"Using ngl {ngl} for model {model}")
+    for n_prompt in N_PROMPTS:
+        logger.debug(f"Processing {n_prompt} tokens")
+        try:
+            run(COMMAND + ["-m", model_path, "-ngl", str(ngl), "-p", str(n_prompt)])
+        except Exception as e:
+            logger.error(
+                f"Failed to process model {model} while processing {n_prompt} tokens: {e}"
+            )
+            break
+    for n_generation in N_GENERATIONS:
+        logger.debug(f"Generating {n_generation} tokens")
+        try:
+            run(COMMAND + ["-m", model_path, "-ngl", str(ngl), "-n", str(n_generation)])
+        except Exception as e:
+            logger.error(
+                f"Failed to process model {model} while generating {n_generation} tokens: {e}"
+            )
+            break
