@@ -30,7 +30,7 @@ cli_parser.add_argument(
         "https://huggingface.co/microsoft/phi-4-gguf/resolve/main/phi-4-q4.gguf",  # 14 B / 9 GB
         "https://huggingface.co/unsloth/Llama-3.3-70B-Instruct-GGUF/resolve/main/Llama-3.3-70B-Instruct-Q4_K_M.gguf",  # 70 B / 42 GB
     ],
-    help="List of URLs of quantized LLM models (gguf) to download andbenchmark.",
+    help="List of URLs of quantized LLM models (gguf) to download and benchmark.",
 )
 cli_parser.add_argument(
     "--models-dir",
