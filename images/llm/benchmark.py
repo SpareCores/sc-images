@@ -73,7 +73,7 @@ BENCHMARKS = [
     {
         # prompt processing batch sizes
         "name": "prompt processing",
-        "iterations": [0, 16, 32, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768],
+        "iterations": [16, 32, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768],
         "iteration_param": "-p",
         "extra_params": ["-n", "0"],
     },
