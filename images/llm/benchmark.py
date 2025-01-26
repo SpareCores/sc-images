@@ -73,14 +73,14 @@ BENCHMARKS = [
         # prompt processing batch sizes
         "name": "prompt processing",
         "iterations": [0, 16, 32, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768],
-        "iteartion_param": "-p",
+        "iteration_param": "-p",
         "extra_params": ["-n", "0"],
     },
     {
         # text generation batch sizes
         "name": "text generation",
         "iterations": [1, 16, 32, 128, 512, 1024, 2048, 4096, 8192],
-        "iteartion_param": "-n",
+        "iteration_param": "-n",
         "extra_params": ["-p", "0"],
     },
 ]
@@ -170,7 +170,7 @@ for model in models:
             try:
                 run(
                     cmd
-                    + [benchmark["iteartion_param"], str(iteration)]
+                    + [benchmark["iteration_param"], str(iteration)]
                     + benchmark["extra_params"],
                     timeout=TIMEOUT,
                 )

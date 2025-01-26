@@ -21,7 +21,7 @@ collect_libs() {
         if [[ "$LIB" == "linux-vdso.so.1" ]]; then
             continue
         fi
-        # look up sumlink reference (if any)
+        # look up symlink reference (if any)
         REAL_LIB=$(readlink -f "$LIB" || echo "$LIB")
         # skip already handled files and symlinks
         if [[ -n "$REAL_LIB" && ! -f "$LIBS_DIR/$(basename "$REAL_LIB")" && ! -f "$LIBS_DIR/$(basename "$LIB")" ]]; then
