@@ -165,7 +165,7 @@ for model in models:
 
     cmd = COMMAND + ["-m", model_path, "-ngl", str(ngl)]
     for benchmark in BENCHMARKS:
-        for iteration in benchmark["iterations"]:
+        for i, iteration in enumerate(benchmark["iterations"]):
             logger.debug(f"Benchmarking {benchmark['name']} with {iteration} tokens")
             try:
                 run(
@@ -176,4 +176,9 @@ for model in models:
                 )
             except Exception as e:
                 logger.error(f"Error: {e}")
+                if i != len(benchmark["iterations"]) - 1:
+                    logger.info(
+                        f"Skipping {benchmark['name']} benchmarks "
+                        f"with {iteration}+ tokens due to time constraints."
+                    )
                 break
