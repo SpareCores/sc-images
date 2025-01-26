@@ -153,7 +153,10 @@ for model in models:
     for n_prompt in N_PROMPTS:
         logger.debug(f"Processing {n_prompt} tokens")
         try:
-            run(COMMAND + ["-m", model_path, "-ngl", str(ngl), "-p", str(n_prompt)])
+            run(
+                COMMAND
+                + ["-m", model_path, "-ngl", str(ngl), "-p", str(n_prompt), "-n", "0"]
+            )
         except Exception as e:
             logger.error(
                 f"Failed to process model {model} while processing {n_prompt} tokens: {e}"
@@ -162,7 +165,19 @@ for model in models:
     for n_generation in N_GENERATIONS:
         logger.debug(f"Generating {n_generation} tokens")
         try:
-            run(COMMAND + ["-m", model_path, "-ngl", str(ngl), "-n", str(n_generation)])
+            run(
+                COMMAND
+                + [
+                    "-m",
+                    model_path,
+                    "-ngl",
+                    str(ngl),
+                    "-n",
+                    str(n_generation),
+                    "-p",
+                    "0",
+                ]
+            )
         except Exception as e:
             logger.error(
                 f"Failed to process model {model} while generating {n_generation} tokens: {e}"
