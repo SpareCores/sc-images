@@ -17,5 +17,4 @@ RUN pip install psutil
 VOLUME /models
 
 COPY benchmark.py /benchmark.py
-ENTRYPOINT ["/bin/bash"]
-CMD ["-c", "/benchmark.py"]
+ENTRYPOINT ["/benchmark.py"]
