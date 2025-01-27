@@ -3,6 +3,7 @@
 from argparse import ArgumentParser
 from functools import cache
 from logging import DEBUG, StreamHandler, basicConfig, getLogger
+from multiprocessing import Manager, Process
 from os import chdir, listdir, path
 from subprocess import run
 from sys import stderr
@@ -106,7 +107,7 @@ def cuda_available():
     return get_llama_cpp_path() == "/llama_cpp_gpu"
 
 
-def download_models(model_urls: list[str], models_dir: str):
+def download_models(model_urls: list[str], models_dir: str, model_events: dict = {}):
     """Download gguf models from provided URLs."""
     for model_url in model_urls:
         model_name = model_url.split("/")[-1]
@@ -115,7 +116,29 @@ def download_models(model_urls: list[str], models_dir: str):
             logger.debug(f"Model {model_name} already exists, skipping download")
         else:
             logger.debug(f"Downloading model {model_name} from {model_url}")
+            # TODO use a temp file to make it easier clean up partial downloads?
             urlretrieve(model_url, model_path)
+            model_events[model_name].set()
+
+
+def download_models_background(model_urls: list[str], models_dir: str):
+    """Download gguf models from provided URLs in a background process.
+
+    Returns:
+        tuple[Process, dict[str, Event]]: The background process and a dictionary of model download completion events.
+    """
+    manager = Manager()
+    model_events = manager.dict()
+
+    for url in model_urls:
+        model_name = url.split("/")[-1]
+        model_events[model_name] = manager.Event()
+
+    process = Process(
+        target=download_models, args=(model_urls, models_dir, model_events)
+    )
+    process.start()
+    return process, model_events
 
 
 def list_models(models_dir: str):
@@ -151,18 +174,21 @@ def max_ngl(model: str):
 
 
 chdir(get_llama_cpp_path())
-download_models(model_urls=cli_args.model_urls, models_dir=cli_args.models_dir)
-models = [
-    m
-    for m in list_models(cli_args.models_dir)
-    if m in [fn.split("/")[-1] for fn in cli_args.model_urls]
-]
 
-for model in models:
-    logger.info(f"Benchmarking model {model}")
-    model_path = path.join(cli_args.models_dir, model)
+models_download_process, models_downloaded = download_models_background(
+    model_urls=cli_args.model_urls, models_dir=cli_args.models_dir
+)
+
+for model_url in cli_args.model_urls:
+    model_name = model_url.split("/")[-1]
+    logger.info(f"Benchmarking model {model_name} ...")
+    models_downloaded[model_name].wait(timeout=60 * 5)
+    model_path = path.join(cli_args.models_dir, model_name)
+    model_size_bytes = path.getsize(model_path)
+    model_size_gb = model_size_bytes / (1024 * 1024 * 1024)
+    logger.debug(f"Model {model_name} found at {model_path} ({model_size_gb:.2f} GB)")
     ngl = max_ngl(model_path)
-    logger.debug(f"Using ngl {ngl} for model {model}")
+    logger.debug(f"Using ngl {ngl} for model {model_name}")
 
     cmd = COMMAND + ["-m", model_path, "-ngl", str(ngl)]
     for benchmark in BENCHMARKS:
