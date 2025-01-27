@@ -42,12 +42,15 @@ cli_parser.add_argument(
     default="/models",
     help="Directory to cache/store downloaded models.",
 )
+cli_parser.add_argument(
+    "--benchmark-timeout",
+    type=int,
+    default=60,
+    help="Timeout in seconds for a single benchmark.",
+)
 cli_args = cli_parser.parse_args()
 
 # #############################################################################
-
-# max number of seconds to wait for a benchmark to finish
-TIMEOUT = 60
 
 # default command for llama-bench
 COMMAND = [
@@ -192,7 +195,7 @@ def max_ngl(model: str):
             result = run(
                 COMMAND + ["-m", model, "-ngl", str(ngl), "-r", "1", "-t", "1"],
                 capture_output=True,
-                timeout=TIMEOUT,
+                timeout=cli_args.benchmark_timeout,
             )
             if result.returncode == 0:
                 return ngl
@@ -232,7 +235,7 @@ for model_url in cli_args.model_urls:
                     cmd
                     + [benchmark["iteration_param"], str(iteration)]
                     + benchmark["extra_params"],
-                    timeout=TIMEOUT,
+                    timeout=cli_args.benchmark_timeout,
                 )
             except Exception as e:
                 logger.error(f"Error: {e}")
