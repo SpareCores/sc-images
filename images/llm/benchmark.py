@@ -118,7 +118,7 @@ def download_models(model_urls: list[str], models_dir: str, model_events: dict =
             logger.debug(f"Downloading model {model_name} from {model_url}")
             # TODO use a temp file to make it easier clean up partial downloads?
             urlretrieve(model_url, model_path)
-            model_events[model_name].set()
+        model_events[model_name].set()
 
 
 def download_models_background(model_urls: list[str], models_dir: str):
@@ -178,6 +178,7 @@ chdir(get_llama_cpp_path())
 models_download_process, models_downloaded = download_models_background(
     model_urls=cli_args.model_urls, models_dir=cli_args.models_dir
 )
+print("foo")
 
 for model_url in cli_args.model_urls:
     model_name = model_url.split("/")[-1]
