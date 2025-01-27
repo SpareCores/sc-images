@@ -4,11 +4,12 @@ from argparse import ArgumentParser
 from functools import cache
 from logging import DEBUG, StreamHandler, basicConfig, getLogger
 from multiprocessing import Manager, Process
-from os import chdir, listdir, path, rename, unlink
+from os import chdir, listdir, nice, path, rename, unlink
 from signal import SIGINT, SIGTERM, signal
 from subprocess import run
 from sys import exit as sys_exit
 from sys import stderr
+from typing import Optional
 from urllib.request import urlretrieve
 
 from psutil import cpu_count
@@ -109,8 +110,15 @@ def cuda_available():
     return get_llama_cpp_path() == "/llama_cpp_gpu"
 
 
-def download_models(model_urls: list[str], models_dir: str, model_events: dict = {}):
+def download_models(
+    model_urls: list[str],
+    models_dir: str,
+    model_events: dict = {},
+    renice: Optional[int] = None,
+):
     """Download gguf models from provided URLs."""
+    if renice:
+        nice(renice)
     for model_url in model_urls:
         model_name = model_url.split("/")[-1]
         model_path = path.join(models_dir, model_name)
@@ -137,8 +145,9 @@ def download_models_background(model_urls: list[str], models_dir: str):
         model_name = url.split("/")[-1]
         model_events[model_name] = manager.Event()
 
+    renice = 19
     process = Process(
-        target=download_models, args=(model_urls, models_dir, model_events)
+        target=download_models, args=(model_urls, models_dir, model_events, renice)
     )
     process.start()
     return process, model_events
@@ -206,6 +215,7 @@ models_download_process, models_downloaded = download_models_background(
 for model_url in cli_args.model_urls:
     model_name = model_url.split("/")[-1]
     logger.info(f"Benchmarking model {model_name} ...")
+    # wait max 5 minutes: large models are later in the queue, so should be finished already
     models_downloaded[model_name].wait(timeout=60 * 5)
     model_path = path.join(cli_args.models_dir, model_name)
     model_size_bytes = path.getsize(model_path)
@@ -227,7 +237,14 @@ for model_url in cli_args.model_urls:
                 )
             except Exception as e:
                 logger.error(f"Error: {e}")
-                if i != len(benchmark["iterations"]) - 1:
+                if i == 0:
+                    logger.info(
+                        "Benchmarking failed with simplest task, so skipping larger models."
+                    )
+                    models_download_process.terminate()
+                    models_download_process.join()
+                    exit(0)
+                elif i != len(benchmark["iterations"]) - 1:
                     logger.info(
                         f"Skipping {benchmark['name']} benchmarks "
                         f"with {iteration}+ tokens due to time constraints."
