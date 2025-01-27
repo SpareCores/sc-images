@@ -18,4 +18,4 @@ VOLUME /models
 
 COPY benchmark.py /benchmark.py
 ENTRYPOINT ["/bin/bash"]
-CMD ["/benchmark.py"]
+CMD ["-c", "/benchmark.py"]
