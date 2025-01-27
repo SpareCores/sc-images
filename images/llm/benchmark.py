@@ -4,8 +4,10 @@ from argparse import ArgumentParser
 from functools import cache
 from logging import DEBUG, StreamHandler, basicConfig, getLogger
 from multiprocessing import Manager, Process
-from os import chdir, listdir, path, rename
+from os import chdir, listdir, path, rename, unlink
+from signal import SIGINT, SIGTERM, signal
 from subprocess import run
+from sys import exit as sys_exit
 from sys import stderr
 from urllib.request import urlretrieve
 
@@ -142,6 +144,26 @@ def download_models_background(model_urls: list[str], models_dir: str):
     return process, model_events
 
 
+def cleanup_partially_downloaded_models(models_dir: str):
+    """Remove all .part files in the models directory."""
+    for filename in listdir(models_dir):
+        if filename.endswith(".part"):
+            try:
+                unlink(path.join(models_dir, filename))
+                logger.debug(f"Deleted partially downloaded model file: {filename}")
+            except FileNotFoundError:
+                pass
+            except Exception as e:
+                logger.error(f"Failed to remove {filename}: {e}")
+
+
+def signal_handler(signum, frame):
+    """Handle interrupt signals by cleaning up and exiting."""
+    logger.info("Received interrupt signal, cleaning up...")
+    cleanup_partially_downloaded_models(cli_args.models_dir)
+    sys_exit(128 + signum)
+
+
 def list_models(models_dir: str):
     """List all .gguf model files in the models directory."""
 
@@ -173,8 +195,9 @@ def max_ngl(model: str):
 
 # #############################################################################
 
-
 chdir(get_llama_cpp_path())
+signal(SIGINT, signal_handler)
+signal(SIGTERM, signal_handler)
 
 models_download_process, models_downloaded = download_models_background(
     model_urls=cli_args.model_urls, models_dir=cli_args.models_dir
