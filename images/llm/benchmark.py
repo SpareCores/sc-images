@@ -218,8 +218,7 @@ for model_url in cli_args.model_urls:
     # wait max 5 minutes: large models are later in the queue, so should be finished already
     models_downloaded[model_name].wait(timeout=60 * 5)
     model_path = path.join(cli_args.models_dir, model_name)
-    model_size_bytes = path.getsize(model_path)
-    model_size_gb = model_size_bytes / (1024 * 1024 * 1024)
+    model_size_gb = path.getsize(model_path) / 1024**3
     logger.debug(f"Model {model_name} found at {model_path} ({model_size_gb:.2f} GB)")
     ngl = max_ngl(model_path)
     logger.debug(f"Using ngl {ngl} for model {model_name}")
