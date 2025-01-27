@@ -2,6 +2,7 @@ FROM ghcr.io/ggerganov/llama.cpp:full AS base_cpu
 # collect and copy shared libs for CPU-optimized benchmarks on AMD64,
 # where the default build is CUDA
 COPY extract-shared-cpu-libs.sh /tmp/extract-shared-cpu-libs.sh
+ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "amd64" ]; then /tmp/extract-shared-cpu-libs.sh; fi
 RUN mv /app /llama_cpp_cpu
 
