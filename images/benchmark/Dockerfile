@@ -33,7 +33,7 @@ RUN apt-get update --error-on=any && apt-get install -y lmbench && \
     # different path by CPU architecture
     cp $(dpkg -L lmbench | grep '\/bw_mem$') /
 FROM build_base as geekbench
-ENV GEEKBENCH_VER=6.3.0
+ENV GEEKBENCH_VER=6.4.0
 RUN --mount=type=tmpfs,target=/tmp,rw \
     mkdir -p /usr/local/geekbench-x86_64 /usr/local/geekbench-aarch64 && \
     curl -sSLfo - https://cdn.geekbench.com/Geekbench-${GEEKBENCH_VER}-Linux.tar.gz | tar zxf - -C /usr/local/geekbench-x86_64 --strip-components=1 && \
