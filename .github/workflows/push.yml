@@ -55,6 +55,8 @@ jobs:
       # we need to have two buildcache tags, but they conflict/race on the first build, so let's (re)build the amd64/arm64
       # images from the cache and push their buildcaches individually
       - name: Build and push amd64/arm64 Docker image
+        id: build-and-push
+        continue-on-error: true
         uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}/images/${{ matrix.folder }}
@@ -66,6 +68,7 @@ jobs:
             type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-arm64
             type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-amd64
       - name: Push amd64 Docker image's buildcache
+        if: always()
         uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}/images/${{ matrix.folder }}
@@ -76,6 +79,7 @@ jobs:
           cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-amd64
           cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-amd64,mode=max
       - name: Push arm64 Docker image's buildcache
+        if: always()
         uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}/images/${{ matrix.folder }}
@@ -85,3 +89,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-arm64
           cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-arm64,mode=max
+      - name: Check build status
+        if: steps.build-and-push.outcome == 'failure'
+        run: exit 1
