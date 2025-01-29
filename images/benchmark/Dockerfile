@@ -11,7 +11,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     apt-get install -y python3-venv
 
 FROM base as build_base
-ENV OPENSSL_VER=3.3.0
+ENV OPENSSL_VER=3.4.0
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
