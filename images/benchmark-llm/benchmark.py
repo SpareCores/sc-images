@@ -78,16 +78,14 @@ COMMAND = [
 
 BENCHMARKS = [
     {
-        # prompt processing batch sizes
         "name": "prompt processing",
-        "iterations": [16, 32, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768],
+        "iterations": [16, 128, 512, 1024, 4096, 16384],
         "iteration_param": "-p",
         "extra_params": ["-n", "0"],
     },
     {
-        # text generation batch sizes
         "name": "text generation",
-        "iterations": [1, 16, 32, 128, 512, 1024, 2048, 4096, 8192],
+        "iterations": [16, 128, 512, 1024, 4096],
         "iteration_param": "-n",
         "extra_params": ["-p", "0"],
     },
