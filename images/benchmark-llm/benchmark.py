@@ -45,7 +45,7 @@ cli_parser.add_argument(
 cli_parser.add_argument(
     "--benchmark-timeout",
     type=int,
-    default=60,
+    default=90,
     help="Timeout in seconds for a single benchmark.",
 )
 cli_args = cli_parser.parse_args()
