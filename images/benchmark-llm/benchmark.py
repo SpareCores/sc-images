@@ -219,7 +219,12 @@ for model_url in cli_args.model_urls:
     model_name = model_url.split("/")[-1]
     logger.info(f"Benchmarking model {model_name} ...")
     # wait max 5 minutes: large models are later in the queue, so should be finished already
-    models_downloaded[model_name].wait(timeout=60 * 5)
+    if not models_downloaded[model_name].wait(timeout=60 * 5):
+        logger.error(f"{model_name} was not downloaded in time.")
+        models_download_process.terminate()
+        models_download_process.join()
+        sys_exit(1)
+
     model_path = path.join(cli_args.models_dir, model_name)
     model_size_gb = path.getsize(model_path) / 1024**3
     logger.debug(f"Model {model_name} found at {model_path} ({model_size_gb:.2f} GB)")
