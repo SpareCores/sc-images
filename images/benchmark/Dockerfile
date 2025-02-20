@@ -11,7 +11,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     apt-get install -y python3-venv
 
 FROM base as build_base
-ENV OPENSSL_VER=3.3.0
+ENV OPENSSL_VER=3.4.0
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
@@ -33,7 +33,7 @@ RUN apt-get update --error-on=any && apt-get install -y lmbench && \
     # different path by CPU architecture
     cp $(dpkg -L lmbench | grep '\/bw_mem$') /
 FROM build_base as geekbench
-ENV GEEKBENCH_VER=6.3.0
+ENV GEEKBENCH_VER=6.4.0
 RUN --mount=type=tmpfs,target=/tmp,rw \
     mkdir -p /usr/local/geekbench-x86_64 /usr/local/geekbench-aarch64 && \
     curl -sSLfo - https://cdn.geekbench.com/Geekbench-${GEEKBENCH_VER}-Linux.tar.gz | tar zxf - -C /usr/local/geekbench-x86_64 --strip-components=1 && \
