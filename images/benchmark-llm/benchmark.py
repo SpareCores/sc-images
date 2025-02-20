@@ -219,7 +219,7 @@ for model_url in cli_args.model_urls:
     model_name = model_url.split("/")[-1]
     logger.info(f"Benchmarking model {model_name} ...")
     # wait max 5 minutes: large models are later in the queue, so should be finished already
-    if not models_downloaded[model_name].wait(timeout=60 * 5):
+    if not models_downloaded[model_name].wait(timeout=60 * 15):
         logger.error(f"{model_name} was not downloaded in time.")
         models_download_process.terminate()
         models_download_process.join()
