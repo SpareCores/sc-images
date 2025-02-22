@@ -9,6 +9,7 @@ from signal import SIGINT, SIGTERM, signal
 from subprocess import run
 from sys import exit as sys_exit
 from sys import stderr
+from time import time
 from typing import Optional
 from urllib.request import urlretrieve
 
@@ -252,6 +253,7 @@ for model_url in cli_args.model_urls:
     cmd = COMMAND + ["-m", model_path, "-ngl", str(ngl)]
     for benchmark in BENCHMARKS:
         for i, iteration in enumerate(benchmark["iterations"]):
+            start_time = time()
             timeout = round(
                 (model_load_time + benchmark["timeouts"][i])
                 * cli_args.benchmark_timeout_scale
@@ -280,4 +282,13 @@ for model_url in cli_args.model_urls:
                         f"Skipping {benchmark['name']} benchmarks "
                         f"with {iteration}+ tokens due to time constraints."
                     )
+                break
+            if (
+                i != len(benchmark["iterations"]) - 1
+                and time() - start_time > timeout / 2
+            ):
+                logger.error(
+                    f"Skipping {benchmark['name']} benchmarks with {iteration}+ tokens "
+                    f"as it's unlikely to finish in time with the higher tokens/sec expectations."
+                )
                 break
