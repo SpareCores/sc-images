@@ -43,10 +43,10 @@ cli_parser.add_argument(
     help="Directory to cache/store downloaded models.",
 )
 cli_parser.add_argument(
-    "--benchmark-timeout",
+    "--benchmark-timeout-scale",
     type=int,
-    default=90,
-    help="Timeout in seconds for a single benchmark.",
+    default=1,
+    help="Scale the benchmark timeout by this factor. The default is 1, using a dynamic timeout for each benchmark secnario based on the model size (estimated time to load into memory/VRAM), the task (text generation is slower than prompt processing), and the number of tokens as requiring higher tokens/sec for larger number of tokens. Setting this to 2 means the timeout will be doubled etc.",
 )
 cli_args = cli_parser.parse_args()
 
@@ -81,12 +81,29 @@ BENCHMARKS = [
         "name": "prompt processing",
         "iterations": [16, 128, 512, 1024, 4096, 16384],
         "iteration_param": "-p",
+        "timeouts": [
+            # 1 sec overhead + 5 repeats * token length / expected tps
+            1 + 5 * 16 / 2,  # 41 sec with 2 tokens/sec
+            1 + 5 * 128 / 10,  # 65 sec with 10 tokens/sec
+            1 + 5 * 512 / 25,  # 103 sec with 25 tokens/sec
+            1 + 5 * 1024 / 50,  # 103 sec with 50 tokens/sec
+            1 + 5 * 4096 / 250,  # 82 sec with 250 tokens/sec
+            1 + 5 * 16384 / 1000,  # 82 sec with 1000 tokens/sec
+        ],
         "extra_params": ["-n", "0"],
     },
     {
         "name": "text generation",
         "iterations": [16, 128, 512, 1024, 4096],
         "iteration_param": "-n",
+        "timeouts": [
+            # 1 sec overhead + 5 repeats * token length / expected tps
+            1 + 5 * 16 / 1,  # 81 sec with 1 tokens/sec
+            1 + 5 * 128 / 5,  # 129 sec with 5 tokens/sec
+            1 + 5 * 512 / 25,  # 103 sec with 25 tokens/sec
+            1 + 5 * 1024 / 50,  # 103 sec with 50 tokens/sec
+            1 + 5 * 4096 / 250,  # 82 sec with 250 tokens/sec
+        ],
         "extra_params": ["-p", "0"],
     },
 ]
@@ -193,7 +210,7 @@ def max_ngl(model: str):
             result = run(
                 COMMAND + ["-m", model, "-ngl", str(ngl), "-r", "1", "-t", "1"],
                 capture_output=True,
-                timeout=cli_args.benchmark_timeout,
+                timeout=120,  # static 2 mins that is longer than any tested scenario
             )
             if result.returncode == 0:
                 return ngl
@@ -229,16 +246,25 @@ for model_url in cli_args.model_urls:
     ngl = max_ngl(model_path)
     logger.debug(f"Using ngl {ngl} for model {model_name}")
 
+    # conservative estimate for loading the model into memory/VRAM
+    model_load_time = model_size_gb / 0.250  # 250 MB/s
+
     cmd = COMMAND + ["-m", model_path, "-ngl", str(ngl)]
     for benchmark in BENCHMARKS:
         for i, iteration in enumerate(benchmark["iterations"]):
-            logger.debug(f"Benchmarking {benchmark['name']} with {iteration} tokens")
+            timeout = round(
+                (model_load_time + benchmark["timeouts"][i])
+                * cli_args.benchmark_timeout_scale
+            )
+            logger.debug(
+                f"Benchmarking {benchmark['name']} with {iteration} tokens for max {timeout} sec"
+            )
             try:
                 run(
                     cmd
                     + [benchmark["iteration_param"], str(iteration)]
                     + benchmark["extra_params"],
-                    timeout=cli_args.benchmark_timeout,
+                    timeout=timeout,
                 )
             except Exception as e:
                 logger.error(f"Error: {e}")
