@@ -38,8 +38,23 @@ to save compute resources. If you want to allow longer runs, use the
 
 ### Usage
 
+CPU-only (available on AMD64 and ARM64):
+
+```sh
+docker run --rm --init ghcr.io/sparecores/benchmark-llm:main
+```
+
+CUDA with GPUs (available only on AMD64):
+
 ```sh
 docker run --gpus all --rm --init ghcr.io/sparecores/benchmark-llm:main
+```
+
+JSON lines output is printed to `stdout`, which can be piped to a file for
+processing later, e.g.:
+
+```sh
+docker run --rm --init ghcr.io/sparecores/benchmark-llm:main | tee -a results.jsonl
 ```
 
 ### Models
