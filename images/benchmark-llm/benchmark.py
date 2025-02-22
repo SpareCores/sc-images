@@ -130,9 +130,16 @@ def download_models(
             logger.debug(f"Model {model_name} already exists, skipping download")
         else:
             logger.debug(f"Downloading model {model_name} from {model_url}")
+            timer_start = time()
             temp_path = model_path + ".part"
             urlretrieve(model_url, temp_path)
             rename(temp_path, model_path)
+            model_size = path.getsize(model_path) / 1024**2
+            download_time = time() - timer_start
+            logger.debug(
+                f"Downloaded model {model_name} ({model_size:.2f} MB) in "
+                f"{download_time:.2f} sec ({model_size / download_time:.2f} MB/s)"
+            )
         model_events[model_name].set()
 
 
