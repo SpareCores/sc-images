@@ -82,29 +82,14 @@ BENCHMARKS = [
         "name": "prompt processing",
         "iterations": [16, 128, 512, 1024, 4096, 16384],
         "iteration_param": "-p",
-        "timeouts": [
-            # 1 sec overhead + 5 repeats * token length / expected tps
-            1 + 5 * 16 / 2,  # 41 sec with 2 tokens/sec
-            1 + 5 * 128 / 10,  # 65 sec with 10 tokens/sec
-            1 + 5 * 512 / 25,  # 103 sec with 25 tokens/sec
-            1 + 5 * 1024 / 50,  # 103 sec with 50 tokens/sec
-            1 + 5 * 4096 / 250,  # 82 sec with 250 tokens/sec
-            1 + 5 * 16384 / 1000,  # 82 sec with 1000 tokens/sec
-        ],
+        "expected_tps": [2, 10, 25, 50, 250, 1000],
         "extra_params": ["-n", "0"],
     },
     {
         "name": "text generation",
         "iterations": [16, 128, 512, 1024, 4096],
         "iteration_param": "-n",
-        "timeouts": [
-            # 1 sec overhead + 5 repeats * token length / expected tps
-            1 + 5 * 16 / 1,  # 81 sec with 1 tokens/sec
-            1 + 5 * 128 / 5,  # 129 sec with 5 tokens/sec
-            1 + 5 * 512 / 25,  # 103 sec with 25 tokens/sec
-            1 + 5 * 1024 / 50,  # 103 sec with 50 tokens/sec
-            1 + 5 * 4096 / 250,  # 82 sec with 250 tokens/sec
-        ],
+        "expected_tps": [1, 5, 25, 50, 250],
         "extra_params": ["-p", "0"],
     },
 ]
@@ -248,14 +233,22 @@ for model_url in cli_args.model_urls:
     logger.debug(f"Using ngl {ngl} for model {model_name}")
 
     # conservative estimate for loading the model into memory/VRAM
-    model_load_time = model_size_gb / 0.250  # 250 MB/s
+    model_load_time = model_size_gb / 0.25  # at 250 MB/s
 
     cmd = COMMAND + ["-m", model_path, "-ngl", str(ngl)]
     for benchmark in BENCHMARKS:
         for i, iteration in enumerate(benchmark["iterations"]):
             start_time = time()
             timeout = round(
-                (model_load_time + benchmark["timeouts"][i])
+                (
+                    model_load_time
+                    # 1 sec overhead
+                    + 1
+                    # 5 repeats in a benchmark
+                    + (5 * iteration)
+                    # make sure to stop at max allowed tokens/sec
+                    / benchmark["expected_tps"][i]
+                )
                 * cli_args.benchmark_timeout_scale
             )
             logger.debug(
@@ -283,12 +276,18 @@ for model_url in cli_args.model_urls:
                         f"with {iteration}+ tokens due to time constraints."
                     )
                 break
-            if (
-                i != len(benchmark["iterations"]) - 1
-                and time() - start_time > timeout / 2
-            ):
-                logger.error(
-                    f"Skipping {benchmark['name']} benchmarks with {iteration}+ tokens "
-                    f"as it's unlikely to finish in time with the higher tokens/sec expectations."
-                )
-                break
+            # finish early if we're unlikely to finish in time,
+            # as speedups are less likely to happen with 1024+ tokens
+            if i != len(benchmark["iterations"]) - 1 and iteration >= 1024:
+                if time() - start_time > (
+                    timeout
+                    # adjust for expected tokens/sec increase
+                    * (benchmark["expected_tps"][i] / benchmark["expected_tps"][i + 1])
+                    # adjust for potential small speedup when using more tokens
+                    * 1.1
+                ):
+                    logger.error(
+                        f"Skipping {benchmark['name']} benchmarks with {iteration}+ tokens "
+                        f"as it's unlikely to hit the expected {benchmark['expected_tps'][i + 1]} tokens/sec."
+                    )
+                    break
