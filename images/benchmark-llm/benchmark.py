@@ -125,6 +125,16 @@ def cuda_available():
     return get_llama_cpp_path() == "/llama_cpp_gpu"
 
 
+def get_model_url_size(model_url: str):
+    """Use a HEAD request to get the size of an URL.
+
+    Returns:
+        int: The size of the model in MB.
+    """
+    with urlopen(Request(model_url, method="HEAD")) as response:
+        return int(response.headers.get("Content-Length"), 0) / 1024**2
+
+
 def download_models(
     model_urls: list[str],
     models_dir: str,
@@ -254,10 +264,10 @@ for model_url in cli_args.model_urls:
             )
         except FileNotFoundError:
             downloaded_file_size = 0
-        with urlopen(Request(model_url, method="HEAD")) as response:
-            target_file_size = int(response.headers.get("Content-Length"), 0) / 1024**2
+        target_file_size = get_model_url_size(model_url)
         avg_download_speed = sum(download_speeds.values()) / len(download_speeds)
         remaining_file_size = target_file_size - downloaded_file_size
+        # estimate if we can finish downloading the model in time
         if remaining_file_size > avg_download_speed * cli_args.download_timeout:
             logger.error(
                 f"Downloading {model_name} ({remaining_file_size:.2f} MB remaining out of {target_file_size:.2f} MB) "
@@ -282,16 +292,14 @@ for model_url in cli_args.model_urls:
     ngl = max_ngl(model_path)
     logger.debug(f"Using ngl {ngl} for model {model_name}")
 
-    # conservative estimate for loading the model into memory/VRAM
-    model_load_time = model_size_gb / 0.25  # at 250 MB/s
-
     cmd = COMMAND + ["-m", model_path, "-ngl", str(ngl)]
     for benchmark in BENCHMARKS:
         for i, iteration in enumerate(benchmark["iterations"]):
             start_time = time()
             timeout = round(
                 (
-                    model_load_time
+                    # conservative estimate for loading the model into memory/VRAM with 250 MB/s
+                    model_size_gb / 0.25
                     # 1 sec overhead
                     + 1
                     # 5 repeats in a benchmark
