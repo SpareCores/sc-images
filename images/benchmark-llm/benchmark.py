@@ -11,7 +11,7 @@ from sys import exit as sys_exit
 from sys import stderr
 from time import time
 from typing import Optional
-from urllib.request import urlretrieve
+from urllib.request import Request, urlopen, urlretrieve
 
 from psutil import cpu_count
 
@@ -48,6 +48,12 @@ cli_parser.add_argument(
     type=int,
     default=1,
     help="Scale the benchmark timeout by this factor. The default is 1, using a dynamic timeout for each benchmark secnario based on the model size (estimated time to load into memory/VRAM), the task (text generation is slower than prompt processing), and the number of tokens as requiring higher tokens/sec for larger number of tokens. Setting this to 2 means the timeout will be doubled etc.",
+)
+cli_parser.add_argument(
+    "--download-timeout",
+    type=int,
+    default=60 * 15,
+    help="Timeout for downloading models in seconds.",
 )
 cli_args = cli_parser.parse_args()
 
@@ -123,6 +129,7 @@ def download_models(
     model_urls: list[str],
     models_dir: str,
     model_events: dict = {},
+    download_speeds: dict = {},
     renice: Optional[int] = None,
 ):
     """Download gguf models from provided URLs."""
@@ -141,9 +148,10 @@ def download_models(
             rename(temp_path, model_path)
             model_size = path.getsize(model_path) / 1024**2
             download_time = time() - timer_start
+            download_speeds[model_name] = model_size / download_time
             logger.debug(
                 f"Downloaded model {model_name} ({model_size:.2f} MB) in "
-                f"{download_time:.2f} sec ({model_size / download_time:.2f} MB/s)"
+                f"{download_time:.2f} sec ({download_speeds[model_name]:.2f} MB/s)"
             )
         model_events[model_name].set()
 
@@ -152,10 +160,11 @@ def download_models_background(model_urls: list[str], models_dir: str):
     """Download gguf models from provided URLs in a background process.
 
     Returns:
-        tuple[Process, dict[str, Event]]: The background process and a dictionary of model download completion events.
+        tuple[Process, dict[str, Event], dict[str, float]]: The background process, model download completion events, and download speeds.
     """
     manager = Manager()
     model_events = manager.dict()
+    download_speeds = manager.dict()
 
     for url in model_urls:
         model_name = url.split("/")[-1]
@@ -163,10 +172,11 @@ def download_models_background(model_urls: list[str], models_dir: str):
 
     renice = 19
     process = Process(
-        target=download_models, args=(model_urls, models_dir, model_events, renice)
+        target=download_models,
+        args=(model_urls, models_dir, model_events, download_speeds, renice),
     )
     process.start()
-    return process, model_events
+    return process, model_events, download_speeds
 
 
 def cleanup_partially_downloaded_models(models_dir: str):
@@ -224,15 +234,43 @@ chdir(get_llama_cpp_path())
 signal(SIGINT, signal_handler)
 signal(SIGTERM, signal_handler)
 
-models_download_process, models_downloaded = download_models_background(
-    model_urls=cli_args.model_urls, models_dir=cli_args.models_dir
+models_download_process, models_downloaded, download_speeds = (
+    download_models_background(
+        model_urls=cli_args.model_urls, models_dir=cli_args.models_dir
+    )
 )
 
 for model_url in cli_args.model_urls:
     model_name = model_url.split("/")[-1]
     logger.info(f"Benchmarking model {model_name} ...")
-    # wait max 5 minutes: large models are later in the queue, so should be finished already
-    if not models_downloaded[model_name].wait(timeout=60 * 15):
+
+    # models are downloaded in the background, so hopefully the model is already downloaded,
+    # but if not, we estimate if we can finish downloading it without timing out
+    if len(download_speeds) and not models_downloaded[model_name].is_set():
+        try:
+            downloaded_file_size = (
+                path.getsize(path.join(cli_args.models_dir, model_name + ".part"))
+                / 1024**2
+            )
+        except FileNotFoundError:
+            downloaded_file_size = 0
+        with urlopen(Request(model_url, method="HEAD")) as response:
+            target_file_size = int(response.headers.get("Content-Length"), 0) / 1024**2
+        avg_download_speed = sum(download_speeds.values()) / len(download_speeds)
+        remaining_file_size = target_file_size - downloaded_file_size
+        if remaining_file_size > avg_download_speed * cli_args.download_timeout:
+            logger.error(
+                f"Downloading {model_name} ({remaining_file_size:.2f} MB remaining out of {target_file_size:.2f} MB) "
+                f"would take too long with {avg_download_speed:.2f} MB/s, giving up."
+            )
+            models_download_process.terminate()
+            models_download_process.join()
+            sys_exit(1)
+        logger.info(
+            f"Waiting for {model_name} to be downloaded ({remaining_file_size:.2f} MB) ... ETA: {remaining_file_size / avg_download_speed:.2f} sec"
+        )
+
+    if not models_downloaded[model_name].wait(timeout=cli_args.download_timeout):
         logger.error(f"{model_name} was not downloaded in time.")
         models_download_process.terminate()
         models_download_process.join()
