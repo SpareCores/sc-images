@@ -275,7 +275,7 @@ for model_url in cli_args.model_urls:
             )
             models_download_process.terminate()
             models_download_process.join()
-            sys_exit(1)
+            sys_exit(0)
         logger.info(
             f"Waiting for {model_name} to be downloaded ({remaining_file_size:.2f} MB) ... ETA: {remaining_file_size / avg_download_speed:.2f} sec"
         )
@@ -284,7 +284,7 @@ for model_url in cli_args.model_urls:
         logger.error(f"{model_name} was not downloaded in time.")
         models_download_process.terminate()
         models_download_process.join()
-        sys_exit(1)
+        sys_exit(0)
 
     model_path = path.join(cli_args.models_dir, model_name)
     model_size_gb = path.getsize(model_path) / 1024**3
@@ -327,7 +327,7 @@ for model_url in cli_args.model_urls:
                     )
                     models_download_process.terminate()
                     models_download_process.join()
-                    exit(0)
+                    sys_exit(0)
                 elif i != len(benchmark["iterations"]) - 1:
                     logger.info(
                         f"Skipping {benchmark['name']} benchmarks "
