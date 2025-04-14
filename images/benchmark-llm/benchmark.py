@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import re
 from argparse import ArgumentParser
 from functools import cache
 from logging import DEBUG, StreamHandler, basicConfig, getLogger
@@ -23,6 +24,11 @@ basicConfig(
 logger = getLogger("benchmark")
 
 cli_parser = ArgumentParser(description="Benchmark LLM model inference speed")
+cli_parser.add_argument(
+    "--version",
+    action="store_true",
+    help="Print version information and exit",
+)
 cli_parser.add_argument(
     "--model-urls",
     nargs="+",
@@ -238,11 +244,30 @@ def max_ngl(model: str):
     return 0
 
 
+def get_llama_cpp_version():
+    """Get the version of llama.cpp."""
+    llama_cpp_path = get_llama_cpp_path()
+    result = run(
+        ["./llama-cli", "--version"], cwd=llama_cpp_path, capture_output=True, text=True
+    )
+    if result.returncode == 0:
+        # looking for the pattern like "version: 4753 (51f311e0)"
+        match = re.search(r"version: \d+ \(([a-f0-9]+)\)", result.stderr)
+        if match:
+            return match.group(1)  # extract commit hash (51f311e0)
+    return "unknown"
+
+
 # #############################################################################
 
 chdir(get_llama_cpp_path())
 signal(SIGINT, signal_handler)
 signal(SIGTERM, signal_handler)
+
+if cli_args.version:
+    version = get_llama_cpp_version()
+    print(version)
+    sys_exit(0)
 
 models_download_process, models_downloaded, download_speeds = (
     download_models_background(
