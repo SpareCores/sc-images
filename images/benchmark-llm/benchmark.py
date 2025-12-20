@@ -6,6 +6,7 @@ from functools import cache
 from logging import DEBUG, StreamHandler, basicConfig, getLogger
 from multiprocessing import Manager, Process
 from os import chdir, listdir, nice, path, rename, unlink
+from shutil import disk_usage
 from signal import SIGINT, SIGTERM, signal
 from subprocess import run
 from sys import exit as sys_exit
@@ -154,9 +155,20 @@ def download_models(
     for model_url in model_urls:
         model_name = model_url.split("/")[-1]
         model_path = path.join(models_dir, model_name)
+        skip_download = False
         if path.exists(model_path):
             logger.debug(f"Model {model_name} already exists, skipping download")
+            skip_download = True
         else:
+            # make sure we have enough disk space for the model + 10% extra
+            model_size = float(get_model_url_size(model_url)) * 1.1
+            if disk_usage("/").free / 1024**2 < model_size:
+                logger.info(
+                    f"Not enough free disk space for model {model_name} "
+                    f"({disk_usage('/').free / 1024**2:.2f} MB free, {model_size:.2f} MB needed), skipping download"
+                )
+                skip_download = True
+        if not skip_download:
             logger.debug(f"Downloading model {model_name} from {model_url}")
             timer_start = time()
             temp_path = model_path + ".part"
@@ -312,7 +324,13 @@ for model_url in cli_args.model_urls:
         sys_exit(0)
 
     model_path = path.join(cli_args.models_dir, model_name)
-    model_size_gb = path.getsize(model_path) / 1024**3
+
+    try:
+        model_size_gb = path.getsize(model_path) / 1024**3
+    except FileNotFoundError:
+        logger.error(f"Model {model_name} was not downloaded, skipping benchmark.")
+        continue
+
     logger.debug(f"Model {model_name} found at {model_path} ({model_size_gb:.2f} GB)")
     ngl = max_ngl(model_path)
     logger.debug(f"Using ngl {ngl} for model {model_name}")
