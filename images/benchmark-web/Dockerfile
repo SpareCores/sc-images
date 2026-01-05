@@ -12,10 +12,15 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
-    apt-get install -y build-essential curl git unzip cargo
+    apt-get install -y build-essential curl git unzip && \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    . $HOME/.cargo/env && \
+    rustup default stable
 FROM build_base as binserve
 ENV BINSERVE_VER=1e32f94
+ENV PATH="/root/.cargo/bin:${PATH}"
 RUN --mount=type=tmpfs,target=/tmp,rw \
+    . /root/.cargo/env && \
     cargo install --git https://github.com/mufeedvh/binserve.git --rev ${BINSERVE_VER}
 FROM build_base as wrk
 ENV WRK_VER=4.2.0
