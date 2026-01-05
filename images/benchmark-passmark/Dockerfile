@@ -9,8 +9,8 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
 COPY pkgs/libtinfo5_6.4-2_amd64.deb pkgs/libncurses5_6.4-2_amd64.deb /tmp/amd64/
 COPY pkgs/libtinfo5_6.2-0ubuntu2.1_arm64.deb pkgs/libncurses5_6.2-0ubuntu2.1_arm64.deb /tmp/arm64/
 
-ARG INTEL_URL="https://www.passmark.com/downloads/pt_linux_x64.zip"
-ARG ARM64_URL="https://www.passmark.com/downloads/pt_linux_arm64.zip"
+ARG INTEL_URL="https://www.passmark.com/downloads/PerformanceTest_Linux_x86-64.zip"
+ARG ARM64_URL="https://www.passmark.com/downloads/PerformanceTest_Linux_ARM64.zip"
 
 RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
         DOWNLOAD_URL=$ARM64_URL && \
@@ -21,13 +21,17 @@ RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
         LIBTINFO_DEB="/tmp/amd64/libtinfo5_6.4-2_amd64.deb" && \
         LIBNCURSES_DEB="/tmp/amd64/libncurses5_6.4-2_amd64.deb"; \
     fi && \
-    curl -L "$DOWNLOAD_URL" -o pt_linux.zip && \
+    curl -L "$DOWNLOAD_URL" -o pt_linux.zip \
+        -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+        -H "Referer: https://www.passmark.com/products/pt_linux/download.php" \
+        -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+        -H "Accept-Language: en-US,en;q=0.9" && \
     unzip pt_linux.zip -d /usr/local && \
     rm pt_linux.zip && \
     if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
-        mv /usr/local/PerformanceTest/pt_linux_arm64 /usr/local/bin/pt_linux; \
+        mv /usr/local/PerformanceTest/PerformanceTest_Linux_ARM64 /usr/local/bin/pt_linux; \
     else \
-        mv /usr/local/PerformanceTest/pt_linux_x64 /usr/local/bin/pt_linux; \
+        mv /usr/local/PerformanceTest/PerformanceTest_Linux_x86-64 /usr/local/bin/pt_linux; \
     fi && \
     # Install local ncurses5 libraries
     dpkg -i "$LIBTINFO_DEB" "$LIBNCURSES_DEB" && \
