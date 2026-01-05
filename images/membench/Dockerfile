@@ -2,6 +2,7 @@ FROM ubuntu:24.04 as base
 ENV DEBIAN_FRONTEND=noninteractive
 
 FROM base as build
+ARG MEMBENCH_VERSION=1.0.0
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
@@ -12,6 +13,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     cd /usr/src && \
     git clone https://github.com/SpareCores/sc-membench.git && \
     cd sc-membench && \
+    git checkout ${MEMBENCH_VERSION} && \
     make full && \
     cp membench-full /usr/local/bin/membench && \
     chmod +x /usr/local/bin/membench
