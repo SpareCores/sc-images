@@ -24,7 +24,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_lib_apt_final,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
     apt-get upgrade -y && \
-    apt-get install -y libhwloc15 libnuma1 libhugetlbfs-dev hwloc-nox && \
+    apt-get install -y libhwloc15 libnuma1 libhugetlbfs-dev libgomp1 hwloc-nox && \
     rm -rf /var/lib/apt/lists/*
 
 ENV PATH=${PATH}:/usr/local/bin
