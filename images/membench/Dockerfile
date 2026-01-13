@@ -2,7 +2,7 @@ FROM ubuntu:24.04 as base
 ENV DEBIAN_FRONTEND=noninteractive
 
 FROM base as build
-ARG MEMBENCH_VERSION=1.0.2
+ARG MEMBENCH_VERSION=1.0.3
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
@@ -24,7 +24,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_lib_apt_final,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
     apt-get upgrade -y && \
-    apt-get install -y libhwloc15 libnuma1 hwloc-nox && \
+    apt-get install -y libhwloc15 libnuma1 libhugetlbfs-dev hwloc-nox && \
     rm -rf /var/lib/apt/lists/*
 
 ENV PATH=${PATH}:/usr/local/bin
