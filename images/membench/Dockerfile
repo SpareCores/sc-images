@@ -30,5 +30,5 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
 ENV PATH=${PATH}:/usr/local/bin
 COPY --from=build /usr/local/bin/membench /usr/local/bin/membench
 
-CMD ["/usr/local/bin/membench"]
+ENTRYPOINT ["nice", "-n", "-20", "/usr/local/bin/membench"]
 
