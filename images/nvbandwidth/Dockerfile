@@ -2,7 +2,7 @@ FROM nvidia/cuda:12.6.1-devel-ubuntu24.04 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update --error-on=any && apt-get install -y build-essential curl
 RUN mkdir /tmp/nvbandwidth && \
-    curl -sSLfo - https://github.com/NVIDIA/nvbandwidth/archive/refs/tags/v0.5.tar.gz | tar zxf - -C /tmp/nvbandwidth --strip-components=1
+    curl -sSLfo - https://github.com/NVIDIA/nvbandwidth/archive/refs/tags/v0.8.tar.gz | tar zxf - -C /tmp/nvbandwidth --strip-components=1
 # Common AWS NVIDIA GPUs and Their CUDA Architectures
 #    Tesla K80 (Kepler architecture)
 #        sm_37
