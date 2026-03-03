@@ -33,7 +33,9 @@ COMPUTE_CPU_FLOAT_SIMD = [
     "expmath", "logmath", "powmath", "hyperbolic", "fractal", "veccmp",
 ]
 
-COMPUTE_CRYPTO = ["crypt", "ipsec-mb", "zlib", "jpeg"]
+COMPUTE_CRYPTO = ["crypt", "ipsec-mb"]
+
+COMPUTE_COMPRESSION = ["zlib", "jpeg"]
 
 COMPUTE_MEMORY = [
     "cache", "cacheline", "l1cache", "memcpy", "memrate",
@@ -72,6 +74,7 @@ CATEGORIES = {
     "cpu_integer": COMPUTE_CPU_INTEGER,
     "cpu_float_simd": COMPUTE_CPU_FLOAT_SIMD,
     "crypto": COMPUTE_CRYPTO,
+    "compression": COMPUTE_COMPRESSION,
     "memory": COMPUTE_MEMORY,
     "algorithms": COMPUTE_ALGORITHMS,
     "hypervisor": HYPERVISOR,
