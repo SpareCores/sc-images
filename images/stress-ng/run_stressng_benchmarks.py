@@ -24,14 +24,12 @@ from typing import Any
 COMPUTE_CPU_INTEGER = [
     "cpu", "branch", "atomic", "funccall", "funcret",
     "hash", "rotate", "str", "wcs", "nop",
-    # 0.20+ additions
     "bitops", "intmath", "prime",
 ]
 
 COMPUTE_CPU_FLOAT_SIMD = [
     "fma", "fp", "trig", "matrix", "matrix-3d", "eigen",
     "vecmath", "vecfp", "vecshuf", "vecwide", "monte-carlo", "mpfr",
-    # 0.20+ additions
     "expmath", "logmath", "powmath", "hyperbolic", "fractal", "veccmp",
 ]
 
@@ -40,14 +38,12 @@ COMPUTE_CRYPTO = ["crypt", "ipsec-mb", "zlib", "jpeg"]
 COMPUTE_MEMORY = [
     "cache", "cacheline", "l1cache", "memcpy", "memrate",
     "memthrash", "stream", "vm",
-    # 0.20+ additions
     "cachehammer", "ptr-chase", "spinmem",
 ]
 
 COMPUTE_ALGORITHMS = [
     "bsearch", "hsearch", "qsort", "heapsort", "mergesort",
     "bitonicsort", "skiplist", "tree", "malloc", "mcontend",
-    # 0.20+ additions
     "insertionsort", "bubblesort", "fibsearch",
 ]
 
@@ -69,7 +65,6 @@ HYPERVISOR = [
     "yield", "resched",
     # Privileged / arch-specific  (direct VM-exit / vDSO paths, x86 only → None on ARM)
     "vdso", "usersyscall", "priv-instr", "tsc", "x86syscall",
-    # 0.20+ additions
     "cpu-sched", "timermix", "mtx",
 ]
 
