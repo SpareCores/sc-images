@@ -85,10 +85,21 @@ CATEGORIES = {
 ALL_STRESSORS = sorted({s for group in CATEGORIES.values() for s in group})
 
 # Also run these with all physical CPUs to capture multi-core scaling
-MULTI_CORE = frozenset({
+MULTI_CORE_COMPUTE = frozenset({
     "cpu", "matrix", "cache", "stream", "memcpy",
     "vecmath", "zlib", "hash", "crypt", "malloc",
 })
+
+# Hypervisor stressors worth running concurrently: contention on nested
+# page tables, vCPU scheduling, cross-core TLB invalidation, IPC paths
+MULTI_CORE_HYPERVISOR = frozenset({
+    "context", "switch", "clone", "fork", "vfork",
+    "fault", "tlb-shootdown", "mprotect", "munmap",
+    "pipe", "eventfd",
+    "yield", "resched",
+})
+
+MULTI_CORE = MULTI_CORE_COMPUTE | MULTI_CORE_HYPERVISOR
 
 DEFAULT_TIMEOUT_SEC = 5
 LONGER_TIMEOUT = {"stream": 15}
