@@ -182,7 +182,6 @@ def main() -> int:
     results: dict[str, Any] = {
         "stressors": {},
         "categories": {k: [s for s in v if s in available] for k, v in CATEGORIES.items()},
-        "multi_core_stressors": sorted(MULTI_CORE & set(stressors)),
         "meta": {
             "timeout_sec_per_stressor": base_timeout,
             "physical_cpus": physical_cpus,
@@ -192,9 +191,9 @@ def main() -> int:
 
     for name in stressors:
         t = LONGER_TIMEOUT.get(name, base_timeout)
-        val_1 = run_stressor(name, 1, t)
-        entry: dict[str, Any] = {"1": val_1}
-        if name in MULTI_CORE and physical_cpus > 1:
+        entry: dict[str, Any] = {}
+        entry["1"] = run_stressor(name, 1, t)
+        if physical_cpus > 1:
             entry[str(physical_cpus)] = run_stressor(name, physical_cpus, t)
         results["stressors"][name] = entry
 
