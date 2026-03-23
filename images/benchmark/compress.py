@@ -145,12 +145,16 @@ def measure(compressor, idx, threads, extra_args):
                     res["decompress"] = (len(DATA) * threads) / elapsed
     return res
 
+
 results = defaultdict(lambda: {})
 for compressor, methods in TASKS.items():
     for idx in range(len(methods["levels"])):
         level = methods["levels"][idx]
         results[compressor][level] = []
-        for threads in TASKS[compressor].get("threads", [1]):
+        raw_threads = methods.get("threads", [1])
+        if isinstance(raw_threads, int):
+            raw_threads = [raw_threads]
+        for threads in dict.fromkeys(raw_threads):
             for extra_args in TASKS[compressor].get("extra_args", [{}]):
                 with ProcessPoolExecutor(max_workers=1) as executor:
                     # start measure in its own process, so we have a chance to survive the OOM-killer should that
