@@ -91,6 +91,33 @@ TASKS = {
     },
 }
 
+LZ4_BLOCK_SIZE_CODE_TO_BYTES = {
+    0: 64 * 1024,
+    6: 1 * 1024**2,
+    7: 4 * 1024**2,
+}
+
+
+def format_extra_args_for_output(compressor: str, extra_args: dict) -> dict:
+    """
+    Convert compressor-specific "parameter codes" into their real-world values.
+
+    Important: this only affects the reported output; the values passed to the
+    compressor itself must remain unchanged.
+    """
+    if compressor != "lz4":
+        return extra_args
+    if "block_size" not in extra_args:
+        return extra_args
+
+    block_size_code = extra_args["block_size"]
+    mapped = LZ4_BLOCK_SIZE_CODE_TO_BYTES.get(block_size_code)
+    if mapped is None:
+        return extra_args
+
+    # Never mutate the original dict (it comes from TASKS["lz4"]["extra_args"]).
+    return {**extra_args, "block_size": mapped}
+
 
 def measured_f(event, func, *args, **kwargs):
     event.wait()
@@ -106,7 +133,10 @@ def measure(compressor, idx, threads, extra_args):
     and wait after the processes have been created in order to synchronize them, so all compress/decompress jobs
     start and run in about the same time.
     """
-    res = {"threads": threads, "extra_args": extra_args}
+    res = {
+        "threads": threads,
+        "extra_args": format_extra_args_for_output(compressor, extra_args),
+    }
     best_time_compress = math.inf
     best_time_decompress = math.inf
 
@@ -163,7 +193,15 @@ for compressor, methods in TASKS.items():
                     try:
                         results[compressor][level].append(f.result())
                     except Exception:
-                        results[compressor][level].append(NO_RESULT | dict(threads=threads, extra_args=extra_args))
+                        results[compressor][level].append(
+                            NO_RESULT
+                            | dict(
+                                threads=threads,
+                                extra_args=format_extra_args_for_output(
+                                    compressor, extra_args
+                                ),
+                            )
+                        )
                         import traceback
                         traceback.print_exc()
 
