@@ -18,10 +18,8 @@ jobs:
         with:
           path: ./images
 
-  matrix:
-    runs-on: ubuntu-latest
-    # runs-on: self-hosted
-    name: Matrix Jobs
+  build-images:
+    name: Build image (${{ matrix.folder }} / ${{ matrix.arch }})
     needs: [find-jobs]
     defaults:
       run:
@@ -30,14 +28,21 @@ jobs:
       fail-fast: false
       matrix:
         folder: ${{ fromJson(needs.find-jobs.outputs.folders )}}
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
     steps:
       - name: checkout
         uses: actions/checkout@v6.0.2
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4.0.0
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -51,44 +56,52 @@ jobs:
         uses: docker/metadata-action@v6.0.0
         with:
           images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
-      # idea taken from: https://github.com/docker/buildx/discussions/1382#discussioncomment-6252049
-      # we need to have two buildcache tags, but they conflict/race on the first build, so let's (re)build the amd64/arm64
-      # images from the cache and push their buildcaches individually
-      - name: Build and push amd64/arm64 Docker image
-        id: build-and-push
-        continue-on-error: true
+          flavor: |
+            suffix=-${{ matrix.arch }},onlatest=false
+      - name: Build and push Docker image
         uses: docker/build-push-action@v7.1.0
         with:
           context: ${{ github.workspace }}/images/${{ matrix.folder }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: |
-            type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-arm64
-            type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-amd64
-      - name: Push amd64 Docker image's buildcache
-        if: always()
-        uses: docker/build-push-action@v7.1.0
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-${{ matrix.arch }}
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-${{ matrix.arch }},mode=max
+
+  merge-manifests:
+    name: Merge image manifests (${{ matrix.folder }})
+    needs: [find-jobs, build-images]
+    strategy:
+      fail-fast: false
+      matrix:
+        folder: ${{ fromJson(needs.find-jobs.outputs.folders )}}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6.0.2
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4.1.0
         with:
-          context: ${{ github.workspace }}/images/${{ matrix.folder }}
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}-amd64
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-amd64
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-amd64,mode=max
-      - name: Push arm64 Docker image's buildcache
-        if: always()
-        uses: docker/build-push-action@v7.1.0
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6.0.0
         with:
-          context: ${{ github.workspace }}/images/${{ matrix.folder }}
-          platforms: linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}-arm64
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-arm64
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-arm64,mode=max
-      - name: Check build status
-        if: steps.build-and-push.outcome == 'failure'
-        run: exit 1
+          images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
+      - name: Create multi-arch manifests
+        run: |
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker buildx imagetools create \
+              --tag "$tag" \
+              "$tag-amd64" \
+              "$tag-arm64"
+          done <<< "${{ steps.meta.outputs.tags }}"
