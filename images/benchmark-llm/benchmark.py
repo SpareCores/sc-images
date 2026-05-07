@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from functools import cache
 from logging import DEBUG, StreamHandler, basicConfig, getLogger
 from multiprocessing import Manager, Process
-from os import chdir, listdir, nice, path, rename, unlink
+from os import chdir, environ, listdir, nice, path, rename, unlink
 from shutil import disk_usage
 from signal import SIGINT, SIGTERM, signal
 from subprocess import TimeoutExpired, run
@@ -119,9 +119,17 @@ def get_llama_cpp_path():
         logger.info("Using CPU-build of llama.cpp")
         return "/llama_cpp_cpu"
     # check if we can start the CUDA binary
-    result = run(["./llama-cli", "--version"], cwd=llama_cpp_path, capture_output=True)
+    result = run(
+        ["./llama-cli", "--version"],
+        cwd=llama_cpp_path,
+        capture_output=True,
+        text=True,
+        env=get_llama_env(llama_cpp_path),
+    )
     if result.returncode != 0:
         llama_cpp_path = "/llama_cpp_cpu"
+        if result.stderr:
+            logger.debug(f"GPU llama.cpp probe stderr:\n{result.stderr.strip()}")
         logger.info("Using CPU-build of llama.cpp")
     else:
         logger.info("Using GPU-build of llama.cpp")
@@ -130,6 +138,36 @@ def get_llama_cpp_path():
 
 def cuda_available():
     return get_llama_cpp_path() == "/llama_cpp_gpu"
+
+
+def get_llama_env(llama_cpp_path: str):
+    env = dict(environ)
+    existing_ld_library_path = env.get("LD_LIBRARY_PATH", "")
+    env["LD_LIBRARY_PATH"] = (
+        f"{llama_cpp_path}:{existing_ld_library_path}"
+        if existing_ld_library_path
+        else llama_cpp_path
+    )
+    return env
+
+
+def log_cpu_details():
+    """Log CPU model and flags to help diagnose binary compatibility issues."""
+    cpu_model = "unknown"
+    cpu_flags = "unknown"
+    try:
+        with open("/proc/cpuinfo") as cpuinfo:
+            for line in cpuinfo:
+                if line.startswith("model name") and cpu_model == "unknown":
+                    cpu_model = line.split(":", 1)[1].strip()
+                elif line.startswith("flags") and cpu_flags == "unknown":
+                    cpu_flags = line.split(":", 1)[1].strip()
+                if cpu_model != "unknown" and cpu_flags != "unknown":
+                    break
+    except Exception as e:
+        logger.debug(f"Failed to read /proc/cpuinfo: {e}")
+    logger.info(f"CPU model: {cpu_model}")
+    logger.info(f"CPU flags: {cpu_flags}")
 
 
 def get_model_url_size(model_url: str):
@@ -260,7 +298,11 @@ def get_llama_cpp_version():
     """Get the version of llama.cpp."""
     llama_cpp_path = get_llama_cpp_path()
     result = run(
-        ["./llama-cli", "--version"], cwd=llama_cpp_path, capture_output=True, text=True
+        ["./llama-cli", "--version"],
+        cwd=llama_cpp_path,
+        capture_output=True,
+        text=True,
+        env=get_llama_env(llama_cpp_path),
     )
     if result.returncode == 0:
         # looking for the pattern like "version: 4753 (51f311e0)"
@@ -272,6 +314,7 @@ def get_llama_cpp_version():
 
 # #############################################################################
 
+log_cpu_details()
 chdir(get_llama_cpp_path())
 signal(SIGINT, signal_handler)
 signal(SIGTERM, signal_handler)
