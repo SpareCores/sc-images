@@ -8,9 +8,9 @@ from multiprocessing import Manager, Process
 from os import chdir, listdir, nice, path, rename, unlink
 from shutil import disk_usage
 from signal import SIGINT, SIGTERM, signal
-from subprocess import run
+from subprocess import TimeoutExpired, run
 from sys import exit as sys_exit
-from sys import stderr
+from sys import stderr, stdout
 from time import time
 from typing import Optional
 from urllib.request import Request, urlopen, urlretrieve
@@ -356,12 +356,37 @@ for model_url in cli_args.model_urls:
                 f"Benchmarking {benchmark['name']} with {iteration} tokens for max {timeout} sec"
             )
             try:
-                run(
+                result = run(
                     cmd
                     + [benchmark["iteration_param"], str(iteration)]
                     + benchmark["extra_params"],
                     timeout=timeout,
+                    capture_output=True,
+                    text=True,
                 )
+            except TimeoutExpired as e:
+                logger.error(f"Error: {e}")
+                if e.stdout:
+                    logger.error(
+                        f"llama-bench partial stdout before timeout:\n{e.stdout.strip()}"
+                    )
+                if e.stderr:
+                    logger.error(
+                        f"llama-bench partial stderr before timeout:\n{e.stderr.strip()}"
+                    )
+                if i == 0:
+                    logger.info(
+                        "Benchmarking failed with simplest task, so skipping larger models."
+                    )
+                    models_download_process.terminate()
+                    models_download_process.join()
+                    sys_exit(0)
+                elif i != len(benchmark["iterations"]) - 1:
+                    logger.info(
+                        f"Skipping {benchmark['name']} benchmarks "
+                        f"with {iteration}+ tokens due to time constraints."
+                    )
+                break
             except Exception as e:
                 logger.error(f"Error: {e}")
                 if i == 0:
@@ -375,6 +400,35 @@ for model_url in cli_args.model_urls:
                     logger.info(
                         f"Skipping {benchmark['name']} benchmarks "
                         f"with {iteration}+ tokens due to time constraints."
+                    )
+                break
+
+            # keep benchmark jsonl output in stdout artifacts
+            if result.stdout:
+                print(result.stdout, end="", file=stdout)
+
+            if result.returncode != 0:
+                logger.error(
+                    f"llama-bench exited with code {result.returncode} "
+                    f"for model={model_name} benchmark={benchmark['name']} iteration={iteration}"
+                )
+                if result.stderr:
+                    logger.error(f"llama-bench stderr:\n{result.stderr.strip()}")
+                if result.stdout:
+                    logger.error(
+                        f"llama-bench stdout (non-zero exit):\n{result.stdout.strip()}"
+                    )
+                if i == 0:
+                    logger.info(
+                        "Benchmarking failed with simplest task, so skipping larger models."
+                    )
+                    models_download_process.terminate()
+                    models_download_process.join()
+                    sys_exit(0)
+                elif i != len(benchmark["iterations"]) - 1:
+                    logger.info(
+                        f"Skipping {benchmark['name']} benchmarks "
+                        f"with {iteration}+ tokens due to non-zero exit."
                     )
                 break
             # finish early if we're unlikely to finish in time,
