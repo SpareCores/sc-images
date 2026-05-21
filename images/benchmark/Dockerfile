@@ -50,6 +50,7 @@ RUN apt-get update \
       cp /tmp/silesia/* /usr/local/silesia/
 
 FROM base as final
+ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt_final,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt_final,type=cache,target=/var/lib/apt,sharing=locked \
@@ -67,7 +68,7 @@ COPY --from=openssl /usr/local /usr/local
 COPY --from=lmbench /bw_mem /usr/local/bin/bw_mem
 COPY --from=python /venv /venv
 COPY --from=python /usr/local/silesia /usr/local/silesia
-COPY --from=ghcr.io/sparecores/resource-tracker:main /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+COPY --from=${RESOURCE_TRACKER_IMAGE} /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
 ENV TRACKER_QUIET=true
 ENTRYPOINT ["/usr/local/bin/resource-tracker", "--"]
 

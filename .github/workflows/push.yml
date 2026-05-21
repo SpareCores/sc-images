@@ -71,7 +71,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ${{ matrix.folder == 'resource-tracker' && format('RESOURCE_TRACKER_VERSION={0}', steps.resource_tracker.outputs.version) || '' }}
+          build-args: ${{ matrix.folder == 'resource-tracker' && format('RESOURCE_TRACKER_VERSION={0}', steps.resource_tracker.outputs.version) || format('RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-{0}', matrix.arch) }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-${{ matrix.arch }}
           cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-${{ matrix.arch }},mode=max
 

@@ -40,7 +40,8 @@ RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
 RUN chmod +x /usr/local/bin/pt_linux
 
 ADD passmark.sh /usr/local/bin/passmark.sh
-COPY --from=ghcr.io/sparecores/resource-tracker:main /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
+COPY --from=${RESOURCE_TRACKER_IMAGE} /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
 # PassMark expects a terminal
 ENV TERM=xterm
 ENV TRACKER_QUIET=true

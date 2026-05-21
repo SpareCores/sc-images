@@ -30,12 +30,13 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     make -j $(nproc)
 
 FROM base as final
+ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
 ADD binserve/ /usr/local/binserve/
 COPY --from=binserve /root/.cargo/bin/binserve /usr/local/bin/binserve
 COPY --from=wrk /usr/local/wrk/wrk /usr/local/bin/wrk
 
 COPY benchmark.py /usr/local/bin/
-COPY --from=ghcr.io/sparecores/resource-tracker:main /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+COPY --from=${RESOURCE_TRACKER_IMAGE} /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
 ENV TRACKER_QUIET=true
 ENTRYPOINT ["/usr/local/bin/resource-tracker", "--"]
 CMD ["nice", "-n", "-20", "python", "/usr/local/bin/benchmark.py"]

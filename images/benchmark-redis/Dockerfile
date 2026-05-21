@@ -1,4 +1,5 @@
 FROM redis:7.4.0
+ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
 ENV DEBIAN_FRONTEND=noninteractive
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
@@ -10,7 +11,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     apt-get update --error-on=any && \
     apt-get install -y memtier-benchmark python-is-python3 python3-psutil
 COPY benchmark.py /usr/local/bin/
-COPY --from=ghcr.io/sparecores/resource-tracker:main /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+COPY --from=${RESOURCE_TRACKER_IMAGE} /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
 ENV TRACKER_QUIET=true
 ENTRYPOINT ["/usr/local/bin/resource-tracker", "--"]
 CMD ["nice", "-n", "-20", "python", "/usr/local/bin/benchmark.py"]

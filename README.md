@@ -4,24 +4,21 @@ Spare Cores container images for hardware inspection and benchmarking workloads.
 
 ## resource-tracker
 
-Benchmark images copy the static [resource-tracker](https://github.com/SpareCores/resource-tracker-rs) binary from [`ghcr.io/sparecores/resource-tracker:main`](images/resource-tracker). The release version is defined in [`images/resource-tracker/RESOURCE_TRACKER_VERSION`](images/resource-tracker/RESOURCE_TRACKER_VERSION).
+Benchmark images copy the static [resource-tracker](https://github.com/SpareCores/resource-tracker-rs) binary from [`ghcr.io/sparecores/resource-tracker`](images/resource-tracker). The release version is defined in [`images/resource-tracker/RESOURCE_TRACKER_VERSION`](images/resource-tracker/RESOURCE_TRACKER_VERSION).
 
-All images under `images/` build and publish in parallel. Benchmark images copy from `resource-tracker:main`; on the first CI run, they may fail until that image exists—re-run the workflow after `resource-tracker` has been published.
+CI publishes per-arch tags (`main-amd64`, `main-arm64`) during the build matrix; `merge-manifests` then creates the `main` multi-arch manifest. Benchmark image builds use `RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-<arch>` so they can resolve the binary without waiting for the merged tag.
 
-Local build example (after `resource-tracker:main` exists in the registry):
-
-```bash
-docker buildx build images/benchmark
-```
-
-To build everything from scratch locally:
+Local build example:
 
 ```bash
+# build and tag resource-tracker for the host arch first
 VERSION="$(tr -d '[:space:]' < images/resource-tracker/RESOURCE_TRACKER_VERSION)"
+ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')"
 docker buildx build images/resource-tracker \
   --build-arg "RESOURCE_TRACKER_VERSION=${VERSION}" \
-  --tag ghcr.io/sparecores/resource-tracker:main --push
-docker buildx build images/benchmark
+  --tag "ghcr.io/sparecores/resource-tracker:main-${ARCH}"
+docker buildx build images/benchmark-web \
+  --build-arg "RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-${ARCH}"
 ```
 
 ## Images

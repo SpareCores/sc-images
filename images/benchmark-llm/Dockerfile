@@ -16,8 +16,9 @@ RUN mv /app /llama_cpp_cpu
 
 ARG TARGETARCH
 FROM base_${TARGETARCH} AS final
+ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
 RUN pip install psutil
-COPY --from=ghcr.io/sparecores/resource-tracker:main /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+COPY --from=${RESOURCE_TRACKER_IMAGE} /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
 VOLUME /models
 
 COPY benchmark.py /benchmark.py
