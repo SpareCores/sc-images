@@ -35,4 +35,7 @@ COPY --from=binserve /root/.cargo/bin/binserve /usr/local/bin/binserve
 COPY --from=wrk /usr/local/wrk/wrk /usr/local/bin/wrk
 
 COPY benchmark.py /usr/local/bin/
-CMD ["python", "/usr/local/bin/benchmark.py"]
+COPY --from=ghcr.io/sparecores/resource-tracker:main /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+ENV TRACKER_QUIET=true
+ENTRYPOINT ["/usr/local/bin/resource-tracker", "--"]
+CMD ["nice", "-n", "-20", "python", "/usr/local/bin/benchmark.py"]

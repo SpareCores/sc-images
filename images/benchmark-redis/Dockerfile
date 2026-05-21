@@ -10,6 +10,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     apt-get update --error-on=any && \
     apt-get install -y memtier-benchmark python-is-python3 python3-psutil
 COPY benchmark.py /usr/local/bin/
-# Override the ENTRYPOINT, so we can get redis version easier
-ENTRYPOINT []
-CMD ["python", "/usr/local/bin/benchmark.py"]
+COPY --from=ghcr.io/sparecores/resource-tracker:main /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+ENV TRACKER_QUIET=true
+ENTRYPOINT ["/usr/local/bin/resource-tracker", "--"]
+CMD ["nice", "-n", "-20", "python", "/usr/local/bin/benchmark.py"]
