@@ -67,4 +67,7 @@ COPY --from=openssl /usr/local /usr/local
 COPY --from=lmbench /bw_mem /usr/local/bin/bw_mem
 COPY --from=python /venv /venv
 COPY --from=python /usr/local/silesia /usr/local/silesia
+COPY --from=ghcr.io/sparecores/resource-tracker:main /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+ENV TRACKER_QUIET=true
+ENTRYPOINT ["/usr/local/bin/resource-tracker", "--"]
 

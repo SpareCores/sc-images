@@ -43,6 +43,9 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v6.0.2
+      - name: Read resource-tracker version
+        id: resource_tracker
+        run: echo "version=$(tr -d '[:space:]' < images/resource-tracker/RESOURCE_TRACKER_VERSION)" >> "$GITHUB_OUTPUT"
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -66,6 +69,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ matrix.folder == 'resource-tracker' && format('RESOURCE_TRACKER_VERSION={0}', steps.resource_tracker.outputs.version) || '' }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-${{ matrix.arch }}
           cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-${{ matrix.arch }},mode=max
 
