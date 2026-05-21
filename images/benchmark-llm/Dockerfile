@@ -1,4 +1,7 @@
 # when updating the build number, make sure both AMD64 and ARM64 builds are available
+ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
+FROM ${RESOURCE_TRACKER_IMAGE} AS resource_tracker
+
 ARG LLAMA_CPP_BUILD=b4753
 FROM ghcr.io/ggml-org/llama.cpp:full-${LLAMA_CPP_BUILD} AS base_amd64_cpu
 # collect and copy shared libs for CPU-optimized benchmarks on AMD64,
@@ -16,9 +19,8 @@ RUN mv /app /llama_cpp_cpu
 
 ARG TARGETARCH
 FROM base_${TARGETARCH} AS final
-ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
 RUN pip install psutil
-COPY --from=${RESOURCE_TRACKER_IMAGE} /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+COPY --from=resource_tracker /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
 VOLUME /models
 
 COPY benchmark.py /benchmark.py

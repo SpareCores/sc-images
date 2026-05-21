@@ -1,3 +1,6 @@
+ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
+FROM ${RESOURCE_TRACKER_IMAGE} AS resource_tracker
+
 FROM ubuntu:24.04 as base
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH=/venv/bin:/usr/local/bin:${PATH}
@@ -68,7 +71,7 @@ COPY --from=openssl /usr/local /usr/local
 COPY --from=lmbench /bw_mem /usr/local/bin/bw_mem
 COPY --from=python /venv /venv
 COPY --from=python /usr/local/silesia /usr/local/silesia
-COPY --from=${RESOURCE_TRACKER_IMAGE} /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+COPY --from=resource_tracker /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
 ENV TRACKER_QUIET=true
 ENTRYPOINT ["/usr/local/bin/resource-tracker", "--"]
 

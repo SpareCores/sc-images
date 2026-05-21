@@ -1,3 +1,6 @@
+ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
+FROM ${RESOURCE_TRACKER_IMAGE} AS resource_tracker
+
 FROM ubuntu:24.04
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
@@ -40,8 +43,7 @@ RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
 RUN chmod +x /usr/local/bin/pt_linux
 
 ADD passmark.sh /usr/local/bin/passmark.sh
-ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
-COPY --from=${RESOURCE_TRACKER_IMAGE} /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
+COPY --from=resource_tracker /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
 # PassMark expects a terminal
 ENV TERM=xterm
 ENV TRACKER_QUIET=true

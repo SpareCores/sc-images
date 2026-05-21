@@ -1,11 +1,9 @@
-# V0.20.01
+# V0.17.08 — pinned stress-ng for the 24h longrun benchmark
 ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
 FROM ${RESOURCE_TRACKER_IMAGE} AS resource_tracker
 
-FROM ghcr.io/colinianking/stress-ng:00559dcb1bae3ef12295a1420683094a7d1389e0
-RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -rf /var/lib/apt/lists/*
+ARG STRESSNG_TAG=b7c7a5877501679a3b0a67d877e6274a801d1e4e
+FROM ghcr.io/colinianking/stress-ng:${STRESSNG_TAG}
 COPY --from=resource_tracker /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
-COPY count.awk /usr/local/bin
-COPY run_stressng_benchmarks.py /usr/local/bin
 ENV TRACKER_QUIET=true
 ENTRYPOINT ["/usr/local/bin/resource-tracker", "--", "sh"]
