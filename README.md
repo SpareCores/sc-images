@@ -8,6 +8,14 @@ Benchmark images copy the static [resource-tracker](https://github.com/SpareCore
 
 CI publishes per-arch tags (`main-amd64`, `main-arm64`) during the build matrix; `merge-manifests` then creates the `main` multi-arch manifest. Benchmark image builds use `RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-<arch>` so they can resolve the binary without waiting for the merged tag.
 
+Force-rebuild all resource-tracker images locally:
+
+```bash
+NO_CACHE=1 ./build-local.sh
+```
+
+CI rebuilds `resource-tracker` and every image in `RESOURCE_TRACKER_IMAGES` without registry cache while `FORCE_REBUILD_RESOURCE_TRACKER` is `"true"` in `.github/workflows/push.yml`, or on demand via **Actions → Build and publish Spare Cores images → Run workflow** (`force_rebuild_resource_tracker`).
+
 Local build example:
 
 ```bash
