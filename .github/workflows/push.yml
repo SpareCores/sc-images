@@ -3,8 +3,18 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      force_rebuild_resource_tracker:
+        description: Rebuild resource-tracker and consumer images without registry cache
+        type: boolean
+        default: true
 env:
   REGISTRY: ghcr.io
+  # Set to false after resource-tracker consumers have been rebuilt once.
+  FORCE_REBUILD_RESOURCE_TRACKER: "true"
+  # Images that COPY the resource-tracker binary.
+  RESOURCE_TRACKER_IMAGES: '["resource-tracker","benchmark","benchmark-web","benchmark-redis","benchmark-passmark","benchmark-llm","stress-ng","stress-ng-longrun","nvbandwidth"]'
 jobs:
   find-jobs:
     runs-on: ubuntu-latest
@@ -69,11 +79,13 @@ jobs:
           context: ${{ github.workspace }}/images/${{ matrix.folder }}
           platforms: ${{ matrix.platform }}
           push: true
+          pull: ${{ contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) }}
+          no-cache: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ matrix.folder == 'resource-tracker' && format('RESOURCE_TRACKER_VERSION={0}', steps.resource_tracker.outputs.version) || format('RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-{0}', matrix.arch) }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-${{ matrix.arch }}
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:buildcache-${{ matrix.arch }},mode=max
+          cache-from: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2}', env.REGISTRY, matrix.folder, matrix.arch) }}
+          cache-to: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2},mode=max', env.REGISTRY, matrix.folder, matrix.arch) }}
 
   merge-manifests:
     name: Merge image manifests (${{ matrix.folder }})
