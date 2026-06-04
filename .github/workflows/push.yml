@@ -17,10 +17,6 @@ env:
   VLLM_MAX_JOBS_HOSTED: "1"
   VLLM_NVCC_THREADS_HOSTED: "1"
   BUILDKIT_MAX_PARALLELISM_HOSTED: "1"
-  # Self-hosted arm64 builder (e.g. AWS c6g.8xlarge: 32 vCPU, 64 GiB).
-  VLLM_MAX_JOBS_SELF_HOSTED: "16"
-  VLLM_NVCC_THREADS_SELF_HOSTED: "2"
-  BUILDKIT_MAX_PARALLELISM_SELF_HOSTED: "4"
   # Images that COPY the resource-tracker binary.
   RESOURCE_TRACKER_IMAGES: '["resource-tracker","benchmark","benchmark-web","benchmark-redis","benchmark-passmark","benchmark-llm","benchmark-vllm-gpu","benchmark-vllm-cpu","benchmark-vllm-cpu-avx2","stress-ng","stress-ng-longrun","nvbandwidth"]'
   # amd64-only images (no arm64 matrix leg); merged as main-amd64 -> main.
@@ -46,7 +42,7 @@ jobs:
 
   build-vllm-gpu-base:
     name: Build vllm-gpu-base (arm64 CUDA)
-    # Register the self-hosted runner with label sc-images-arm64 (see images/vllm-gpu-base/README.md).
+    # Self-hosted runner label sc-images-arm64 (or any self-hosted runner with matching arch labels).
     runs-on: [self-hosted, sc-images-arm64]
     timeout-minutes: 360
     permissions:
@@ -70,9 +66,16 @@ jobs:
         id: vllm_build
         run: |
           if [[ "${{ contains(runner.labels, 'self-hosted') }}" == "true" ]]; then
-            echo "max_jobs=${{ env.VLLM_MAX_JOBS_SELF_HOSTED }}" >> "$GITHUB_OUTPUT"
-            echo "nvcc_threads=${{ env.VLLM_NVCC_THREADS_SELF_HOSTED }}" >> "$GITHUB_OUTPUT"
-            echo "buildkit_max_parallelism=${{ env.BUILDKIT_MAX_PARALLELISM_SELF_HOSTED }}" >> "$GITHUB_OUTPUT"
+            NCPU=$(nproc)
+            echo "ncpus=$NCPU" >> "$GITHUB_OUTPUT"
+            echo "max_jobs=$NCPU" >> "$GITHUB_OUTPUT"
+            echo "cargo_build_jobs=$NCPU" >> "$GITHUB_OUTPUT"
+            if [ "$NCPU" -ge 8 ]; then
+              echo "nvcc_threads=2" >> "$GITHUB_OUTPUT"
+            else
+              echo "nvcc_threads=1" >> "$GITHUB_OUTPUT"
+            fi
+            echo "buildkit_max_parallelism=$NCPU" >> "$GITHUB_OUTPUT"
           else
             # Serial compile can still spike RAM; use modest swap (disk is the bottleneck).
             if ! swapon --show | grep -q /swapfile; then
@@ -97,6 +100,13 @@ jobs:
         run: |
           git clone --depth 1 --branch "v${{ steps.vllm.outputs.version }}" \
             https://github.com/vllm-project/vllm.git .vllm-src
+      - name: Raise vLLM Rust parallelism (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
+        run: |
+          # Upstream docker/Dockerfile sets CARGO_BUILD_JOBS=4 for hosted CI file-descriptor limits.
+          sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${{ steps.vllm_build.outputs.cargo_build_jobs }}/" docker/Dockerfile
+          grep '^ENV CARGO_BUILD_JOBS=' docker/Dockerfile
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -106,9 +116,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
-          buildkitd-config-inline: |
-            [worker.oci]
-              max-parallelism = ${{ steps.vllm_build.outputs.buildkit_max_parallelism }}
+          buildkitd-config-inline: ${{ contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', steps.vllm_build.outputs.buildkit_max_parallelism) || '' }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
@@ -143,6 +151,17 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v6.0.2
+      - name: Prepare runner for vLLM CPU build
+        id: vllm_cpu_build
+        run: |
+          if [[ "${{ contains(runner.labels, 'self-hosted') }}" == "true" ]]; then
+            NCPU=$(nproc)
+            echo "max_jobs=$NCPU" >> "$GITHUB_OUTPUT"
+            echo "cargo_build_jobs=$NCPU" >> "$GITHUB_OUTPUT"
+            echo "buildkit_max_parallelism=$NCPU" >> "$GITHUB_OUTPUT"
+          else
+            echo "max_jobs=4" >> "$GITHUB_OUTPUT"
+          fi
       - name: Read VLLM version
         id: vllm
         working-directory: ${{ github.workspace }}
@@ -152,6 +171,12 @@ jobs:
         run: |
           git clone --depth 1 --branch "v${{ steps.vllm.outputs.version }}" \
             https://github.com/vllm-project/vllm.git .vllm-src
+      - name: Raise vLLM Rust parallelism (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
+        run: |
+          sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${{ steps.vllm_cpu_build.outputs.cargo_build_jobs }}/" docker/Dockerfile.cpu
+          grep '^ENV CARGO_BUILD_JOBS=' docker/Dockerfile.cpu
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -160,6 +185,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
+        with:
+          buildkitd-config-inline: ${{ contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', steps.vllm_cpu_build.outputs.buildkit_max_parallelism) || '' }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
@@ -179,7 +206,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VLLM_CPU_AVX2=true
-            max_jobs=4
+            max_jobs=${{ steps.vllm_cpu_build.outputs.max_jobs }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64
           cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64,mode=max
 
@@ -216,6 +243,10 @@ jobs:
         id: resource_tracker
         working-directory: ${{ github.workspace }}
         run: echo "version=$(tr -d '[:space:]' < images/resource-tracker/RESOURCE_TRACKER_VERSION)" >> "$GITHUB_OUTPUT"
+      - name: Detect runner CPUs
+        if: contains(runner.labels, 'self-hosted')
+        id: runner_cpus
+        run: echo "ncpus=$(nproc)" >> "$GITHUB_OUTPUT"
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -225,7 +256,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
-          buildkitd-config-inline: ${{ matrix.arch == 'arm64' && contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', env.BUILDKIT_MAX_PARALLELISM_SELF_HOSTED) || '' }}
+          buildkitd-config-inline: ${{ contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', steps.runner_cpus.outputs.ncpus) || '' }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
