@@ -53,13 +53,21 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
             /opt/hostedtoolcache/CodeQL /usr/local/share/boost
           df -h /
-      - name: Set vLLM build parallelism for GHA
+      - name: Prepare runner for CUDA compile
         id: vllm_build
         run: |
-          # GH200 docs use max_jobs=66; standard GHA arm is 4 vCPU / 16 GiB RAM.
-          cpus=$(nproc)
-          if [ "$cpus" -gt 4 ]; then cpus=4; fi
-          echo "max_jobs=$cpus" >> "$GITHUB_OUTPUT"
+          # vLLM CUDA wheel build peaks well above 16 GiB RAM even with low ninja
+          # parallelism; swap avoids OOM killing the hosted runner mid-build.
+          if ! swapon --show | grep -q /swapfile; then
+            sudo fallocate -l 32G /swapfile 2>/dev/null \
+              || sudo dd if=/dev/zero of=/swapfile bs=1M count=32768 status=none
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
+          fi
+          free -h
+          # Dockerfile default is max_jobs=2; GHA needs serial compile.
+          echo "max_jobs=1" >> "$GITHUB_OUTPUT"
       - name: Read VLLM version
         id: vllm
         working-directory: ${{ github.workspace }}
@@ -77,6 +85,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
+        with:
+          buildkitd-config-inline: |
+            [worker.oci]
+              max-parallelism = 1
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
@@ -92,6 +104,7 @@ jobs:
           target: vllm-openai
           platforms: linux/arm64
           push: true
+          provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
