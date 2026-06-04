@@ -83,7 +83,7 @@ jobs:
           MAX_JOBS: ${{ steps.vllm_build.outputs.max_jobs }}
           NVCC_THREADS: ${{ steps.vllm_build.outputs.nvcc_threads }}
           CARGO_BUILD_JOBS: ${{ steps.vllm_build.outputs.cargo_build_jobs }}
-          VLLM_CI_CACHE_BUST: ${{ github.run_id }}
+          VLLM_CI_CACHE_BUST: ${{ steps.vllm.outputs.version }}-${{ steps.vllm_build.outputs.max_jobs }}-${{ steps.vllm_build.outputs.nvcc_threads }}
         run: |
           set -euo pipefail
           # Upstream defaults: max_jobs=2, nvcc_threads=8 → ninja uses max(1, 2//8)=1 compile job.
@@ -138,11 +138,15 @@ jobs:
           build-args: |
             max_jobs=${{ steps.vllm_build.outputs.max_jobs }}
             nvcc_threads=${{ steps.vllm_build.outputs.nvcc_threads }}
-            vllm_ci_cache_bust=${{ github.run_id }}
+            vllm_ci_cache_bust=${{ steps.vllm.outputs.version }}-${{ steps.vllm_build.outputs.max_jobs }}-${{ steps.vllm_build.outputs.nvcc_threads }}
             torch_cuda_arch_list=9.0 10.0+PTX
             RUN_WHEEL_CHECK=false
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64,mode=max
+          cache-from: |
+            type=gha,scope=vllm-gpu-base-arm64-${{ steps.vllm.outputs.version }}
+            type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64
+          cache-to: |
+            type=gha,scope=vllm-gpu-base-arm64-${{ steps.vllm.outputs.version }},mode=max
+            type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64,mode=max,image-manifest=true
 
   build-vllm-cpu-base-avx2:
     name: Build vllm-cpu-base-avx2 (amd64 AVX2)
@@ -203,13 +207,18 @@ jobs:
           target: vllm-openai
           platforms: linux/amd64
           push: true
+          provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VLLM_CPU_AVX2=true
             max_jobs=${{ steps.vllm_cpu_build.outputs.max_jobs }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64,mode=max
+          cache-from: |
+            type=gha,scope=vllm-cpu-base-avx2-amd64-${{ steps.vllm.outputs.version }}
+            type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64
+          cache-to: |
+            type=gha,scope=vllm-cpu-base-avx2-amd64-${{ steps.vllm.outputs.version }},mode=max
+            type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64,mode=max,image-manifest=true
 
   build-images:
     name: Build image (${{ matrix.folder }} / ${{ matrix.arch }})
