@@ -47,8 +47,9 @@ jobs:
       - uses: actions/checkout@v6.0.2
       - name: Free disk space for CUDA build
         run: |
-          # ubuntu-24.04-arm has ~14 GiB SSD; reclaim preinstalled tool caches only.
-          # Do not prune Docker here — setup-buildx creates a BuildKit container right after.
+          # Docs cite 14 GB "storage" for GHA runners, but df on ubuntu-24.04-arm
+          # shows a much larger root volume (~145G, ~100G+ free at job start). Reclaim
+          # a few GiB of preinstalled SDKs anyway; do not prune Docker before Buildx.
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
             /opt/hostedtoolcache/CodeQL /usr/local/share/boost
           df -h /
