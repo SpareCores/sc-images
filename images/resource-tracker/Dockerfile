@@ -1,5 +1,5 @@
 FROM alpine:3.21 AS fetch
-ARG RESOURCE_TRACKER_VERSION=0.1.11
+ARG RESOURCE_TRACKER_VERSION=0.1.12
 WORKDIR /tmp
 RUN apk add --no-cache curl tar
 RUN ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')" && \
