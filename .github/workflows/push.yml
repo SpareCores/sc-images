@@ -14,30 +14,140 @@ env:
   # Set to false after resource-tracker consumers have been rebuilt once.
   FORCE_REBUILD_RESOURCE_TRACKER: "true"
   # Images that COPY the resource-tracker binary.
-  RESOURCE_TRACKER_IMAGES: '["resource-tracker","benchmark","benchmark-web","benchmark-redis","benchmark-passmark","benchmark-llm","stress-ng","stress-ng-longrun","nvbandwidth"]'
+  RESOURCE_TRACKER_IMAGES: '["resource-tracker","benchmark","benchmark-web","benchmark-redis","benchmark-passmark","benchmark-llm","benchmark-vllm-gpu","benchmark-vllm-cpu","benchmark-vllm-cpu-avx2","stress-ng","stress-ng-longrun","nvbandwidth"]'
+  # amd64-only images (no arm64 matrix leg); merged as main-amd64 -> main.
+  AMD64_ONLY_IMAGES: '["vllm-cpu-base-avx2","benchmark-vllm-cpu-avx2"]'
 jobs:
   find-jobs:
     runs-on: ubuntu-latest
     name: Find Jobs
     outputs:
       folders: ${{ steps.jobs.outputs.folders }}
+      build_folders: ${{ steps.filter.outputs.build_folders }}
     steps:
       - uses: actions/checkout@v6.0.2
       - id: jobs
         uses: kmanimaran/list-folder-action@v4
         with:
           path: ./images
+      - name: Filter image folders for build matrix
+        id: filter
+        run: |
+          FOLDERS='${{ steps.jobs.outputs.folders }}'
+          echo "build_folders=$(echo "$FOLDERS" | jq -c '[.[] | select(. != "vllm-gpu-base" and . != "vllm-cpu-base-avx2")]')" >> "$GITHUB_OUTPUT"
+
+  build-vllm-gpu-base:
+    name: Build vllm-gpu-base (arm64 CUDA)
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Read VLLM version
+        id: vllm
+        working-directory: ${{ github.workspace }}
+        run: echo "version=$(tr -d '[:space:]' < vllm-common/VLLM_VERSION)" >> "$GITHUB_OUTPUT"
+      - name: Clone vLLM source
+        working-directory: ${{ github.workspace }}/vllm-common
+        run: |
+          git clone --depth 1 --branch "v${{ steps.vllm.outputs.version }}" \
+            https://github.com/vllm-project/vllm.git .vllm-src
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6.0.0
+        with:
+          images: ${{ env.REGISTRY }}/sparecores/vllm-gpu-base
+          flavor: |
+            suffix=-arm64,onlatest=false
+      - name: Build and push vllm-gpu-base
+        uses: docker/build-push-action@v7.1.0
+        with:
+          context: ${{ github.workspace }}/vllm-common/.vllm-src
+          file: ${{ github.workspace }}/vllm-common/.vllm-src/docker/Dockerfile
+          target: vllm-openai
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            max_jobs=66
+            nvcc_threads=2
+            torch_cuda_arch_list=9.0 10.0+PTX
+            RUN_WHEEL_CHECK=false
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64,mode=max
+
+  build-vllm-cpu-base-avx2:
+    name: Build vllm-cpu-base-avx2 (amd64 AVX2)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Read VLLM version
+        id: vllm
+        working-directory: ${{ github.workspace }}
+        run: echo "version=$(tr -d '[:space:]' < vllm-common/VLLM_VERSION)" >> "$GITHUB_OUTPUT"
+      - name: Clone vLLM source
+        working-directory: ${{ github.workspace }}/vllm-common
+        run: |
+          git clone --depth 1 --branch "v${{ steps.vllm.outputs.version }}" \
+            https://github.com/vllm-project/vllm.git .vllm-src
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6.0.0
+        with:
+          images: ${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2
+          flavor: |
+            suffix=-amd64,onlatest=false
+      - name: Build and push vllm-cpu-base-avx2
+        uses: docker/build-push-action@v7.1.0
+        with:
+          context: ${{ github.workspace }}/vllm-common/.vllm-src
+          file: ${{ github.workspace }}/vllm-common/.vllm-src/docker/Dockerfile.cpu
+          target: vllm-openai
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VLLM_CPU_AVX2=true
+            max_jobs=4
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64,mode=max
 
   build-images:
     name: Build image (${{ matrix.folder }} / ${{ matrix.arch }})
-    needs: [find-jobs]
+    needs: [find-jobs, build-vllm-gpu-base, build-vllm-cpu-base-avx2]
+    if: >-
+      ${{
+        matrix.folder != 'benchmark-vllm-cpu-avx2' || matrix.arch == 'amd64'
+      }}
     defaults:
       run:
         working-directory: ${{ github.workspace }}/images/${{ matrix.folder }}
     strategy:
       fail-fast: false
       matrix:
-        folder: ${{ fromJson(needs.find-jobs.outputs.folders )}}
+        folder: ${{ fromJson(needs.find-jobs.outputs.build_folders) }}
         arch: [amd64, arm64]
         include:
           - arch: amd64
@@ -73,27 +183,33 @@ jobs:
           images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
           flavor: |
             suffix=-${{ matrix.arch }},onlatest=false
+      - name: Read vLLM version
+        if: startsWith(matrix.folder, 'benchmark-vllm')
+        id: vllm_benchmark
+        working-directory: ${{ github.workspace }}
+        run: echo "version=$(tr -d '[:space:]' < vllm-common/VLLM_VERSION)" >> "$GITHUB_OUTPUT"
       - name: Build and push Docker image
         uses: docker/build-push-action@v7.1.0
         with:
-          context: ${{ github.workspace }}/images/${{ matrix.folder }}
+          context: ${{ startsWith(matrix.folder, 'benchmark-vllm') && github.workspace || format('{0}/images/{1}', github.workspace, matrix.folder) }}
+          file: ${{ format('{0}/images/{1}/Dockerfile', github.workspace, matrix.folder) }}
           platforms: ${{ matrix.platform }}
           push: true
-          pull: ${{ contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) }}
+          pull: ${{ contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) || matrix.folder == 'benchmark-vllm-gpu' || matrix.folder == 'benchmark-vllm-cpu-avx2' }}
           no-cache: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ${{ matrix.folder == 'resource-tracker' && format('RESOURCE_TRACKER_VERSION={0}', steps.resource_tracker.outputs.version) || format('RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-{0}', matrix.arch) }}
+          build-args: ${{ matrix.folder == 'resource-tracker' && format('RESOURCE_TRACKER_VERSION={0}', steps.resource_tracker.outputs.version) || (startsWith(matrix.folder, 'benchmark-vllm') && format('RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-{0}\nVLLM_VERSION={1}', matrix.arch, steps.vllm_benchmark.outputs.version) || format('RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-{0}', matrix.arch)) }}
           cache-from: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2}', env.REGISTRY, matrix.folder, matrix.arch) }}
           cache-to: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2},mode=max', env.REGISTRY, matrix.folder, matrix.arch) }}
 
   merge-manifests:
     name: Merge image manifests (${{ matrix.folder }})
-    needs: [find-jobs, build-images]
+    needs: [find-jobs, build-images, build-vllm-gpu-base, build-vllm-cpu-base-avx2]
     strategy:
       fail-fast: false
       matrix:
-        folder: ${{ fromJson(needs.find-jobs.outputs.folders )}}
+        folder: ${{ fromJson(needs.find-jobs.outputs.folders) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -114,7 +230,26 @@ jobs:
         uses: docker/metadata-action@v6.0.0
         with:
           images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
+      - name: Promote arm64-only vllm-gpu-base to main
+        if: matrix.folder == 'vllm-gpu-base'
+        run: |
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker buildx imagetools create \
+              --tag "$tag" \
+              "${tag}-arm64"
+          done <<< "${{ steps.meta.outputs.tags }}"
+      - name: Promote amd64-only images to main
+        if: contains(fromJSON(env.AMD64_ONLY_IMAGES), matrix.folder)
+        run: |
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker buildx imagetools create \
+              --tag "$tag" \
+              "${tag}-amd64"
+          done <<< "${{ steps.meta.outputs.tags }}"
       - name: Create multi-arch manifests
+        if: matrix.folder != 'vllm-gpu-base' && !contains(fromJSON(env.AMD64_ONLY_IMAGES), matrix.folder)
         run: |
           while IFS= read -r tag; do
             [ -z "$tag" ] && continue
