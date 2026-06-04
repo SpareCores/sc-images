@@ -100,13 +100,22 @@ jobs:
         run: |
           git clone --depth 1 --branch "v${{ steps.vllm.outputs.version }}" \
             https://github.com/vllm-project/vllm.git .vllm-src
-      - name: Raise vLLM Rust parallelism (self-hosted)
+      - name: Tune vLLM Dockerfile parallelism (self-hosted)
         if: contains(runner.labels, 'self-hosted')
         working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
         run: |
-          # Upstream docker/Dockerfile sets CARGO_BUILD_JOBS=4 for hosted CI file-descriptor limits.
-          sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${{ steps.vllm_build.outputs.cargo_build_jobs }}/" docker/Dockerfile
-          grep '^ENV CARGO_BUILD_JOBS=' docker/Dockerfile
+          # Upstream defaults: max_jobs=2, nvcc_threads=8 → ninja uses max(1, 2//8)=1 compile job.
+          # setup.py: ninja -j (MAX_JOBS // NVCC_THREADS); each nvcc job uses NVCC_THREADS internally.
+          DF=docker/Dockerfile
+          sed -i "s/^ARG max_jobs=2$/ARG max_jobs=${{ steps.vllm_build.outputs.max_jobs }}/" "$DF"
+          sed -i "s/^ARG nvcc_threads=8$/ARG nvcc_threads=${{ steps.vllm_build.outputs.nvcc_threads }}/" "$DF"
+          sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${{ steps.vllm_build.outputs.cargo_build_jobs }}/" "$DF"
+          # Re-export at compile time so registry layer cache cannot leave MAX_JOBS unset/wrong.
+          sed -i 's|export DEEPGEMM_PYTHON_INTERPRETERS=$(cat /tmp/dg_pythons.txt) && \\|export MAX_JOBS="${MAX_JOBS:-$(nproc)}" \&\& \\\n        export NVCC_THREADS="${NVCC_THREADS:-2}" \&\& \\\n        export DEEPGEMM_PYTHON_INTERPRETERS=$(cat /tmp/dg_pythons.txt) \&\& \\|' "$DF"
+          echo "Dockerfile parallelism (csrc-build):"
+          grep -E '^(ARG max_jobs|ARG nvcc_threads|ENV MAX_JOBS|ENV NVCC_THREADS|ENV CARGO_BUILD_JOBS)=' "$DF"
+          NINJA_JOBS=$(( ${{ steps.vllm_build.outputs.max_jobs }} / ${{ steps.vllm_build.outputs.nvcc_threads }} ))
+          echo "Expected ninja -j: $NINJA_JOBS (max_jobs=${{ steps.vllm_build.outputs.max_jobs }}, nvcc_threads=${{ steps.vllm_build.outputs.nvcc_threads }})"
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
