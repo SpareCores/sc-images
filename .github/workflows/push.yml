@@ -18,12 +18,14 @@ env:
   VLLM_MAX_JOBS_HOSTED: "1"
   VLLM_NVCC_THREADS_HOSTED: "1"
   BUILDKIT_MAX_PARALLELISM_HOSTED: "1"
-  # Self-hosted vLLM CUDA: ~GiB RAM per compile slot (vLLM spikes multi-GB per nvcc job).
-  VLLM_COMPILE_GIB_PER_SLOT: "8"
-  VLLM_MAX_JOBS_CAP: "8"
+  # Self-hosted vLLM CUDA: ~GiB per compile slot; zram (ZRAM_PERCENT) adds budget below.
+  VLLM_COMPILE_GIB_PER_SLOT: "5"
+  VLLM_MAX_JOBS_CAP: "16"
   VLLM_NVCC_THREADS_SELF_HOSTED: "2"
-  BUILDKIT_MAX_PARALLELISM_CAP: "4"
-  CARGO_BUILD_JOBS_CAP: "8"
+  # Share of SwapTotal (MiB) to add to RAM when counting compile slots (zram is compressed).
+  ZRAM_COMPILE_BUDGET_PERCENT: "50"
+  BUILDKIT_MAX_PARALLELISM_CAP: "8"
+  CARGO_BUILD_JOBS_CAP: "16"
   # Images that COPY the resource-tracker binary.
   RESOURCE_TRACKER_IMAGES: '["resource-tracker","benchmark","benchmark-web","benchmark-redis","benchmark-passmark","benchmark-llm","benchmark-vllm-gpu","benchmark-vllm-cpu","benchmark-vllm-cpu-avx2","stress-ng","stress-ng-longrun","nvbandwidth"]'
   # amd64-only images (no arm64 matrix leg); merged as main-amd64 -> main.
@@ -72,8 +74,11 @@ jobs:
           set -euo pipefail
           NCPU=$(nproc)
           MEM_MIB=$(awk '/MemTotal:/ {print int($2/1024)}' /proc/meminfo)
+          SWAP_MIB=$(awk '/SwapTotal:/ {print int($2/1024)}' /proc/meminfo)
           SLOT_MIB=$(( ${{ env.VLLM_COMPILE_GIB_PER_SLOT }} * 1024 ))
-          MEM_SLOTS=$(( MEM_MIB / SLOT_MIB ))
+          ZRAM_BUDGET=$(( SWAP_MIB * ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }} / 100 ))
+          EFFECTIVE_MIB=$(( MEM_MIB + ZRAM_BUDGET ))
+          MEM_SLOTS=$(( EFFECTIVE_MIB / SLOT_MIB ))
           [ "$MEM_SLOTS" -ge 1 ] || MEM_SLOTS=1
           NVCC_THREADS=${{ env.VLLM_NVCC_THREADS_SELF_HOSTED }}
           if [ "$NCPU" -lt 8 ]; then NVCC_THREADS=1; fi
@@ -92,7 +97,7 @@ jobs:
           echo "nvcc_threads=$NVCC_THREADS" >> "$GITHUB_OUTPUT"
           echo "buildkit_max_parallelism=$BUILDKIT_PAR" >> "$GITHUB_OUTPUT"
           echo "Runner labels: ${{ toJson(runner.labels) }}"
-          echo "Parallelism: mem=${MEM_MIB}MiB slots=${MEM_SLOTS} max_jobs=${MAX_JOBS} nvcc_threads=${NVCC_THREADS} ninja_jobs=$(( MAX_JOBS / NVCC_THREADS )) cargo=${CARGO_JOBS} buildkit=${BUILDKIT_PAR}"
+          echo "Parallelism: mem=${MEM_MIB}MiB swap=${SWAP_MIB}MiB effective=${EFFECTIVE_MIB}MiB slots=${MEM_SLOTS} max_jobs=${MAX_JOBS} nvcc_threads=${NVCC_THREADS} ninja_jobs=$(( MAX_JOBS / NVCC_THREADS )) cargo=${CARGO_JOBS} buildkit=${BUILDKIT_PAR}"
           free -h
           df -h /
       - name: Read VLLM version
