@@ -13,6 +13,14 @@ env:
   REGISTRY: ghcr.io
   # Set to false after resource-tracker consumers have been rebuilt once.
   FORCE_REBUILD_RESOURCE_TRACKER: "true"
+  # ubuntu-24.04-arm (~3 vCPU, 16 GiB): serial vLLM CUDA compile + modest BuildKit parallelism.
+  VLLM_MAX_JOBS_HOSTED: "1"
+  VLLM_NVCC_THREADS_HOSTED: "1"
+  BUILDKIT_MAX_PARALLELISM_HOSTED: "1"
+  # Self-hosted arm64 builder (e.g. AWS c6g.8xlarge: 32 vCPU, 64 GiB).
+  VLLM_MAX_JOBS_SELF_HOSTED: "16"
+  VLLM_NVCC_THREADS_SELF_HOSTED: "2"
+  BUILDKIT_MAX_PARALLELISM_SELF_HOSTED: "4"
   # Images that COPY the resource-tracker binary.
   RESOURCE_TRACKER_IMAGES: '["resource-tracker","benchmark","benchmark-web","benchmark-redis","benchmark-passmark","benchmark-llm","benchmark-vllm-gpu","benchmark-vllm-cpu","benchmark-vllm-cpu-avx2","stress-ng","stress-ng-longrun","nvbandwidth"]'
   # amd64-only images (no arm64 matrix leg); merged as main-amd64 -> main.
@@ -38,7 +46,8 @@ jobs:
 
   build-vllm-gpu-base:
     name: Build vllm-gpu-base (arm64 CUDA)
-    runs-on: ubuntu-24.04-arm
+    # Register the self-hosted runner with label sc-images-arm64 (see images/vllm-gpu-base/README.md).
+    runs-on: [self-hosted, sc-images-arm64]
     timeout-minutes: 360
     permissions:
       contents: read
@@ -46,6 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
       - name: Free disk space for CUDA build
+        if: ${{ !contains(runner.labels, 'self-hosted') }}
         run: |
           # vLLM layers + flashinfer-jit-cache (~2 GiB wheel, ~4 GiB extract) need
           # tens of GiB under /var/lib/docker on the same root volume as swap.
@@ -59,17 +69,25 @@ jobs:
       - name: Prepare runner for CUDA compile
         id: vllm_build
         run: |
-          # Serial compile can still spike RAM; use modest swap (disk is the bottleneck).
-          if ! swapon --show | grep -q /swapfile; then
-            sudo fallocate -l 16G /swapfile 2>/dev/null \
-              || sudo dd if=/dev/zero of=/swapfile bs=1M count=16384 status=none
-            sudo chmod 600 /swapfile
-            sudo mkswap /swapfile
-            sudo swapon /swapfile
+          if [[ "${{ contains(runner.labels, 'self-hosted') }}" == "true" ]]; then
+            echo "max_jobs=${{ env.VLLM_MAX_JOBS_SELF_HOSTED }}" >> "$GITHUB_OUTPUT"
+            echo "nvcc_threads=${{ env.VLLM_NVCC_THREADS_SELF_HOSTED }}" >> "$GITHUB_OUTPUT"
+            echo "buildkit_max_parallelism=${{ env.BUILDKIT_MAX_PARALLELISM_SELF_HOSTED }}" >> "$GITHUB_OUTPUT"
+          else
+            # Serial compile can still spike RAM; use modest swap (disk is the bottleneck).
+            if ! swapon --show | grep -q /swapfile; then
+              sudo fallocate -l 16G /swapfile 2>/dev/null \
+                || sudo dd if=/dev/zero of=/swapfile bs=1M count=16384 status=none
+              sudo chmod 600 /swapfile
+              sudo mkswap /swapfile
+              sudo swapon /swapfile
+            fi
+            echo "max_jobs=${{ env.VLLM_MAX_JOBS_HOSTED }}" >> "$GITHUB_OUTPUT"
+            echo "nvcc_threads=${{ env.VLLM_NVCC_THREADS_HOSTED }}" >> "$GITHUB_OUTPUT"
+            echo "buildkit_max_parallelism=${{ env.BUILDKIT_MAX_PARALLELISM_HOSTED }}" >> "$GITHUB_OUTPUT"
           fi
           free -h
           df -h /
-          echo "max_jobs=1" >> "$GITHUB_OUTPUT"
       - name: Read VLLM version
         id: vllm
         working-directory: ${{ github.workspace }}
@@ -90,7 +108,7 @@ jobs:
         with:
           buildkitd-config-inline: |
             [worker.oci]
-              max-parallelism = 1
+              max-parallelism = ${{ steps.vllm_build.outputs.buildkit_max_parallelism }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
@@ -111,7 +129,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             max_jobs=${{ steps.vllm_build.outputs.max_jobs }}
-            nvcc_threads=1
+            nvcc_threads=${{ steps.vllm_build.outputs.nvcc_threads }}
             torch_cuda_arch_list=9.0 10.0+PTX
             RUN_WHEEL_CHECK=false
           cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64
@@ -185,7 +203,7 @@ jobs:
             runner: ubuntu-latest
           - arch: arm64
             platform: linux/arm64
-            runner: ubuntu-24.04-arm
+            runner: [self-hosted, sc-images-arm64]
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
@@ -206,6 +224,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
+        with:
+          buildkitd-config-inline: ${{ matrix.arch == 'arm64' && contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', env.BUILDKIT_MAX_PARALLELISM_SELF_HOSTED) || '' }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
