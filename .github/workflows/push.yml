@@ -42,7 +42,8 @@ jobs:
 
   build-vllm-gpu-base:
     name: Build vllm-gpu-base (arm64 CUDA)
-    # Self-hosted runner label sc-images-arm64 (or any self-hosted runner with matching arch labels).
+    # Dedicated builder (label sc-images-arm64). Register with --labels sc-images-arm64
+    # (--no-default-labels is fine; do not gate parallelism on the self-hosted label).
     runs-on: [self-hosted, sc-images-arm64]
     timeout-minutes: 360
     permissions:
@@ -50,45 +51,21 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v6.0.2
-      - name: Free disk space for CUDA build
-        if: ${{ !contains(runner.labels, 'self-hosted') }}
-        run: |
-          # vLLM layers + flashinfer-jit-cache (~2 GiB wheel, ~4 GiB extract) need
-          # tens of GiB under /var/lib/docker on the same root volume as swap.
-          sudo rm -rf /usr/share/dotnet /usr/share/swift /usr/local/lib/android \
-            /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost \
-            /usr/local/share/powershell /usr/share/az* /usr/local/lib/node_modules \
-            /usr/share/miniconda /usr/local/aws-cli /usr/local/aws-sam-cli
-          sudo docker system prune -af || true
-          df -h /
-          docker system df || true
       - name: Prepare runner for CUDA compile
         id: vllm_build
         run: |
-          if [[ "${{ contains(runner.labels, 'self-hosted') }}" == "true" ]]; then
-            NCPU=$(nproc)
-            echo "ncpus=$NCPU" >> "$GITHUB_OUTPUT"
-            echo "max_jobs=$NCPU" >> "$GITHUB_OUTPUT"
-            echo "cargo_build_jobs=$NCPU" >> "$GITHUB_OUTPUT"
-            if [ "$NCPU" -ge 8 ]; then
-              echo "nvcc_threads=2" >> "$GITHUB_OUTPUT"
-            else
-              echo "nvcc_threads=1" >> "$GITHUB_OUTPUT"
-            fi
-            echo "buildkit_max_parallelism=$NCPU" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          NCPU=$(nproc)
+          echo "ncpus=$NCPU" >> "$GITHUB_OUTPUT"
+          echo "max_jobs=$NCPU" >> "$GITHUB_OUTPUT"
+          echo "cargo_build_jobs=$NCPU" >> "$GITHUB_OUTPUT"
+          if [ "$NCPU" -ge 8 ]; then
+            echo "nvcc_threads=2" >> "$GITHUB_OUTPUT"
           else
-            # Serial compile can still spike RAM; use modest swap (disk is the bottleneck).
-            if ! swapon --show | grep -q /swapfile; then
-              sudo fallocate -l 16G /swapfile 2>/dev/null \
-                || sudo dd if=/dev/zero of=/swapfile bs=1M count=16384 status=none
-              sudo chmod 600 /swapfile
-              sudo mkswap /swapfile
-              sudo swapon /swapfile
-            fi
-            echo "max_jobs=${{ env.VLLM_MAX_JOBS_HOSTED }}" >> "$GITHUB_OUTPUT"
-            echo "nvcc_threads=${{ env.VLLM_NVCC_THREADS_HOSTED }}" >> "$GITHUB_OUTPUT"
-            echo "buildkit_max_parallelism=${{ env.BUILDKIT_MAX_PARALLELISM_HOSTED }}" >> "$GITHUB_OUTPUT"
+            echo "nvcc_threads=1" >> "$GITHUB_OUTPUT"
           fi
+          echo "buildkit_max_parallelism=$NCPU" >> "$GITHUB_OUTPUT"
+          echo "Runner labels: ${{ toJson(runner.labels) }}"
           free -h
           df -h /
       - name: Read VLLM version
@@ -100,22 +77,49 @@ jobs:
         run: |
           git clone --depth 1 --branch "v${{ steps.vllm.outputs.version }}" \
             https://github.com/vllm-project/vllm.git .vllm-src
-      - name: Tune vLLM Dockerfile parallelism (self-hosted)
-        if: contains(runner.labels, 'self-hosted')
+      - name: Tune vLLM Dockerfile parallelism
         working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
+        env:
+          MAX_JOBS: ${{ steps.vllm_build.outputs.max_jobs }}
+          NVCC_THREADS: ${{ steps.vllm_build.outputs.nvcc_threads }}
+          CARGO_BUILD_JOBS: ${{ steps.vllm_build.outputs.cargo_build_jobs }}
+          VLLM_CI_CACHE_BUST: ${{ github.run_id }}
         run: |
+          set -euo pipefail
           # Upstream defaults: max_jobs=2, nvcc_threads=8 → ninja uses max(1, 2//8)=1 compile job.
           # setup.py: ninja -j (MAX_JOBS // NVCC_THREADS); each nvcc job uses NVCC_THREADS internally.
           DF=docker/Dockerfile
-          sed -i "s/^ARG max_jobs=2$/ARG max_jobs=${{ steps.vllm_build.outputs.max_jobs }}/" "$DF"
-          sed -i "s/^ARG nvcc_threads=8$/ARG nvcc_threads=${{ steps.vllm_build.outputs.nvcc_threads }}/" "$DF"
-          sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${{ steps.vllm_build.outputs.cargo_build_jobs }}/" "$DF"
-          # Re-export at compile time so registry layer cache cannot leave MAX_JOBS unset/wrong.
-          sed -i 's|export DEEPGEMM_PYTHON_INTERPRETERS=$(cat /tmp/dg_pythons.txt) && \\|export MAX_JOBS="${MAX_JOBS:-$(nproc)}" \&\& \\\n        export NVCC_THREADS="${NVCC_THREADS:-2}" \&\& \\\n        export DEEPGEMM_PYTHON_INTERPRETERS=$(cat /tmp/dg_pythons.txt) \&\& \\|' "$DF"
+          if ! grep -q '^ARG vllm_ci_cache_bust=' "$DF"; then
+            sed -i '/^ARG max_jobs=/i ARG vllm_ci_cache_bust=0' "$DF"
+          fi
+          sed -i "s/^ARG vllm_ci_cache_bust=.*/ARG vllm_ci_cache_bust=${VLLM_CI_CACHE_BUST}/" "$DF"
+          sed -i "s/^ARG max_jobs=.*/ARG max_jobs=${MAX_JOBS}/" "$DF"
+          sed -i "s/^ARG nvcc_threads=.*/ARG nvcc_threads=${NVCC_THREADS}/" "$DF"
+          sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS}/" "$DF"
+          python3 <<'PY'
+          import os
+          from pathlib import Path
+          df = Path("docker/Dockerfile")
+          text = df.read_text()
+          old = (
+              "        export VLLM_DOCKER_BUILD_CONTEXT=1 && \\\n"
+              "        export DEEPGEMM_PYTHON_INTERPRETERS=$(cat /tmp/dg_pythons.txt) && \\"
+          )
+          mj, nt = os.environ["MAX_JOBS"], os.environ["NVCC_THREADS"]
+          new = (
+              "        export VLLM_DOCKER_BUILD_CONTEXT=1 && \\\n"
+              f'        export MAX_JOBS="${{MAX_JOBS:-{mj}}}" && \\\n'
+              f'        export NVCC_THREADS="${{NVCC_THREADS:-{nt}}}" && \\\n'
+              "        export DEEPGEMM_PYTHON_INTERPRETERS=$(cat /tmp/dg_pythons.txt) && \\"
+          )
+          if old not in text:
+              raise SystemExit("csrc-build RUN block not found; cannot inject MAX_JOBS/NVCC_THREADS exports")
+          df.write_text(text.replace(old, new, 1))
+          PY
           echo "Dockerfile parallelism (csrc-build):"
-          grep -E '^(ARG max_jobs|ARG nvcc_threads|ENV MAX_JOBS|ENV NVCC_THREADS|ENV CARGO_BUILD_JOBS)=' "$DF"
-          NINJA_JOBS=$(( ${{ steps.vllm_build.outputs.max_jobs }} / ${{ steps.vllm_build.outputs.nvcc_threads }} ))
-          echo "Expected ninja -j: $NINJA_JOBS (max_jobs=${{ steps.vllm_build.outputs.max_jobs }}, nvcc_threads=${{ steps.vllm_build.outputs.nvcc_threads }})"
+          grep -E '^(ARG vllm_ci_cache_bust|ARG max_jobs|ARG nvcc_threads|ENV MAX_JOBS|ENV NVCC_THREADS|ENV CARGO_BUILD_JOBS)=' "$DF"
+          grep -A2 'export VLLM_DOCKER_BUILD_CONTEXT=1' "$DF" | head -6
+          echo "Expected ninja -j: $(( MAX_JOBS / NVCC_THREADS )) (max_jobs=${MAX_JOBS}, nvcc_threads=${NVCC_THREADS})"
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -125,7 +129,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
-          buildkitd-config-inline: ${{ contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', steps.vllm_build.outputs.buildkit_max_parallelism) || '' }}
+          buildkitd-config-inline: |
+            [worker.oci]
+              max-parallelism = ${{ steps.vllm_build.outputs.buildkit_max_parallelism }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
@@ -147,6 +153,7 @@ jobs:
           build-args: |
             max_jobs=${{ steps.vllm_build.outputs.max_jobs }}
             nvcc_threads=${{ steps.vllm_build.outputs.nvcc_threads }}
+            vllm_ci_cache_bust=${{ github.run_id }}
             torch_cuda_arch_list=9.0 10.0+PTX
             RUN_WHEEL_CHECK=false
           cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64
@@ -253,7 +260,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: echo "version=$(tr -d '[:space:]' < images/resource-tracker/RESOURCE_TRACKER_VERSION)" >> "$GITHUB_OUTPUT"
       - name: Detect runner CPUs
-        if: contains(runner.labels, 'self-hosted')
+        if: contains(runner.labels, 'self-hosted') || contains(runner.labels, 'sc-images-arm64')
         id: runner_cpus
         run: echo "ncpus=$(nproc)" >> "$GITHUB_OUTPUT"
       - name: Log in to the Container registry
@@ -265,7 +272,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
-          buildkitd-config-inline: ${{ contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', steps.runner_cpus.outputs.ncpus) || '' }}
+          buildkitd-config-inline: ${{ (contains(runner.labels, 'self-hosted') || contains(runner.labels, 'sc-images-arm64')) && format('[worker.oci]\n  max-parallelism = {0}', steps.runner_cpus.outputs.ncpus) || '' }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
