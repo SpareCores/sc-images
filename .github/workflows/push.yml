@@ -141,7 +141,7 @@ jobs:
             torch_cuda_arch_list=9.0 10.0+PTX
             RUN_WHEEL_CHECK=false
           cache-from: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64,mode=min
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64,mode=max
 
   build-vllm-cpu-base-avx2:
     name: Build vllm-cpu-base-avx2 (amd64 AVX2)
