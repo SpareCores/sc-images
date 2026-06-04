@@ -11,6 +11,7 @@ on:
         default: true
 env:
   REGISTRY: ghcr.io
+  ZRAM_PERCENT: "125"
   # Set to false after resource-tracker consumers have been rebuilt once.
   FORCE_REBUILD_RESOURCE_TRACKER: "true"
   # ubuntu-24.04-arm (~3 vCPU, 16 GiB): serial vLLM CUDA compile + modest BuildKit parallelism.
@@ -36,6 +37,10 @@ jobs:
       build_folders: ${{ steps.filter.outputs.build_folders }}
     steps:
       - uses: actions/checkout@v6.0.2
+      - name: Set up zram swap
+        env:
+          ZRAM_PERCENT: ${{ env.ZRAM_PERCENT }}
+        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
       - id: jobs
         uses: kmanimaran/list-folder-action@v4
         with:
@@ -57,6 +62,10 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v6.0.2
+      - name: Set up zram swap
+        env:
+          ZRAM_PERCENT: ${{ env.ZRAM_PERCENT }}
+        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
       - name: Prepare runner for CUDA compile
         id: vllm_build
         run: |
@@ -174,6 +183,10 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v6.0.2
+      - name: Set up zram swap
+        env:
+          ZRAM_PERCENT: ${{ env.ZRAM_PERCENT }}
+        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
       - name: Prepare runner for vLLM CPU build
         id: vllm_cpu_build
         run: |
@@ -266,6 +279,10 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v6.0.2
+      - name: Set up zram swap
+        env:
+          ZRAM_PERCENT: ${{ env.ZRAM_PERCENT }}
+        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
       - name: Read resource-tracker version
         if: matrix.folder == 'resource-tracker'
         id: resource_tracker
@@ -326,6 +343,10 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v6.0.2
+      - name: Set up zram swap
+        env:
+          ZRAM_PERCENT: ${{ env.ZRAM_PERCENT }}
+        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
