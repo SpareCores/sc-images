@@ -137,10 +137,6 @@ jobs:
   build-images:
     name: Build image (${{ matrix.folder }} / ${{ matrix.arch }})
     needs: [find-jobs, build-vllm-gpu-base, build-vllm-cpu-base-avx2]
-    if: >-
-      ${{
-        matrix.folder != 'benchmark-vllm-cpu-avx2' || matrix.arch == 'amd64'
-      }}
     defaults:
       run:
         working-directory: ${{ github.workspace }}/images/${{ matrix.folder }}
@@ -149,6 +145,9 @@ jobs:
       matrix:
         folder: ${{ fromJson(needs.find-jobs.outputs.build_folders) }}
         arch: [amd64, arm64]
+        exclude:
+          - folder: benchmark-vllm-cpu-avx2
+            arch: arm64
         include:
           - arch: amd64
             platform: linux/amd64
