@@ -19,13 +19,13 @@ env:
   VLLM_NVCC_THREADS_HOSTED: "1"
   BUILDKIT_MAX_PARALLELISM_HOSTED: "1"
   # Self-hosted vLLM CUDA: ~GiB per compile slot; zram (ZRAM_PERCENT) adds budget below.
-  VLLM_COMPILE_GIB_PER_SLOT: "5"
-  VLLM_MAX_JOBS_CAP: "16"
+  VLLM_COMPILE_GIB_PER_SLOT: "3"
+  VLLM_MAX_JOBS_CAP: "32"
   VLLM_NVCC_THREADS_SELF_HOSTED: "2"
   # Share of SwapTotal (MiB) to add to RAM when counting compile slots (zram is compressed).
   ZRAM_COMPILE_BUDGET_PERCENT: "50"
-  BUILDKIT_MAX_PARALLELISM_CAP: "8"
-  CARGO_BUILD_JOBS_CAP: "16"
+  BUILDKIT_MAX_PARALLELISM_CAP: "16"
+  CARGO_BUILD_JOBS_CAP: "32"
   # Images that COPY the resource-tracker binary.
   RESOURCE_TRACKER_IMAGES: '["resource-tracker","benchmark","benchmark-web","benchmark-redis","benchmark-passmark","benchmark-llm","benchmark-vllm-gpu","benchmark-vllm-cpu","benchmark-vllm-cpu-avx2","stress-ng","stress-ng-longrun","nvbandwidth"]'
   # amd64-only images (no arm64 matrix leg); merged as main-amd64 -> main.
