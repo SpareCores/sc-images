@@ -96,26 +96,12 @@ jobs:
           sed -i "s/^ARG max_jobs=.*/ARG max_jobs=${MAX_JOBS}/" "$DF"
           sed -i "s/^ARG nvcc_threads=.*/ARG nvcc_threads=${NVCC_THREADS}/" "$DF"
           sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS}/" "$DF"
-          python3 <<'PY'
-          import os
-          from pathlib import Path
-          df = Path("docker/Dockerfile")
-          text = df.read_text()
-          old = (
-              "        export VLLM_DOCKER_BUILD_CONTEXT=1 && \\\n"
-              "        export DEEPGEMM_PYTHON_INTERPRETERS=$(cat /tmp/dg_pythons.txt) && \\"
-          )
-          mj, nt = os.environ["MAX_JOBS"], os.environ["NVCC_THREADS"]
-          new = (
-              "        export VLLM_DOCKER_BUILD_CONTEXT=1 && \\\n"
-              f'        export MAX_JOBS="${{MAX_JOBS:-{mj}}}" && \\\n'
-              f'        export NVCC_THREADS="${{NVCC_THREADS:-{nt}}}" && \\\n'
-              "        export DEEPGEMM_PYTHON_INTERPRETERS=$(cat /tmp/dg_pythons.txt) && \\"
-          )
-          if old not in text:
-              raise SystemExit("csrc-build RUN block not found; cannot inject MAX_JOBS/NVCC_THREADS exports")
-          df.write_text(text.replace(old, new, 1))
-          PY
+          # Inject MAX_JOBS/NVCC_THREADS re-exports into the csrc-build RUN block.
+          # Done with sed to avoid ${{ being parsed as a GHA expression.
+          sed -i '/export VLLM_DOCKER_BUILD_CONTEXT=1 && \\$/{
+            a\        export MAX_JOBS='"${MAX_JOBS}"' && \\
+            a\        export NVCC_THREADS='"${NVCC_THREADS}"' && \\
+          }' "$DF"
           echo "Dockerfile parallelism (csrc-build):"
           grep -E '^(ARG vllm_ci_cache_bust|ARG max_jobs|ARG nvcc_threads|ENV MAX_JOBS|ENV NVCC_THREADS|ENV CARGO_BUILD_JOBS)=' "$DF"
           grep -A2 'export VLLM_DOCKER_BUILD_CONTEXT=1' "$DF" | head -6
