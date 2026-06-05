@@ -145,15 +145,6 @@ jobs:
           grep -E '^(ARG vllm_ci_cache_bust|ARG max_jobs|ARG nvcc_threads|ENV MAX_JOBS|ENV NVCC_THREADS|ENV CARGO_BUILD_JOBS)=' "$DF"
           grep -A2 'export VLLM_DOCKER_BUILD_CONTEXT=1' "$DF" | head -6
           echo "Expected ninja -j: $(( MAX_JOBS / NVCC_THREADS )) (max_jobs=${MAX_JOBS}, nvcc_threads=${NVCC_THREADS})"
-      - name: Exclude .git from vLLM build context
-        working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
-        run: |
-          set -euo pipefail
-          if [[ ! -f .dockerignore ]]; then
-            echo '.git' > .dockerignore
-          elif ! grep -qxF '.git' .dockerignore; then
-            echo '.git' >> .dockerignore
-          fi
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -250,15 +241,25 @@ jobs:
         run: |
           sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${{ steps.vllm_cpu_build.outputs.cargo_build_jobs }}/" docker/Dockerfile.cpu
           grep '^ENV CARGO_BUILD_JOBS=' docker/Dockerfile.cpu
-      - name: Exclude .git from vLLM build context
+      - name: Prepare vLLM CPU Docker build for stable layer cache
         working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
+        env:
+          VLLM_VERSION: ${{ steps.vllm.outputs.version }}
         run: |
           set -euo pipefail
+          # Exclude .git so COPY . . is stable across CI clones; setuptools-scm needs a pretend version.
           if [[ ! -f .dockerignore ]]; then
             echo '.git' > .dockerignore
           elif ! grep -qxF '.git' .dockerignore; then
             echo '.git' >> .dockerignore
           fi
+          df=docker/Dockerfile.cpu
+          if grep -q '^ENV SETUPTOOLS_SCM_PRETEND_VERSION=' "$df"; then
+            sed -i "s/^ENV SETUPTOOLS_SCM_PRETEND_VERSION=.*/ENV SETUPTOOLS_SCM_PRETEND_VERSION=${VLLM_VERSION}/" "$df"
+          else
+            sed -i "/^ENV MAX_JOBS=\${max_jobs}$/a ENV SETUPTOOLS_SCM_PRETEND_VERSION=${VLLM_VERSION}" "$df"
+          fi
+          grep '^ENV SETUPTOOLS_SCM_PRETEND_VERSION=' "$df"
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
