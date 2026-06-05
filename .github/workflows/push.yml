@@ -146,7 +146,14 @@ jobs:
           grep -A2 'export VLLM_DOCKER_BUILD_CONTEXT=1' "$DF" | head -6
           echo "Expected ninja -j: $(( MAX_JOBS / NVCC_THREADS )) (max_jobs=${MAX_JOBS}, nvcc_threads=${NVCC_THREADS})"
       - name: Exclude .git from vLLM build context
-        run: bash "${{ github.workspace }}/.github/scripts/patch-vllm-dockerignore.sh" "${{ github.workspace }}/vllm-common/.vllm-src"
+        working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
+        run: |
+          set -euo pipefail
+          if [[ ! -f .dockerignore ]]; then
+            echo '.git' > .dockerignore
+          elif ! grep -qxF '.git' .dockerignore; then
+            echo '.git' >> .dockerignore
+          fi
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -244,7 +251,14 @@ jobs:
           sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${{ steps.vllm_cpu_build.outputs.cargo_build_jobs }}/" docker/Dockerfile.cpu
           grep '^ENV CARGO_BUILD_JOBS=' docker/Dockerfile.cpu
       - name: Exclude .git from vLLM build context
-        run: bash "${{ github.workspace }}/.github/scripts/patch-vllm-dockerignore.sh" "${{ github.workspace }}/vllm-common/.vllm-src"
+        working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
+        run: |
+          set -euo pipefail
+          if [[ ! -f .dockerignore ]]; then
+            echo '.git' > .dockerignore
+          elif ! grep -qxF '.git' .dockerignore; then
+            echo '.git' >> .dockerignore
+          fi
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
