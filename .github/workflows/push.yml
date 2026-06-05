@@ -170,26 +170,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
-        id: setup-buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
           buildkitd-config-inline: |
             [worker.oci]
               max-parallelism = ${{ steps.vllm_build.outputs.buildkit_max_parallelism }}
-      - name: Cache vLLM BuildKit mount data
-        uses: actions/cache@v4
-        id: vllm_mount_cache
-        with:
-          path: ${{ github.workspace }}/.cache/vllm-gpu-base-arm64-mounts
-          key: vllm-gpu-base-mounts-${{ steps.vllm.outputs.version }}-arm64
-          restore-keys: |
-            vllm-gpu-base-mounts-${{ steps.vllm.outputs.version }}-
-      - name: Inject/extract vLLM BuildKit cache mounts
-        uses: reproducible-containers/buildkit-cache-dance@v3.4.0
-        with:
-          builder: ${{ steps.setup-buildx.outputs.name }}
-          cache-dir: ${{ github.workspace }}/.cache/vllm-gpu-base-arm64-mounts
-          dockerfile: ${{ github.workspace }}/vllm-common/.vllm-src/docker/Dockerfile
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
@@ -285,24 +270,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
-        id: setup-buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
           buildkitd-config-inline: ${{ contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', steps.vllm_cpu_build.outputs.buildkit_max_parallelism) || '' }}
-      - name: Cache vLLM BuildKit mount data
-        uses: actions/cache@v4
-        id: vllm_mount_cache
-        with:
-          path: ${{ github.workspace }}/.cache/vllm-cpu-avx2-amd64-mounts
-          key: vllm-cpu-avx2-mounts-${{ steps.vllm.outputs.version }}-amd64
-          restore-keys: |
-            vllm-cpu-avx2-mounts-${{ steps.vllm.outputs.version }}-
-      - name: Inject/extract vLLM BuildKit cache mounts
-        uses: reproducible-containers/buildkit-cache-dance@v3.4.0
-        with:
-          builder: ${{ steps.setup-buildx.outputs.name }}
-          cache-dir: ${{ github.workspace }}/.cache/vllm-cpu-avx2-amd64-mounts
-          dockerfile: ${{ github.workspace }}/vllm-common/.vllm-src/docker/Dockerfile.cpu
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
@@ -370,6 +340,17 @@ jobs:
         if: matrix.arch == 'arm64' && (vars.ARM64_RUNNER || 'self-hosted') != 'github'
         id: runner_cpus
         run: echo "ncpus=$(nproc)" >> "$GITHUB_OUTPUT"
+      - name: Prepare BuildKit config
+        id: buildx_config
+        run: |
+          if [ "${{ matrix.arch }}" = "arm64" ] && [ "${{ vars.ARM64_RUNNER || 'self-hosted' }}" != "github" ]; then
+            {
+              echo 'config<<EOF'
+              echo '[worker.oci]'
+              echo "  max-parallelism = ${{ steps.runner_cpus.outputs.ncpus }}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          fi
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -379,7 +360,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
-          buildkitd-config-inline: ${{ matrix.arch == 'arm64' && (vars.ARM64_RUNNER || 'self-hosted') != 'github' && format('[worker.oci]\n  max-parallelism = {0}', steps.runner_cpus.outputs.ncpus) || '' }}
+          buildkitd-config-inline: ${{ steps.buildx_config.outputs.config }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
@@ -392,6 +373,28 @@ jobs:
         id: vllm_benchmark
         working-directory: ${{ github.workspace }}
         run: echo "version=$(tr -d '[:space:]' < vllm-common/VLLM_VERSION)" >> "$GITHUB_OUTPUT"
+      - name: Prepare build args
+        id: build_args
+        run: |
+          set -euo pipefail
+          folder='${{ matrix.folder }}'
+          arch='${{ matrix.arch }}'
+          lines=()
+          if [ "$folder" = "resource-tracker" ]; then
+            lines+=("RESOURCE_TRACKER_VERSION=${{ steps.resource_tracker.outputs.version }}")
+          elif [[ "$folder" == benchmark-vllm* ]]; then
+            lines+=("RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-${arch}")
+            lines+=("VLLM_VERSION=${{ steps.vllm_benchmark.outputs.version }}")
+          elif echo '${{ env.RESOURCE_TRACKER_IMAGES }}' | jq -e --arg f "$folder" 'index($f) != null' >/dev/null; then
+            lines+=("RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-${arch}")
+          fi
+          if [ "${#lines[@]}" -gt 0 ]; then
+            {
+              echo 'args<<EOF'
+              printf '%s\n' "${lines[@]}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          fi
       - name: Build and push Docker image
         uses: docker/build-push-action@v7.1.0
         with:
@@ -403,7 +406,7 @@ jobs:
           no-cache: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ${{ matrix.folder == 'resource-tracker' && format('RESOURCE_TRACKER_VERSION={0}', steps.resource_tracker.outputs.version) || (startsWith(matrix.folder, 'benchmark-vllm') && format('RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-{0}\nVLLM_VERSION={1}', matrix.arch, steps.vllm_benchmark.outputs.version) || format('RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-{0}', matrix.arch)) }}
+          build-args: ${{ steps.build_args.outputs.args }}
           cache-from: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2}', env.REGISTRY, matrix.folder, matrix.arch) }}
           cache-to: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2},mode=max', env.REGISTRY, matrix.folder, matrix.arch) }}
 
