@@ -157,8 +157,10 @@ jobs:
             a\        export MAX_JOBS='"${MAX_JOBS}"' && \\
             a\        export NVCC_THREADS='"${NVCC_THREADS}"' && \\
           }' "$DF"
+          # Parallelize flashinfer cubin download (default 4 threads, ~7 min for 12k files).
+          sed -i '/^RUN flashinfer show-config/i ENV FLASHINFER_CUBIN_DOWNLOAD_THREADS=32' "$DF"
           echo "Dockerfile parallelism (csrc-build):"
-          grep -E '^(ARG vllm_ci_cache_bust|ARG max_jobs|ARG nvcc_threads|ENV MAX_JOBS|ENV NVCC_THREADS|ENV CARGO_BUILD_JOBS)=' "$DF"
+          grep -E '^(ARG vllm_ci_cache_bust|ARG max_jobs|ARG nvcc_threads|ENV MAX_JOBS|ENV NVCC_THREADS|ENV CARGO_BUILD_JOBS|ENV FLASHINFER)=' "$DF"
           grep -A2 'export VLLM_DOCKER_BUILD_CONTEXT=1' "$DF" | head -6
           echo "Expected ninja -j: $(( MAX_JOBS / NVCC_THREADS )) (max_jobs=${MAX_JOBS}, nvcc_threads=${NVCC_THREADS})"
       - name: Log in to the Container registry
