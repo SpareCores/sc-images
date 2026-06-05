@@ -184,7 +184,9 @@ jobs:
         id: vllm_cpu_build
         env:
           REFERENCE_RAM_GIB: ${{ env.REFERENCE_RAM_GIB }}
-          VLLM_COMPILE_GIB_PER_SLOT: "2"
+          # oneDNN/C++ objects are RAM-heavy; ~6 GiB/slot on physical MemTotal (not zram).
+          VLLM_COMPILE_GIB_PER_SLOT: "6"
+          COMPILE_RAM_SOURCE: physical
           VLLM_MAX_JOBS_CAP: ${{ env.VLLM_MAX_JOBS_CAP }}
           VLLM_NVCC_THREADS: "1"
           CARGO_BUILD_JOBS_CAP: ${{ env.CARGO_BUILD_JOBS_CAP }}

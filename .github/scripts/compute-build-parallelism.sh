@@ -36,6 +36,9 @@ NVCC_THREADS_CAP="${VLLM_NVCC_THREADS:-2}"
 CARGO_JOBS_CAP="${CARGO_BUILD_JOBS_CAP:-32}"
 BUILDKIT_CAP="${BUILDKIT_MAX_PARALLELISM_CAP:-16}"
 ZRAM_BUDGET_PERCENT="${ZRAM_COMPILE_BUDGET_PERCENT:-50}"
+# physical = MemTotal only (C++ link/compile needs real RAM; zram is not compile budget).
+# effective = MemTotal + zram budget (CUDA self-hosted builds).
+COMPILE_RAM_SOURCE="${COMPILE_RAM_SOURCE:-effective}"
 
 MEM_MIB=$(awk '/MemTotal:/ {print int($2/1024)}' /proc/meminfo)
 SWAP_MIB=$(awk '/SwapTotal:/ {print int($2/1024)}' /proc/meminfo)
@@ -46,7 +49,11 @@ EFFECTIVE_MIB=$(( MEM_MIB + ZRAM_BUDGET ))
 EFFECTIVE_GIB=$(( (EFFECTIVE_MIB + 512) / 1024 ))
 
 SLOT_MIB=$(( COMPILE_GIB_PER_SLOT * 1024 ))
-MEM_SLOTS=$(( EFFECTIVE_MIB / SLOT_MIB ))
+if [ "$COMPILE_RAM_SOURCE" = "physical" ]; then
+  MEM_SLOTS=$(( MEM_MIB / SLOT_MIB ))
+else
+  MEM_SLOTS=$(( EFFECTIVE_MIB / SLOT_MIB ))
+fi
 [ "$MEM_SLOTS" -ge 1 ] || MEM_SLOTS=1
 
 # Linear scale from 64 GiB reference; floor keeps small machines conservative.
@@ -102,7 +109,7 @@ case "$PROFILE" in
     ;;
 esac
 
-echo "Parallelism (${PROFILE}): mem=${MEM_MIB}MiB swap=${SWAP_MIB}MiB effective=${EFFECTIVE_MIB}MiB (${EFFECTIVE_GIB}GiB) ratio=${EFFECTIVE_GIB}/${REFERENCE_RAM_GIB} ncpu=${NCPU} mem_slots=${MEM_SLOTS}" >&2
+echo "Parallelism (${PROFILE}): mem=${MEM_MIB}MiB swap=${SWAP_MIB}MiB effective=${EFFECTIVE_MIB}MiB (${EFFECTIVE_GIB}GiB) ratio=${EFFECTIVE_GIB}/${REFERENCE_RAM_GIB} ncpu=${NCPU} mem_slots=${MEM_SLOTS} ram_source=${COMPILE_RAM_SOURCE} slot_gib=${COMPILE_GIB_PER_SLOT}" >&2
 echo "  runtime: max_jobs=${MAX_JOBS} nvcc_threads=${NVCC_THREADS} ninja=$(( MAX_JOBS / NVCC_THREADS )) cargo=${CARGO_JOBS} buildkit=${BUILDKIT_PAR}" >&2
 echo "  docker (cache-stable): max_jobs=${DOCKER_MAX_JOBS} nvcc_threads=${DOCKER_NVCC_THREADS:-n/a} cargo=${DOCKER_CARGO_JOBS}" >&2
 
