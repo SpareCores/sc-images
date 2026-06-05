@@ -55,9 +55,7 @@ jobs:
 
   build-vllm-gpu-base:
     name: Build vllm-gpu-base (arm64 CUDA)
-    # Dedicated builder (label sc-images-arm64). Register with --labels sc-images-arm64
-    # (--no-default-labels is fine; do not gate parallelism on the self-hosted label).
-    runs-on: [self-hosted, sc-images-arm64]
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 360
     permissions:
       contents: read
@@ -73,31 +71,39 @@ jobs:
         run: |
           set -euo pipefail
           NCPU=$(nproc)
-          MEM_MIB=$(awk '/MemTotal:/ {print int($2/1024)}' /proc/meminfo)
-          SWAP_MIB=$(awk '/SwapTotal:/ {print int($2/1024)}' /proc/meminfo)
-          SLOT_MIB=$(( ${{ env.VLLM_COMPILE_GIB_PER_SLOT }} * 1024 ))
-          ZRAM_BUDGET=$(( SWAP_MIB * ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }} / 100 ))
-          EFFECTIVE_MIB=$(( MEM_MIB + ZRAM_BUDGET ))
-          MEM_SLOTS=$(( EFFECTIVE_MIB / SLOT_MIB ))
-          [ "$MEM_SLOTS" -ge 1 ] || MEM_SLOTS=1
-          NVCC_THREADS=${{ env.VLLM_NVCC_THREADS_SELF_HOSTED }}
-          if [ "$NCPU" -lt 8 ]; then NVCC_THREADS=1; fi
-          MAX_JOBS=$NCPU
-          if [ "$MAX_JOBS" -gt "$MEM_SLOTS" ]; then MAX_JOBS=$MEM_SLOTS; fi
-          if [ "$MAX_JOBS" -gt ${{ env.VLLM_MAX_JOBS_CAP }} ]; then MAX_JOBS=${{ env.VLLM_MAX_JOBS_CAP }}; fi
-          if [ "$MAX_JOBS" -lt "$NVCC_THREADS" ]; then MAX_JOBS=$NVCC_THREADS; fi
-          CARGO_JOBS=$MAX_JOBS
-          if [ "$CARGO_JOBS" -gt ${{ env.CARGO_BUILD_JOBS_CAP }} ]; then CARGO_JOBS=${{ env.CARGO_BUILD_JOBS_CAP }}; fi
-          BUILDKIT_PAR=$(( MAX_JOBS / 2 ))
-          [ "$BUILDKIT_PAR" -ge 2 ] || BUILDKIT_PAR=2
-          if [ "$BUILDKIT_PAR" -gt ${{ env.BUILDKIT_MAX_PARALLELISM_CAP }} ]; then BUILDKIT_PAR=${{ env.BUILDKIT_MAX_PARALLELISM_CAP }}; fi
+          if [[ "${{ contains(runner.labels, 'self-hosted') }}" == "true" ]]; then
+            MEM_MIB=$(awk '/MemTotal:/ {print int($2/1024)}' /proc/meminfo)
+            SWAP_MIB=$(awk '/SwapTotal:/ {print int($2/1024)}' /proc/meminfo)
+            SLOT_MIB=$(( ${{ env.VLLM_COMPILE_GIB_PER_SLOT }} * 1024 ))
+            ZRAM_BUDGET=$(( SWAP_MIB * ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }} / 100 ))
+            EFFECTIVE_MIB=$(( MEM_MIB + ZRAM_BUDGET ))
+            MEM_SLOTS=$(( EFFECTIVE_MIB / SLOT_MIB ))
+            [ "$MEM_SLOTS" -ge 1 ] || MEM_SLOTS=1
+            NVCC_THREADS=${{ env.VLLM_NVCC_THREADS_SELF_HOSTED }}
+            if [ "$NCPU" -lt 8 ]; then NVCC_THREADS=1; fi
+            MAX_JOBS=$NCPU
+            if [ "$MAX_JOBS" -gt "$MEM_SLOTS" ]; then MAX_JOBS=$MEM_SLOTS; fi
+            if [ "$MAX_JOBS" -gt ${{ env.VLLM_MAX_JOBS_CAP }} ]; then MAX_JOBS=${{ env.VLLM_MAX_JOBS_CAP }}; fi
+            if [ "$MAX_JOBS" -lt "$NVCC_THREADS" ]; then MAX_JOBS=$NVCC_THREADS; fi
+            CARGO_JOBS=$MAX_JOBS
+            if [ "$CARGO_JOBS" -gt ${{ env.CARGO_BUILD_JOBS_CAP }} ]; then CARGO_JOBS=${{ env.CARGO_BUILD_JOBS_CAP }}; fi
+            BUILDKIT_PAR=$(( MAX_JOBS / 2 ))
+            [ "$BUILDKIT_PAR" -ge 2 ] || BUILDKIT_PAR=2
+            if [ "$BUILDKIT_PAR" -gt ${{ env.BUILDKIT_MAX_PARALLELISM_CAP }} ]; then BUILDKIT_PAR=${{ env.BUILDKIT_MAX_PARALLELISM_CAP }}; fi
+            echo "Parallelism: mem=${MEM_MIB}MiB swap=${SWAP_MIB}MiB effective=${EFFECTIVE_MIB}MiB slots=${MEM_SLOTS} max_jobs=${MAX_JOBS} nvcc_threads=${NVCC_THREADS} ninja_jobs=$(( MAX_JOBS / NVCC_THREADS )) cargo=${CARGO_JOBS} buildkit=${BUILDKIT_PAR}"
+          else
+            MAX_JOBS=${{ env.VLLM_MAX_JOBS_HOSTED }}
+            NVCC_THREADS=${{ env.VLLM_NVCC_THREADS_HOSTED }}
+            CARGO_JOBS=4
+            BUILDKIT_PAR=${{ env.BUILDKIT_MAX_PARALLELISM_HOSTED }}
+            echo "Parallelism: hosted max_jobs=${MAX_JOBS} nvcc_threads=${NVCC_THREADS} ninja_jobs=$(( MAX_JOBS / NVCC_THREADS )) cargo=${CARGO_JOBS} buildkit=${BUILDKIT_PAR}"
+          fi
           echo "ncpus=$NCPU" >> "$GITHUB_OUTPUT"
           echo "max_jobs=$MAX_JOBS" >> "$GITHUB_OUTPUT"
           echo "cargo_build_jobs=$CARGO_JOBS" >> "$GITHUB_OUTPUT"
           echo "nvcc_threads=$NVCC_THREADS" >> "$GITHUB_OUTPUT"
           echo "buildkit_max_parallelism=$BUILDKIT_PAR" >> "$GITHUB_OUTPUT"
           echo "Runner labels: ${{ toJson(runner.labels) }}"
-          echo "Parallelism: mem=${MEM_MIB}MiB swap=${SWAP_MIB}MiB effective=${EFFECTIVE_MIB}MiB slots=${MEM_SLOTS} max_jobs=${MAX_JOBS} nvcc_threads=${NVCC_THREADS} ninja_jobs=$(( MAX_JOBS / NVCC_THREADS )) cargo=${CARGO_JOBS} buildkit=${BUILDKIT_PAR}"
           free -h
           df -h /
       - name: Read VLLM version
@@ -127,7 +133,9 @@ jobs:
           sed -i "s/^ARG vllm_ci_cache_bust=.*/ARG vllm_ci_cache_bust=${VLLM_CI_CACHE_BUST}/" "$DF"
           sed -i "s/^ARG max_jobs=.*/ARG max_jobs=${MAX_JOBS}/" "$DF"
           sed -i "s/^ARG nvcc_threads=.*/ARG nvcc_threads=${NVCC_THREADS}/" "$DF"
-          sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS}/" "$DF"
+          if [[ "${{ contains(runner.labels, 'self-hosted') }}" == "true" ]]; then
+            sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS}/" "$DF"
+          fi
           # Inject MAX_JOBS/NVCC_THREADS re-exports into the csrc-build RUN block (plain sed, not GHA expressions).
           sed -i '/export VLLM_DOCKER_BUILD_CONTEXT=1 && \\$/{
             a\        export MAX_JOBS='"${MAX_JOBS}"' && \\
@@ -276,7 +284,7 @@ jobs:
             runner: ubuntu-latest
           - arch: arm64
             platform: linux/arm64
-            runner: [self-hosted, sc-images-arm64]
+            runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
@@ -294,7 +302,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: echo "version=$(tr -d '[:space:]' < images/resource-tracker/RESOURCE_TRACKER_VERSION)" >> "$GITHUB_OUTPUT"
       - name: Detect runner CPUs
-        if: contains(runner.labels, 'self-hosted') || contains(runner.labels, 'sc-images-arm64')
+        if: contains(runner.labels, 'self-hosted')
         id: runner_cpus
         run: echo "ncpus=$(nproc)" >> "$GITHUB_OUTPUT"
       - name: Log in to the Container registry
@@ -306,7 +314,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
-          buildkitd-config-inline: ${{ (contains(runner.labels, 'self-hosted') || contains(runner.labels, 'sc-images-arm64')) && format('[worker.oci]\n  max-parallelism = {0}', steps.runner_cpus.outputs.ncpus) || '' }}
+          buildkitd-config-inline: ${{ contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', steps.runner_cpus.outputs.ncpus) || '' }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
