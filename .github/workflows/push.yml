@@ -18,15 +18,12 @@ env:
   ZRAM_PERCENT: "125"
   # Set to false after resource-tracker consumers have been rebuilt once.
   FORCE_REBUILD_RESOURCE_TRACKER: "true"
-  # ubuntu-24.04-arm (~3 vCPU, 16 GiB): serial vLLM CUDA compile + modest BuildKit parallelism.
-  VLLM_MAX_JOBS_HOSTED: "1"
-  VLLM_NVCC_THREADS_HOSTED: "1"
-  BUILDKIT_MAX_PARALLELISM_HOSTED: "1"
-  # Self-hosted vLLM CUDA: ~GiB per compile slot; zram (ZRAM_PERCENT) adds budget below.
+  # 64 GiB baseline (c6g.8xlarge): RAM-linear compile parallelism via compute-build-parallelism.sh.
+  # Dockerfile build-args use fixed reference values; runtime jobs come from a BuildKit secret (cache-stable).
+  REFERENCE_RAM_GIB: "64"
   VLLM_COMPILE_GIB_PER_SLOT: "3"
   VLLM_MAX_JOBS_CAP: "32"
-  VLLM_NVCC_THREADS_SELF_HOSTED: "2"
-  # Share of SwapTotal (MiB) to add to RAM when counting compile slots (zram is compressed).
+  VLLM_NVCC_THREADS: "2"
   ZRAM_COMPILE_BUDGET_PERCENT: "50"
   BUILDKIT_MAX_PARALLELISM_CAP: "16"
   CARGO_BUILD_JOBS_CAP: "32"
@@ -84,41 +81,18 @@ jobs:
         run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
       - name: Prepare runner for CUDA compile
         id: vllm_build
+        env:
+          REFERENCE_RAM_GIB: ${{ env.REFERENCE_RAM_GIB }}
+          VLLM_COMPILE_GIB_PER_SLOT: ${{ env.VLLM_COMPILE_GIB_PER_SLOT }}
+          VLLM_MAX_JOBS_CAP: ${{ env.VLLM_MAX_JOBS_CAP }}
+          VLLM_NVCC_THREADS: ${{ env.VLLM_NVCC_THREADS }}
+          CARGO_BUILD_JOBS_CAP: ${{ env.CARGO_BUILD_JOBS_CAP }}
+          BUILDKIT_MAX_PARALLELISM_CAP: ${{ env.BUILDKIT_MAX_PARALLELISM_CAP }}
+          ZRAM_COMPILE_BUDGET_PERCENT: ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }}
         run: |
           set -euo pipefail
-          NCPU=$(nproc)
-          if [ "${{ vars.ARM64_RUNNER || 'self-hosted' }}" != "github" ]; then
-            MEM_MIB=$(awk '/MemTotal:/ {print int($2/1024)}' /proc/meminfo)
-            SWAP_MIB=$(awk '/SwapTotal:/ {print int($2/1024)}' /proc/meminfo)
-            SLOT_MIB=$(( ${{ env.VLLM_COMPILE_GIB_PER_SLOT }} * 1024 ))
-            ZRAM_BUDGET=$(( SWAP_MIB * ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }} / 100 ))
-            EFFECTIVE_MIB=$(( MEM_MIB + ZRAM_BUDGET ))
-            MEM_SLOTS=$(( EFFECTIVE_MIB / SLOT_MIB ))
-            [ "$MEM_SLOTS" -ge 1 ] || MEM_SLOTS=1
-            NVCC_THREADS=${{ env.VLLM_NVCC_THREADS_SELF_HOSTED }}
-            if [ "$NCPU" -lt 8 ]; then NVCC_THREADS=1; fi
-            MAX_JOBS=$NCPU
-            if [ "$MAX_JOBS" -gt "$MEM_SLOTS" ]; then MAX_JOBS=$MEM_SLOTS; fi
-            if [ "$MAX_JOBS" -gt ${{ env.VLLM_MAX_JOBS_CAP }} ]; then MAX_JOBS=${{ env.VLLM_MAX_JOBS_CAP }}; fi
-            if [ "$MAX_JOBS" -lt "$NVCC_THREADS" ]; then MAX_JOBS=$NVCC_THREADS; fi
-            CARGO_JOBS=$MAX_JOBS
-            if [ "$CARGO_JOBS" -gt ${{ env.CARGO_BUILD_JOBS_CAP }} ]; then CARGO_JOBS=${{ env.CARGO_BUILD_JOBS_CAP }}; fi
-            BUILDKIT_PAR=$(( MAX_JOBS / 2 ))
-            [ "$BUILDKIT_PAR" -ge 2 ] || BUILDKIT_PAR=2
-            if [ "$BUILDKIT_PAR" -gt ${{ env.BUILDKIT_MAX_PARALLELISM_CAP }} ]; then BUILDKIT_PAR=${{ env.BUILDKIT_MAX_PARALLELISM_CAP }}; fi
-            echo "Parallelism: mem=${MEM_MIB}MiB swap=${SWAP_MIB}MiB effective=${EFFECTIVE_MIB}MiB slots=${MEM_SLOTS} max_jobs=${MAX_JOBS} nvcc_threads=${NVCC_THREADS} ninja_jobs=$(( MAX_JOBS / NVCC_THREADS )) cargo=${CARGO_JOBS} buildkit=${BUILDKIT_PAR}"
-          else
-            MAX_JOBS=${{ env.VLLM_MAX_JOBS_HOSTED }}
-            NVCC_THREADS=${{ env.VLLM_NVCC_THREADS_HOSTED }}
-            CARGO_JOBS=4
-            BUILDKIT_PAR=${{ env.BUILDKIT_MAX_PARALLELISM_HOSTED }}
-            echo "Parallelism (github): max_jobs=${MAX_JOBS} nvcc_threads=${NVCC_THREADS} ninja_jobs=$(( MAX_JOBS / NVCC_THREADS )) cargo=${CARGO_JOBS} buildkit=${BUILDKIT_PAR}"
-          fi
-          echo "ncpus=$NCPU" >> "$GITHUB_OUTPUT"
-          echo "max_jobs=$MAX_JOBS" >> "$GITHUB_OUTPUT"
-          echo "cargo_build_jobs=$CARGO_JOBS" >> "$GITHUB_OUTPUT"
-          echo "nvcc_threads=$NVCC_THREADS" >> "$GITHUB_OUTPUT"
-          echo "buildkit_max_parallelism=$BUILDKIT_PAR" >> "$GITHUB_OUTPUT"
+          bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" vllm-gpu \
+            --env-file "${{ github.workspace }}/.cache/vllm-parallelism.env" >> "$GITHUB_OUTPUT"
           echo "Runner labels: ${{ toJson(runner.labels) }}"
           free -h
           df -h /
@@ -133,36 +107,14 @@ jobs:
             https://github.com/vllm-project/vllm.git .vllm-src
       - name: Tune vLLM Dockerfile parallelism
         working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
-        env:
-          MAX_JOBS: ${{ steps.vllm_build.outputs.max_jobs }}
-          NVCC_THREADS: ${{ steps.vllm_build.outputs.nvcc_threads }}
-          CARGO_BUILD_JOBS: ${{ steps.vllm_build.outputs.cargo_build_jobs }}
-          VLLM_CI_CACHE_BUST: ${{ steps.vllm.outputs.version }}-${{ steps.vllm_build.outputs.max_jobs }}-${{ steps.vllm_build.outputs.nvcc_threads }}
         run: |
-          set -euo pipefail
-          # Upstream defaults: max_jobs=2, nvcc_threads=8 → ninja uses max(1, 2//8)=1 compile job.
-          # setup.py: ninja -j (MAX_JOBS // NVCC_THREADS); each nvcc job uses NVCC_THREADS internally.
-          DF=docker/Dockerfile
-          if ! grep -q '^ARG vllm_ci_cache_bust=' "$DF"; then
-            sed -i '/^ARG max_jobs=/i ARG vllm_ci_cache_bust=0' "$DF"
-          fi
-          sed -i "s/^ARG vllm_ci_cache_bust=.*/ARG vllm_ci_cache_bust=${VLLM_CI_CACHE_BUST}/" "$DF"
-          sed -i "s/^ARG max_jobs=.*/ARG max_jobs=${MAX_JOBS}/" "$DF"
-          sed -i "s/^ARG nvcc_threads=.*/ARG nvcc_threads=${NVCC_THREADS}/" "$DF"
-          if [ "${{ vars.ARM64_RUNNER || 'self-hosted' }}" != "github" ]; then
-            sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS}/" "$DF"
-          fi
-          # Inject MAX_JOBS/NVCC_THREADS re-exports into the csrc-build RUN block (plain sed, not GHA expressions).
-          sed -i '/export VLLM_DOCKER_BUILD_CONTEXT=1 && \\$/{
-            a\        export MAX_JOBS='"${MAX_JOBS}"' && \\
-            a\        export NVCC_THREADS='"${NVCC_THREADS}"' && \\
-          }' "$DF"
-          # Parallelize flashinfer cubin download (default 4 threads, ~7 min for 12k files).
-          sed -i '/^RUN flashinfer show-config/i ENV FLASHINFER_CUBIN_DOWNLOAD_THREADS=32' "$DF"
-          echo "Dockerfile parallelism (csrc-build):"
-          grep -E '^(ARG vllm_ci_cache_bust|ARG max_jobs|ARG nvcc_threads|ENV MAX_JOBS|ENV NVCC_THREADS|ENV CARGO_BUILD_JOBS|ENV FLASHINFER)=' "$DF"
-          grep -A2 'export VLLM_DOCKER_BUILD_CONTEXT=1' "$DF" | head -6
-          echo "Expected ninja -j: $(( MAX_JOBS / NVCC_THREADS )) (max_jobs=${MAX_JOBS}, nvcc_threads=${NVCC_THREADS})"
+          bash "${{ github.workspace }}/.github/scripts/tune-vllm-gpu-dockerfile.sh" \
+            docker/Dockerfile \
+            "${{ steps.vllm.outputs.version }}" \
+            "${{ steps.vllm_build.outputs.docker_max_jobs }}" \
+            "${{ steps.vllm_build.outputs.docker_nvcc_threads }}" \
+            "${{ steps.vllm_build.outputs.docker_cargo_build_jobs }}"
+          echo "Expected ninja -j: $(( ${{ steps.vllm_build.outputs.max_jobs }} / ${{ steps.vllm_build.outputs.nvcc_threads }} )) (runtime max_jobs=${{ steps.vllm_build.outputs.max_jobs }}, nvcc_threads=${{ steps.vllm_build.outputs.nvcc_threads }})"
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -194,11 +146,13 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            max_jobs=${{ steps.vllm_build.outputs.max_jobs }}
-            nvcc_threads=${{ steps.vllm_build.outputs.nvcc_threads }}
-            vllm_ci_cache_bust=${{ steps.vllm.outputs.version }}-${{ steps.vllm_build.outputs.max_jobs }}-${{ steps.vllm_build.outputs.nvcc_threads }}
+            max_jobs=${{ steps.vllm_build.outputs.docker_max_jobs }}
+            nvcc_threads=${{ steps.vllm_build.outputs.docker_nvcc_threads }}
+            vllm_ci_cache_bust=${{ steps.vllm.outputs.version }}
             torch_cuda_arch_list=9.0 10.0+PTX
             RUN_WHEEL_CHECK=false
+          secrets: |
+            vllm_parallelism=${{ github.workspace }}/.cache/vllm-parallelism.env
           cache-from: |
             type=gha,scope=vllm-gpu-base-arm64-${{ steps.vllm.outputs.version }}
             type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64
@@ -220,15 +174,17 @@ jobs:
         run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
       - name: Prepare runner for vLLM CPU build
         id: vllm_cpu_build
+        env:
+          REFERENCE_RAM_GIB: ${{ env.REFERENCE_RAM_GIB }}
+          VLLM_COMPILE_GIB_PER_SLOT: "2"
+          VLLM_MAX_JOBS_CAP: ${{ env.VLLM_MAX_JOBS_CAP }}
+          VLLM_NVCC_THREADS: "1"
+          CARGO_BUILD_JOBS_CAP: ${{ env.CARGO_BUILD_JOBS_CAP }}
+          BUILDKIT_MAX_PARALLELISM_CAP: ${{ env.BUILDKIT_MAX_PARALLELISM_CAP }}
+          ZRAM_COMPILE_BUDGET_PERCENT: ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }}
         run: |
-          if [[ "${{ contains(runner.labels, 'self-hosted') }}" == "true" ]]; then
-            NCPU=$(nproc)
-            echo "max_jobs=$NCPU" >> "$GITHUB_OUTPUT"
-            echo "cargo_build_jobs=$NCPU" >> "$GITHUB_OUTPUT"
-            echo "buildkit_max_parallelism=$NCPU" >> "$GITHUB_OUTPUT"
-          else
-            echo "max_jobs=4" >> "$GITHUB_OUTPUT"
-          fi
+          bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" vllm-cpu \
+            --env-file "${{ github.workspace }}/.cache/vllm-parallelism.env" >> "$GITHUB_OUTPUT"
       - name: Read VLLM version
         id: vllm
         working-directory: ${{ github.workspace }}
@@ -238,31 +194,14 @@ jobs:
         run: |
           git clone --depth 1 --branch "v${{ steps.vllm.outputs.version }}" \
             https://github.com/vllm-project/vllm.git .vllm-src
-      - name: Raise vLLM Rust parallelism (self-hosted)
-        if: contains(runner.labels, 'self-hosted')
+      - name: Tune vLLM CPU Dockerfile
         working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
         run: |
-          sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${{ steps.vllm_cpu_build.outputs.cargo_build_jobs }}/" docker/Dockerfile.cpu
-          grep '^ENV CARGO_BUILD_JOBS=' docker/Dockerfile.cpu
-      - name: Prepare vLLM CPU Docker build for stable layer cache
-        working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
-        env:
-          VLLM_VERSION: ${{ steps.vllm.outputs.version }}
-        run: |
-          set -euo pipefail
-          # Exclude .git so COPY . . is stable across CI clones; setuptools-scm needs a pretend version.
-          if [[ ! -f .dockerignore ]]; then
-            echo '.git' > .dockerignore
-          elif ! grep -qxF '.git' .dockerignore; then
-            echo '.git' >> .dockerignore
-          fi
-          df=docker/Dockerfile.cpu
-          if grep -q '^ENV SETUPTOOLS_SCM_PRETEND_VERSION=' "$df"; then
-            sed -i "s/^ENV SETUPTOOLS_SCM_PRETEND_VERSION=.*/ENV SETUPTOOLS_SCM_PRETEND_VERSION=${VLLM_VERSION}/" "$df"
-          else
-            sed -i "/^ENV MAX_JOBS=\${max_jobs}$/a ENV SETUPTOOLS_SCM_PRETEND_VERSION=${VLLM_VERSION}" "$df"
-          fi
-          grep '^ENV SETUPTOOLS_SCM_PRETEND_VERSION=' "$df"
+          bash "${{ github.workspace }}/.github/scripts/tune-vllm-cpu-dockerfile.sh" \
+            docker/Dockerfile.cpu \
+            "${{ steps.vllm.outputs.version }}" \
+            "${{ steps.vllm_cpu_build.outputs.docker_max_jobs }}" \
+            "${{ steps.vllm_cpu_build.outputs.docker_cargo_build_jobs }}"
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -272,7 +211,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
-          buildkitd-config-inline: ${{ contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', steps.vllm_cpu_build.outputs.buildkit_max_parallelism) || '' }}
+          buildkitd-config-inline: |
+            [worker.oci]
+              max-parallelism = ${{ steps.vllm_cpu_build.outputs.buildkit_max_parallelism }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
@@ -293,7 +234,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VLLM_CPU_AVX2=true
-            max_jobs=${{ steps.vllm_cpu_build.outputs.max_jobs }}
+            max_jobs=${{ steps.vllm_cpu_build.outputs.docker_max_jobs }}
+          secrets: |
+            vllm_parallelism=${{ github.workspace }}/.cache/vllm-parallelism.env
           cache-from: |
             type=gha,scope=vllm-cpu-base-avx2-amd64-${{ steps.vllm.outputs.version }}
             type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64
@@ -336,18 +279,25 @@ jobs:
         id: resource_tracker
         working-directory: ${{ github.workspace }}
         run: echo "version=$(tr -d '[:space:]' < images/resource-tracker/RESOURCE_TRACKER_VERSION)" >> "$GITHUB_OUTPUT"
-      - name: Detect runner CPUs
+      - name: Prepare BuildKit parallelism
+        id: build_parallelism
         if: matrix.arch == 'arm64' && (vars.ARM64_RUNNER || 'self-hosted') != 'github'
-        id: runner_cpus
-        run: echo "ncpus=$(nproc)" >> "$GITHUB_OUTPUT"
+        env:
+          REFERENCE_RAM_GIB: ${{ env.REFERENCE_RAM_GIB }}
+          VLLM_COMPILE_GIB_PER_SLOT: "2"
+          VLLM_MAX_JOBS_CAP: ${{ env.VLLM_MAX_JOBS_CAP }}
+          BUILDKIT_MAX_PARALLELISM_CAP: ${{ env.BUILDKIT_MAX_PARALLELISM_CAP }}
+          ZRAM_COMPILE_BUDGET_PERCENT: ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }}
+        run: |
+          bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" buildkit >> "$GITHUB_OUTPUT"
       - name: Prepare BuildKit config
         id: buildx_config
         run: |
-          if [ "${{ matrix.arch }}" = "arm64" ] && [ "${{ vars.ARM64_RUNNER || 'self-hosted' }}" != "github" ]; then
+          if [ -n "${{ steps.build_parallelism.outputs.buildkit_max_parallelism }}" ]; then
             {
               echo 'config<<EOF'
               echo '[worker.oci]'
-              echo "  max-parallelism = ${{ steps.runner_cpus.outputs.ncpus }}"
+              echo "  max-parallelism = ${{ steps.build_parallelism.outputs.buildkit_max_parallelism }}"
               echo 'EOF'
             } >> "$GITHUB_OUTPUT"
           fi
