@@ -46,10 +46,18 @@ text = re.sub(r"^ENV CARGO_BUILD_JOBS=4$", f"ENV CARGO_BUILD_JOBS={cargo}", text
 secret_path = "/tmp/vllm-parallelism.env"
 secret_mount = f"--mount=type=secret,id=vllm_parallelism,target={secret_path}"
 load_env = (
-    f"MAX_JOBS=$(sed -n 's/^MAX_JOBS=//p' {secret_path} | tr -d '\\r\\n') && \\\n"
-    f"    NVCC_THREADS=$(sed -n 's/^NVCC_THREADS=//p' {secret_path} | tr -d '\\r\\n') && \\\n"
-    f"    CARGO_BUILD_JOBS=$(sed -n 's/^CARGO_BUILD_JOBS=//p' {secret_path} | tr -d '\\r\\n') && \\\n"
-    "    export MAX_JOBS NVCC_THREADS CARGO_BUILD_JOBS &&"
+    f"_vllm_pf={secret_path} && \\\n"
+    f"    _mj=$(sed -n 's/^MAX_JOBS=//p' \"$_vllm_pf\" 2>/dev/null | tr -d '\\r\\n' | head -1) && \\\n"
+    f"    _nt=$(sed -n 's/^NVCC_THREADS=//p' \"$_vllm_pf\" 2>/dev/null | tr -d '\\r\\n' | head -1) && \\\n"
+    f"    _cj=$(sed -n 's/^CARGO_BUILD_JOBS=//p' \"$_vllm_pf\" 2>/dev/null | tr -d '\\r\\n' | head -1) && \\\n"
+    "    [ -n \"$_mj\" ] && export MAX_JOBS=\"$_mj\" || true && \\\n"
+    "    [ -n \"$_nt\" ] && export NVCC_THREADS=\"$_nt\" || true && \\\n"
+    "    [ -n \"$_cj\" ] && export CARGO_BUILD_JOBS=\"$_cj\" || true &&"
+)
+load_cargo_env = (
+    f"_vllm_pf={secret_path} && \\\n"
+    f"    _cj=$(sed -n 's/^CARGO_BUILD_JOBS=//p' \"$_vllm_pf\" 2>/dev/null | tr -d '\\r\\n' | head -1) && \\\n"
+    "    [ -n \"$_cj\" ] && export CARGO_BUILD_JOBS=\"$_cj\" || true &&"
 )
 
 def iter_run_blocks(content: str):
@@ -79,7 +87,7 @@ def patch_run(run_block: str) -> str:
         run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
         return run_block.replace(
             "VLLM_RS_TARGET_PATH=",
-            f"{load_env} \\\n    VLLM_RS_TARGET_PATH=",
+            f"{load_cargo_env} \\\n    VLLM_RS_TARGET_PATH=",
             1,
         )
     if re.search(r"setup\.py bdist_wheel", run_block):

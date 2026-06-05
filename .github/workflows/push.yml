@@ -91,11 +91,19 @@ jobs:
           ZRAM_COMPILE_BUDGET_PERCENT: ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }}
         run: |
           set -euo pipefail
-          bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" vllm-gpu \
-            --env-file "${{ github.workspace }}/.cache/vllm-parallelism.env" >> "$GITHUB_OUTPUT"
+          bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" vllm-gpu >> "$GITHUB_OUTPUT"
           echo "Runner labels: ${{ toJson(runner.labels) }}"
           free -h
           df -h /
+      - name: Write vLLM parallelism secret
+        run: |
+          mkdir -p "${{ github.workspace }}/.cache"
+          printf 'MAX_JOBS=%s\nNVCC_THREADS=%s\nCARGO_BUILD_JOBS=%s\n' \
+            "${{ steps.vllm_build.outputs.max_jobs }}" \
+            "${{ steps.vllm_build.outputs.nvcc_threads }}" \
+            "${{ steps.vllm_build.outputs.cargo_build_jobs }}" \
+            > "${{ github.workspace }}/.cache/vllm-parallelism.env"
+          echo "Parallelism secret:" && cat "${{ github.workspace }}/.cache/vllm-parallelism.env"
       - name: Read VLLM version
         id: vllm
         working-directory: ${{ github.workspace }}
@@ -183,8 +191,16 @@ jobs:
           BUILDKIT_MAX_PARALLELISM_CAP: ${{ env.BUILDKIT_MAX_PARALLELISM_CAP }}
           ZRAM_COMPILE_BUDGET_PERCENT: ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }}
         run: |
-          bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" vllm-cpu \
-            --env-file "${{ github.workspace }}/.cache/vllm-parallelism.env" >> "$GITHUB_OUTPUT"
+          bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" vllm-cpu >> "$GITHUB_OUTPUT"
+      - name: Write vLLM parallelism secret
+        run: |
+          mkdir -p "${{ github.workspace }}/.cache"
+          printf 'MAX_JOBS=%s\nNVCC_THREADS=%s\nCARGO_BUILD_JOBS=%s\n' \
+            "${{ steps.vllm_cpu_build.outputs.max_jobs }}" \
+            "${{ steps.vllm_cpu_build.outputs.nvcc_threads }}" \
+            "${{ steps.vllm_cpu_build.outputs.cargo_build_jobs }}" \
+            > "${{ github.workspace }}/.cache/vllm-parallelism.env"
+          echo "Parallelism secret:" && cat "${{ github.workspace }}/.cache/vllm-parallelism.env"
       - name: Read VLLM version
         id: vllm
         working-directory: ${{ github.workspace }}
