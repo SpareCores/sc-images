@@ -11,8 +11,10 @@ on:
         default: true
 env:
   REGISTRY: ghcr.io
-  # Arm64 jobs knob: "self-hosted" → [self-hosted, sc-images-arm64]; "github" → ubuntu-24.04-arm.
-  ARM64_RUNNER: self-hosted
+  # Arm64 runner: set repo variable ARM64_RUNNER (Settings → Variables → Actions).
+  #   "self-hosted"  →  [self-hosted, sc-images-arm64] builder
+  #   "github"       →  ubuntu-24.04-arm
+  # Default (if unset): self-hosted.
   ZRAM_PERCENT: "125"
   # Set to false after resource-tracker consumers have been rebuilt once.
   FORCE_REBUILD_RESOURCE_TRACKER: "true"
@@ -39,7 +41,18 @@ jobs:
     outputs:
       folders: ${{ steps.jobs.outputs.folders }}
       build_folders: ${{ steps.filter.outputs.build_folders }}
+      arm64_runner: ${{ steps.arm64.outputs.runner }}
     steps:
+      - name: Resolve arm64 runner
+        id: arm64
+        run: |
+          MODE="${{ vars.ARM64_RUNNER || 'self-hosted' }}"
+          if [ "$MODE" = "github" ]; then
+            echo 'runner="ubuntu-24.04-arm"' >> "$GITHUB_OUTPUT"
+          else
+            echo 'runner=["self-hosted", "sc-images-arm64"]' >> "$GITHUB_OUTPUT"
+          fi
+          echo "ARM64_RUNNER=$MODE → $(grep runner "$GITHUB_OUTPUT")"
       - uses: actions/checkout@v6.0.2
       - name: Set up zram swap
         env:
@@ -57,7 +70,8 @@ jobs:
 
   build-vllm-gpu-base:
     name: Build vllm-gpu-base (arm64 CUDA)
-    runs-on: ${{ env.ARM64_RUNNER == 'self-hosted' && fromJson('["self-hosted", "sc-images-arm64"]') || 'ubuntu-24.04-arm' }}
+    needs: [find-jobs]
+    runs-on: ${{ fromJson(needs.find-jobs.outputs.arm64_runner) }}
     timeout-minutes: 360
     permissions:
       contents: read
@@ -73,7 +87,7 @@ jobs:
         run: |
           set -euo pipefail
           NCPU=$(nproc)
-          if [ "${{ env.ARM64_RUNNER }}" = "self-hosted" ]; then
+          if [[ "${{ contains(runner.labels, 'self-hosted') }}" == "true" ]]; then
             MEM_MIB=$(awk '/MemTotal:/ {print int($2/1024)}' /proc/meminfo)
             SWAP_MIB=$(awk '/SwapTotal:/ {print int($2/1024)}' /proc/meminfo)
             SLOT_MIB=$(( ${{ env.VLLM_COMPILE_GIB_PER_SLOT }} * 1024 ))
@@ -135,7 +149,7 @@ jobs:
           sed -i "s/^ARG vllm_ci_cache_bust=.*/ARG vllm_ci_cache_bust=${VLLM_CI_CACHE_BUST}/" "$DF"
           sed -i "s/^ARG max_jobs=.*/ARG max_jobs=${MAX_JOBS}/" "$DF"
           sed -i "s/^ARG nvcc_threads=.*/ARG nvcc_threads=${NVCC_THREADS}/" "$DF"
-          if [ "${{ env.ARM64_RUNNER }}" = "self-hosted" ]; then
+          if [[ "${{ contains(runner.labels, 'self-hosted') }}" == "true" ]]; then
             sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS}/" "$DF"
           fi
           # Inject MAX_JOBS/NVCC_THREADS re-exports into the csrc-build RUN block (plain sed, not GHA expressions).
@@ -334,7 +348,7 @@ jobs:
             platform: linux/amd64
           - arch: arm64
             platform: linux/arm64
-    runs-on: ${{ matrix.arch == 'arm64' && (env.ARM64_RUNNER == 'self-hosted' && fromJson('["self-hosted", "sc-images-arm64"]') || 'ubuntu-24.04-arm') || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.arch == 'arm64' && fromJson(needs.find-jobs.outputs.arm64_runner) || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
@@ -351,7 +365,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: echo "version=$(tr -d '[:space:]' < images/resource-tracker/RESOURCE_TRACKER_VERSION)" >> "$GITHUB_OUTPUT"
       - name: Detect runner CPUs
-        if: matrix.arch == 'arm64' && env.ARM64_RUNNER == 'self-hosted'
+        if: contains(runner.labels, 'self-hosted')
         id: runner_cpus
         run: echo "ncpus=$(nproc)" >> "$GITHUB_OUTPUT"
       - name: Log in to the Container registry
@@ -363,7 +377,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
-          buildkitd-config-inline: ${{ matrix.arch == 'arm64' && env.ARM64_RUNNER == 'self-hosted' && format('[worker.oci]\n  max-parallelism = {0}', steps.runner_cpus.outputs.ncpus) || '' }}
+          buildkitd-config-inline: ${{ contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', steps.runner_cpus.outputs.ncpus) || '' }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
