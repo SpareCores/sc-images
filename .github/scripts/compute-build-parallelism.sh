@@ -83,6 +83,7 @@ case "$PROFILE" in
     ;;
   vllm-cpu)
     DOCKER_MAX_JOBS=$REFERENCE_MAX_JOBS
+    DOCKER_NVCC_THREADS=1
     DOCKER_CARGO_JOBS=$REFERENCE_CARGO_JOBS
     BUILDKIT_PAR=$MAX_JOBS
     if [ "$BUILDKIT_PAR" -gt "$BUILDKIT_CAP" ]; then BUILDKIT_PAR=$BUILDKIT_CAP; fi
@@ -101,17 +102,14 @@ case "$PROFILE" in
     ;;
 esac
 
-echo "Parallelism (${PROFILE}): mem=${MEM_MIB}MiB swap=${SWAP_MIB}MiB effective=${EFFECTIVE_MIB}MiB (${EFFECTIVE_GIB}GiB) ratio=${EFFECTIVE_GIB}/${REFERENCE_RAM_GIB} ncpu=${NCPU} mem_slots=${MEM_SLOTS}"
-echo "  runtime: max_jobs=${MAX_JOBS} nvcc_threads=${NVCC_THREADS} ninja=$(( MAX_JOBS / NVCC_THREADS )) cargo=${CARGO_JOBS} buildkit=${BUILDKIT_PAR}"
-echo "  docker (cache-stable): max_jobs=${DOCKER_MAX_JOBS} nvcc_threads=${DOCKER_NVCC_THREADS:-n/a} cargo=${DOCKER_CARGO_JOBS}"
+echo "Parallelism (${PROFILE}): mem=${MEM_MIB}MiB swap=${SWAP_MIB}MiB effective=${EFFECTIVE_MIB}MiB (${EFFECTIVE_GIB}GiB) ratio=${EFFECTIVE_GIB}/${REFERENCE_RAM_GIB} ncpu=${NCPU} mem_slots=${MEM_SLOTS}" >&2
+echo "  runtime: max_jobs=${MAX_JOBS} nvcc_threads=${NVCC_THREADS} ninja=$(( MAX_JOBS / NVCC_THREADS )) cargo=${CARGO_JOBS} buildkit=${BUILDKIT_PAR}" >&2
+echo "  docker (cache-stable): max_jobs=${DOCKER_MAX_JOBS} nvcc_threads=${DOCKER_NVCC_THREADS:-n/a} cargo=${DOCKER_CARGO_JOBS}" >&2
 
 if [ -n "$ENV_FILE" ]; then
   mkdir -p "$(dirname "$ENV_FILE")"
-  {
-    echo "MAX_JOBS=${MAX_JOBS}"
-    echo "NVCC_THREADS=${NVCC_THREADS}"
-    echo "CARGO_BUILD_JOBS=${CARGO_JOBS}"
-  } > "$ENV_FILE"
+  printf 'MAX_JOBS=%s\nNVCC_THREADS=%s\nCARGO_BUILD_JOBS=%s\n' \
+    "$MAX_JOBS" "$NVCC_THREADS" "$CARGO_JOBS" > "$ENV_FILE"
 fi
 
 {

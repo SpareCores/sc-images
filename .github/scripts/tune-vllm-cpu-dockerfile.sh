@@ -43,8 +43,14 @@ else:
 text = re.sub(r"^ARG max_jobs=.*$", f"ARG max_jobs={max_jobs}", text, flags=re.M)
 text = re.sub(r"^ENV CARGO_BUILD_JOBS=4$", f"ENV CARGO_BUILD_JOBS={cargo}", text, flags=re.M)
 
-secret_mount = "--mount=type=secret,id=vllm_parallelism,target=/run/vllm/parallelism.env"
-source_env = "set -a && . /run/vllm/parallelism.env && set +a &&"
+secret_path = "/tmp/vllm-parallelism.env"
+secret_mount = f"--mount=type=secret,id=vllm_parallelism,target={secret_path}"
+load_env = (
+    f"MAX_JOBS=$(sed -n 's/^MAX_JOBS=//p' {secret_path} | tr -d '\\r\\n') && \\\n"
+    f"    NVCC_THREADS=$(sed -n 's/^NVCC_THREADS=//p' {secret_path} | tr -d '\\r\\n') && \\\n"
+    f"    CARGO_BUILD_JOBS=$(sed -n 's/^CARGO_BUILD_JOBS=//p' {secret_path} | tr -d '\\r\\n') && \\\n"
+    "    export MAX_JOBS NVCC_THREADS CARGO_BUILD_JOBS &&"
+)
 
 def iter_run_blocks(content: str):
     lines = content.splitlines(keepends=True)
@@ -73,14 +79,14 @@ def patch_run(run_block: str) -> str:
         run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
         return run_block.replace(
             "VLLM_RS_TARGET_PATH=",
-            f"{source_env} \\\n    VLLM_RS_TARGET_PATH=",
+            f"{load_env} \\\n    VLLM_RS_TARGET_PATH=",
             1,
         )
     if re.search(r"setup\.py bdist_wheel", run_block):
         run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
         return run_block.replace(
             "VLLM_TARGET_DEVICE=",
-            f"{source_env} \\\n    VLLM_TARGET_DEVICE=",
+            f"{load_env} \\\n    VLLM_TARGET_DEVICE=",
             1,
         )
     return run_block

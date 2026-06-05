@@ -35,8 +35,14 @@ if "ENV FLASHINFER_CUBIN_DOWNLOAD_THREADS=" not in text:
         1,
     )
 
-secret_mount = "--mount=type=secret,id=vllm_parallelism,target=/run/vllm/parallelism.env"
-source_env = "set -a && . /run/vllm/parallelism.env && set +a &&"
+secret_path = "/tmp/vllm-parallelism.env"
+secret_mount = f"--mount=type=secret,id=vllm_parallelism,target={secret_path}"
+load_env = (
+    f"MAX_JOBS=$(sed -n 's/^MAX_JOBS=//p' {secret_path} | tr -d '\\r\\n') && \\\n"
+    f"    NVCC_THREADS=$(sed -n 's/^NVCC_THREADS=//p' {secret_path} | tr -d '\\r\\n') && \\\n"
+    f"    CARGO_BUILD_JOBS=$(sed -n 's/^CARGO_BUILD_JOBS=//p' {secret_path} | tr -d '\\r\\n') && \\\n"
+    "    export MAX_JOBS NVCC_THREADS CARGO_BUILD_JOBS &&"
+)
 
 def iter_run_blocks(content: str):
     lines = content.splitlines(keepends=True)
@@ -65,14 +71,14 @@ def patch_run(run_block: str) -> str:
         run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
         return run_block.replace(
             "VLLM_RS_TARGET_PATH=",
-            f"{source_env} \\\n    VLLM_RS_TARGET_PATH=",
+            f"{load_env} \\\n    VLLM_RS_TARGET_PATH=",
             1,
         )
     if "export VLLM_DOCKER_BUILD_CONTEXT=1" in run_block:
         run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
         return run_block.replace(
             "export VLLM_DOCKER_BUILD_CONTEXT=1",
-            f"{source_env} \\\n        export VLLM_DOCKER_BUILD_CONTEXT=1",
+            f"{load_env} \\\n        export VLLM_DOCKER_BUILD_CONTEXT=1",
         )
     return run_block
 
