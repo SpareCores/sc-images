@@ -145,6 +145,8 @@ jobs:
           grep -E '^(ARG vllm_ci_cache_bust|ARG max_jobs|ARG nvcc_threads|ENV MAX_JOBS|ENV NVCC_THREADS|ENV CARGO_BUILD_JOBS)=' "$DF"
           grep -A2 'export VLLM_DOCKER_BUILD_CONTEXT=1' "$DF" | head -6
           echo "Expected ninja -j: $(( MAX_JOBS / NVCC_THREADS )) (max_jobs=${MAX_JOBS}, nvcc_threads=${NVCC_THREADS})"
+      - name: Exclude .git from vLLM build context
+        run: bash "${{ github.workspace }}/.github/scripts/patch-vllm-dockerignore.sh" "${{ github.workspace }}/vllm-common/.vllm-src"
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -152,11 +154,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
+        id: setup-buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
           buildkitd-config-inline: |
             [worker.oci]
               max-parallelism = ${{ steps.vllm_build.outputs.buildkit_max_parallelism }}
+      - name: Cache vLLM BuildKit mount data
+        uses: actions/cache@v4
+        id: vllm_mount_cache
+        with:
+          path: ${{ github.workspace }}/.cache/vllm-gpu-base-arm64-mounts
+          key: vllm-gpu-base-mounts-${{ steps.vllm.outputs.version }}-arm64
+          restore-keys: |
+            vllm-gpu-base-mounts-${{ steps.vllm.outputs.version }}-
+      - name: Inject/extract vLLM BuildKit cache mounts
+        uses: reproducible-containers/buildkit-cache-dance@v3.2.0
+        with:
+          builder: ${{ steps.setup-buildx.outputs.name }}
+          cache-dir: ${{ github.workspace }}/.cache/vllm-gpu-base-arm64-mounts
+          dockerfile: ${{ github.workspace }}/vllm-common/.vllm-src/docker/Dockerfile
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
@@ -226,6 +243,8 @@ jobs:
         run: |
           sed -i "s/^ENV CARGO_BUILD_JOBS=4$/ENV CARGO_BUILD_JOBS=${{ steps.vllm_cpu_build.outputs.cargo_build_jobs }}/" docker/Dockerfile.cpu
           grep '^ENV CARGO_BUILD_JOBS=' docker/Dockerfile.cpu
+      - name: Exclude .git from vLLM build context
+        run: bash "${{ github.workspace }}/.github/scripts/patch-vllm-dockerignore.sh" "${{ github.workspace }}/vllm-common/.vllm-src"
       - name: Log in to the Container registry
         uses: docker/login-action@v4.1.0
         with:
@@ -233,9 +252,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
+        id: setup-buildx
         uses: docker/setup-buildx-action@v4.0.0
         with:
           buildkitd-config-inline: ${{ contains(runner.labels, 'self-hosted') && format('[worker.oci]\n  max-parallelism = {0}', steps.vllm_cpu_build.outputs.buildkit_max_parallelism) || '' }}
+      - name: Cache vLLM BuildKit mount data
+        uses: actions/cache@v4
+        id: vllm_mount_cache
+        with:
+          path: ${{ github.workspace }}/.cache/vllm-cpu-avx2-amd64-mounts
+          key: vllm-cpu-avx2-mounts-${{ steps.vllm.outputs.version }}-amd64
+          restore-keys: |
+            vllm-cpu-avx2-mounts-${{ steps.vllm.outputs.version }}-
+      - name: Inject/extract vLLM BuildKit cache mounts
+        uses: reproducible-containers/buildkit-cache-dance@v3.2.0
+        with:
+          builder: ${{ steps.setup-buildx.outputs.name }}
+          cache-dir: ${{ github.workspace }}/.cache/vllm-cpu-avx2-amd64-mounts
+          dockerfile: ${{ github.workspace }}/vllm-common/.vllm-src/docker/Dockerfile.cpu
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6.0.0
