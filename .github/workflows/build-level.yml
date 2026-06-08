@@ -59,13 +59,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
-      - name: Install resource-tracker
-        run: bash "${{ github.workspace }}/.github/scripts/install-resource-tracker.sh"
-      - name: Set up zram swap
-        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
       - name: Resolve image config
         id: cfg
         run: bash "${{ github.workspace }}/.github/scripts/read-image-config.sh" "${{ matrix.folder }}" "${{ matrix.arch }}" >> "$GITHUB_OUTPUT"
+      - name: Install resource-tracker
+        run: bash "${{ github.workspace }}/.github/scripts/install-resource-tracker.sh"
+      - name: Set up zram swap
+        if: ${{ steps.cfg.outputs.zram == 'true' }}
+        env:
+          ZRAM_PERCENT: ${{ steps.cfg.outputs.zram_percent }}
+        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
       - name: Run prepare hook
         id: prep
         if: ${{ steps.cfg.outputs.has_prepare == 'true' }}

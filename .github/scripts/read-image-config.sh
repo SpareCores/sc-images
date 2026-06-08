@@ -10,6 +10,7 @@
 #   DOCKERFILE  - Dockerfile path, repo-relative (default: images/<folder>/Dockerfile)
 #   TARGET      - build target stage (default: none)
 #   BUILD_ARGS  - KEY=VALUE lines; tokens ${ARCH} ${VLLM_VERSION} ${RESOURCE_TRACKER_VERSION}
+#   ZRAM        - enable compressed swap on the builder (true/1/yes, or PERCENT e.g. 125); default off
 #   prepare.sh  - pre-build hook (presence reported as has_prepare=true)
 #
 # Emits key=value lines (for $GITHUB_OUTPUT) and writes resolved static
@@ -45,6 +46,23 @@ deps=()
 
 has_prepare=false
 [ -f "$fdir/prepare.sh" ] && has_prepare=true
+
+zram=false
+zram_percent="${ZRAM_PERCENT:-125}"
+if [ -f "$fdir/ZRAM" ]; then
+  zram_val="$(read_scalar "$fdir/ZRAM")"
+  case "${zram_val,,}" in
+    true|1|yes|on)
+      zram=true
+      ;;
+    [0-9]*)
+      if [[ "$zram_val" =~ ^[0-9]+$ ]]; then
+        zram=true
+        zram_percent="$zram_val"
+      fi
+      ;;
+  esac
+fi
 
 # An image is a resource-tracker consumer if it is resource-tracker or (transitively) depends on it.
 is_rt_consumer() {
@@ -89,4 +107,6 @@ fi
   echo "pull=$pull"
   echo "rt_consumer=$rt_consumer"
   echo "has_prepare=$has_prepare"
+  echo "zram=$zram"
+  echo "zram_percent=$zram_percent"
 }
