@@ -80,24 +80,30 @@ SCCACHE_WHEEL_STATS = r"""if [ "${USE_SCCACHE:-0}" = "1" ]; then sccache --show-
 
 # Installs the pinned sccache release when USE_SCCACHE=1. Requires TARGETPLATFORM
 # (GPU rust-build / csrc-build) or TARGETARCH (CPU stages).
-SCCACHE_INSTALL_RUN = rf"""RUN {AWS_SECRET_MOUNT} \\
-    if [ "$USE_SCCACHE" = "1" ]; then \\
-        echo "Installing sccache..." \\
-        && _sccache_arch="${{SCCACHE_ARCH:-}}" \\
-        && if [ -z "$_sccache_arch" ]; then \\
-            case "${{TARGETPLATFORM:-linux/${{TARGETARCH:-amd64}}}}" in \\
-              linux/arm64) _sccache_arch="aarch64" ;; \\
-              linux/amd64) _sccache_arch="x86_64" ;; \\
-              *) echo "Unsupported platform for sccache: ${{TARGETPLATFORM:-linux/${{TARGETARCH:-amd64}}}}" >&2; exit 1 ;; \\
-            esac; \\
-        fi \\
-        && curl -fsSL -o /tmp/sccache.tar.gz \\
-            "https://github.com/mozilla/sccache/releases/download/v{SCCACHE_VERSION}/sccache-v{SCCACHE_VERSION}-${{_sccache_arch}}-unknown-linux-musl.tar.gz" \\
-        && tar -xzf /tmp/sccache.tar.gz -C /tmp \\
-        && install -m 0755 "/tmp/sccache-v{SCCACHE_VERSION}-${{_sccache_arch}}-unknown-linux-musl/sccache" {SCCACHE_BIN} \\
-        && rm -rf /tmp/sccache.tar.gz "/tmp/sccache-v{SCCACHE_VERSION}-${{_sccache_arch}}-unknown-linux-musl" \\
-        && {SCCACHE_BIN} --version; \\
-    fi"""
+SCCACHE_INSTALL_RUN = (
+    f"RUN {AWS_SECRET_MOUNT} \\\n"
+    '    if [ "$USE_SCCACHE" = "1" ]; then \\\n'
+    '        echo "Installing sccache..." \\\n'
+    '        && _sccache_arch="${SCCACHE_ARCH:-}" \\\n'
+    '        && if [ -z "$_sccache_arch" ]; then \\\n'
+    '            case "${TARGETPLATFORM:-linux/${TARGETARCH:-amd64}}" in \\\n'
+    '              linux/arm64) _sccache_arch="aarch64" ;; \\\n'
+    '              linux/amd64) _sccache_arch="x86_64" ;; \\\n'
+    '              *) echo "Unsupported platform for sccache: ${TARGETPLATFORM:-linux/${TARGETARCH:-amd64}}" >&2; exit 1 ;; \\\n'
+    '            esac; \\\n'
+    '        fi \\\n'
+    '        && curl -fsSL -o /tmp/sccache.tar.gz \\\n'
+    f'            "https://github.com/mozilla/sccache/releases/download/v{SCCACHE_VERSION}/sccache-v{SCCACHE_VERSION}-'
+    '${_sccache_arch}-unknown-linux-musl.tar.gz" \\\n'
+    '        && tar -xzf /tmp/sccache.tar.gz -C /tmp \\\n'
+    f'        && install -m 0755 "/tmp/sccache-v{SCCACHE_VERSION}-'
+    '${_sccache_arch}-unknown-linux-musl/sccache" '
+    f'{SCCACHE_BIN} \\\n'
+    f'        && rm -rf /tmp/sccache.tar.gz "/tmp/sccache-v{SCCACHE_VERSION}-'
+    '${_sccache_arch}-unknown-linux-musl" \\\n'
+    f'        && {SCCACHE_BIN} --version; \\\n'
+    '    fi'
+)
 
 
 def inject_after_stage_header(text: str, stage_marker: str, block: str) -> str:

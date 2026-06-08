@@ -47,6 +47,14 @@ fi
   "$DOCKER_NVCC_THREADS" \
   "$DOCKER_CARGO_JOBS" )
 
+# DEBUG: dump patched Dockerfile sections with sccache for CI visibility
+echo "::group::DEBUG patched GPU Dockerfile (sccache lines)"
+grep -n 'sccache\|SCCACHE\|RUSTC_WRAPPER\|USE_SCCACHE' "$SRC/docker/Dockerfile" || true
+echo "::endgroup::"
+echo "::group::DEBUG patched GPU Dockerfile (RUN lines with sccache install)"
+grep -n -A2 'Installing sccache' "$SRC/docker/Dockerfile" || true
+echo "::endgroup::"
+
 # Cache-stable reference build-args (runtime values come from the secret).
 {
   echo "max_jobs=${DOCKER_MAX_JOBS}"

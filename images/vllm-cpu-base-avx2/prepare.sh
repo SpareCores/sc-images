@@ -49,6 +49,14 @@ fi
   "$DOCKER_MAX_JOBS" \
   "$DOCKER_CARGO_JOBS" )
 
+# DEBUG: dump patched Dockerfile sections with sccache for CI visibility
+echo "::group::DEBUG patched CPU Dockerfile (sccache lines)"
+grep -n 'sccache\|SCCACHE\|RUSTC_WRAPPER\|USE_SCCACHE' "$SRC/docker/Dockerfile.cpu" || true
+echo "::endgroup::"
+echo "::group::DEBUG patched CPU Dockerfile (RUN lines with sccache install)"
+grep -n -A2 'Installing sccache' "$SRC/docker/Dockerfile.cpu" || true
+echo "::endgroup::"
+
 {
   echo "max_jobs=${DOCKER_MAX_JOBS}"
 } >> "${CACHE}/extra-build-args"
