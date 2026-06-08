@@ -69,7 +69,7 @@ if [ "${SCCACHE_ENABLED:-}" = "true" ]; then
   prefix="${SCCACHE_PREFIX:-${IMAGE_FOLDER:-vllm-gpu-base}/${ARCH:-arm64}}"
   {
     echo "USE_SCCACHE=1"
-    echo "RUSTC_WRAPPER=/usr/bin/sccache"
+    echo "RUSTC_WRAPPER=/usr/local/bin/sc-rust-wrap"
     echo "SCCACHE_BUCKET_NAME=${SCCACHE_BUCKET}"
     echo "SCCACHE_REGION_NAME=${SCCACHE_REGION:-us-west-2}"
     echo "SCCACHE_S3_NO_CREDENTIALS=0"
