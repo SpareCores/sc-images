@@ -24,6 +24,17 @@ spec.loader.exec_module(vscm)
 
 df = Path(os.environ["DOCKERFILE"])
 text = vscm.bump_sccache_version(df.read_text())
+# Upstream GPU wheel RUN exports SCCACHE_* inline; ensure IO-error fallback is set.
+if "export SCCACHE_IGNORE_SERVER_IO_ERROR" not in text:
+    text = text.replace(
+        "export SCCACHE_IDLE_TIMEOUT=0 \\",
+        "export SCCACHE_IDLE_TIMEOUT=0 \\\n        && export SCCACHE_IGNORE_SERVER_IO_ERROR=1 \\",
+    )
+# Drop the brittle sccache-wrapped smoke test from earlier patches.
+text = text.replace(
+    "&& unset RUSTC_WRAPPER && \\\n        echo | sccache /usr/bin/g++-10 -x c++ -E -P - && \\\n",
+    "",
+)
 version = os.environ["VLLM_VERSION"]
 max_jobs = os.environ["DOCKER_MAX_JOBS"]
 nvcc = os.environ["DOCKER_NVCC_THREADS"]
@@ -53,7 +64,7 @@ if "update-alternatives --install /usr/bin/c++ c++" not in text:
 text = vscm.inject_after_stage_header(
     text,
     "FROM ${BUILD_BASE_IMAGE} AS rust-build",
-    "ARG TARGETPLATFORM\n" + vscm.SCCACHE_ARG_ENV_BLOCK,
+    "ARG TARGETPLATFORM\n" + vscm.SCCACHE_RUST_ENV_BLOCK,
 )
 text = vscm.inject_before_run(
     text,
@@ -132,7 +143,7 @@ def patch_run(run_block: str) -> str:
             run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
         return run_block.replace(
             "VLLM_RS_TARGET_PATH=",
-            f"{load_cargo_env} \\\n    VLLM_RS_TARGET_PATH=",
+            f"{load_cargo_env} \\\n    {vscm.SCCACHE_RUST_PREP} \\\n    VLLM_RS_TARGET_PATH=",
             1,
         )
     if secret_mount in run_block:
@@ -143,10 +154,10 @@ def patch_run(run_block: str) -> str:
             "export VLLM_DOCKER_BUILD_CONTEXT=1",
             f"{load_env} \\\n        export VLLM_DOCKER_BUILD_CONTEXT=1",
         )
-        if "unset RUSTC_WRAPPER" not in run_block:
+        if vscm.SCCACHE_WHEEL_PREP not in run_block:
             run_block = run_block.replace(
                 "python3 setup.py bdist_wheel",
-                "unset RUSTC_WRAPPER && \\\n        echo | sccache /usr/bin/g++-10 -x c++ -E -P - && \\\n        python3 setup.py bdist_wheel",
+                f"{vscm.SCCACHE_WHEEL_PREP} \\\n        python3 setup.py bdist_wheel",
                 1,
             )
         return run_block
@@ -158,6 +169,18 @@ for start, end, block in sorted(iter_run_blocks(text), key=lambda t: t[0], rever
     if patched != block:
         lines[start:end] = [patched]
 text = "".join(lines)
+required = [
+    vscm.SCCACHE_RUST_ENV_BLOCK,
+    vscm.SCCACHE_COMPILER_ENV_BLOCK,
+    vscm.SCCACHE_BIN,
+    "update-alternatives --install /usr/bin/c++ c++",
+    vscm.SCCACHE_RUST_PREP.strip(),
+    vscm.SCCACHE_WHEEL_PREP.strip(),
+]
+missing = [r for r in required if r not in text]
+if missing:
+    raise SystemExit(f"tune-vllm-gpu-dockerfile: missing expected patches: {missing[:3]}")
+
 df.write_text(text)
 print("Dockerfile parallelism (cache-stable ARG/ENV):")
 for line in text.splitlines():
