@@ -1,5 +1,7 @@
 """Shared Dockerfile fragments for vLLM sccache (used by tune-*.sh)."""
 
+SCCACHE_VERSION = "0.15.0"
+
 SCCACHE_ARG_ENV_BLOCK = """
 ARG USE_SCCACHE
 ARG RUSTC_WRAPPER
@@ -15,10 +17,13 @@ ENV SCCACHE_S3_NO_CREDENTIALS=${SCCACHE_S3_NO_CREDENTIALS}
 ENV SCCACHE_IDLE_TIMEOUT=0
 """.strip()
 
-# csrc-build / vllm-build already declare the SCCACHE_* ARGs upstream or in prior patches.
+# csrc-build / vllm-build: bucket env + explicit compiler paths (not sccache-prefixed).
+# RUSTC_WRAPPER belongs in rust-build only; passing it here leaks into C++ compiles.
 SCCACHE_COMPILER_ENV_BLOCK = """
-ARG RUSTC_WRAPPER
-ENV RUSTC_WRAPPER=${RUSTC_WRAPPER}
+ARG CC=/usr/bin/gcc-10
+ARG CXX=/usr/bin/g++-10
+ENV CC=${CC}
+ENV CXX=${CXX}
 ENV SCCACHE_BUCKET=${SCCACHE_BUCKET_NAME}
 ENV SCCACHE_REGION=${SCCACHE_REGION_NAME}
 ENV SCCACHE_S3_KEY_PREFIX=${SCCACHE_S3_KEY_PREFIX}
@@ -30,24 +35,25 @@ AWS_SECRET_MOUNT = (
     "--mount=type=secret,id=aws-credentials,target=/root/.aws/credentials,required=false"
 )
 
-# Installs the upstream-pinned sccache release when USE_SCCACHE=1. Requires TARGETPLATFORM
+# Installs the pinned sccache release when USE_SCCACHE=1. Requires TARGETPLATFORM
 # (GPU rust-build / csrc-build) or TARGETARCH (CPU stages).
-SCCACHE_INSTALL_RUN = r"""RUN --mount=type=secret,id=aws-credentials,target=/root/.aws/credentials,required=false \
+SCCACHE_INSTALL_RUN = rf"""RUN --mount=type=secret,id=aws-credentials,target=/root/.aws/credentials,required=false \
     if [ "$USE_SCCACHE" = "1" ]; then \
         echo "Installing sccache..." \
-        && _sccache_arch="${SCCACHE_ARCH:-}" \
+        && _sccache_arch="${{SCCACHE_ARCH:-}}" \
         && if [ -z "$_sccache_arch" ]; then \
-            case "${TARGETPLATFORM:-linux/${TARGETARCH:-amd64}}" in \
+            case "${{TARGETPLATFORM:-linux/${{TARGETARCH:-amd64}}}}" in \
               linux/arm64) _sccache_arch="aarch64" ;; \
               linux/amd64) _sccache_arch="x86_64" ;; \
-              *) echo "Unsupported platform for sccache: ${TARGETPLATFORM:-linux/${TARGETARCH:-amd64}}" >&2; exit 1 ;; \
+              *) echo "Unsupported platform for sccache: ${{TARGETPLATFORM:-linux/${{TARGETARCH:-amd64}}}}" >&2; exit 1 ;; \
             esac; \
         fi \
         && curl -fsSL -o /tmp/sccache.tar.gz \
-            "https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-${_sccache_arch}-unknown-linux-musl.tar.gz" \
+            "https://github.com/mozilla/sccache/releases/download/v{SCCACHE_VERSION}/sccache-v{SCCACHE_VERSION}-${{_sccache_arch}}-unknown-linux-musl.tar.gz" \
         && tar -xzf /tmp/sccache.tar.gz -C /tmp \
-        && install -m 0755 "/tmp/sccache-v0.8.1-${_sccache_arch}-unknown-linux-musl/sccache" /usr/local/bin/sccache \
-        && rm -rf /tmp/sccache.tar.gz "/tmp/sccache-v0.8.1-${_sccache_arch}-unknown-linux-musl"; \
+        && install -m 0755 "/tmp/sccache-v{SCCACHE_VERSION}-${{_sccache_arch}}-unknown-linux-musl/sccache" /usr/local/bin/sccache \
+        && rm -rf /tmp/sccache.tar.gz "/tmp/sccache-v{SCCACHE_VERSION}-${{_sccache_arch}}-unknown-linux-musl" \
+        && sccache --version; \
     fi"""
 
 
@@ -72,3 +78,21 @@ def inject_before_run(text: str, run_needle: str, block: str) -> str:
     if block in text[window_start:idx]:
         return text
     return text[:idx] + block + "\n\n" + text[idx:]
+
+
+def bump_sccache_version(text: str) -> str:
+    """Rewrite upstream v0.8.1 sccache URLs/paths to our pinned release."""
+    import re
+
+    version = SCCACHE_VERSION
+    text = re.sub(
+        r"/download/v0\.8\.1/sccache-v0\.8\.1-",
+        f"/download/v{version}/sccache-v{version}-",
+        text,
+    )
+    text = re.sub(
+        r"sccache-v0\.8\.1-",
+        f"sccache-v{version}-",
+        text,
+    )
+    return text

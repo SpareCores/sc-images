@@ -28,7 +28,7 @@ vscm = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(vscm)
 
 df = Path(os.environ["DOCKERFILE"])
-text = df.read_text()
+text = vscm.bump_sccache_version(df.read_text())
 version = os.environ["VLLM_VERSION"]
 max_jobs = os.environ["DOCKER_MAX_JOBS"]
 cargo = os.environ["DOCKER_CARGO_JOBS"]

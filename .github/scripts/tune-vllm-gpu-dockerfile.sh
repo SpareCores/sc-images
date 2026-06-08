@@ -23,7 +23,7 @@ vscm = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(vscm)
 
 df = Path(os.environ["DOCKERFILE"])
-text = df.read_text()
+text = vscm.bump_sccache_version(df.read_text())
 version = os.environ["VLLM_VERSION"]
 max_jobs = os.environ["DOCKER_MAX_JOBS"]
 nvcc = os.environ["DOCKER_NVCC_THREADS"]
@@ -139,10 +139,17 @@ def patch_run(run_block: str) -> str:
         return run_block
     if "export VLLM_DOCKER_BUILD_CONTEXT=1" in run_block:
         run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
-        return run_block.replace(
+        run_block = run_block.replace(
             "export VLLM_DOCKER_BUILD_CONTEXT=1",
             f"{load_env} \\\n        export VLLM_DOCKER_BUILD_CONTEXT=1",
         )
+        if "unset RUSTC_WRAPPER" not in run_block:
+            run_block = run_block.replace(
+                "python3 setup.py bdist_wheel",
+                "unset RUSTC_WRAPPER && \\\n        echo | sccache /usr/bin/g++-10 -x c++ -E -P - && \\\n        python3 setup.py bdist_wheel",
+                1,
+            )
+        return run_block
     return run_block
 
 lines = text.splitlines(keepends=True)
