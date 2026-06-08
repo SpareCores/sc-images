@@ -142,13 +142,15 @@ def patch_run(run_block: str) -> str:
         return patched
     if re.search(r"bash build_rust\.sh", run_block):
         patched = run_block
+        # rust-build uses cache-stable ENV CARGO_BUILD_JOBS; runtime parallelism secret
+        # varies per CI runner and busts the layer cache key.
+        patched = patched.replace(f"{secret_mount} \\\n    ", "")
+        patched = patched.replace(f"{load_cargo_env} \\\n    ", "")
         if vscm.AWS_SECRET_MOUNT not in patched:
             patched = patched.replace("RUN ", f"RUN {vscm.AWS_SECRET_MOUNT} \\\n    ", 1)
-        if secret_mount not in patched:
-            patched = patched.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
         return patched.replace(
             "VLLM_RS_TARGET_PATH=",
-            f"{load_cargo_env} \\\n    {vscm.SCCACHE_RUST_PREP} \\\n    VLLM_RS_TARGET_PATH=",
+            f"{vscm.SCCACHE_RUST_PREP} \\\n    VLLM_RS_TARGET_PATH=",
             1,
         )
     return run_block

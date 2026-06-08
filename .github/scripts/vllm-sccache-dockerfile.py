@@ -2,6 +2,9 @@
 
 SCCACHE_VERSION = "0.15.0"
 SCCACHE_BIN = "/usr/bin/sccache"
+# cc-rs auto-wraps CC when RUSTC_WRAPPER file stem is "sccache", breaking openssl-sys
+# make. Use a wrapper script (not a symlink — symlinking sccache hangs rustc -vV).
+SCCACHE_RUST_WRAPPER = "/usr/local/bin/sc-rust-wrap"
 SCCACHE_WRAPPER = "/usr/local/bin/sccache-wrapper"
 
 SCCACHE_COMMON_ARGS = """
@@ -20,13 +23,12 @@ ENV SCCACHE_IDLE_TIMEOUT=0
 ENV SCCACHE_IGNORE_SERVER_IO_ERROR=1
 ENV SCCACHE_LOG=sccache=info""".strip()
 
-# rust-build: cache rustc + build.rs C compiles (openssl-sys, etc.).
-# CC/CXX must be absolute paths so the cc crate does not fall back to "sccache cc".
-# RUSTC_WRAPPER uses sccache directly (not the cmake fallback wrapper).
+# rust-build: cache rustc. CC/CXX are absolute paths; RUSTC_WRAPPER must NOT have
+# file stem "sccache" or cc-rs wraps CC and openssl-sys make fails.
 SCCACHE_RUST_ENV_BLOCK = (
     SCCACHE_COMMON_ARGS
     + f"""
-ARG RUSTC_WRAPPER={SCCACHE_BIN}
+ARG RUSTC_WRAPPER={SCCACHE_RUST_WRAPPER}
 ARG CC=/usr/bin/gcc
 ARG CXX=/usr/bin/g++
 ENV RUSTC_WRAPPER=${{RUSTC_WRAPPER}}
@@ -60,6 +62,11 @@ AWS_SECRET_MOUNT = (
 
 # CMake compiler launcher wrapper: fall back only on sccache infrastructure errors,
 # NOT on compiler failures (sccache propagates the compiler exit code).
+_RUST_WRAPPER_INSTALL = (
+    f"printf '#!/bin/sh\\nexec {SCCACHE_BIN} \"$@\"\\n' > {SCCACHE_RUST_WRAPPER} "
+    f"&& chmod +x {SCCACHE_RUST_WRAPPER}"
+)
+
 _WRAPPER_INSTALL = (
     f'printf \'#!/bin/sh\\n'
     f'err=/tmp/sccache-err.$$\\n'
@@ -79,21 +86,12 @@ _WRAPPER_INSTALL = (
 
 SCCACHE_RUST_PREP = (
     r"""if [ "${USE_SCCACHE:-0}" = "1" ]; then \
-        export RUSTC_WRAPPER="${RUSTC_WRAPPER:-""" + SCCACHE_BIN + r"""}" \
+        export RUSTC_WRAPPER="${RUSTC_WRAPPER:-""" + SCCACHE_RUST_WRAPPER + r"""}" \
         && export CC="${CC:-/usr/bin/gcc}" \
         && export CXX="${CXX:-/usr/bin/g++}" \
         && export CARGO_INCREMENTAL=0 \
         && export SCCACHE_IGNORE_SERVER_IO_ERROR=1 \
-        && echo "[sccache-debug] RUSTC_WRAPPER=$RUSTC_WRAPPER CC=$CC CXX=$CXX" \
-        && echo "[sccache-debug] sccache binary:" && ls -la /usr/bin/sccache && file /usr/bin/sccache \
-        && for _bd in /workspace/rust/target/*/build; do \
-            if [ -d "$_bd" ]; then echo "[sccache-debug] clearing stale build.rs cache: $_bd" && rm -rf "$_bd"/*; fi; \
-        done 2>/dev/null || true \
-        && echo | "${CC}" -x c -E -P - >/dev/null \
-        && echo | "${CXX}" -x c++ -E -P - >/dev/null \
-        && /usr/bin/sccache --version \
-        && sccache --start-server 2>/dev/null || true \
-        && sccache --show-stats || true; \
+        && sccache --start-server 2>/dev/null || true; \
     fi &&"""
 )
 
@@ -117,9 +115,9 @@ SCCACHE_WHEEL_PREP = (
 SCCACHE_WHEEL_STATS = r"""if [ "${USE_SCCACHE:-0}" = "1" ]; then sccache --show-stats; fi"""
 
 # Installs the pinned sccache release + fallback wrapper when USE_SCCACHE=1.
+# No AWS secret mount here (curl-only); creds are mounted on compile RUNs only.
 SCCACHE_INSTALL_RUN = (
-    f"RUN {AWS_SECRET_MOUNT} \\\n"
-    '    if [ "$USE_SCCACHE" = "1" ]; then \\\n'
+    'RUN if [ "$USE_SCCACHE" = "1" ]; then \\\n'
     '        echo "Installing sccache..." \\\n'
     '        && _sccache_arch="${SCCACHE_ARCH:-}" \\\n'
     '        && if [ -z "$_sccache_arch" ]; then \\\n'
@@ -139,6 +137,7 @@ SCCACHE_INSTALL_RUN = (
     f'        && rm -rf /tmp/sccache.tar.gz "/tmp/sccache-v{SCCACHE_VERSION}-'
     '${_sccache_arch}-unknown-linux-musl" \\\n'
     f'        && {SCCACHE_BIN} --version \\\n'
+    f'        && {_RUST_WRAPPER_INSTALL} \\\n'
     f'        && {_WRAPPER_INSTALL}; \\\n'
     '    fi'
 )

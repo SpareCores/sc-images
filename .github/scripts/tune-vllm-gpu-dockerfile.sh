@@ -146,13 +146,13 @@ def iter_run_blocks(content: str):
 
 def patch_run(run_block: str) -> str:
     if re.search(r"bash build_rust\.sh", run_block):
+        run_block = run_block.replace(f"{secret_mount} \\\n    ", "")
+        run_block = run_block.replace(f"{load_cargo_env} \\\n    ", "")
         if vscm.AWS_SECRET_MOUNT not in run_block:
             run_block = run_block.replace("RUN ", f"RUN {vscm.AWS_SECRET_MOUNT} \\\n    ", 1)
-        if secret_mount not in run_block:
-            run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
         return run_block.replace(
             "VLLM_RS_TARGET_PATH=",
-            f"{load_cargo_env} \\\n    {vscm.SCCACHE_RUST_PREP} \\\n    VLLM_RS_TARGET_PATH=",
+            f"{vscm.SCCACHE_RUST_PREP} \\\n    VLLM_RS_TARGET_PATH=",
             1,
         )
     if secret_mount in run_block:
