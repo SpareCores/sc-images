@@ -45,9 +45,22 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      TRACKER_PROJECT_NAME: sc-images
+      TRACKER_ORCHESTRATOR: github-actions
+      TRACKER_ENV: ci
+      TRACKER_QUIET: "true"
+      TRACKER_EXTERNAL_RUN_ID: ${{ github.run_id }}
+      TRACKER_JOB_NAME: ${{ matrix.name }}
+      TRACKER_TASK_NAME: ${{ matrix.folder }}
+      TRACKER_STAGE_NAME: ${{ github.workflow }}
+      TRACKER_CONTAINER_IMAGE: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:main-${{ matrix.arch }}
+      SENTINEL_API_TOKEN: ${{ secrets.SENTINEL_API_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
+      - name: Install resource-tracker
+        run: bash "${{ github.workspace }}/.github/scripts/install-resource-tracker.sh"
       - name: Set up zram swap
         run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
       - name: Resolve image config
@@ -108,22 +121,22 @@ jobs:
           flavor: |
             suffix=-${{ matrix.arch }},onlatest=false
       - name: Build and push Docker image
-        uses: docker/build-push-action@v7.1.0
-        with:
-          context: ${{ github.workspace }}/${{ steps.cfg.outputs.context }}
-          file: ${{ github.workspace }}/${{ steps.cfg.outputs.dockerfile }}
-          target: ${{ steps.cfg.outputs.target }}
-          platforms: ${{ matrix.platform }}
-          push: true
-          provenance: ${{ steps.cfg.outputs.has_prepare == 'true' && 'false' || '' }}
-          pull: ${{ steps.cfg.outputs.pull }}
-          no-cache: ${{ inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true' }}
-          build-args: ${{ steps.bargs.outputs.args }}
-          secrets: ${{ steps.prep.outputs.secret_file && format('vllm_parallelism={0}/{1}', github.workspace, steps.prep.outputs.secret_file) || '' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: ${{ (inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true') && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2}', env.REGISTRY, matrix.folder, matrix.arch) }}
-          cache-to: ${{ (inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true') && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2},mode=max,image-manifest=true', env.REGISTRY, matrix.folder, matrix.arch) }}
+        env:
+          BUILD_CONTEXT: ${{ github.workspace }}/${{ steps.cfg.outputs.context }}
+          BUILD_DOCKERFILE: ${{ github.workspace }}/${{ steps.cfg.outputs.dockerfile }}
+          BUILD_TARGET: ${{ steps.cfg.outputs.target }}
+          BUILD_PLATFORM: ${{ matrix.platform }}
+          BUILD_TAGS: ${{ steps.meta.outputs.tags }}
+          BUILD_LABELS: ${{ steps.meta.outputs.labels }}
+          BUILD_PULL: ${{ steps.cfg.outputs.pull }}
+          BUILD_NO_CACHE: ${{ inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true' }}
+          BUILD_PROVENANCE_FALSE: ${{ steps.cfg.outputs.has_prepare == 'true' }}
+          BUILD_ARGS_FILE: ${{ github.workspace }}/.cache/all-build-args
+          BUILD_SECRET: ${{ steps.prep.outputs.secret_file && format('id=vllm_parallelism,src={0}/{1}', github.workspace, steps.prep.outputs.secret_file) || '' }}
+          BUILD_CACHE_FROM: ${{ (inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true') && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2}', env.REGISTRY, matrix.folder, matrix.arch) }}
+          BUILD_CACHE_TO: ${{ (inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true') && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2},mode=max,image-manifest=true', env.REGISTRY, matrix.folder, matrix.arch) }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+        run: bash "${{ github.workspace }}/.github/scripts/build-push-image.sh"
 
   merge:
     name: Merge manifest (${{ matrix.folder }})
