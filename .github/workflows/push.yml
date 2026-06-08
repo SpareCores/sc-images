@@ -16,6 +16,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
 env:
   ZRAM_PERCENT: "125"
   # Set to false after resource-tracker consumers have been rebuilt once.
