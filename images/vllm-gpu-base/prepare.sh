@@ -62,8 +62,6 @@ if [ "${SCCACHE_ENABLED:-}" = "true" ]; then
   {
     echo "USE_SCCACHE=1"
     echo "RUSTC_WRAPPER=sccache"
-    echo "CC=sccache gcc"
-    echo "CXX=sccache g++"
     echo "SCCACHE_BUCKET_NAME=${SCCACHE_BUCKET}"
     echo "SCCACHE_REGION_NAME=${SCCACHE_REGION:-us-west-2}"
     echo "SCCACHE_S3_NO_CREDENTIALS=0"
