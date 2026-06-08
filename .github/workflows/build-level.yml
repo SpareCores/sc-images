@@ -54,7 +54,7 @@ jobs:
       TRACKER_JOB_NAME: ${{ matrix.name }}
       TRACKER_TASK_NAME: ${{ matrix.folder }}
       TRACKER_STAGE_NAME: ${{ github.workflow }}
-      TRACKER_CONTAINER_IMAGE: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}:main-${{ matrix.arch }}
+      TRACKER_CONTAINER_IMAGE: ghcr.io/sparecores/${{ matrix.folder }}:main-${{ matrix.arch }}
       SENTINEL_API_TOKEN: ${{ secrets.SENTINEL_API_TOKEN }}
     steps:
       - name: Checkout
