@@ -22,11 +22,11 @@ ENV SCCACHE_LOG=sccache=info""".strip()
 
 # rust-build: cache rustc + build.rs C compiles (openssl-sys, etc.).
 # CC/CXX must be absolute paths so the cc crate does not fall back to "sccache cc".
-# RUSTC_WRAPPER points to sccache-wrapper (fallback script) instead of sccache directly.
+# RUSTC_WRAPPER uses sccache directly (not the cmake fallback wrapper).
 SCCACHE_RUST_ENV_BLOCK = (
     SCCACHE_COMMON_ARGS
     + f"""
-ARG RUSTC_WRAPPER={SCCACHE_WRAPPER}
+ARG RUSTC_WRAPPER={SCCACHE_BIN}
 ARG CC=/usr/bin/gcc
 ARG CXX=/usr/bin/g++
 ENV RUSTC_WRAPPER=${{RUSTC_WRAPPER}}
@@ -58,33 +58,37 @@ AWS_SECRET_MOUNT = (
     "--mount=type=secret,id=aws-credentials,target=/root/.aws/credentials,required=false"
 )
 
-# Inline shell snippet that creates the sccache fallback wrapper.
-# The wrapper tries /usr/bin/sccache; on ANY failure it runs the compiler directly.
-# This handles: server crashes, "No such file or directory", IO errors, etc.
+# CMake compiler launcher wrapper: fall back only on sccache infrastructure errors,
+# NOT on compiler failures (sccache propagates the compiler exit code).
 _WRAPPER_INSTALL = (
     f'printf \'#!/bin/sh\\n'
-    f'/usr/bin/sccache "$@" 2>/tmp/sccache-err.$$\\n'
+    f'err=/tmp/sccache-err.$$\\n'
+    f'/usr/bin/sccache "$@" 2>"$err"\\n'
     f'rc=$?\\n'
-    f'if [ $rc -ne 0 ]; then\\n'
-    f'  echo "[sccache-wrapper] sccache failed rc=$rc, falling back to direct compile: $1" >&2\\n'
-    f'  tail -3 /tmp/sccache-err.$$ >&2 2>/dev/null\\n'
-    f'  rm -f /tmp/sccache-err.$$\\n'
+    f'if [ $rc -eq 0 ]; then rm -f "$err"; exit 0; fi\\n'
+    f'if grep -qE "failed to execute compile|No such file or directory|Failed to send data|Failed to read response|Connection refused|Broken pipe|resource unavailable" "$err" 2>/dev/null; then\\n'
+    f'  echo "[sccache-wrapper] infrastructure failure rc=$rc, falling back: $1" >&2\\n'
+    f'  tail -5 "$err" >&2\\n'
+    f'  rm -f "$err"\\n'
     f'  exec "$@"\\n'
     f'fi\\n'
-    f'rm -f /tmp/sccache-err.$$\\n'
-    f'exit 0\\n\' > {SCCACHE_WRAPPER} && chmod +x {SCCACHE_WRAPPER}'
+    f'cat "$err" >&2 2>/dev/null\\n'
+    f'rm -f "$err"\\n'
+    f'exit $rc\\n\' > {SCCACHE_WRAPPER} && chmod +x {SCCACHE_WRAPPER}'
 )
 
 SCCACHE_RUST_PREP = (
     r"""if [ "${USE_SCCACHE:-0}" = "1" ]; then \
-        export RUSTC_WRAPPER="${RUSTC_WRAPPER:-""" + SCCACHE_WRAPPER + r"""}" \
+        export RUSTC_WRAPPER="${RUSTC_WRAPPER:-""" + SCCACHE_BIN + r"""}" \
         && export CC="${CC:-/usr/bin/gcc}" \
         && export CXX="${CXX:-/usr/bin/g++}" \
         && export CARGO_INCREMENTAL=0 \
         && export SCCACHE_IGNORE_SERVER_IO_ERROR=1 \
         && echo "[sccache-debug] RUSTC_WRAPPER=$RUSTC_WRAPPER CC=$CC CXX=$CXX" \
         && echo "[sccache-debug] sccache binary:" && ls -la /usr/bin/sccache && file /usr/bin/sccache \
-        && echo "[sccache-debug] wrapper:" && ls -la """ + SCCACHE_WRAPPER + r""" \
+        && for _bd in /workspace/rust/target/*/build; do \
+            if [ -d "$_bd" ]; then echo "[sccache-debug] clearing stale build.rs cache: $_bd" && rm -rf "$_bd"/*; fi; \
+        done 2>/dev/null || true \
         && echo | "${CC}" -x c -E -P - >/dev/null \
         && echo | "${CXX}" -x c++ -E -P - >/dev/null \
         && /usr/bin/sccache --version \
