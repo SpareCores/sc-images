@@ -93,7 +93,7 @@ printf '%s' "$plan" | sort -n >&2
 for ((L = 0; L < MAX_LEVELS; L++)); do
   lvl_json=$(printf '%s' "$plan" \
     | awk -v L="$L" '$1==L{print $2" "$3}' \
-    | jq -R -s -c 'split("\n")|map(select(length>0))|map(split(" "))|map({folder:.[0],arch:.[1],platform:("linux/"+.[1])})')
+    | jq -R -s -c 'split("\n")|map(select(length>0))|map(split(" "))|map({folder:.[0],arch:.[1],platform:("linux/"+.[1]),name:(.[0]+" ("+.[1]+")")})')
   fld_json=$(printf '%s' "$plan" \
     | awk -v L="$L" '$1==L{print $2}' \
     | sort -u \

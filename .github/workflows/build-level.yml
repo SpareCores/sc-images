@@ -35,7 +35,7 @@ env:
   BUILDKIT_MAX_PARALLELISM_CAP: "16"
 jobs:
   build:
-    name: Build (${{ matrix.folder }} / ${{ matrix.arch }})
+    name: ${{ matrix.name }}
     if: ${{ inputs.matrix != '[]' }}
     strategy:
       fail-fast: false
