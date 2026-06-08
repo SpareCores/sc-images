@@ -35,6 +35,15 @@ text = text.replace(
     "&& unset RUSTC_WRAPPER && \\\n        echo | sccache /usr/bin/g++-10 -x c++ -E -P - && \\\n",
     "",
 )
+# Override upstream CMAKE_COMPILER_LAUNCHER=sccache with our fallback wrapper.
+text = text.replace(
+    "CMAKE_C_COMPILER_LAUNCHER=sccache",
+    f"CMAKE_C_COMPILER_LAUNCHER={vscm.SCCACHE_WRAPPER}",
+)
+text = text.replace(
+    "CMAKE_CXX_COMPILER_LAUNCHER=sccache",
+    f"CMAKE_CXX_COMPILER_LAUNCHER={vscm.SCCACHE_WRAPPER}",
+)
 version = os.environ["VLLM_VERSION"]
 max_jobs = os.environ["DOCKER_MAX_JOBS"]
 nvcc = os.environ["DOCKER_NVCC_THREADS"]
