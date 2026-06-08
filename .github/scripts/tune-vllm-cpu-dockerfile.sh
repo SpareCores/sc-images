@@ -68,11 +68,13 @@ text = vscm.inject_before_run(
     "# Build the release binary. Cache cargo registry/git and target/",
     vscm.SCCACHE_INSTALL_RUN,
 )
-text = vscm.inject_before_run(
-    text,
-    "VLLM_TARGET_DEVICE=cpu python3 setup.py bdist_wheel",
-    vscm.SCCACHE_INSTALL_RUN,
+wheel_run_needle = (
+    "RUN --mount=type=cache,target=/root/.cache/uv \\\n"
+    "    --mount=type=cache,target=/root/.cache/ccache \\\n"
+    "    --mount=type=cache,target=/vllm-workspace/.deps,sharing=locked \\\n"
+    "    VLLM_TARGET_DEVICE=cpu python3 setup.py bdist_wheel --dist-dir=dist --py-limited-api=cp38"
 )
+text = vscm.inject_before_run(text, wheel_run_needle, vscm.SCCACHE_INSTALL_RUN)
 
 secret_path = "/tmp/vllm-parallelism.env"
 secret_mount = f"--mount=type=secret,id=vllm_parallelism,target={secret_path}"
