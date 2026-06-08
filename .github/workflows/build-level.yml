@@ -1,0 +1,176 @@
+name: Build image level
+# Reusable workflow: build + publish one dependency level of the image graph.
+# Driven entirely by per-folder metadata (see .github/scripts/read-image-config.sh);
+# no image names are hardcoded here.
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        description: JSON array of {folder, arch, platform} build entries for this level.
+        required: true
+        type: string
+      folders:
+        description: JSON array of folder names in this level (merge matrix).
+        required: true
+        type: string
+      arm64_runner:
+        description: JSON runner spec for arm64 legs (string or [labels]).
+        required: true
+        type: string
+      force_rebuild:
+        description: Rebuild resource-tracker consumers without registry cache.
+        required: false
+        type: boolean
+        default: false
+env:
+  REGISTRY: ghcr.io
+  ZRAM_PERCENT: "125"
+  # RAM-linear compile parallelism reference (64 GiB self-hosted arm64 builder).
+  REFERENCE_RAM_GIB: "64"
+  VLLM_COMPILE_GIB_PER_SLOT: "3"
+  VLLM_MAX_JOBS_CAP: "32"
+  VLLM_NVCC_THREADS: "2"
+  CARGO_BUILD_JOBS_CAP: "32"
+  ZRAM_COMPILE_BUDGET_PERCENT: "50"
+  BUILDKIT_MAX_PARALLELISM_CAP: "16"
+jobs:
+  build:
+    name: Build (${{ matrix.folder }} / ${{ matrix.arch }})
+    if: ${{ inputs.matrix != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(inputs.matrix) }}
+    runs-on: ${{ matrix.arch == 'arm64' && fromJson(inputs.arm64_runner) || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+      - name: Set up zram swap
+        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
+      - name: Resolve image config
+        id: cfg
+        run: bash "${{ github.workspace }}/.github/scripts/read-image-config.sh" "${{ matrix.folder }}" "${{ matrix.arch }}" >> "$GITHUB_OUTPUT"
+      - name: Run prepare hook
+        id: prep
+        if: ${{ steps.cfg.outputs.has_prepare == 'true' }}
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: bash "${{ github.workspace }}/images/${{ matrix.folder }}/prepare.sh"
+      - name: Compute BuildKit parallelism (self-hosted arm64)
+        id: bk
+        if: ${{ matrix.arch == 'arm64' && steps.cfg.outputs.has_prepare != 'true' && (vars.ARM64_RUNNER || 'self-hosted') != 'github' }}
+        env:
+          VLLM_COMPILE_GIB_PER_SLOT: "2"
+        run: bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" buildkit >> "$GITHUB_OUTPUT"
+      - name: Assemble BuildKit config
+        id: bxcfg
+        run: |
+          par='${{ steps.prep.outputs.buildkit_max_parallelism || steps.bk.outputs.buildkit_max_parallelism }}'
+          if [ -n "$par" ]; then
+            {
+              echo 'config<<EOF'
+              echo '[worker.oci]'
+              echo "  max-parallelism = ${par}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          fi
+      - name: Assemble build args
+        id: bargs
+        run: |
+          : > .cache/all-build-args
+          [ -f .cache/build-args ] && cat .cache/build-args >> .cache/all-build-args || true
+          [ -f .cache/extra-build-args ] && cat .cache/extra-build-args >> .cache/all-build-args || true
+          if [ -s .cache/all-build-args ]; then
+            {
+              echo 'args<<EOF'
+              cat .cache/all-build-args
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          fi
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+        with:
+          buildkitd-config-inline: ${{ steps.bxcfg.outputs.config }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6.0.0
+        with:
+          images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
+          flavor: |
+            suffix=-${{ matrix.arch }},onlatest=false
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7.1.0
+        with:
+          context: ${{ github.workspace }}/${{ steps.cfg.outputs.context }}
+          file: ${{ github.workspace }}/${{ steps.cfg.outputs.dockerfile }}
+          target: ${{ steps.cfg.outputs.target }}
+          platforms: ${{ matrix.platform }}
+          push: true
+          provenance: ${{ steps.cfg.outputs.has_prepare == 'true' && 'false' || '' }}
+          pull: ${{ steps.cfg.outputs.pull }}
+          no-cache: ${{ inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true' }}
+          build-args: ${{ steps.bargs.outputs.args }}
+          secrets: ${{ steps.prep.outputs.secret_file && format('vllm_parallelism={0}/{1}', github.workspace, steps.prep.outputs.secret_file) || '' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: ${{ (inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true') && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2}', env.REGISTRY, matrix.folder, matrix.arch) }}
+          cache-to: ${{ (inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true') && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2},mode=max,image-manifest=true', env.REGISTRY, matrix.folder, matrix.arch) }}
+
+  merge:
+    name: Merge manifest (${{ matrix.folder }})
+    needs: build
+    if: ${{ !cancelled() && needs.build.result != 'failure' && inputs.folders != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        folder: ${{ fromJson(inputs.folders) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+      - name: Resolve image config
+        id: cfg
+        run: bash "${{ github.workspace }}/.github/scripts/read-image-config.sh" "${{ matrix.folder }}" amd64 >> "$GITHUB_OUTPUT"
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6.0.0
+        with:
+          images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
+      - name: Create manifest from per-arch images
+        env:
+          PLATFORMS: ${{ steps.cfg.outputs.platforms }}
+        run: |
+          set -euo pipefail
+          sources=()
+          for p in $PLATFORMS; do
+            sources+=("$p")
+          done
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            refs=()
+            for arch in "${sources[@]}"; do
+              refs+=("${tag}-${arch}")
+            done
+            echo "Creating ${tag} from: ${refs[*]}"
+            docker buildx imagetools create --tag "$tag" "${refs[@]}"
+          done <<< "${{ steps.meta.outputs.tags }}"

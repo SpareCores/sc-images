@@ -10,5 +10,8 @@ __pycache__/
 .venv/
 venv/
 
-# vLLM source clones (CI job build-vllm-*-base)
+# vLLM source clones (prepare.sh hooks)
 **/.vllm-src/
+
+# CI build scratch (parallelism secret, assembled build-args)
+.cache/

@@ -1,0 +1,2 @@
+RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-${ARCH}
+VLLM_VERSION=${VLLM_VERSION}

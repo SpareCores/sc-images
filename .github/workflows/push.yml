@@ -1,4 +1,8 @@
 name: Build and publish Spare Cores images
+# Orchestrator: discover images, compute a dependency-ordered plan, then build one
+# level at a time via the reusable build-level workflow. Image-specific behaviour
+# lives in per-folder metadata (DEPENDS_ON, PLATFORMS, CONTEXT, DOCKERFILE, TARGET,
+# BUILD_ARGS) and optional prepare.sh hooks — not in this file.
 on:
   push:
     branches:
@@ -9,39 +13,34 @@ on:
         description: Rebuild resource-tracker and consumer images without registry cache
         type: boolean
         default: true
+permissions:
+  contents: read
+  packages: write
 env:
-  REGISTRY: ghcr.io
-  # Arm64 runner: set repo variable ARM64_RUNNER (Settings → Variables → Actions).
-  #   "self-hosted"  →  [self-hosted, sc-images-arm64] builder
-  #   "github"       →  ubuntu-24.04-arm
-  # Default (if unset): self-hosted.
   ZRAM_PERCENT: "125"
   # Set to false after resource-tracker consumers have been rebuilt once.
   FORCE_REBUILD_RESOURCE_TRACKER: "true"
-  # 64 GiB baseline (c6g.8xlarge): RAM-linear compile parallelism via compute-build-parallelism.sh.
-  # Dockerfile build-args use fixed reference values; runtime jobs come from a BuildKit secret (cache-stable).
-  REFERENCE_RAM_GIB: "64"
-  VLLM_COMPILE_GIB_PER_SLOT: "3"
-  VLLM_MAX_JOBS_CAP: "32"
-  VLLM_NVCC_THREADS: "2"
-  ZRAM_COMPILE_BUDGET_PERCENT: "50"
-  BUILDKIT_MAX_PARALLELISM_CAP: "16"
-  CARGO_BUILD_JOBS_CAP: "32"
-  # Images that COPY the resource-tracker binary.
-  RESOURCE_TRACKER_IMAGES: '["resource-tracker","benchmark","benchmark-web","benchmark-redis","benchmark-passmark","benchmark-llm","benchmark-vllm-gpu","benchmark-vllm-cpu","benchmark-vllm-cpu-avx2","stress-ng","stress-ng-longrun","nvbandwidth"]'
-  # amd64-only images (no arm64 matrix leg); merged as main-amd64 -> main.
-  AMD64_ONLY_IMAGES: '["vllm-cpu-base-avx2","benchmark-vllm-cpu-avx2"]'
 jobs:
   find-jobs:
     runs-on: ubuntu-latest
     name: Find Jobs
     outputs:
-      folders: ${{ steps.jobs.outputs.folders }}
-      build_folders: ${{ steps.filter.outputs.build_folders }}
       arm64_runner: ${{ steps.arm64.outputs.runner }}
+      force_rebuild: ${{ steps.force.outputs.value }}
+      level0: ${{ steps.plan.outputs.level0 }}
+      level1: ${{ steps.plan.outputs.level1 }}
+      level2: ${{ steps.plan.outputs.level2 }}
+      level3: ${{ steps.plan.outputs.level3 }}
+      folders_level0: ${{ steps.plan.outputs.folders_level0 }}
+      folders_level1: ${{ steps.plan.outputs.folders_level1 }}
+      folders_level2: ${{ steps.plan.outputs.folders_level2 }}
+      folders_level3: ${{ steps.plan.outputs.folders_level3 }}
     steps:
       - name: Resolve arm64 runner
         id: arm64
+        # Repo variable ARM64_RUNNER (Settings -> Variables -> Actions):
+        #   "self-hosted" (default) -> [self-hosted, sc-images-arm64]
+        #   "github"                -> ubuntu-24.04-arm
         run: |
           MODE="${{ vars.ARM64_RUNNER || 'self-hosted' }}"
           if [ "$MODE" = "github" ]; then
@@ -49,391 +48,60 @@ jobs:
           else
             echo 'runner=["self-hosted", "sc-images-arm64"]' >> "$GITHUB_OUTPUT"
           fi
-          echo "ARM64_RUNNER=$MODE → $(grep runner "$GITHUB_OUTPUT")"
-      - uses: actions/checkout@v6.0.2
-      - name: Set up zram swap
-        env:
-          ZRAM_PERCENT: ${{ env.ZRAM_PERCENT }}
-        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
-      - id: jobs
-        uses: kmanimaran/list-folder-action@v4
-        with:
-          path: ./images
-      - name: Filter image folders for build matrix
-        id: filter
+          echo "ARM64_RUNNER=$MODE -> $(grep runner "$GITHUB_OUTPUT")"
+      - name: Resolve force-rebuild flag
+        id: force
         run: |
-          FOLDERS='${{ steps.jobs.outputs.folders }}'
-          echo "build_folders=$(echo "$FOLDERS" | jq -c '[.[] | select(. != "vllm-gpu-base" and . != "vllm-cpu-base-avx2")]')" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.force_rebuild_resource_tracker }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${FORCE_REBUILD_RESOURCE_TRACKER}" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v6.0.2
+      - name: Compute dependency-ordered build plan
+        id: plan
+        run: bash "${{ github.workspace }}/.github/scripts/resolve-build-plan.sh" >> "$GITHUB_OUTPUT"
 
-  build-vllm-gpu-base:
-    name: Build vllm-gpu-base (arm64 CUDA)
+  level0:
     needs: [find-jobs]
-    runs-on: ${{ fromJson(needs.find-jobs.outputs.arm64_runner) }}
-    timeout-minutes: 360
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v6.0.2
-      - name: Set up zram swap
-        env:
-          ZRAM_PERCENT: ${{ env.ZRAM_PERCENT }}
-        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
-      - name: Prepare runner for CUDA compile
-        id: vllm_build
-        env:
-          REFERENCE_RAM_GIB: ${{ env.REFERENCE_RAM_GIB }}
-          VLLM_COMPILE_GIB_PER_SLOT: ${{ env.VLLM_COMPILE_GIB_PER_SLOT }}
-          VLLM_MAX_JOBS_CAP: ${{ env.VLLM_MAX_JOBS_CAP }}
-          VLLM_NVCC_THREADS: ${{ env.VLLM_NVCC_THREADS }}
-          CARGO_BUILD_JOBS_CAP: ${{ env.CARGO_BUILD_JOBS_CAP }}
-          BUILDKIT_MAX_PARALLELISM_CAP: ${{ env.BUILDKIT_MAX_PARALLELISM_CAP }}
-          ZRAM_COMPILE_BUDGET_PERCENT: ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }}
-        run: |
-          set -euo pipefail
-          bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" vllm-gpu >> "$GITHUB_OUTPUT"
-          echo "Runner labels: ${{ toJson(runner.labels) }}"
-          free -h
-          df -h /
-      - name: Write vLLM parallelism secret
-        run: |
-          mkdir -p "${{ github.workspace }}/.cache"
-          printf 'MAX_JOBS=%s\nNVCC_THREADS=%s\nCARGO_BUILD_JOBS=%s\n' \
-            "${{ steps.vllm_build.outputs.max_jobs }}" \
-            "${{ steps.vllm_build.outputs.nvcc_threads }}" \
-            "${{ steps.vllm_build.outputs.cargo_build_jobs }}" \
-            > "${{ github.workspace }}/.cache/vllm-parallelism.env"
-          echo "Parallelism secret:" && cat "${{ github.workspace }}/.cache/vllm-parallelism.env"
-      - name: Read VLLM version
-        id: vllm
-        working-directory: ${{ github.workspace }}
-        run: echo "version=$(tr -d '[:space:]' < vllm-common/VLLM_VERSION)" >> "$GITHUB_OUTPUT"
-      - name: Clone vLLM source
-        working-directory: ${{ github.workspace }}/vllm-common
-        run: |
-          git clone --depth 1 --branch "v${{ steps.vllm.outputs.version }}" \
-            https://github.com/vllm-project/vllm.git .vllm-src
-      - name: Tune vLLM Dockerfile parallelism
-        working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
-        run: |
-          bash "${{ github.workspace }}/.github/scripts/tune-vllm-gpu-dockerfile.sh" \
-            docker/Dockerfile \
-            "${{ steps.vllm.outputs.version }}" \
-            "${{ steps.vllm_build.outputs.docker_max_jobs }}" \
-            "${{ steps.vllm_build.outputs.docker_nvcc_threads }}" \
-            "${{ steps.vllm_build.outputs.docker_cargo_build_jobs }}"
-          echo "Expected ninja -j: $(( ${{ steps.vllm_build.outputs.max_jobs }} / ${{ steps.vllm_build.outputs.nvcc_threads }} )) (runtime max_jobs=${{ steps.vllm_build.outputs.max_jobs }}, nvcc_threads=${{ steps.vllm_build.outputs.nvcc_threads }})"
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4.1.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.0.0
-        with:
-          buildkitd-config-inline: |
-            [worker.oci]
-              max-parallelism = ${{ steps.vllm_build.outputs.buildkit_max_parallelism }}
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v6.0.0
-        with:
-          images: ${{ env.REGISTRY }}/sparecores/vllm-gpu-base
-          flavor: |
-            suffix=-arm64,onlatest=false
-      - name: Build and push vllm-gpu-base
-        uses: docker/build-push-action@v7.1.0
-        with:
-          context: ${{ github.workspace }}/vllm-common/.vllm-src
-          file: ${{ github.workspace }}/vllm-common/.vllm-src/docker/Dockerfile
-          target: vllm-openai
-          platforms: linux/arm64
-          push: true
-          provenance: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            max_jobs=${{ steps.vllm_build.outputs.docker_max_jobs }}
-            nvcc_threads=${{ steps.vllm_build.outputs.docker_nvcc_threads }}
-            vllm_ci_cache_bust=${{ steps.vllm.outputs.version }}
-            torch_cuda_arch_list=9.0 10.0+PTX
-            RUN_WHEEL_CHECK=false
-          secrets: |
-            vllm_parallelism=${{ github.workspace }}/.cache/vllm-parallelism.env
-          cache-from: |
-            type=gha,scope=vllm-gpu-base-arm64-${{ steps.vllm.outputs.version }}
-            type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64
-          cache-to: |
-            type=gha,scope=vllm-gpu-base-arm64-${{ steps.vllm.outputs.version }},mode=max
-            type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-gpu-base:buildcache-arm64,mode=max,image-manifest=true
+    if: ${{ needs.find-jobs.outputs.level0 != '[]' }}
+    uses: ./.github/workflows/build-level.yml
+    with:
+      matrix: ${{ needs.find-jobs.outputs.level0 }}
+      folders: ${{ needs.find-jobs.outputs.folders_level0 }}
+      arm64_runner: ${{ needs.find-jobs.outputs.arm64_runner }}
+      force_rebuild: ${{ needs.find-jobs.outputs.force_rebuild == 'true' }}
+    secrets: inherit
 
-  build-vllm-cpu-base-avx2:
-    name: Build vllm-cpu-base-avx2 (amd64 AVX2)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v6.0.2
-      - name: Set up zram swap
-        env:
-          ZRAM_PERCENT: ${{ env.ZRAM_PERCENT }}
-        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
-      - name: Prepare runner for vLLM CPU build
-        id: vllm_cpu_build
-        env:
-          REFERENCE_RAM_GIB: ${{ env.REFERENCE_RAM_GIB }}
-          # oneDNN/C++ objects are RAM-heavy; ~6 GiB/slot on physical MemTotal (not zram).
-          VLLM_COMPILE_GIB_PER_SLOT: "6"
-          COMPILE_RAM_SOURCE: physical
-          VLLM_MAX_JOBS_CAP: ${{ env.VLLM_MAX_JOBS_CAP }}
-          VLLM_NVCC_THREADS: "1"
-          CARGO_BUILD_JOBS_CAP: ${{ env.CARGO_BUILD_JOBS_CAP }}
-          BUILDKIT_MAX_PARALLELISM_CAP: ${{ env.BUILDKIT_MAX_PARALLELISM_CAP }}
-          ZRAM_COMPILE_BUDGET_PERCENT: ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }}
-        run: |
-          bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" vllm-cpu >> "$GITHUB_OUTPUT"
-      - name: Write vLLM parallelism secret
-        run: |
-          mkdir -p "${{ github.workspace }}/.cache"
-          printf 'MAX_JOBS=%s\nNVCC_THREADS=%s\nCARGO_BUILD_JOBS=%s\n' \
-            "${{ steps.vllm_cpu_build.outputs.max_jobs }}" \
-            "${{ steps.vllm_cpu_build.outputs.nvcc_threads }}" \
-            "${{ steps.vllm_cpu_build.outputs.cargo_build_jobs }}" \
-            > "${{ github.workspace }}/.cache/vllm-parallelism.env"
-          echo "Parallelism secret:" && cat "${{ github.workspace }}/.cache/vllm-parallelism.env"
-      - name: Read VLLM version
-        id: vllm
-        working-directory: ${{ github.workspace }}
-        run: echo "version=$(tr -d '[:space:]' < vllm-common/VLLM_VERSION)" >> "$GITHUB_OUTPUT"
-      - name: Clone vLLM source
-        working-directory: ${{ github.workspace }}/vllm-common
-        run: |
-          git clone --depth 1 --branch "v${{ steps.vllm.outputs.version }}" \
-            https://github.com/vllm-project/vllm.git .vllm-src
-      - name: Tune vLLM CPU Dockerfile
-        working-directory: ${{ github.workspace }}/vllm-common/.vllm-src
-        run: |
-          bash "${{ github.workspace }}/.github/scripts/tune-vllm-cpu-dockerfile.sh" \
-            docker/Dockerfile.cpu \
-            "${{ steps.vllm.outputs.version }}" \
-            "${{ steps.vllm_cpu_build.outputs.docker_max_jobs }}" \
-            "${{ steps.vllm_cpu_build.outputs.docker_cargo_build_jobs }}"
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4.1.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.0.0
-        with:
-          buildkitd-config-inline: |
-            [worker.oci]
-              max-parallelism = ${{ steps.vllm_cpu_build.outputs.buildkit_max_parallelism }}
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v6.0.0
-        with:
-          images: ${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2
-          flavor: |
-            suffix=-amd64,onlatest=false
-      - name: Build and push vllm-cpu-base-avx2
-        uses: docker/build-push-action@v7.1.0
-        with:
-          context: ${{ github.workspace }}/vllm-common/.vllm-src
-          file: ${{ github.workspace }}/vllm-common/.vllm-src/docker/Dockerfile.cpu
-          target: vllm-openai
-          platforms: linux/amd64
-          push: true
-          provenance: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VLLM_CPU_AVX2=true
-            max_jobs=${{ steps.vllm_cpu_build.outputs.docker_max_jobs }}
-          secrets: |
-            vllm_parallelism=${{ github.workspace }}/.cache/vllm-parallelism.env
-          cache-from: |
-            type=gha,scope=vllm-cpu-base-avx2-amd64-${{ steps.vllm.outputs.version }}
-            type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64
-          cache-to: |
-            type=gha,scope=vllm-cpu-base-avx2-amd64-${{ steps.vllm.outputs.version }},mode=max
-            type=registry,ref=${{ env.REGISTRY }}/sparecores/vllm-cpu-base-avx2:buildcache-amd64,mode=max,image-manifest=true
+  level1:
+    needs: [find-jobs, level0]
+    if: ${{ !failure() && !cancelled() && needs.find-jobs.outputs.level1 != '[]' }}
+    uses: ./.github/workflows/build-level.yml
+    with:
+      matrix: ${{ needs.find-jobs.outputs.level1 }}
+      folders: ${{ needs.find-jobs.outputs.folders_level1 }}
+      arm64_runner: ${{ needs.find-jobs.outputs.arm64_runner }}
+      force_rebuild: ${{ needs.find-jobs.outputs.force_rebuild == 'true' }}
+    secrets: inherit
 
-  build-images:
-    name: Build image (${{ matrix.folder }} / ${{ matrix.arch }})
-    needs: [find-jobs, build-vllm-gpu-base, build-vllm-cpu-base-avx2]
-    defaults:
-      run:
-        working-directory: ${{ github.workspace }}/images/${{ matrix.folder }}
-    strategy:
-      fail-fast: false
-      matrix:
-        folder: ${{ fromJson(needs.find-jobs.outputs.build_folders) }}
-        arch: [amd64, arm64]
-        exclude:
-          - folder: benchmark-vllm-cpu-avx2
-            arch: arm64
-        include:
-          - arch: amd64
-            platform: linux/amd64
-          - arch: arm64
-            platform: linux/arm64
-    runs-on: ${{ matrix.arch == 'arm64' && fromJson(needs.find-jobs.outputs.arm64_runner) || 'ubuntu-latest' }}
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: checkout
-        uses: actions/checkout@v6.0.2
-      - name: Set up zram swap
-        env:
-          ZRAM_PERCENT: ${{ env.ZRAM_PERCENT }}
-        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
-      - name: Read resource-tracker version
-        if: matrix.folder == 'resource-tracker'
-        id: resource_tracker
-        working-directory: ${{ github.workspace }}
-        run: echo "version=$(tr -d '[:space:]' < images/resource-tracker/RESOURCE_TRACKER_VERSION)" >> "$GITHUB_OUTPUT"
-      - name: Prepare BuildKit parallelism
-        id: build_parallelism
-        if: matrix.arch == 'arm64' && (vars.ARM64_RUNNER || 'self-hosted') != 'github'
-        env:
-          REFERENCE_RAM_GIB: ${{ env.REFERENCE_RAM_GIB }}
-          VLLM_COMPILE_GIB_PER_SLOT: "2"
-          VLLM_MAX_JOBS_CAP: ${{ env.VLLM_MAX_JOBS_CAP }}
-          BUILDKIT_MAX_PARALLELISM_CAP: ${{ env.BUILDKIT_MAX_PARALLELISM_CAP }}
-          ZRAM_COMPILE_BUDGET_PERCENT: ${{ env.ZRAM_COMPILE_BUDGET_PERCENT }}
-        run: |
-          bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" buildkit >> "$GITHUB_OUTPUT"
-      - name: Prepare BuildKit config
-        id: buildx_config
-        run: |
-          if [ -n "${{ steps.build_parallelism.outputs.buildkit_max_parallelism }}" ]; then
-            {
-              echo 'config<<EOF'
-              echo '[worker.oci]'
-              echo "  max-parallelism = ${{ steps.build_parallelism.outputs.buildkit_max_parallelism }}"
-              echo 'EOF'
-            } >> "$GITHUB_OUTPUT"
-          fi
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4.1.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.0.0
-        with:
-          buildkitd-config-inline: ${{ steps.buildx_config.outputs.config }}
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v6.0.0
-        with:
-          images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
-          flavor: |
-            suffix=-${{ matrix.arch }},onlatest=false
-      - name: Read vLLM version
-        if: startsWith(matrix.folder, 'benchmark-vllm')
-        id: vllm_benchmark
-        working-directory: ${{ github.workspace }}
-        run: echo "version=$(tr -d '[:space:]' < vllm-common/VLLM_VERSION)" >> "$GITHUB_OUTPUT"
-      - name: Prepare build args
-        id: build_args
-        run: |
-          set -euo pipefail
-          folder='${{ matrix.folder }}'
-          arch='${{ matrix.arch }}'
-          lines=()
-          if [ "$folder" = "resource-tracker" ]; then
-            lines+=("RESOURCE_TRACKER_VERSION=${{ steps.resource_tracker.outputs.version }}")
-          elif [[ "$folder" == benchmark-vllm* ]]; then
-            lines+=("RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-${arch}")
-            lines+=("VLLM_VERSION=${{ steps.vllm_benchmark.outputs.version }}")
-          elif echo '${{ env.RESOURCE_TRACKER_IMAGES }}' | jq -e --arg f "$folder" 'index($f) != null' >/dev/null; then
-            lines+=("RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-${arch}")
-          fi
-          if [ "${#lines[@]}" -gt 0 ]; then
-            {
-              echo 'args<<EOF'
-              printf '%s\n' "${lines[@]}"
-              echo 'EOF'
-            } >> "$GITHUB_OUTPUT"
-          fi
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v7.1.0
-        with:
-          context: ${{ startsWith(matrix.folder, 'benchmark-vllm') && github.workspace || format('{0}/images/{1}', github.workspace, matrix.folder) }}
-          file: ${{ format('{0}/images/{1}/Dockerfile', github.workspace, matrix.folder) }}
-          platforms: ${{ matrix.platform }}
-          push: true
-          pull: ${{ contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) || matrix.folder == 'benchmark-vllm-gpu' || matrix.folder == 'benchmark-vllm-cpu-avx2' }}
-          no-cache: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: ${{ steps.build_args.outputs.args }}
-          cache-from: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2}', env.REGISTRY, matrix.folder, matrix.arch) }}
-          cache-to: ${{ (env.FORCE_REBUILD_RESOURCE_TRACKER == 'true' || github.event_name == 'workflow_dispatch' && inputs.force_rebuild_resource_tracker) && contains(fromJSON(env.RESOURCE_TRACKER_IMAGES), matrix.folder) && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2},mode=max', env.REGISTRY, matrix.folder, matrix.arch) }}
+  level2:
+    needs: [find-jobs, level1]
+    if: ${{ !failure() && !cancelled() && needs.find-jobs.outputs.level2 != '[]' }}
+    uses: ./.github/workflows/build-level.yml
+    with:
+      matrix: ${{ needs.find-jobs.outputs.level2 }}
+      folders: ${{ needs.find-jobs.outputs.folders_level2 }}
+      arm64_runner: ${{ needs.find-jobs.outputs.arm64_runner }}
+      force_rebuild: ${{ needs.find-jobs.outputs.force_rebuild == 'true' }}
+    secrets: inherit
 
-  merge-manifests:
-    name: Merge image manifests (${{ matrix.folder }})
-    needs: [find-jobs, build-images, build-vllm-gpu-base, build-vllm-cpu-base-avx2]
-    strategy:
-      fail-fast: false
-      matrix:
-        folder: ${{ fromJson(needs.find-jobs.outputs.folders) }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: checkout
-        uses: actions/checkout@v6.0.2
-      - name: Set up zram swap
-        env:
-          ZRAM_PERCENT: ${{ env.ZRAM_PERCENT }}
-        run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4.1.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.0.0
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v6.0.0
-        with:
-          images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
-      - name: Promote arm64-only vllm-gpu-base to main
-        if: matrix.folder == 'vllm-gpu-base'
-        run: |
-          while IFS= read -r tag; do
-            [ -z "$tag" ] && continue
-            docker buildx imagetools create \
-              --tag "$tag" \
-              "${tag}-arm64"
-          done <<< "${{ steps.meta.outputs.tags }}"
-      - name: Promote amd64-only images to main
-        if: contains(fromJSON(env.AMD64_ONLY_IMAGES), matrix.folder)
-        run: |
-          while IFS= read -r tag; do
-            [ -z "$tag" ] && continue
-            docker buildx imagetools create \
-              --tag "$tag" \
-              "${tag}-amd64"
-          done <<< "${{ steps.meta.outputs.tags }}"
-      - name: Create multi-arch manifests
-        if: matrix.folder != 'vllm-gpu-base' && !contains(fromJSON(env.AMD64_ONLY_IMAGES), matrix.folder)
-        run: |
-          while IFS= read -r tag; do
-            [ -z "$tag" ] && continue
-            docker buildx imagetools create \
-              --tag "$tag" \
-              "$tag-amd64" \
-              "$tag-arm64"
-          done <<< "${{ steps.meta.outputs.tags }}"
+  level3:
+    needs: [find-jobs, level2]
+    if: ${{ !failure() && !cancelled() && needs.find-jobs.outputs.level3 != '[]' }}
+    uses: ./.github/workflows/build-level.yml
+    with:
+      matrix: ${{ needs.find-jobs.outputs.level3 }}
+      folders: ${{ needs.find-jobs.outputs.folders_level3 }}
+      arm64_runner: ${{ needs.find-jobs.outputs.arm64_runner }}
+      force_rebuild: ${{ needs.find-jobs.outputs.force_rebuild == 'true' }}
+    secrets: inherit
