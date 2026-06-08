@@ -40,6 +40,20 @@ ZRAM_BUDGET_PERCENT="${ZRAM_COMPILE_BUDGET_PERCENT:-50}"
 # effective = MemTotal + zram budget (CUDA self-hosted builds).
 COMPILE_RAM_SOURCE="${COMPILE_RAM_SOURCE:-effective}"
 
+# GitHub-hosted runners (~15–16 GiB RAM, 4 vCPU): zram helps swap pressure but does not
+# add reliable compile headroom. Size jobs on physical RAM and cap low to avoid OOM.
+if [ "${RUNNER_ENVIRONMENT:-}" = "github-hosted" ]; then
+  COMPILE_RAM_SOURCE=physical
+  if [ "${VLLM_COMPILE_GIB_PER_SLOT:-3}" = "3" ]; then
+    COMPILE_GIB_PER_SLOT=6
+  fi
+  MAX_JOBS_CAP=2
+  NVCC_THREADS_CAP=1
+  CARGO_JOBS_CAP=2
+  BUILDKIT_CAP=2
+  echo "Parallelism: github-hosted conservative profile (physical RAM, slot=${COMPILE_GIB_PER_SLOT}GiB, caps max_jobs=${MAX_JOBS_CAP} buildkit=${BUILDKIT_CAP})" >&2
+fi
+
 MEM_MIB=$(awk '/MemTotal:/ {print int($2/1024)}' /proc/meminfo)
 SWAP_MIB=$(awk '/SwapTotal:/ {print int($2/1024)}' /proc/meminfo)
 NCPU=$(nproc)
