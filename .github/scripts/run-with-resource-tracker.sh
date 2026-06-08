@@ -13,18 +13,14 @@ if ! command -v resource-tracker >/dev/null 2>&1; then
   exit 1
 fi
 
-tags=()
-[ -n "${GITHUB_RUN_ATTEMPT:-}" ] && tags+=(--tag "github_run_attempt=${GITHUB_RUN_ATTEMPT}")
-[ -n "${GITHUB_SHA:-}" ] && tags+=(--tag "github_sha=${GITHUB_SHA}")
-[ -n "${GITHUB_REF_NAME:-}" ] && tags+=(--tag "github_ref=${GITHUB_REF_NAME}")
-[ -n "${MATRIX_ARCH:-}" ] && tags+=(--tag "arch=${MATRIX_ARCH}")
-
 quiet=()
 case "${TRACKER_QUIET:-}" in
   true|1|yes) quiet+=(--quiet) ;;
 esac
 
-resource-tracker "${quiet[@]}" "${tags[@]}" &
+# Do not pass --tag flags: v0.1.12 serializes tags as ["key=value"] strings but
+# Sentinel expects [{"key":"…","value":"…"}], which causes start_run HTTP 422.
+resource-tracker "${quiet[@]}" &
 rt_pid=$!
 
 stop_tracker() {

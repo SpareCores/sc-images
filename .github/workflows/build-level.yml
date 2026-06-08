@@ -50,7 +50,7 @@ jobs:
       TRACKER_ORCHESTRATOR: github-actions
       TRACKER_ENV: ci
       TRACKER_QUIET: "true"
-      TRACKER_EXTERNAL_RUN_ID: ${{ github.run_id }}
+      TRACKER_EXTERNAL_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
       TRACKER_JOB_NAME: ${{ matrix.name }}
       TRACKER_TASK_NAME: ${{ matrix.folder }}
       TRACKER_STAGE_NAME: ${{ github.workflow }}
