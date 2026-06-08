@@ -9,6 +9,7 @@ DOCKER_NVCC_THREADS="${4:?docker nvcc_threads (64 GiB reference)}"
 DOCKER_CARGO_JOBS="${5:?docker cargo jobs (64 GiB reference)}"
 
 export DOCKERFILE VLLM_VERSION DOCKER_MAX_JOBS DOCKER_NVCC_THREADS DOCKER_CARGO_JOBS
+export SCCACHE_PREFIX="${SCCACHE_PREFIX:-}"
 python3 <<'PY'
 import os
 import re
@@ -20,6 +21,19 @@ version = os.environ["VLLM_VERSION"]
 max_jobs = os.environ["DOCKER_MAX_JOBS"]
 nvcc = os.environ["DOCKER_NVCC_THREADS"]
 cargo = os.environ["DOCKER_CARGO_JOBS"]
+
+if "ARG SCCACHE_S3_KEY_PREFIX" not in text:
+    text = text.replace(
+        "ARG SCCACHE_S3_NO_CREDENTIALS=0",
+        "ARG SCCACHE_S3_KEY_PREFIX\nARG SCCACHE_S3_NO_CREDENTIALS=0",
+        1,
+    )
+if "export SCCACHE_S3_KEY_PREFIX=${SCCACHE_S3_KEY_PREFIX}" not in text:
+    text = text.replace(
+        "export SCCACHE_S3_NO_CREDENTIALS=${SCCACHE_S3_NO_CREDENTIALS} \\",
+        "export SCCACHE_S3_NO_CREDENTIALS=${SCCACHE_S3_NO_CREDENTIALS} \\\n && export SCCACHE_S3_KEY_PREFIX=${SCCACHE_S3_KEY_PREFIX} \\",
+        1,
+    )
 
 if "ARG vllm_ci_cache_bust=" not in text:
     text = text.replace("ARG max_jobs=", "ARG vllm_ci_cache_bust=0\nARG max_jobs=", 1)

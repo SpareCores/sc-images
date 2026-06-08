@@ -11,6 +11,7 @@
 #   TARGET      - build target stage (default: none)
 #   BUILD_ARGS  - KEY=VALUE lines; tokens ${ARCH} ${VLLM_VERSION} ${RESOURCE_TRACKER_VERSION}
 #   ZRAM        - enable compressed swap on the builder (true/1/yes, or PERCENT e.g. 125); default off
+#   SCCACHE     - enable sccache S3 compile cache (true/1/yes); default off
 #   prepare.sh  - pre-build hook (presence reported as has_prepare=true)
 #
 # Emits key=value lines (for $GITHUB_OUTPUT) and writes resolved static
@@ -64,6 +65,14 @@ if [ -f "$fdir/ZRAM" ]; then
   esac
 fi
 
+sccache=false
+if [ -f "$fdir/SCCACHE" ]; then
+  sccache_val="$(read_scalar "$fdir/SCCACHE")"
+  case "${sccache_val,,}" in
+    true|1|yes|on) sccache=true ;;
+  esac
+fi
+
 # An image is a resource-tracker consumer if it is resource-tracker or (transitively) depends on it.
 is_rt_consumer() {
   local f="$1" d
@@ -109,4 +118,5 @@ fi
   echo "has_prepare=$has_prepare"
   echo "zram=$zram"
   echo "zram_percent=$zram_percent"
+  echo "sccache=$sccache"
 }

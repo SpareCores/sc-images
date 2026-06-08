@@ -39,7 +39,8 @@ else
   git -C "$SRC" checkout -f "v${VLLM_VERSION}"
 fi
 
-( cd "$SRC" && bash "${SCRIPTS}/tune-vllm-gpu-dockerfile.sh" \
+( cd "$SRC" && export SCCACHE_PREFIX="${SCCACHE_PREFIX:-${IMAGE_FOLDER:-vllm-gpu-base}/${ARCH:-arm64}}" && \
+  bash "${SCRIPTS}/tune-vllm-gpu-dockerfile.sh" \
   docker/Dockerfile \
   "$VLLM_VERSION" \
   "$DOCKER_MAX_JOBS" \
@@ -54,6 +55,18 @@ fi
   echo "torch_cuda_arch_list=9.0 10.0+PTX"
   echo "RUN_WHEEL_CHECK=false"
 } >> "${CACHE}/extra-build-args"
+
+if [ "${SCCACHE_ENABLED:-}" = "true" ]; then
+  : "${SCCACHE_BUCKET:?SCCACHE_BUCKET required when SCCACHE is enabled}"
+  prefix="${SCCACHE_PREFIX:-${IMAGE_FOLDER:-vllm-gpu-base}/${ARCH:-arm64}}"
+  {
+    echo "USE_SCCACHE=1"
+    echo "SCCACHE_BUCKET_NAME=${SCCACHE_BUCKET}"
+    echo "SCCACHE_REGION_NAME=${SCCACHE_REGION:-us-west-2}"
+    echo "SCCACHE_S3_NO_CREDENTIALS=0"
+    echo "SCCACHE_S3_KEY_PREFIX=${prefix}"
+  } >> "${CACHE}/extra-build-args"
+fi
 
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
   {

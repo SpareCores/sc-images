@@ -5,7 +5,7 @@
 #   BUILD_CONTEXT, BUILD_DOCKERFILE, BUILD_PLATFORM, BUILD_TAGS
 # Optional env:
 #   BUILD_TARGET, BUILD_LABELS, BUILD_PULL, BUILD_NO_CACHE, BUILD_PROVENANCE_FALSE,
-#   BUILD_ARGS_FILE, BUILD_SECRET, BUILD_CACHE_FROM, BUILD_CACHE_TO
+#   BUILD_ARGS_FILE, BUILD_SECRET, BUILD_AWS_SECRET, BUILD_CACHE_FROM, BUILD_CACHE_TO
 set -euo pipefail
 
 SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
@@ -46,6 +46,9 @@ fi
 
 if [ -n "${BUILD_SECRET:-}" ]; then
   args+=(--secret "$BUILD_SECRET")
+fi
+if [ -n "${BUILD_AWS_SECRET:-}" ]; then
+  args+=(--secret "$BUILD_AWS_SECRET")
 fi
 
 [ -n "${BUILD_CACHE_FROM:-}" ] && args+=(--cache-from "$BUILD_CACHE_FROM")

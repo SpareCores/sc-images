@@ -45,6 +45,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     env:
       TRACKER_PROJECT_NAME: sc-images
       TRACKER_ORCHESTRATOR: github-actions
@@ -69,11 +70,33 @@ jobs:
         env:
           ZRAM_PERCENT: ${{ steps.cfg.outputs.zram_percent }}
         run: bash "${{ github.workspace }}/.github/scripts/setup-zram.sh"
+      - name: Configure AWS credentials for sccache
+        if: ${{ steps.cfg.outputs.sccache == 'true' }}
+        uses: aws-actions/configure-aws-credentials@v6.2.0
+        with:
+          role-to-assume: ${{ secrets.SC_IMAGES_GHA_ROLE_ARN }}
+          aws-region: ${{ vars.SCCACHE_REGION }}
+      - name: Stage AWS credentials for BuildKit
+        if: ${{ steps.cfg.outputs.sccache == 'true' }}
+        run: |
+          set -euo pipefail
+          mkdir -p .cache
+          {
+            echo '[default]'
+            echo "aws_access_key_id=${AWS_ACCESS_KEY_ID}"
+            echo "aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}"
+            echo "aws_session_token=${AWS_SESSION_TOKEN}"
+          } > .cache/aws-credentials
       - name: Run prepare hook
         id: prep
         if: ${{ steps.cfg.outputs.has_prepare == 'true' }}
         env:
           ARCH: ${{ matrix.arch }}
+          IMAGE_FOLDER: ${{ matrix.folder }}
+          SCCACHE_ENABLED: ${{ steps.cfg.outputs.sccache }}
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_REGION: ${{ vars.SCCACHE_REGION }}
+          SCCACHE_PREFIX: ${{ matrix.folder }}/${{ matrix.arch }}
         run: bash "${{ github.workspace }}/images/${{ matrix.folder }}/prepare.sh"
       - name: Compute BuildKit parallelism (self-hosted arm64)
         id: bk
@@ -136,6 +159,7 @@ jobs:
           BUILD_PROVENANCE_FALSE: ${{ steps.cfg.outputs.has_prepare == 'true' }}
           BUILD_ARGS_FILE: ${{ github.workspace }}/.cache/all-build-args
           BUILD_SECRET: ${{ steps.prep.outputs.secret_file && format('id=vllm_parallelism,src={0}/{1}', github.workspace, steps.prep.outputs.secret_file) || '' }}
+          BUILD_AWS_SECRET: ${{ steps.cfg.outputs.sccache == 'true' && format('id=aws-credentials,src={0}/.cache/aws-credentials', github.workspace) || '' }}
           BUILD_CACHE_FROM: ${{ (inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true') && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2}', env.REGISTRY, matrix.folder, matrix.arch) }}
           BUILD_CACHE_TO: ${{ (inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true') && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2},mode=max,image-manifest=true', env.REGISTRY, matrix.folder, matrix.arch) }}
           MATRIX_ARCH: ${{ matrix.arch }}
