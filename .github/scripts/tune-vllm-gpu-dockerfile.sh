@@ -42,6 +42,14 @@ if "export SCCACHE_S3_KEY_PREFIX=${SCCACHE_S3_KEY_PREFIX}" not in text:
         1,
     )
 
+# vLLM base only registers gcc/g++ alternatives; CMake defaults to /usr/bin/c++.
+if "update-alternatives --install /usr/bin/c++ c++" not in text:
+    text = text.replace(
+        "&& update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 110 --slave /usr/bin/g++ g++ /usr/bin/g++-10 \\",
+        "&& update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 110 --slave /usr/bin/g++ g++ /usr/bin/g++-10 \\\n        && update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-10 110 \\",
+        1,
+    )
+
 text = vscm.inject_after_stage_header(
     text,
     "FROM ${BUILD_BASE_IMAGE} AS rust-build",
