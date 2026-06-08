@@ -8,12 +8,19 @@ DOCKER_MAX_JOBS="${3:?docker max_jobs (64 GiB reference)}"
 DOCKER_NVCC_THREADS="${4:?docker nvcc_threads (64 GiB reference)}"
 DOCKER_CARGO_JOBS="${5:?docker cargo jobs (64 GiB reference)}"
 
-export DOCKERFILE VLLM_VERSION DOCKER_MAX_JOBS DOCKER_NVCC_THREADS DOCKER_CARGO_JOBS
+SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
+export DOCKERFILE VLLM_VERSION DOCKER_MAX_JOBS DOCKER_NVCC_THREADS DOCKER_CARGO_JOBS SCRIPTS
 export SCCACHE_PREFIX="${SCCACHE_PREFIX:-}"
 python3 <<'PY'
+import importlib.util
 import os
 import re
 from pathlib import Path
+
+spec = importlib.util.spec_from_file_location(
+    "vscm", os.path.join(os.environ["SCRIPTS"], "vllm-sccache-dockerfile.py"))
+vscm = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(vscm)
 
 df = Path(os.environ["DOCKERFILE"])
 text = df.read_text()
@@ -32,6 +39,29 @@ if "export SCCACHE_S3_KEY_PREFIX=${SCCACHE_S3_KEY_PREFIX}" not in text:
     text = text.replace(
         "export SCCACHE_S3_NO_CREDENTIALS=${SCCACHE_S3_NO_CREDENTIALS} \\",
         "export SCCACHE_S3_NO_CREDENTIALS=${SCCACHE_S3_NO_CREDENTIALS} \\\n && export SCCACHE_S3_KEY_PREFIX=${SCCACHE_S3_KEY_PREFIX} \\",
+        1,
+    )
+
+text = vscm.inject_after_stage_header(
+    text,
+    "FROM ${BUILD_BASE_IMAGE} AS rust-build",
+    "ARG TARGETPLATFORM\n" + vscm.SCCACHE_ARG_ENV_BLOCK,
+)
+text = vscm.inject_before_run(
+    text,
+    "# Build the release binary. Cache cargo registry/git and target/",
+    vscm.SCCACHE_INSTALL_RUN,
+)
+csrc_sccache_anchor = (
+    "ARG SCCACHE_S3_NO_CREDENTIALS=0\n\n"
+    "# Flag to control whether to use pre-built vLLM wheels"
+)
+if vscm.SCCACHE_COMPILER_ENV_BLOCK not in text:
+    text = text.replace(
+        csrc_sccache_anchor,
+        "ARG SCCACHE_S3_NO_CREDENTIALS=0\n\n"
+        + vscm.SCCACHE_COMPILER_ENV_BLOCK
+        + "\n\n# Flag to control whether to use pre-built vLLM wheels",
         1,
     )
 
@@ -87,15 +117,18 @@ def iter_run_blocks(content: str):
         yield start, i, "".join(lines[start:i])
 
 def patch_run(run_block: str) -> str:
-    if secret_mount in run_block:
-        return run_block
     if re.search(r"bash build_rust\.sh", run_block):
-        run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
+        if vscm.AWS_SECRET_MOUNT not in run_block:
+            run_block = run_block.replace("RUN ", f"RUN {vscm.AWS_SECRET_MOUNT} \\\n    ", 1)
+        if secret_mount not in run_block:
+            run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
         return run_block.replace(
             "VLLM_RS_TARGET_PATH=",
             f"{load_cargo_env} \\\n    VLLM_RS_TARGET_PATH=",
             1,
         )
+    if secret_mount in run_block:
+        return run_block
     if "export VLLM_DOCKER_BUILD_CONTEXT=1" in run_block:
         run_block = run_block.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
         return run_block.replace(
