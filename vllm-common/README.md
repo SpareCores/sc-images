@@ -4,7 +4,7 @@ Not a published image — shared sources for the `benchmark-vllm-*` images under
 
 | File | Purpose |
 |------|---------|
-| `VLLM_VERSION` | Pinned upstream vLLM tag (e.g. `0.22.0` → `v0.22.0`) |
+| `VLLM_VERSION` | Pinned upstream vLLM tag (e.g. `0.22.1` → `v0.22.1`) |
 | `GUIDELLM_VERSION` | Pinned [GuideLLM](https://github.com/vllm-project/guidellm) for serving load tests |
 | `benchmark.py` | Start `vllm serve`, run `guidellm benchmark run`, emit JSONL |
 
