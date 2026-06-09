@@ -119,11 +119,12 @@ DEFAULT_MODELS: list[ModelSpec] = [
     ),
 ]
 
+# (short_name, guidellm metric key, emitted unit, scale to emitted unit)
 LATENCY_METRICS = (
-    ("ttft", "time_to_first_token_ms", "ms"),
-    ("tpot", "time_per_output_token_ms", "ms"),
-    ("itl", "inter_token_latency_ms", "ms"),
-    ("e2el", "request_latency", "ms"),
+    ("ttft", "time_to_first_token_ms", "ms", 1.0),
+    ("tpot", "time_per_output_token_ms", "ms", 1.0),
+    ("itl", "inter_token_latency_ms", "ms", 1.0),
+    ("e2el", "request_latency", "ms", 1000.0),  # GuideLLM: seconds → ms
 )
 
 THROUGHPUT_METRICS = (
@@ -678,7 +679,7 @@ def report_to_jsonl(
             "concurrency": _concurrency_mean(metrics),
         }
 
-        for short, key, unit in LATENCY_METRICS:
+        for short, key, unit, scale in LATENCY_METRICS:
             block = _dist_block(metrics, key)
             if not block:
                 continue
@@ -692,7 +693,7 @@ def report_to_jsonl(
                         **row_base,
                         "measurement": short,
                         "percentile": pct,
-                        "score": float(val),
+                        "score": float(val) * scale,
                         "unit": unit,
                     }
                 )
@@ -703,7 +704,7 @@ def report_to_jsonl(
                         **row_base,
                         "measurement": short,
                         "percentile": "mean",
-                        "score": float(block["mean"]),
+                        "score": float(block["mean"]) * scale,
                         "unit": unit,
                     }
                 )
