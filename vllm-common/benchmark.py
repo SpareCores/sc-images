@@ -102,7 +102,7 @@ DEFAULT_MODELS: list[ModelSpec] = [
     ModelSpec("smol-135m", "HuggingFaceTB/SmolLM2-135M-Instruct", 0.135),
     ModelSpec("qwen-0.5b", "Qwen/Qwen2.5-0.5B-Instruct", 0.5),
     ModelSpec("gemma-2b", "google/gemma-2-2b-it", 2.0),
-    ModelSpec("qwen3-4b", "Qwen/Qwen3-4B", 4.0),
+    ModelSpec("llama-8b", "meta-llama/Llama-3.1-8B-Instruct", 8.0),
     ModelSpec("phi-4", "microsoft/phi-4", 14.0, gpu_only=True),
     ModelSpec(
         "llama-70b",

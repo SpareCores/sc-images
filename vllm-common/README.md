@@ -12,6 +12,10 @@ Not a published image — shared sources for the `benchmark-vllm-*` images under
 
 1. **Probe** (`--probe-only`): load smallest model (SmolLM2-135M), wait for `/health`.
 2. **Benchmark**: model ladder × workloads (chat / rag / long) × GuideLLM profile.
+
+   Default ladder (small → large): SmolLM2-135M, Qwen2.5-0.5B, Gemma-2-2B, Llama-3.1-8B, Phi-4
+   (GPU only), Llama-3.3-70B bnb-4bit (GPU only, ~48 GiB VRAM). `google/gemma-2-2b-it` and
+   `meta-llama/Llama-3.1-8B-Instruct` require Hugging Face license acceptance plus `HF_TOKEN`.
    - **CPU + GPU**: `sweep` (default **3** steps: sync → saturated throughput → one constant rate). Override size with `GUIDELLM_SWEEP_SIZE`, `GUIDELLM_CPU_SWEEP_SIZE`, or `GUIDELLM_GPU_SWEEP_SIZE` (`2` = sync+throughput only; `6` = fuller curve).
    - **Legacy fast path**: `GUIDELLM_PROFILES=legacy` (or `GUIDELLM_CPU_PROFILES=legacy`) runs `synchronous` + capped `throughput` (`GUIDELLM_THROUGHPUT_RATE`, default 8 on CPU).
 3. **Multi-GPU**: `--tensor-parallel-size` = visible GPU count; bnb-4bit 70B uses pipeline parallel when needed.

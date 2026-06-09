@@ -10,4 +10,5 @@ Inspector task `vllm` probes this image after GPU fails and before [`benchmark-v
 
 Default GuideLLM plan: `sweep` (3 steps per workload). Tighter: `GUIDELLM_SWEEP_SIZE=2`. Legacy: `GUIDELLM_CPU_PROFILES=legacy`.
 
-Harness: [`benchmark.py`](../../vllm-common/benchmark.py).
+Default model ladder matches GPU (through Llama-3.1-8B on CPU; Phi-4 / 70B are GPU-only). Gated
+models need `HF_TOKEN`. Harness: [`benchmark.py`](../../vllm-common/benchmark.py).

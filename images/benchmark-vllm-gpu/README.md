@@ -11,7 +11,8 @@ Published as `ghcr.io/sparecores/benchmark-vllm-gpu:main`. Pins: [`VLLM_VERSION`
 
 ## Models (default ladder)
 
-SmolLM2-135M, Qwen2.5-0.5B, Gemma-2-2B, Qwen3-4B, Phi-4 (GPU), Llama-3.3-70B bnb-4bit (large VRAM).
+SmolLM2-135M, Qwen2.5-0.5B, Gemma-2-2B, Llama-3.1-8B, Phi-4 (GPU), Llama-3.3-70B bnb-4bit (large VRAM).
+Gemma and Llama-3.1-8B are gated on Hugging Face — set `HF_TOKEN` and accept each model license.
 
 ## Workloads
 
