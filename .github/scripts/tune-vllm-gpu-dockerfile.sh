@@ -150,11 +150,18 @@ def patch_run(run_block: str) -> str:
         run_block = run_block.replace(f"{load_cargo_env} \\\n    ", "")
         if vscm.AWS_SECRET_MOUNT not in run_block:
             run_block = run_block.replace("RUN ", f"RUN {vscm.AWS_SECRET_MOUNT} \\\n    ", 1)
-        return run_block.replace(
+        run_block = run_block.replace(
             "VLLM_RS_TARGET_PATH=",
             f"{vscm.SCCACHE_RUST_PREP} \\\n    VLLM_RS_TARGET_PATH=",
             1,
         )
+        if vscm.SCCACHE_DEBUG_SUMMARY not in run_block:
+            run_block = run_block.replace(
+                "bash build_rust.sh",
+                f"bash build_rust.sh && \\\n    {vscm.SCCACHE_DEBUG_SUMMARY}",
+                1,
+            )
+        return run_block
     if secret_mount in run_block:
         return run_block
     if "export VLLM_DOCKER_BUILD_CONTEXT=1" in run_block:
@@ -167,6 +174,14 @@ def patch_run(run_block: str) -> str:
             run_block = run_block.replace(
                 "python3 setup.py bdist_wheel",
                 f"{vscm.SCCACHE_WHEEL_PREP} \\\n        python3 setup.py bdist_wheel",
+                1,
+            )
+        if vscm.SCCACHE_DEBUG_SUMMARY not in run_block:
+            run_block = run_block.replace(
+                "python3 setup.py bdist_wheel --dist-dir=dist --py-limited-api=cp38 \\\n"
+                "        && sccache --show-stats;",
+                "python3 setup.py bdist_wheel --dist-dir=dist --py-limited-api=cp38 \\\n"
+                f"        && {vscm.SCCACHE_DEBUG_SUMMARY};",
                 1,
             )
         return run_block
@@ -185,6 +200,7 @@ required = [
     "update-alternatives --install /usr/bin/c++ c++",
     vscm.SCCACHE_RUST_PREP.strip(),
     vscm.SCCACHE_WHEEL_PREP.strip(),
+    vscm.SCCACHE_DEBUG_SUMMARY.strip(),
 ]
 missing = [r for r in required if r not in text]
 if missing:

@@ -148,11 +148,18 @@ def patch_run(run_block: str) -> str:
         patched = patched.replace(f"{load_cargo_env} \\\n    ", "")
         if vscm.AWS_SECRET_MOUNT not in patched:
             patched = patched.replace("RUN ", f"RUN {vscm.AWS_SECRET_MOUNT} \\\n    ", 1)
-        return patched.replace(
+        patched = patched.replace(
             "VLLM_RS_TARGET_PATH=",
             f"{vscm.SCCACHE_RUST_PREP} \\\n    VLLM_RS_TARGET_PATH=",
             1,
         )
+        if vscm.SCCACHE_DEBUG_SUMMARY not in patched:
+            patched = patched.replace(
+                "bash build_rust.sh",
+                f"bash build_rust.sh && \\\n    {vscm.SCCACHE_DEBUG_SUMMARY}",
+                1,
+            )
+        return patched
     return run_block
 
 lines = text.splitlines(keepends=True)
@@ -167,6 +174,7 @@ required = [
     vscm.SCCACHE_BIN,
     vscm.SCCACHE_RUST_PREP.strip(),
     vscm.SCCACHE_WHEEL_PREP.strip(),
+    vscm.SCCACHE_DEBUG_SUMMARY.strip(),
 ]
 missing = [r for r in required if r not in text]
 if missing:
