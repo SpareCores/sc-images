@@ -153,10 +153,10 @@ def patch_run(run_block: str) -> str:
             f"{vscm.SCCACHE_RUST_PREP} \\\n    VLLM_RS_TARGET_PATH=",
             1,
         )
-        if vscm.SCCACHE_DEBUG_SUMMARY not in patched:
+        if vscm.SCCACHE_RUST_DEBUG_SUMMARY not in patched:
             patched = patched.replace(
                 "bash build_rust.sh",
-                f"bash build_rust.sh && \\\n    {vscm.SCCACHE_DEBUG_SUMMARY}",
+                f"bash build_rust.sh && \\\n    {vscm.SCCACHE_RUST_DEBUG_SUMMARY}",
                 1,
             )
         return patched
@@ -174,6 +174,7 @@ required = [
     vscm.SCCACHE_BIN,
     vscm.SCCACHE_RUST_PREP.strip(),
     vscm.SCCACHE_WHEEL_PREP.strip(),
+    vscm.SCCACHE_RUST_DEBUG_SUMMARY.strip(),
     vscm.SCCACHE_DEBUG_SUMMARY.strip(),
 ]
 missing = [r for r in required if r not in text]

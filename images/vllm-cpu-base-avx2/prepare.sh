@@ -71,6 +71,9 @@ if [ "${SCCACHE_ENABLED:-}" = "true" ]; then
     echo "SCCACHE_REGION_NAME=${SCCACHE_REGION:-us-west-2}"
     echo "SCCACHE_S3_NO_CREDENTIALS=0"
     echo "SCCACHE_S3_KEY_PREFIX=${prefix}"
+    if [ "${SCCACHE_VERBOSE:-}" = "1" ]; then
+      echo "SCCACHE_VERBOSE=1"
+    fi
   } >> "${CACHE}/extra-build-args"
 fi
 
