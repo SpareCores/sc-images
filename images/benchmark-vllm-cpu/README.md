@@ -8,6 +8,6 @@ Inspector task `vllm` probes this image after GPU fails and before [`benchmark-v
 
 **amd64 note:** Hub CPU amd64 requires **AVX-512**. AVX2-only hosts must use the AVX2 image.
 
-Default CPU GuideLLM plan: `synchronous` + `throughput` per workload (faster than full sweep). Override with `GUIDELLM_CPU_PROFILES=sweep`.
+Default GuideLLM plan: `sweep` (3 steps per workload). Tighter: `GUIDELLM_SWEEP_SIZE=2`. Legacy: `GUIDELLM_CPU_PROFILES=legacy`.
 
 Harness: [`benchmark.py`](../../vllm-common/benchmark.py).

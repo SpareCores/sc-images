@@ -373,29 +373,46 @@ def workloads_for_mode(mode: str) -> list[WorkloadSpec]:
     return [w for w in WORKLOADS if not w.gpu_only or mode == "gpu"]
 
 
+def guidellm_sweep_size(mode: str) -> str:
+    """Sweep steps (sync + throughput + constant interpolations). Minimum useful size is 2."""
+    if mode == "gpu":
+        return environ.get("GUIDELLM_GPU_SWEEP_SIZE") or environ.get("GUIDELLM_SWEEP_SIZE", "3")
+    return environ.get("GUIDELLM_CPU_SWEEP_SIZE") or environ.get("GUIDELLM_SWEEP_SIZE", "3")
+
+
+def guidellm_throughput_rate(mode: str) -> str:
+    """Concurrent streams for standalone throughput profile (legacy plan only; GuideLLM 0.6+)."""
+    default = "8" if mode == "cpu" else "16"
+    return environ.get("GUIDELLM_THROUGHPUT_RATE", default)
+
+
+def _guidellm_profile_override(mode: str) -> str:
+    return (
+        environ.get("GUIDELLM_PROFILES", "").strip().lower()
+        or (environ.get("GUIDELLM_CPU_PROFILES", "").strip().lower() if mode == "cpu" else "")
+    )
+
+
 def guidellm_plan(mode: str) -> list[tuple[str, str | None]]:
     """(profile, rate) runs per model/workload."""
-    if mode == "gpu":
-        sweep = environ.get("GUIDELLM_GPU_SWEEP_SIZE", "6")
-        return [("sweep", sweep)]
-    if environ.get("GUIDELLM_CPU_PROFILES", "").strip().lower() == "sweep":
-        sweep = environ.get("GUIDELLM_CPU_SWEEP_SIZE", "4")
-        return [("sweep", sweep)]
-    return [("synchronous", None), ("throughput", None)]
+    override = _guidellm_profile_override(mode)
+    if override in ("legacy", "sync-throughput", "sync"):
+        return [("synchronous", None), ("throughput", guidellm_throughput_rate(mode))]
+    return [("sweep", guidellm_sweep_size(mode))]
 
 
 def guidellm_max_seconds(mode: str, spec: ModelSpec) -> int:
     if mode == "gpu":
         base = 40 + int(spec.params_b * 8)
     else:
-        base = 60 + int(spec.params_b * 15)
+        base = 45 + int(spec.params_b * 12)
     return base * max(1, cli_args.benchmark_timeout_scale)
 
 
 def guidellm_max_requests(mode: str) -> int:
     if mode == "gpu":
         return int(environ.get("GUIDELLM_MAX_REQUESTS", "120"))
-    return int(environ.get("GUIDELLM_MAX_REQUESTS_CPU", "40"))
+    return int(environ.get("GUIDELLM_MAX_REQUESTS_CPU", "25"))
 
 
 def emit_jsonl(record: dict[str, Any]) -> None:
