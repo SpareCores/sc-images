@@ -46,6 +46,7 @@ jobs:
       contents: read
       packages: write
       id-token: write
+      actions: write
     env:
       TRACKER_PROJECT_NAME: sc-images
       TRACKER_ORCHESTRATOR: github-actions
@@ -146,6 +147,17 @@ jobs:
           images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
           flavor: |
             suffix=-${{ matrix.arch }},onlatest=false
+      - name: Assemble BuildKit cache backends
+        id: cache
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+        run: |
+          bash "${{ github.workspace }}/.github/scripts/assemble-build-cache.sh" \
+            "${{ matrix.folder }}" \
+            "${{ matrix.arch }}" \
+            "${{ steps.cfg.outputs.rt_consumer }}" \
+            "${{ steps.cfg.outputs.has_prepare }}" \
+            "${{ inputs.force_rebuild }}"
       - name: Build and push Docker image
         env:
           BUILD_CONTEXT: ${{ github.workspace }}/${{ steps.cfg.outputs.context }}
@@ -160,8 +172,8 @@ jobs:
           BUILD_ARGS_FILE: ${{ github.workspace }}/.cache/all-build-args
           BUILD_SECRET: ${{ steps.prep.outputs.secret_file && format('id=vllm_parallelism,src={0}/{1}', github.workspace, steps.prep.outputs.secret_file) || '' }}
           BUILD_AWS_SECRET: ${{ steps.cfg.outputs.sccache == 'true' && format('id=aws-credentials,src={0}/.cache/aws-credentials', github.workspace) || '' }}
-          BUILD_CACHE_FROM: ${{ (inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true') && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2}', env.REGISTRY, matrix.folder, matrix.arch) }}
-          BUILD_CACHE_TO: ${{ (inputs.force_rebuild && steps.cfg.outputs.rt_consumer == 'true') && '' || format('type=registry,ref={0}/sparecores/{1}:buildcache-{2},mode=max,image-manifest=true', env.REGISTRY, matrix.folder, matrix.arch) }}
+          BUILD_CACHE_FROM: ${{ steps.cache.outputs.cache_from }}
+          BUILD_CACHE_TO: ${{ steps.cache.outputs.cache_to }}
           MATRIX_ARCH: ${{ matrix.arch }}
         run: bash "${{ github.workspace }}/.github/scripts/build-push-image.sh"
 

@@ -35,4 +35,6 @@ CI prunes Docker and removes unused SDKs before build; the image needs ~tens of 
 
 Published as `ghcr.io/sparecores/vllm-gpu-base:main-arm64` and promoted to `:main` (no amd64 leg).
 
+CI layer cache: **GHCR** `buildcache-arm64` plus **GHA** scope `vllm-gpu-base-arm64-v{VLLM_VERSION}` (see [`.github/scripts/assemble-build-cache.sh`](../../.github/scripts/assemble-build-cache.sh)). sccache S3 covers compile objects inside the wheel step.
+
 The actual build uses the cloned upstream Dockerfile (`DOCKERFILE`/`CONTEXT` metadata point at `vllm-common/.vllm-src`); the repo [`Dockerfile`](Dockerfile) is only a placeholder marker.

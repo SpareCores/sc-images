@@ -5,7 +5,8 @@
 #   BUILD_CONTEXT, BUILD_DOCKERFILE, BUILD_PLATFORM, BUILD_TAGS
 # Optional env:
 #   BUILD_TARGET, BUILD_LABELS, BUILD_PULL, BUILD_NO_CACHE, BUILD_PROVENANCE_FALSE,
-#   BUILD_ARGS_FILE, BUILD_SECRET, BUILD_AWS_SECRET, BUILD_CACHE_FROM, BUILD_CACHE_TO
+#   BUILD_ARGS_FILE, BUILD_SECRET, BUILD_AWS_SECRET,
+#   BUILD_CACHE_FROM / BUILD_CACHE_TO (one --cache-* flag per non-empty line)
 set -euo pipefail
 
 SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
@@ -51,8 +52,18 @@ if [ -n "${BUILD_AWS_SECRET:-}" ]; then
   args+=(--secret "$BUILD_AWS_SECRET")
 fi
 
-[ -n "${BUILD_CACHE_FROM:-}" ] && args+=(--cache-from "$BUILD_CACHE_FROM")
-[ -n "${BUILD_CACHE_TO:-}" ] && args+=(--cache-to "$BUILD_CACHE_TO")
+if [ -n "${BUILD_CACHE_FROM:-}" ]; then
+  while IFS= read -r spec; do
+    [ -z "$spec" ] && continue
+    args+=(--cache-from "$spec")
+  done <<< "$BUILD_CACHE_FROM"
+fi
+if [ -n "${BUILD_CACHE_TO:-}" ]; then
+  while IFS= read -r spec; do
+    [ -z "$spec" ] && continue
+    args+=(--cache-to "$spec")
+  done <<< "$BUILD_CACHE_TO"
+fi
 
 args+=("$BUILD_CONTEXT")
 

@@ -58,7 +58,7 @@ Repo configuration (set by Pulumi after `pulumi up`):
 | `SCCACHE_REGION` | Actions variable | Bucket region (`us-west-2`) |
 | `SC_IMAGES_GHA_ROLE_ARN` | Actions secret | OIDC role for read/write on the bucket |
 
-Each build uses prefix `{folder}/{arch}/` (e.g. `vllm-gpu-base/arm64/`) via `SCCACHE_S3_KEY_PREFIX`. Registry layer cache (`buildcache-<arch>` tags on GHCR) is unchanged; sccache caches compiler objects inside the vLLM source compile steps.
+Each build uses prefix `{folder}/{arch}/` (e.g. `vllm-gpu-base/arm64/`) via `SCCACHE_S3_KEY_PREFIX`. Docker layer cache is exported to **GHCR** (`buildcache-<arch>`) and **GitHub Actions cache** (`type=gha`, scope `{folder}-{arch}` or `{folder}-{arch}-v{VLLM_VERSION}` for source-built vLLM bases). sccache caches compiler objects inside the vLLM source compile steps.
 
 Coverage when enabled:
 
