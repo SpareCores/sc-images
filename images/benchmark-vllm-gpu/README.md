@@ -1,6 +1,9 @@
 # benchmark-vllm-gpu
 
-vLLM **GPU serving** benchmark: `vllm serve` with tensor parallelism on all visible GPUs, then [GuideLLM](https://github.com/vllm-project/guidellm) `sweep` (default 3 steps) per workload.
+vLLM **GPU serving** benchmark: `vllm serve` with the largest valid tensor-parallel
+size for each model (not always all visible GPUs — see
+[Tensor parallelism](../../vllm-common/README.md#tensor-parallelism)), then
+[GuideLLM](https://github.com/vllm-project/guidellm) `sweep` (default 3 steps) per workload.
 
 | Arch | Base |
 |------|------|

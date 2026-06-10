@@ -19,7 +19,31 @@ Not a published image — shared sources for the `benchmark-vllm-*` images under
    `meta-llama/Llama-3.1-8B-Instruct` require Hugging Face license acceptance plus `HF_TOKEN`.
    - **CPU + GPU**: `sweep` (default **3** steps: sync → saturated throughput → one constant rate). Override size with `GUIDELLM_SWEEP_SIZE`, `GUIDELLM_CPU_SWEEP_SIZE`, or `GUIDELLM_GPU_SWEEP_SIZE` (`2` = sync+throughput only; `6` = fuller curve).
    - **Legacy fast path**: `GUIDELLM_PROFILES=legacy` (or `GUIDELLM_CPU_PROFILES=legacy`) runs `synchronous` + capped `throughput` (`GUIDELLM_THROUGHPUT_RATE`, default 8 on CPU).
-3. **Multi-GPU**: `--tensor-parallel-size` = visible GPU count; bnb-4bit 70B uses pipeline parallel when needed.
+3. **Multi-GPU**: see [Tensor parallelism](#tensor-parallelism) below.
+
+## Tensor parallelism
+
+vLLM does **not** always use every visible GPU. The harness sets the largest
+`--tensor-parallel-size` (TP) that is ≤ GPU count and divides the model's
+attention head count (`tensor_parallel_size()` in `benchmark.py`). vLLM rejects
+invalid TP with e.g. `attention heads (9) must be divisible by tensor parallel size (2)`.
+
+On a **2-GPU** host, default ladder TP:
+
+| Model | Attention heads | TP | GPUs used |
+|-------|-----------------|----|-----------|
+| SmolLM2-135M | 9 | 1 | GPU 0 only (9 % 2 ≠ 0) |
+| Qwen2.5-0.5B | 14 | 2 | both |
+| Gemma-2-2B | 8 | 2 | both |
+| Llama-3.1-8B | 32 | 2 | both |
+| Phi-4 | 40 | 2 | both |
+| Llama-3.3-70B bnb-4bit | — | pipeline-parallel-size 2 | both |
+
+SmolLM on 2×GPU is still a real GPU run (`mode=gpu` in JSONL); `nvidia-smi pmon`
+showing ~95% SM on one GPU and idle on the other is expected for TP=1.
+
+Emitted JSONL includes `tensor_parallel` (TP used) and `gpu_count` (visible GPUs)
+so results are comparable across single- and multi-GPU instances.
 
 ## JSONL fields
 
