@@ -4,8 +4,9 @@ vLLM **GPU serving** benchmark: `vllm serve` with tensor parallelism on all visi
 
 | Arch | Base |
 |------|------|
-| amd64 | `vllm/vllm-openai:v{VLLM_VERSION}` |
-| arm64 | `ghcr.io/sparecores/vllm-gpu-base:main` |
+| amd64 + arm64 | [`vllm/vllm-openai:v{VLLM_VERSION}`](https://hub.docker.com/r/vllm/vllm-openai/tags) (multi-arch Hub image) |
+
+On version bumps, confirm the pinned tag lists both `linux/amd64` and `linux/arm64` on Docker Hub.
 
 Published as `ghcr.io/sparecores/benchmark-vllm-gpu:main`. Pins: [`VLLM_VERSION`](../../vllm-common/VLLM_VERSION), [`GUIDELLM_VERSION`](../../vllm-common/GUIDELLM_VERSION). Harness: [`benchmark.py`](../../vllm-common/benchmark.py).
 

@@ -28,10 +28,10 @@ Not a published image — shared sources for the `benchmark-vllm-*` images under
 
 | Image | Arch | Mode |
 |-------|------|------|
-| `benchmark-vllm-gpu` | amd64 + arm64 | GPU (Hub or `vllm-gpu-base` on arm64) |
+| `benchmark-vllm-gpu` | amd64 + arm64 | GPU (`vllm/vllm-openai` from Docker Hub) |
 | `benchmark-vllm-cpu` | amd64 (AVX-512) + arm64 | CPU |
 | `benchmark-vllm-cpu-avx2` | amd64 AVX2 only | CPU (`vllm-cpu-base-avx2`) |
 
 Inspector tries GPU → Hub CPU → AVX2 CPU; first successful probe runs the full benchmark.
 
-Bump versions: edit `VLLM_VERSION` / `GUIDELLM_VERSION`, push to `main`; CI rebuilds bases and `benchmark-vllm-*` (see [`.github/workflows/push.yml`](../.github/workflows/push.yml)).
+Bump versions: edit `VLLM_VERSION` / `GUIDELLM_VERSION`, push to `main`; CI rebuilds `vllm-cpu-base-avx2` (when pinned) and `benchmark-vllm-*`. For GPU, confirm `vllm/vllm-openai:v{VLLM_VERSION}` is multi-arch on [Docker Hub](https://hub.docker.com/r/vllm/vllm-openai/tags) before merging.

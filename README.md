@@ -19,8 +19,8 @@ Job metadata (mirrors [sc-inspector](https://github.com/SpareCores/sc-inspector)
 | Variable | CI default |
 |----------|------------|
 | `TRACKER_PROJECT_NAME` | `sc-images` |
-| `TRACKER_JOB_NAME` | matrix entry name, e.g. `vllm-gpu-base (arm64)` |
-| `TRACKER_TASK_NAME` | image folder, e.g. `vllm-gpu-base` |
+| `TRACKER_JOB_NAME` | matrix entry name, e.g. `benchmark-vllm-gpu (arm64)` |
+| `TRACKER_TASK_NAME` | image folder, e.g. `benchmark-vllm-gpu` |
 | `TRACKER_STAGE_NAME` | workflow name |
 | `TRACKER_EXTERNAL_RUN_ID` | `github.run_id`-`github.run_attempt` |
 | `TRACKER_CONTAINER_IMAGE` | `ghcr.io/sparecores/<folder>:main-<arch>` |
@@ -34,17 +34,17 @@ Scripts: [`install-resource-tracker.sh`](.github/scripts/install-resource-tracke
 
 Set repo variable **`ARM64_RUNNER`** (Settings → Secrets and variables → Actions → Variables):
 
-| Value | `runs-on` | vLLM GPU compile parallelism |
-|-------|-----------|------------------------------|
-| `self-hosted` | `[self-hosted, sc-images-arm64]` | RAM-linear from 64 GiB baseline (effective RAM incl. zram budget) |
-| `github` | `ubuntu-24.04-arm` | conservative: physical RAM only, 6 GiB/slot, max 2 compile jobs |
+| Value | `runs-on` |
+|-------|-----------|
+| `self-hosted` | `[self-hosted, sc-images-arm64]` |
+| `github` | `ubuntu-24.04-arm` |
 
 Default (variable unset): `self-hosted`.
 Self-hosted: register with `./config.sh ... --labels sc-images-arm64` (`--no-default-labels` is OK).
 
-Compile/runtime job counts are computed by [`.github/scripts/compute-build-parallelism.sh`](.github/scripts/compute-build-parallelism.sh). On self-hosted builders they scale with effective RAM (MemTotal + zram budget); on GitHub-hosted runners the script switches to a conservative physical-RAM profile so CUDA/C++ compiles do not OOM the agent. Dockerfile build-args stay at the fixed 64 GiB reference (`max_jobs=32`, `nvcc_threads=2`) so registry/GHA layer caches built on a large machine remain valid on smaller runners; actual `-j` values are injected through a BuildKit secret (excluded from layer cache keys).
+Images with a `ZRAM` metadata file run [`.github/scripts/setup-zram.sh`](.github/scripts/setup-zram.sh) before the build (`PERCENT=125` by default → compressed swap ≈ 1.25× RAM). Currently enabled for [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) (source-compiled CPU image). On **GitHub-hosted** Azure kernels, `zram` is in `linux-modules-extra-$(uname -r)` ([Launchpad #1762756](https://bugs.launchpad.net/ubuntu/bionic/+source/linux-azure/+bug/1762756)); the script installs that package when needed. If the extra-modules deb is missing from apt (kernel/image drift), it keeps the default `/swapfile`. Tune the default percent via workflow `env` `ZRAM_PERCENT`, or override per image with a numeric `ZRAM` value.
 
-Images with a `ZRAM` metadata file run [`.github/scripts/setup-zram.sh`](.github/scripts/setup-zram.sh) before the build (`PERCENT=125` by default → compressed swap ≈ 1.25× RAM). Currently enabled for the source-compiled vLLM bases (`vllm-gpu-base`, `vllm-cpu-base-avx2`). On **GitHub-hosted** Azure kernels, `zram` is in `linux-modules-extra-$(uname -r)` ([Launchpad #1762756](https://bugs.launchpad.net/ubuntu/bionic/+source/linux-azure/+bug/1762756)); the script installs that package when needed. If the extra-modules deb is missing from apt (kernel/image drift), it keeps the default `/swapfile`. Tune the default percent via workflow `env` `ZRAM_PERCENT`, or override per image with a numeric `ZRAM` value.
+[`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) compile parallelism is computed by [`.github/scripts/compute-build-parallelism.sh`](.github/scripts/compute-build-parallelism.sh) (RAM-linear on self-hosted, conservative on GitHub-hosted). GPU images use the multi-arch Hub [`vllm/vllm-openai`](https://hub.docker.com/r/vllm/vllm-openai/tags) base — no in-repo CUDA source build.
 
 ### sccache (vLLM source builds)
 
@@ -58,7 +58,7 @@ Repo configuration (set by Pulumi after `pulumi up`):
 | `SCCACHE_REGION` | Actions variable | Bucket region (`us-west-2`) |
 | `SC_IMAGES_GHA_ROLE_ARN` | Actions secret | OIDC role for read/write on the bucket |
 
-Each build uses prefix `{folder}/{arch}/` (e.g. `vllm-gpu-base/arm64/`) via `SCCACHE_S3_KEY_PREFIX`. Docker layer cache is exported to **GHCR** (`buildcache-<arch>`) and **GitHub Actions cache** (`type=gha`, scope `{folder}-{arch}` or `{folder}-{arch}-v{VLLM_VERSION}` for source-built vLLM bases). sccache caches compiler objects inside the vLLM source compile steps.
+Each build uses prefix `{folder}/{arch}/` (e.g. `vllm-cpu-base-avx2/amd64/`) via `SCCACHE_S3_KEY_PREFIX`. Docker layer cache is exported to **GHCR** (`buildcache-<arch>`) and **GitHub Actions cache** (`type=gha`, scope `{folder}-{arch}` or `{folder}-{arch}-v{VLLM_VERSION}` for source-built vLLM CPU base). sccache caches compiler objects inside the vLLM source compile steps.
 
 Coverage when enabled:
 
@@ -69,7 +69,7 @@ Coverage when enabled:
 
 `sccache` v0.15.0 is installed to `/usr/bin/sccache`. `SCCACHE_IGNORE_SERVER_IO_ERROR=1` falls back to local compiles if the cache server is unreachable.
 
-Currently enabled for `vllm-gpu-base` and `vllm-cpu-base-avx2`.
+Currently enabled for `vllm-cpu-base-avx2`.
 
 ## Build framework
 
@@ -89,18 +89,17 @@ CI auto-discovers every folder under `images/` (any dir with a `Dockerfile` or `
 
 [`resolve-build-plan.sh`](.github/scripts/resolve-build-plan.sh) topologically sorts folders by `DEPENDS_ON` into levels (0 = no deps). [`push.yml`](.github/workflows/push.yml) builds each level via the reusable [`build-level.yml`](.github/workflows/build-level.yml) and publishes it before the next, so a dependency is always available as a base image; [`read-image-config.sh`](.github/scripts/read-image-config.sh) resolves each folder's config at build time. No image names are hardcoded in the workflow.
 
-Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; `benchmark-vllm-gpu` also depends on `vllm-gpu-base` and `benchmark-vllm-cpu-avx2` on `vllm-cpu-base-avx2` (both source-compiled via `prepare.sh`). Add a new dependent image by dropping a folder in `images/` with a `DEPENDS_ON` file.
+Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; `benchmark-vllm-cpu-avx2` also depends on `vllm-cpu-base-avx2` (source-compiled via `prepare.sh`). `benchmark-vllm-gpu` uses Hub `vllm/vllm-openai` for amd64 and arm64. Add a new dependent image by dropping a folder in `images/` with a `DEPENDS_ON` file.
 
 ## Images
 
 - [benchmark](images/benchmark) - Hardware benchmarks for memory bandwidth, compression, OpenSSL crypto operations, and Geekbench tests
 - [benchmark-llm](images/benchmark-llm) - LLM inference speed benchmarks using `llama.cpp` with different models and token lengths for prompt processing and text generation
 - [vllm-common](vllm-common) - Shared vLLM pin and harness (`benchmark.py`); not a published image
-- [benchmark-vllm-gpu](images/benchmark-vllm-gpu) - vLLM GPU serving via `vllm serve` + [GuideLLM](https://github.com/vllm-project/guidellm) (amd64 + arm64, multi-GPU TP)
+- [benchmark-vllm-gpu](images/benchmark-vllm-gpu) - vLLM GPU serving via Hub `vllm/vllm-openai` + [GuideLLM](https://github.com/vllm-project/guidellm) (amd64 + arm64, multi-GPU TP)
 - [benchmark-vllm-cpu](images/benchmark-vllm-cpu) - vLLM CPU serving on Hub image (AVX-512 amd64 + arm64)
 - [benchmark-vllm-cpu-avx2](images/benchmark-vllm-cpu-avx2) - vLLM CPU serving for AVX2-only amd64
 - [vllm-cpu-base-avx2](images/vllm-cpu-base-avx2) - amd64 AVX2 vLLM base built from upstream `Dockerfile.cpu`
-- [vllm-gpu-base](images/vllm-gpu-base) - arm64 CUDA vLLM `vllm-openai` image built from upstream source (for GH200-class GPUs)
 - [benchmark-passmark](images/benchmark-passmark) - PassMark Performance Test benchmarking suite for CPU and memory performance
 - [benchmark-redis](images/benchmark-redis) - Redis server performance benchmarks using `memtier_benchmark`
 - [benchmark-web](images/benchmark-web) - Static web server performance benchmarks using `wrk` and `binserve`

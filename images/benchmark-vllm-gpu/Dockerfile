@@ -3,10 +3,7 @@ ARG VLLM_VERSION=0.22.1
 ARG GUIDELLM_VERSION=0.6.0
 FROM ${RESOURCE_TRACKER_IMAGE} AS resource_tracker
 
-FROM vllm/vllm-openai:v${VLLM_VERSION} AS base_amd64
-FROM ghcr.io/sparecores/vllm-gpu-base:main-arm64 AS base_arm64
-ARG TARGETARCH
-FROM base_${TARGETARCH} AS vllm_base
+FROM vllm/vllm-openai:v${VLLM_VERSION}
 ARG GUIDELLM_VERSION
 
 RUN pip install --no-cache-dir psutil "guidellm[recommended]==${GUIDELLM_VERSION}"
