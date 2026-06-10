@@ -153,9 +153,25 @@ def read_guidellm_version() -> str:
 
 
 def get_vllm_runtime_version() -> str:
-    result = run(["vllm", "--version"], capture_output=True, text=True, check=False)
-    if result.returncode == 0:
-        return (result.stdout or result.stderr).strip().splitlines()[0]
+    """Best-effort runtime version; prefer read_vllm_version() for stable reporting."""
+    env = {**os.environ, "VLLM_CONFIGURE_LOGGING": "0"}
+    result = run(
+        ["vllm", "--version"],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+    for text in (result.stdout, result.stderr):
+        if not text:
+            continue
+        for line in reversed(text.strip().splitlines()):
+            line = line.strip()
+            if not line or line.startswith("INFO ") or "Triton is installed" in line:
+                continue
+            # argparse --version prints e.g. "0.22.1"
+            if line[0].isdigit() or (line.startswith("v") and line[1:2].isdigit()):
+                return line.lstrip("v")
     return read_vllm_version()
 
 
@@ -830,14 +846,21 @@ def run_probe_only(mode: str) -> None:
         stop_server(server)
 
 
-def print_versions() -> None:
-    print(f"vllm={get_vllm_runtime_version()} guidellm={guidellm_runtime_version()}")
+def print_versions() -> str:
+    # Pinned files match the image build; avoid vllm CLI stderr noise in meta.json.
+    version = f"vllm={read_vllm_version()} guidellm={read_guidellm_version()}"
+    print(version)
+    return version
 
 
 def main() -> None:
     if not shutil.which("guidellm"):
         logger.error("guidellm CLI not found in PATH")
         sys_exit(1)
+
+    if cli_args.version:
+        print_versions()
+        sys_exit(0)
 
     log_cpu_details()
     mode = detect_mode()
@@ -862,10 +885,6 @@ def main() -> None:
     if free_disk < 1.0:
         logger.error("Less than 1 GiB free in models_dir")
         sys_exit(1)
-
-    if cli_args.version:
-        print_versions()
-        sys_exit(0)
 
     start = monotonic()
     stop_ladder = False
