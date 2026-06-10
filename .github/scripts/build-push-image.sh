@@ -7,6 +7,8 @@
 #   BUILD_TARGET, BUILD_LABELS, BUILD_PULL, BUILD_NO_CACHE, BUILD_PROVENANCE_FALSE,
 #   BUILD_ARGS_FILE, BUILD_SECRET, BUILD_AWS_SECRET,
 #   BUILD_CACHE_FROM / BUILD_CACHE_TO (one --cache-* flag per non-empty line)
+#   BUILD_COMPRESSION (zstd|gzip, default zstd) — layer compression for registry push
+#   BUILD_COMPRESSION_LEVEL (0-22 for zstd, 0-9 for gzip; default 3)
 set -euo pipefail
 
 SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
@@ -16,12 +18,22 @@ SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
 : "${BUILD_PLATFORM:?BUILD_PLATFORM required}"
 : "${BUILD_TAGS:?BUILD_TAGS required}"
 
+BUILD_COMPRESSION="${BUILD_COMPRESSION:-zstd}"
+BUILD_COMPRESSION_LEVEL="${BUILD_COMPRESSION_LEVEL:-7}"
+
 args=(
   docker buildx build
   --file "$BUILD_DOCKERFILE"
   --platform "$BUILD_PLATFORM"
-  --push
 )
+
+if [ "$BUILD_COMPRESSION" = "gzip" ]; then
+  args+=(--push)
+else
+  args+=(
+    --output "type=registry,push=true,oci-mediatypes=true,compression=${BUILD_COMPRESSION},compression-level=${BUILD_COMPRESSION_LEVEL},force-compression=true"
+  )
+fi
 
 [ -n "${BUILD_TARGET:-}" ] && args+=(--target "$BUILD_TARGET")
 [ "${BUILD_PULL:-}" = "true" ] && args+=(--pull)
