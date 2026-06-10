@@ -103,7 +103,7 @@ DEFAULT_MODELS: list[ModelSpec] = [
     ModelSpec("qwen-0.5b", "Qwen/Qwen2.5-0.5B-Instruct", 0.5),
     ModelSpec("gemma-2b", "google/gemma-2-2b-it", 2.0),
     ModelSpec("llama-8b", "meta-llama/Llama-3.1-8B-Instruct", 8.0),
-    ModelSpec("phi-4", "microsoft/phi-4", 14.0, gpu_only=True),
+    ModelSpec("phi-4", "microsoft/phi-4", 14.0),
     ModelSpec(
         "llama-70b",
         "unsloth/Llama-3.3-70B-Instruct-bnb-4bit",
@@ -115,7 +115,6 @@ DEFAULT_MODELS: list[ModelSpec] = [
             "--load-format",
             "bitsandbytes",
         ),
-        gpu_only=True,
     ),
 ]
 
@@ -347,6 +346,21 @@ def model_fits(spec: ModelSpec, mode: str) -> bool:
     return need <= have
 
 
+def model_requires_gpu(spec: ModelSpec) -> bool:
+    """Serve flags that vLLM CPU backend cannot use (e.g. bitsandbytes quant)."""
+    return any("bitsandbytes" in a for a in spec.serve_extra_args)
+
+
+def model_supported_on_mode(spec: ModelSpec, mode: str) -> bool:
+    if spec.cpu_only and mode != "cpu":
+        return False
+    if spec.gpu_only and mode != "gpu":
+        return False
+    if mode == "cpu" and model_requires_gpu(spec):
+        return False
+    return True
+
+
 def probe_model_spec() -> ModelSpec:
     override = environ.get("VLLM_PROBE_MODEL", "").strip()
     if override:
@@ -360,14 +374,7 @@ def models_to_run(mode: str) -> list[ModelSpec]:
             ModelSpec(os.path.basename(m.rstrip("/")), m, max(0.135, len(m) / 20))
             for m in cli_args.models
         ]
-    selected: list[ModelSpec] = []
-    for spec in DEFAULT_MODELS:
-        if spec.gpu_only and mode != "gpu":
-            continue
-        if spec.cpu_only and mode != "cpu":
-            continue
-        selected.append(spec)
-    return selected
+    return [spec for spec in DEFAULT_MODELS if model_supported_on_mode(spec, mode)]
 
 
 def workloads_for_mode(mode: str) -> list[WorkloadSpec]:
@@ -865,6 +872,13 @@ def main() -> None:
     for spec in models_to_run(mode):
         if stop_ladder:
             break
+        if not model_supported_on_mode(spec, mode):
+            if mode == "cpu" and model_requires_gpu(spec):
+                logger.info(
+                    "Skipping %s — GPU-only serve config on CPU (e.g. bitsandbytes)",
+                    spec.short_name,
+                )
+            continue
         if not model_fits(spec, mode):
             logger.info("Skipping %s — insufficient memory", spec.short_name)
             continue
