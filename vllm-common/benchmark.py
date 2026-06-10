@@ -93,17 +93,43 @@ class ModelSpec:
     model_id: str
     params_b: float
     memory_gb: float | None = None
+    num_attention_heads: int | None = None
     serve_extra_args: tuple[str, ...] = ()
     gpu_only: bool = False
     cpu_only: bool = False
 
 
 DEFAULT_MODELS: list[ModelSpec] = [
-    ModelSpec("smol-135m", "HuggingFaceTB/SmolLM2-135M-Instruct", 0.135),
-    ModelSpec("qwen-0.5b", "Qwen/Qwen2.5-0.5B-Instruct", 0.5),
-    ModelSpec("gemma-2b", "google/gemma-2-2b-it", 2.0),
-    ModelSpec("llama-8b", "meta-llama/Llama-3.1-8B-Instruct", 8.0),
-    ModelSpec("phi-4", "microsoft/phi-4", 14.0),
+    ModelSpec(
+        "smol-135m",
+        "HuggingFaceTB/SmolLM2-135M-Instruct",
+        0.135,
+        num_attention_heads=9,
+    ),
+    ModelSpec(
+        "qwen-0.5b",
+        "Qwen/Qwen2.5-0.5B-Instruct",
+        0.5,
+        num_attention_heads=14,
+    ),
+    ModelSpec(
+        "gemma-2b",
+        "google/gemma-2-2b-it",
+        2.0,
+        num_attention_heads=8,
+    ),
+    ModelSpec(
+        "llama-8b",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        8.0,
+        num_attention_heads=32,
+    ),
+    ModelSpec(
+        "phi-4",
+        "microsoft/phi-4",
+        14.0,
+        num_attention_heads=40,
+    ),
     ModelSpec(
         "llama-70b",
         "unsloth/Llama-3.3-70B-Instruct-bnb-4bit",
@@ -469,6 +495,20 @@ def log_server_start_failure(mode: str) -> None:
     )
 
 
+def tensor_parallel_size(mode: str, spec: ModelSpec) -> int:
+    """Largest TP <= GPU count where num_attention_heads % TP == 0 (vLLM requirement)."""
+    gpus = max(1, int(gpu_info()["gpu_count"] or 1))
+    if mode != "gpu" or gpus <= 1:
+        return 1
+    heads = spec.num_attention_heads
+    if not heads:
+        return 1
+    for tp in range(min(gpus, heads), 0, -1):
+        if heads % tp == 0:
+            return tp
+    return 1
+
+
 def start_server(model_id: str, mode: str, max_model_len: int, spec: ModelSpec) -> Popen[Any]:
     cmd = [
         "vllm",
@@ -485,10 +525,11 @@ def start_server(model_id: str, mode: str, max_model_len: int, spec: ModelSpec) 
         if any("bitsandbytes" in a for a in spec.serve_extra_args) and gpus > 1:
             cmd.extend(["--pipeline-parallel-size", str(gpus)])
         else:
+            tp = tensor_parallel_size(mode, spec)
             cmd.extend(
                 [
                     "--tensor-parallel-size",
-                    str(gpus),
+                    str(tp),
                     "--gpu-memory-utilization",
                     "0.9",
                 ]
@@ -681,7 +722,7 @@ def report_to_jsonl(
         in ("1", "true", "yes"),
         "vllm_version": read_vllm_version(),
         "guidellm_version": read_guidellm_version(),
-        "tensor_parallel": gi["gpu_count"] if mode == "gpu" else 0,
+        "tensor_parallel": tensor_parallel_size(mode, spec) if mode == "gpu" else 0,
         "gpu_count": gi["gpu_count"],
         "gpu_model": gi["gpu_model"],
         "total_vram_gb": round(float(gi["total_vram_gb"]), 2),
