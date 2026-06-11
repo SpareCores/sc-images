@@ -389,13 +389,14 @@ def _fit_sweep_to_budget(desired_sweep: int, per_run_sec: int) -> tuple[int, int
     return 2, max_seconds
 
 
+def current_ram_gb() -> tuple[float, float]:
+    mem = virtual_memory()
+    return mem.total / 1e9, mem.available / 1e9
+
+
 def cpu_kv_cache_gib(spec: ModelSpec, hp: HostProfile) -> int | None:
-    if environ.get("VLLM_CPU_KVCACHE_SPACE"):
-        return None
-    remaining = hp.ram_avail_gb - model_memory_gb(spec) * 1.3
-    if remaining < 1.0:
-        return None
-    return max(1, int(remaining * 0.9))
+    """Autoconfig uses --gpu-memory-utilization only; set VLLM_CPU_KVCACHE_SPACE manually to override."""
+    return None
 
 
 def compute_tuning(
@@ -445,11 +446,15 @@ def compute_tuning(
     if workers_env := _env_int("GUIDELLM__MAX_WORKER_PROCESSES"):
         max_workers = workers_env
 
-    max_num_seqs = min(max_conc, sublinear_scale(v, 4.0, 0.55, 16))
+    seq_scale = min(1.0, 2048 / max(max_model_len, 512))
+    max_num_seqs = max(
+        4,
+        int(min(max_conc, sublinear_scale(v, 4.0, 0.55, 16)) * seq_scale),
+    )
     max_batched = min(max_model_len, max(2048, sublinear_scale(v, 64.0, 0.50, 2048)))
 
     dtype = cpu_serve_dtype(spec)
-    kv_util = cpu_kv_memory_util(spec, hp)
+    kv_util = cpu_kv_memory_util(spec, hp, max_model_len=max_model_len)
     gpu_util = gpu_memory_utilization(spec)
     kv_gib = cpu_kv_cache_gib(spec, hp)
 
@@ -653,15 +658,23 @@ def cpu_gpu_memory_utilization() -> float:
     return max(0.12, min(0.45, util))
 
 
-def cpu_kv_memory_util(spec: ModelSpec, hp: HostProfile) -> float:
+def cpu_kv_memory_util(
+    spec: ModelSpec,
+    hp: HostProfile,
+    max_model_len: int = 2048,
+) -> float:
     override = environ.get("VLLM_CPU_GPU_MEMORY_UTILIZATION")
     if override:
         return float(override)
-    remaining = hp.ram_avail_gb - model_memory_gb(spec) * 1.3
-    if remaining <= 0 or hp.ram_total_gb <= 0:
+    ram_total_gb, ram_avail_gb = current_ram_gb()
+    if ram_total_gb <= 0:
         return cpu_gpu_memory_utilization()
-    fraction = (remaining / hp.ram_total_gb) * 0.85
-    return max(0.12, min(0.55, fraction))
+    remaining = ram_avail_gb - model_memory_gb(spec) * 1.3
+    if remaining <= 0:
+        return cpu_gpu_memory_utilization()
+    ctx_factor = min(1.0, 2048 / max(max_model_len, 512))
+    fraction = (remaining / ram_total_gb) * 0.80 * ctx_factor
+    return max(0.12, min(0.50, fraction))
 
 
 def cpu_serve_dtype(spec: ModelSpec | None = None) -> str:
@@ -802,11 +815,7 @@ def guidellm_sweep_size(mode: str) -> str:
 def guidellm_sweep_profile(mode: str, tuning: BenchmarkTuning) -> str:
     if not tuning.autoconfig:
         return f"sweep,{guidellm_sweep_size(mode)}"
-    return (
-        f"kind=sweep,sweep_size={tuning.sweep_size},"
-        f"max_concurrency={tuning.max_concurrency},"
-        f"rampup_duration={tuning.rampup_duration:g}"
-    )
+    return f"sweep,{tuning.sweep_size}"
 
 
 def guidellm_throughput_rate(mode: str) -> str:
@@ -828,7 +837,7 @@ def guidellm_plan(mode: str, tuning: BenchmarkTuning) -> list[tuple[str, str | N
     if override in ("legacy", "sync-throughput", "sync"):
         return [("synchronous", None), ("throughput", guidellm_throughput_rate(mode))]
     if tuning.autoconfig:
-        return [(guidellm_sweep_profile(mode, tuning), None)]
+        return [("sweep", str(tuning.sweep_size))]
     return [("sweep", guidellm_sweep_size(mode))]
 
 
@@ -1023,7 +1032,7 @@ def run_guidellm(
     ]
     if rate is not None:
         cmd.extend(["--rate", rate])
-    elif tuning.autoconfig and tuning.rampup_duration > 0 and profile.startswith("kind=sweep"):
+    elif tuning.autoconfig and tuning.rampup_duration > 0 and profile == "sweep":
         cmd.extend(["--rampup", str(tuning.rampup_duration)])
 
     logger.info("GuideLLM: %s", " ".join(cmd))
