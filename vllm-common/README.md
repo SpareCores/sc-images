@@ -17,9 +17,33 @@ Not a published image — shared sources for the `benchmark-vllm-*` images under
    Llama-3.3-70B bnb-4bit (~48 GiB). On CPU, each model runs only when `model_fits` (RAM); 70B is
    skipped on CPU because bitsandbytes quant is GPU-only. `google/gemma-2-2b-it` and
    `meta-llama/Llama-3.1-8B-Instruct` require Hugging Face license acceptance plus `HF_TOKEN`.
-   - **CPU + GPU**: `sweep` (default **3** steps: sync → saturated throughput → one constant rate). Override size with `GUIDELLM_SWEEP_SIZE`, `GUIDELLM_CPU_SWEEP_SIZE`, or `GUIDELLM_GPU_SWEEP_SIZE` (`2` = sync+throughput only; `6` = fuller curve).
+   - **CPU + GPU**: `sweep` (default autoconfig: budget-limited steps — sync → throughput → constant interpolations). Override with `GUIDELLM_SWEEP_SIZE`, `GUIDELLM_CPU_SWEEP_SIZE`, or `GUIDELLM_GPU_SWEEP_SIZE`. Set `BENCHMARK_VLLM_AUTOCONFIG=0` for legacy static settings (CPU `max_requests=25`, `sweep_size=3`).
    - **Legacy fast path**: `GUIDELLM_PROFILES=legacy` (or `GUIDELLM_CPU_PROFILES=legacy`) runs `synchronous` + capped `throughput` (`GUIDELLM_THROUGHPUT_RATE`, default 8 on CPU).
 3. **Multi-GPU**: see [Tensor parallelism](#tensor-parallelism) below.
+
+## Autoconfig (budget-first)
+
+When `BENCHMARK_VLLM_AUTOCONFIG=1` (default), the harness derives GuideLLM load and vLLM server knobs from **vCPU count and RAM**, then **fits them into the 2h overall time budget** (see `OVERALL_TIMEOUT_SEC` in `benchmark.py`). Load scales **sub-linearly** with vCPU (open-ended — no hard 500/512 caps), but **wall time per run is capped** so a 896 vCPU box does not run for days.
+
+| Knob | Scales with vCPU | Bounded by |
+|------|------------------|------------|
+| `max_concurrency`, `max_requests` | sub-linear (~vCPU^0.55–0.65) | budget + GuideLLM env overrides |
+| `sweep_size` | log(vCPU), then **shrunk** to fit `per_run_budget` | `per_run_budget_sec` (45–240 s) |
+| `max_seconds` per strategy | model size | `per_run_budget / sweep_size` |
+| `max_num_seqs`, KV fraction | sub-linear + model RAM | available memory |
+| dtype (CPU) | model + arch | gemma / arm64 → bfloat16 |
+
+Example CPU load at different sizes (8 model×workload runs, 2h budget):
+
+| vCPU | max_conc | max_requests | sweep | sec/strategy |
+|-----:|---------:|-------------:|------:|-------------:|
+| 2 | 32 | 64 | 3 | ~80 |
+| 192 | 182 | 364 | 6 | ~40 |
+| 896 | 497 | 994 | 7 | ~34 |
+
+Per workload (chat / rag / long), autoconfig restarts `vllm serve` with that workload's `max_model_len` (2048 / 4096 / 8192) so small-RAM hosts do not reserve KV for unused long-context headroom. Budget planning includes the extra startup time.
+
+JSONL rows include `max_model_len`, `tuning_version`, and a `tuning` object (`tuning_version=2` adds per-workload server restarts and explicit KV cache sizing). Host vCPU/RAM come from the `server` table when querying the DB. Disable autoconfig for A/B against older data: `BENCHMARK_VLLM_AUTOCONFIG=0`. Disable per-workload server restarts: `BENCHMARK_VLLM_PER_WORKLOAD_SERVER=0`.
 
 ## Tensor parallelism
 

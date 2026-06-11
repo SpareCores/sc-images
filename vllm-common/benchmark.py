@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import platform
 import shutil
@@ -42,6 +43,12 @@ SERVER_START_TIMEOUT_CPU_SEC = 10 * 60
 SERVER_START_TIMEOUT_PROBE_GPU_SEC = 8 * 60
 SERVER_START_TIMEOUT_PROBE_CPU_SEC = 15 * 60
 MIN_OUTPUT_TOKENS_PER_SEC = 1.0
+TUNING_VERSION = 2
+BUDGET_RESERVE_STARTUP_SEC = 600
+BUDGET_MIN_PER_RUN_SEC = 45
+BUDGET_MAX_PER_RUN_SEC = 240
+BUDGET_MODEL_START_CPU_SEC = 120
+BUDGET_MODEL_START_GPU_SEC = 60
 
 cli_parser = ArgumentParser(description="Benchmark vLLM LLM serving with GuideLLM")
 cli_parser.add_argument("--version", action="store_true", help="Print versions and exit")
@@ -161,6 +168,71 @@ THROUGHPUT_METRICS = (
 PERCENTILES = ("p50", "p95", "p99")
 
 
+@dataclass(frozen=True)
+class HostProfile:
+    vcpus: int
+    ram_total_gb: float
+    ram_avail_gb: float
+
+
+@dataclass(frozen=True)
+class BudgetPlan:
+    per_run_sec: int
+    total_runs: int
+    overall_timeout_sec: int
+    reserve_sec: int
+
+
+@dataclass(frozen=True)
+class BenchmarkTuning:
+    tuning_version: int
+    autoconfig: bool
+    sweep_size: int
+    max_concurrency: int
+    max_requests: int
+    max_workers: int
+    rampup_duration: float
+    warmup: str
+    max_seconds_per_strategy: int
+    per_run_budget_sec: int
+    max_num_seqs: int
+    max_num_batched_tokens: int
+    dtype: str
+    kv_memory_util: float
+    gpu_memory_util: float
+    kv_cache_gib: int | None = None
+    max_model_len: int | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        out = {
+            "tuning_version": self.tuning_version,
+            "autoconfig": self.autoconfig,
+            "sweep_size": self.sweep_size,
+            "max_concurrency": self.max_concurrency,
+            "max_requests": self.max_requests,
+            "max_workers": self.max_workers,
+            "rampup_duration": self.rampup_duration,
+            "warmup": self.warmup,
+            "max_seconds_per_strategy": self.max_seconds_per_strategy,
+            "per_run_budget_sec": self.per_run_budget_sec,
+            "max_num_seqs": self.max_num_seqs,
+            "max_num_batched_tokens": self.max_num_batched_tokens,
+            "dtype": self.dtype,
+            "kv_memory_util": self.kv_memory_util,
+            "gpu_memory_util": self.gpu_memory_util,
+        }
+        if self.kv_cache_gib is not None:
+            out["kv_cache_gib"] = self.kv_cache_gib
+        if self.max_model_len is not None:
+            out["max_model_len"] = self.max_model_len
+        return out
+
+
+_HOST: HostProfile | None = None
+_BUDGET: BudgetPlan | None = None
+_TUNING: BenchmarkTuning | None = None
+
+
 @cache
 def read_pin(filename: str, env_key: str, default: str = "unknown") -> str:
     path = os.path.join(os.path.dirname(__file__), filename)
@@ -219,7 +291,268 @@ def guidellm_env() -> dict[str, str]:
     env.setdefault("USER", "benchmark")
     env.setdefault("HOME", "/tmp")
     env.setdefault("TORCHINDUCTOR_CACHE_DIR", "/tmp/torch_inductor")
+    tuning = _TUNING
+    if tuning and tuning.autoconfig:
+        if "GUIDELLM__MAX_WORKER_PROCESSES" not in env:
+            env["GUIDELLM__MAX_WORKER_PROCESSES"] = str(tuning.max_workers)
+        if "GUIDELLM__MAX_CONCURRENCY" not in env:
+            env["GUIDELLM__MAX_CONCURRENCY"] = str(tuning.max_concurrency)
     return env
+
+
+def autoconfig_enabled() -> bool:
+    return environ.get("BENCHMARK_VLLM_AUTOCONFIG", "1").lower() not in (
+        "0",
+        "false",
+        "no",
+    )
+
+
+def per_workload_server_enabled() -> bool:
+    """Restart vLLM per workload with workload-specific max_model_len."""
+    default = "1" if autoconfig_enabled() else "0"
+    return environ.get("BENCHMARK_VLLM_PER_WORKLOAD_SERVER", default).lower() not in (
+        "0",
+        "false",
+        "no",
+    )
+
+
+def host_vcpus() -> int:
+    try:
+        return max(1, len(os.sched_getaffinity(0)))
+    except AttributeError:
+        return max(1, os.cpu_count() or 1)
+
+
+def host_profile() -> HostProfile:
+    global _HOST
+    if _HOST is None:
+        mem = virtual_memory()
+        _HOST = HostProfile(
+            vcpus=host_vcpus(),
+            ram_total_gb=mem.total / 1e9,
+            ram_avail_gb=mem.available / 1e9,
+        )
+    return _HOST
+
+
+def sublinear_scale(vcpus: int, base: float, exp: float, floor: int) -> int:
+    return max(floor, int(base * max(vcpus, 1) ** exp))
+
+
+def runnable_models(mode: str) -> list[ModelSpec]:
+    return [
+        spec
+        for spec in models_to_run(mode)
+        if model_supported_on_mode(spec, mode) and model_fits(spec, mode)
+    ]
+
+
+def compute_budget(mode: str) -> BudgetPlan:
+    models = runnable_models(mode)
+    workloads = workloads_for_mode(mode)
+    total_runs = max(1, len(models) * len(workloads))
+    overall = OVERALL_TIMEOUT_SEC * max(1, cli_args.benchmark_timeout_scale)
+    start_cost = BUDGET_MODEL_START_CPU_SEC if mode == "cpu" else BUDGET_MODEL_START_GPU_SEC
+    starts_per_model = len(workloads) if per_workload_server_enabled() else 1
+    reserve = BUDGET_RESERVE_STARTUP_SEC + len(models) * starts_per_model * start_cost
+    available = max(0, overall - reserve)
+    per_run = available // total_runs
+    per_run = max(BUDGET_MIN_PER_RUN_SEC, min(BUDGET_MAX_PER_RUN_SEC, per_run))
+    return BudgetPlan(
+        per_run_sec=per_run,
+        total_runs=total_runs,
+        overall_timeout_sec=overall,
+        reserve_sec=reserve,
+    )
+
+
+def _env_int(*keys: str) -> int | None:
+    for key in keys:
+        raw = environ.get(key, "").strip()
+        if raw:
+            return int(raw)
+    return None
+
+
+def _fit_sweep_to_budget(desired_sweep: int, per_run_sec: int) -> tuple[int, int]:
+    """Return (sweep_size, max_seconds_per_strategy) within per-run wall budget."""
+    sweep = max(2, desired_sweep)
+    while sweep >= 2:
+        max_seconds = max(BUDGET_MIN_PER_RUN_SEC // 2, per_run_sec // sweep)
+        max_seconds = min(max_seconds, BUDGET_MAX_PER_RUN_SEC)
+        if sweep * max_seconds <= per_run_sec:
+            return sweep, max_seconds
+        sweep -= 1
+    max_seconds = max(BUDGET_MIN_PER_RUN_SEC // 2, min(per_run_sec, BUDGET_MAX_PER_RUN_SEC))
+    return 2, max_seconds
+
+
+def cpu_kv_cache_gib(spec: ModelSpec, hp: HostProfile) -> int | None:
+    if environ.get("VLLM_CPU_KVCACHE_SPACE"):
+        return None
+    remaining = hp.ram_avail_gb - model_memory_gb(spec) * 1.3
+    if remaining < 1.0:
+        return None
+    return max(1, int(remaining * 0.9))
+
+
+def compute_tuning(
+    mode: str,
+    spec: ModelSpec,
+    budget: BudgetPlan,
+    max_model_len: int | None = None,
+) -> BenchmarkTuning:
+    hp = host_profile()
+    v = hp.vcpus
+    if max_model_len is None:
+        max_model_len = max(w.max_model_len for w in workloads_for_mode(mode))
+
+    if mode == "cpu":
+        max_conc = sublinear_scale(v, 6.0, 0.65, 32)
+        max_workers = min(sublinear_scale(v, 2.0, 0.45, 4), max(2, v // 2))
+        max_requests = max(max_conc * 2, sublinear_scale(v, 8.0, 0.55, 50))
+        rampup = min(30.0, max(5.0, v / 4.0))
+        warmup = "10"
+    else:
+        max_conc = sublinear_scale(v, 8.0, 0.60, 64)
+        max_workers = min(sublinear_scale(v, 3.0, 0.50, 8), max(4, v))
+        max_requests = max(max_conc * 2, sublinear_scale(v, 12.0, 0.55, 120))
+        rampup = 10.0
+        warmup = "0.05"
+
+    desired_sweep = max(
+        2,
+        min(
+            3 + int(math.log2(max(v, 2)) // 2),
+            6 + int(math.log2(max(v, 2)) // 3),
+        ),
+    )
+    sweep, max_seconds = _fit_sweep_to_budget(desired_sweep, budget.per_run_sec)
+
+    if sweep_env := (
+        _env_int("GUIDELLM_CPU_SWEEP_SIZE", "GUIDELLM_SWEEP_SIZE")
+        if mode == "cpu"
+        else _env_int("GUIDELLM_GPU_SWEEP_SIZE", "GUIDELLM_SWEEP_SIZE")
+    ):
+        sweep = max(2, sweep_env)
+        _, max_seconds = _fit_sweep_to_budget(sweep, budget.per_run_sec)
+    if max_conc_env := _env_int("GUIDELLM__MAX_CONCURRENCY"):
+        max_conc = max_conc_env
+    if max_req_env := _env_int("GUIDELLM_MAX_REQUESTS", "GUIDELLM_MAX_REQUESTS_CPU"):
+        max_requests = max_req_env
+    if workers_env := _env_int("GUIDELLM__MAX_WORKER_PROCESSES"):
+        max_workers = workers_env
+
+    max_num_seqs = min(max_conc, sublinear_scale(v, 4.0, 0.55, 16))
+    max_batched = min(max_model_len, max(2048, sublinear_scale(v, 64.0, 0.50, 2048)))
+
+    dtype = cpu_serve_dtype(spec)
+    kv_util = cpu_kv_memory_util(spec, hp)
+    gpu_util = gpu_memory_utilization(spec)
+    kv_gib = cpu_kv_cache_gib(spec, hp)
+
+    return BenchmarkTuning(
+        tuning_version=TUNING_VERSION,
+        autoconfig=True,
+        sweep_size=sweep,
+        max_concurrency=max_conc,
+        max_requests=max_requests,
+        max_workers=max_workers,
+        rampup_duration=rampup,
+        warmup=warmup,
+        max_seconds_per_strategy=max_seconds,
+        per_run_budget_sec=budget.per_run_sec,
+        max_num_seqs=max_num_seqs,
+        max_num_batched_tokens=max_batched,
+        dtype=dtype,
+        kv_memory_util=kv_util,
+        gpu_memory_util=gpu_util,
+        kv_cache_gib=kv_gib,
+        max_model_len=max_model_len,
+    )
+
+
+def legacy_tuning(
+    mode: str,
+    spec: ModelSpec,
+    max_model_len: int | None = None,
+) -> BenchmarkTuning:
+    if max_model_len is None:
+        max_model_len = max(w.max_model_len for w in workloads_for_mode(mode))
+    sweep = int(
+        guidellm_sweep_size(mode)
+        if not _guidellm_profile_override(mode)
+        else 2
+    )
+    return BenchmarkTuning(
+        tuning_version=0,
+        autoconfig=False,
+        sweep_size=max(2, sweep),
+        max_concurrency=512,
+        max_requests=int(
+            environ.get("GUIDELLM_MAX_REQUESTS", "120")
+            if mode == "gpu"
+            else environ.get("GUIDELLM_MAX_REQUESTS_CPU", "25")
+        ),
+        max_workers=10,
+        rampup_duration=0.0,
+        warmup="0.05",
+        max_seconds_per_strategy=(
+            (40 + int(spec.params_b * 8) if mode == "gpu" else 45 + int(spec.params_b * 12))
+            * max(1, cli_args.benchmark_timeout_scale)
+        ),
+        per_run_budget_sec=0,
+        max_num_seqs=128,
+        max_num_batched_tokens=max_model_len,
+        dtype=cpu_serve_dtype(spec),
+        kv_memory_util=cpu_gpu_memory_utilization(),
+        gpu_memory_util=0.9,
+        max_model_len=max_model_len,
+    )
+
+
+def init_benchmark_tuning(
+    mode: str,
+    spec: ModelSpec,
+    max_model_len: int | None = None,
+) -> BenchmarkTuning:
+    global _BUDGET, _TUNING
+    if not autoconfig_enabled():
+        _TUNING = legacy_tuning(mode, spec, max_model_len)
+        return _TUNING
+    if _BUDGET is None:
+        _BUDGET = compute_budget(mode)
+    _TUNING = compute_tuning(mode, spec, _BUDGET, max_model_len=max_model_len)
+    logger.info(
+        "autoconfig vcpus=%s budget_per_run=%ss sweep=%s max_conc=%s max_req=%s "
+        "workers=%s max_sec/strategy=%s max_model_len=%s per_workload_server=%s",
+        host_profile().vcpus,
+        _TUNING.per_run_budget_sec,
+        _TUNING.sweep_size,
+        _TUNING.max_concurrency,
+        _TUNING.max_requests,
+        _TUNING.max_workers,
+        _TUNING.max_seconds_per_strategy,
+        _TUNING.max_model_len,
+        per_workload_server_enabled(),
+    )
+    return _TUNING
+
+
+def current_tuning(
+    mode: str,
+    spec: ModelSpec,
+    max_model_len: int | None = None,
+) -> BenchmarkTuning:
+    if _TUNING is None or (
+        autoconfig_enabled()
+        and max_model_len is not None
+        and _TUNING.max_model_len != max_model_len
+    ):
+        return init_benchmark_tuning(mode, spec, max_model_len=max_model_len)
+    return _TUNING
 
 
 def detect_mode() -> str:
@@ -296,11 +629,16 @@ def check_cpu_isa_compat(mode: str) -> None:
     sys_exit(2)
 
 
-def cpu_server_env(base: dict[str, str]) -> dict[str, str]:
+def cpu_server_env(
+    base: dict[str, str],
+    tuning: BenchmarkTuning | None = None,
+) -> dict[str, str]:
     env = dict(base)
     env.setdefault("VLLM_CPU_OMP_THREADS_BIND", "auto")
     if environ.get("VLLM_CPU_KVCACHE_SPACE"):
         env.setdefault("VLLM_CPU_KVCACHE_SPACE", environ["VLLM_CPU_KVCACHE_SPACE"])
+    elif tuning and tuning.kv_cache_gib is not None:
+        env.setdefault("VLLM_CPU_KVCACHE_SPACE", str(tuning.kv_cache_gib))
     return env
 
 
@@ -315,8 +653,39 @@ def cpu_gpu_memory_utilization() -> float:
     return max(0.12, min(0.45, util))
 
 
-def cpu_serve_dtype() -> str:
-    return environ.get("VLLM_CPU_DTYPE", "float16")
+def cpu_kv_memory_util(spec: ModelSpec, hp: HostProfile) -> float:
+    override = environ.get("VLLM_CPU_GPU_MEMORY_UTILIZATION")
+    if override:
+        return float(override)
+    remaining = hp.ram_avail_gb - model_memory_gb(spec) * 1.3
+    if remaining <= 0 or hp.ram_total_gb <= 0:
+        return cpu_gpu_memory_utilization()
+    fraction = (remaining / hp.ram_total_gb) * 0.85
+    return max(0.12, min(0.55, fraction))
+
+
+def cpu_serve_dtype(spec: ModelSpec | None = None) -> str:
+    if override := environ.get("VLLM_CPU_DTYPE", "").strip():
+        return override
+    if spec is not None and spec.short_name == "gemma-2b":
+        return "bfloat16"
+    if host_arch() == "arm64":
+        return "bfloat16"
+    if host_arch() == "amd64" and cpu_has_avx512():
+        return "bfloat16"
+    return "float16"
+
+
+def gpu_memory_utilization(spec: ModelSpec) -> float:
+    override = environ.get("VLLM_GPU_MEMORY_UTILIZATION")
+    if override:
+        return float(override)
+    vram = float(gpu_info()["total_vram_gb"])
+    if vram <= 0:
+        return 0.9
+    if model_memory_gb(spec) > 0.7 * vram:
+        return 0.95
+    return 0.90
 
 
 def log_docker_cpu_hints() -> None:
@@ -430,6 +799,16 @@ def guidellm_sweep_size(mode: str) -> str:
     return environ.get("GUIDELLM_CPU_SWEEP_SIZE") or environ.get("GUIDELLM_SWEEP_SIZE", "3")
 
 
+def guidellm_sweep_profile(mode: str, tuning: BenchmarkTuning) -> str:
+    if not tuning.autoconfig:
+        return f"sweep,{guidellm_sweep_size(mode)}"
+    return (
+        f"kind=sweep,sweep_size={tuning.sweep_size},"
+        f"max_concurrency={tuning.max_concurrency},"
+        f"rampup_duration={tuning.rampup_duration:g}"
+    )
+
+
 def guidellm_throughput_rate(mode: str) -> str:
     """Concurrent streams for standalone throughput profile (legacy plan only; GuideLLM 0.6+)."""
     default = "8" if mode == "cpu" else "16"
@@ -443,23 +822,30 @@ def _guidellm_profile_override(mode: str) -> str:
     )
 
 
-def guidellm_plan(mode: str) -> list[tuple[str, str | None]]:
+def guidellm_plan(mode: str, tuning: BenchmarkTuning) -> list[tuple[str, str | None]]:
     """(profile, rate) runs per model/workload."""
     override = _guidellm_profile_override(mode)
     if override in ("legacy", "sync-throughput", "sync"):
         return [("synchronous", None), ("throughput", guidellm_throughput_rate(mode))]
+    if tuning.autoconfig:
+        return [(guidellm_sweep_profile(mode, tuning), None)]
     return [("sweep", guidellm_sweep_size(mode))]
 
 
-def guidellm_max_seconds(mode: str, spec: ModelSpec) -> int:
+def guidellm_max_seconds(mode: str, spec: ModelSpec, tuning: BenchmarkTuning) -> int:
     if mode == "gpu":
         base = 40 + int(spec.params_b * 8)
     else:
         base = 45 + int(spec.params_b * 12)
-    return base * max(1, cli_args.benchmark_timeout_scale)
+    base *= max(1, cli_args.benchmark_timeout_scale)
+    if tuning.autoconfig:
+        return min(base, tuning.max_seconds_per_strategy)
+    return base
 
 
-def guidellm_max_requests(mode: str) -> int:
+def guidellm_max_requests(mode: str, tuning: BenchmarkTuning) -> int:
+    if tuning.autoconfig:
+        return tuning.max_requests
     if mode == "gpu":
         return int(environ.get("GUIDELLM_MAX_REQUESTS", "120"))
     return int(environ.get("GUIDELLM_MAX_REQUESTS_CPU", "25"))
@@ -486,13 +872,18 @@ def wait_for_health(timeout_sec: float, server: Optional[Popen[Any]] = None) -> 
     return False
 
 
-def log_server_start_failure(mode: str) -> None:
+def log_server_start_failure(mode: str, spec: ModelSpec | None = None) -> None:
     if mode != "cpu":
         return
-    logger.error(
-        "vLLM CPU server failed to start. Use --privileged --shm-size=4g and "
-        "BENCHMARK_VLLM_ALLOW_AVX2_ONLY on AVX2-only amd64."
-    )
+    hints = [
+        "vLLM CPU server failed to start.",
+        "Use --privileged --shm-size=4g",
+    ]
+    if host_arch() == "amd64" and not cpu_has_avx512():
+        hints.append("BENCHMARK_VLLM_ALLOW_AVX2_ONLY on AVX2-only amd64")
+    if spec and spec.short_name == "gemma-2b":
+        hints.append("gemma-2b needs bfloat16 on CPU (autoconfig sets VLLM_CPU_DTYPE)")
+    logger.error(" ".join(hints))
 
 
 def tensor_parallel_size(mode: str, spec: ModelSpec) -> int:
@@ -521,6 +912,7 @@ def start_server(model_id: str, mode: str, max_model_len: int, spec: ModelSpec) 
         *spec.serve_extra_args,
     ]
     gpus = max(1, int(gpu_info()["gpu_count"] or 1))
+    tuning = current_tuning(mode, spec, max_model_len=max_model_len)
     if mode == "gpu":
         if any("bitsandbytes" in a for a in spec.serve_extra_args) and gpus > 1:
             cmd.extend(["--pipeline-parallel-size", str(gpus)])
@@ -531,25 +923,34 @@ def start_server(model_id: str, mode: str, max_model_len: int, spec: ModelSpec) 
                     "--tensor-parallel-size",
                     str(tp),
                     "--gpu-memory-utilization",
-                    "0.9",
+                    f"{tuning.gpu_memory_util:.2f}",
                 ]
             )
     else:
-        mem_util = cpu_gpu_memory_utilization()
+        mem_util = tuning.kv_memory_util if tuning.autoconfig else cpu_gpu_memory_utilization()
         cmd.extend(
             [
                 "--dtype",
-                cpu_serve_dtype(),
+                tuning.dtype if tuning.autoconfig else cpu_serve_dtype(spec),
                 "--gpu-memory-utilization",
                 f"{mem_util:.2f}",
             ]
         )
+        if tuning.autoconfig:
+            cmd.extend(
+                [
+                    "--max-num-seqs",
+                    str(tuning.max_num_seqs),
+                    "--max-num-batched-tokens",
+                    str(tuning.max_num_batched_tokens),
+                ]
+            )
 
     env = os.environ.copy()
     env.setdefault("HF_HOME", cli_args.models_dir)
     env.setdefault("HUGGINGFACE_HUB_CACHE", cli_args.models_dir)
     if mode == "cpu":
-        env = cpu_server_env(env)
+        env = cpu_server_env(env, tuning)
     os.makedirs(cli_args.models_dir, exist_ok=True)
     logger.info("Starting server: %s", " ".join(cmd))
     return Popen(
@@ -584,8 +985,10 @@ def run_guidellm(
     rate: str | None,
     mode: str,
     out_dir: Path,
+    tuning: BenchmarkTuning,
 ) -> Path | None:
     out_dir.mkdir(parents=True, exist_ok=True)
+    max_seconds = guidellm_max_seconds(mode, spec, tuning)
     cmd = [
         "guidellm",
         "benchmark",
@@ -605,11 +1008,11 @@ def run_guidellm(
         "--random-seed",
         "42",
         "--max-seconds",
-        str(guidellm_max_seconds(mode, spec)),
+        str(max_seconds),
         "--max-requests",
-        str(guidellm_max_requests(mode)),
+        str(guidellm_max_requests(mode, tuning)),
         "--warmup",
-        "0.05",
+        tuning.warmup,
         "--output-dir",
         str(out_dir),
         "--outputs",
@@ -620,6 +1023,8 @@ def run_guidellm(
     ]
     if rate is not None:
         cmd.extend(["--rate", rate])
+    elif tuning.autoconfig and tuning.rampup_duration > 0 and profile.startswith("kind=sweep"):
+        cmd.extend(["--rampup", str(tuning.rampup_duration)])
 
     logger.info("GuideLLM: %s", " ".join(cmd))
     try:
@@ -627,7 +1032,7 @@ def run_guidellm(
             cmd,
             capture_output=True,
             text=True,
-            timeout=guidellm_max_seconds(mode, spec) * 12,
+            timeout=max(max_seconds * (tuning.sweep_size + 2), 120),
             check=False,
             env=guidellm_env(),
             cwd=str(out_dir),
@@ -702,6 +1107,7 @@ def report_to_jsonl(
     workload: WorkloadSpec,
     profile: str,
     mode: str,
+    tuning: BenchmarkTuning,
 ) -> int:
     with open(report_path, encoding="utf-8") as fp:
         report = json.load(fp)
@@ -717,6 +1123,9 @@ def report_to_jsonl(
         "profile": profile,
         "mode": mode,
         "arch": host_arch(),
+        "max_model_len": tuning.max_model_len,
+        "tuning_version": tuning.tuning_version,
+        "tuning": tuning.as_dict(),
         "avx512": cpu_has_avx512() if host_arch() == "amd64" else None,
         "avx2_only_image": environ.get("BENCHMARK_VLLM_ALLOW_AVX2_ONLY", "").lower()
         in ("1", "true", "yes"),
@@ -792,66 +1201,114 @@ def report_to_jsonl(
     return count
 
 
+def _run_guidellm_sweeps(
+    spec: ModelSpec,
+    workload: WorkloadSpec,
+    mode: str,
+    tuning: BenchmarkTuning,
+    start_time: float,
+) -> float:
+    peak_output_tps = 0.0
+    for profile, rate in guidellm_plan(mode, tuning):
+        if monotonic() - start_time > OVERALL_TIMEOUT_SEC:
+            break
+        with tempfile.TemporaryDirectory(prefix="guidellm-") as tmp:
+            report = run_guidellm(
+                spec,
+                workload,
+                profile,
+                rate,
+                mode,
+                Path(tmp),
+                tuning,
+            )
+            if not report:
+                continue
+            n = report_to_jsonl(report, spec, workload, profile, mode, tuning)
+            logger.info(
+                "GuideLLM emitted %s rows model=%s workload=%s profile=%s",
+                n,
+                spec.short_name,
+                workload.name,
+                profile,
+            )
+            with open(report, encoding="utf-8") as fp:
+                raw = json.load(fp)
+            for bench in raw.get("benchmarks") or []:
+                metrics = bench.get("metrics") or {}
+                block = _dist_block(metrics, "output_tokens_per_second")
+                if block and block.get("mean") is not None:
+                    peak_output_tps = max(peak_output_tps, float(block["mean"]))
+    return peak_output_tps
+
+
 def run_model(spec: ModelSpec, mode: str, start_time: float) -> bool:
     if monotonic() - start_time > OVERALL_TIMEOUT_SEC:
         logger.warning("Overall timeout reached")
         return False
 
-    max_len = max(w.max_model_len for w in workloads_for_mode(mode))
-    server = None
-    try:
-        server = start_server(spec.model_id, mode, max_len, spec)
-        health_timeout = (
-            SERVER_START_TIMEOUT_CPU_SEC if mode == "cpu" else SERVER_START_TIMEOUT_GPU_SEC
-        )
-        if not wait_for_health(health_timeout, server):
-            logger.warning("Server health check failed for %s", spec.model_id)
-            log_server_start_failure(mode)
-            return True
+    workloads = workloads_for_mode(mode)
+    peak_output_tps = 0.0
 
-        peak_output_tps = 0.0
-        for workload in workloads_for_mode(mode):
-            for profile, rate in guidellm_plan(mode):
+    if per_workload_server_enabled():
+        for workload in workloads:
+            if monotonic() - start_time > OVERALL_TIMEOUT_SEC:
+                return False
+            tuning = init_benchmark_tuning(mode, spec, max_model_len=workload.max_model_len)
+            server = None
+            try:
+                server = start_server(
+                    spec.model_id, mode, workload.max_model_len, spec
+                )
+                health_timeout = (
+                    SERVER_START_TIMEOUT_CPU_SEC
+                    if mode == "cpu"
+                    else SERVER_START_TIMEOUT_GPU_SEC
+                )
+                if not wait_for_health(health_timeout, server):
+                    logger.warning(
+                        "Server health check failed for %s workload=%s",
+                        spec.model_id,
+                        workload.name,
+                    )
+                    log_server_start_failure(mode, spec)
+                    continue
+                peak_output_tps = max(
+                    peak_output_tps,
+                    _run_guidellm_sweeps(spec, workload, mode, tuning, start_time),
+                )
+            finally:
+                stop_server(server)
+    else:
+        max_len = max(w.max_model_len for w in workloads)
+        tuning = init_benchmark_tuning(mode, spec, max_model_len=max_len)
+        server = None
+        try:
+            server = start_server(spec.model_id, mode, max_len, spec)
+            health_timeout = (
+                SERVER_START_TIMEOUT_CPU_SEC if mode == "cpu" else SERVER_START_TIMEOUT_GPU_SEC
+            )
+            if not wait_for_health(health_timeout, server):
+                logger.warning("Server health check failed for %s", spec.model_id)
+                log_server_start_failure(mode, spec)
+                return True
+            for workload in workloads:
                 if monotonic() - start_time > OVERALL_TIMEOUT_SEC:
                     return False
-                with tempfile.TemporaryDirectory(prefix="guidellm-") as tmp:
-                    report = run_guidellm(
-                        spec,
-                        workload,
-                        profile,
-                        rate,
-                        mode,
-                        Path(tmp),
-                    )
-                    if not report:
-                        continue
-                    n = report_to_jsonl(report, spec, workload, profile, mode)
-                    logger.info(
-                        "GuideLLM emitted %s rows model=%s workload=%s profile=%s",
-                        n,
-                        spec.short_name,
-                        workload.name,
-                        profile,
-                    )
-                    with open(report, encoding="utf-8") as fp:
-                        raw = json.load(fp)
-                    for bench in raw.get("benchmarks") or []:
-                        metrics = bench.get("metrics") or {}
-                        block = _dist_block(metrics, "output_tokens_per_second")
-                        if block and block.get("mean") is not None:
-                            peak_output_tps = max(
-                                peak_output_tps, float(block["mean"])
-                            )
+                peak_output_tps = max(
+                    peak_output_tps,
+                    _run_guidellm_sweeps(spec, workload, mode, tuning, start_time),
+                )
+        finally:
+            stop_server(server)
 
-        if peak_output_tps > 0 and peak_output_tps < MIN_OUTPUT_TOKENS_PER_SEC:
-            logger.warning(
-                "Peak output %.2f tok/s below threshold; stopping ladder",
-                peak_output_tps,
-            )
-            return False
-        return True
-    finally:
-        stop_server(server)
+    if peak_output_tps > 0 and peak_output_tps < MIN_OUTPUT_TOKENS_PER_SEC:
+        logger.warning(
+            "Peak output %.2f tok/s below threshold; stopping ladder",
+            peak_output_tps,
+        )
+        return False
+    return True
 
 
 def probe_health_timeout_sec(mode: str) -> float:
@@ -875,13 +1332,14 @@ def run_probe_only(mode: str) -> None:
     if not model_fits(spec, mode):
         logger.error("Probe model %s does not fit in available memory", spec.model_id)
         sys_exit(1)
+    init_benchmark_tuning(mode, spec, max_model_len=2048)
     server = None
     try:
         server = start_server(spec.model_id, mode, 2048, spec)
         if wait_for_health(probe_health_timeout_sec(mode), server):
             logger.info("probe_ok model=%s mode=%s", spec.model_id, mode)
             sys_exit(0)
-        log_server_start_failure(mode)
+        log_server_start_failure(mode, spec)
         sys_exit(1)
     finally:
         stop_server(server)
@@ -926,6 +1384,16 @@ def main() -> None:
     if free_disk < 1.0:
         logger.error("Less than 1 GiB free in models_dir")
         sys_exit(1)
+
+    budget = compute_budget(mode) if autoconfig_enabled() else None
+    if budget:
+        logger.info(
+            "benchmark budget overall=%ss reserve=%ss runs=%s per_run=%ss",
+            budget.overall_timeout_sec,
+            budget.reserve_sec,
+            budget.total_runs,
+            budget.per_run_sec,
+        )
 
     start = monotonic()
     stop_ladder = False
