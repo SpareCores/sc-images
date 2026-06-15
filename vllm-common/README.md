@@ -27,23 +27,46 @@ When `BENCHMARK_VLLM_AUTOCONFIG=1` (default), the harness derives GuideLLM load 
 
 | Knob | Scales with vCPU | Bounded by |
 |------|------------------|------------|
-| `max_concurrency`, `max_requests` | sub-linear (~vCPU^0.55–0.65) | budget + GuideLLM env overrides |
-| `sweep_size` | log(vCPU), then **shrunk** to fit `per_run_budget` | `per_run_budget_sec` (45–240 s) |
-| `max_seconds` per strategy | model size | `per_run_budget / sweep_size` |
+| `max_concurrency` | sub-linear (~vCPU^0.55–0.65) | `GUIDELLM__MAX_CONCURRENCY` env override |
+| `max_seconds` per strategy | workload ctx (2048 vs 4096) + budget / sweep | rag gets ≥2× chat floor before sweep shrink; **only** per-stage limit in autoconfig |
+| `sweep_size` | log(vCPU), then **shrunk** to fit `per_run_budget` | `per_run_budget_sec` (45–240 s); fewer steps for rag/long ctx |
 | `max_num_seqs`, KV fraction | sub-linear + model RAM | available memory |
 | dtype (CPU) | model + arch | gemma / arm64 → bfloat16 |
 
 Example CPU load at different sizes (8 model×workload runs, 2h budget):
 
-| vCPU | max_conc | max_requests | sweep | sec/strategy |
-|-----:|---------:|-------------:|------:|-------------:|
-| 2 | 32 | 64 | 3 | ~80 |
-| 192 | 182 | 364 | 6 | ~40 |
-| 896 | 497 | 994 | 7 | ~34 |
+| vCPU | max_conc | sweep | sec/strategy (chat) | sec/strategy (rag) |
+|-----:|---------:|------:|--------------------:|-------------------:|
+| 2 | 32 | 3 | ~80 | ~80 |
+| 192 | 182 | 4–6 | ~40–48 | ~48–60 |
+| 896 | 497 | 4–7 | ~34–40 | ~48–60 |
 
-Per workload (chat / rag / long), autoconfig restarts `vllm serve` with that workload's `max_model_len` (2048 / 4096 / 8192) so small-RAM hosts do not reserve KV for unused long-context headroom. Budget planning includes the extra startup time.
+### GuideLLM sweep limits
 
-JSONL rows include `max_model_len`, `tuning_version`, and a `tuning` object (`tuning_version=2` adds per-workload server restarts and explicit KV cache sizing). Host vCPU/RAM come from the `server` table when querying the DB. Disable autoconfig for A/B against older data: `BENCHMARK_VLLM_AUTOCONFIG=0`. Disable per-workload server restarts: `BENCHMARK_VLLM_PER_WORKLOAD_SERVER=0`.
+Autoconfig runs `guidellm benchmark run --profile sweep` with **`--max-seconds` only**
+(no `--max-requests`). Each stage stops when its time budget is exhausted.
+Load scales via **`max_concurrency`** (env `GUIDELLM__MAX_CONCURRENCY`, sub-linear in vCPU).
+
+**Sweep stages** (see [GuideLLM sweep profile](https://github.com/vllm-project/guidellm/blob/main/docs/getting-started/benchmark.md)):
+
+1. **Synchronous** — one request at a time (baseline latency / RPS)
+2. **Throughput** — as many concurrent requests as allowed (peak capacity)
+3. **Constant-rate** — several stages at rates interpolated between (1) and (2); count = `sweep_size − 2`
+
+**`max_concurrency`** caps parallelism in the throughput and constant-rate stages.
+A 192-vCPU metal run can schedule ~182 concurrent streams; a 2-vCPU box caps at ~32.
+
+**`max_seconds` per strategy** comes from `per_run_budget / sweep_size`, with a higher
+floor for rag @ 4096 ctx. Subprocess wall time is derived from `per_run_budget_sec`
+and sweep size so long rag sweeps are not killed early.
+
+Optional override: set `GUIDELLM_MAX_REQUESTS` or `GUIDELLM_MAX_REQUESTS_CPU` to pass
+`--max-requests` (legacy path and manual experiments). Legacy autoconfig-off mode still
+uses fixed request caps (CPU 25 / GPU 120).
+
+Per workload (chat / rag / long), autoconfig restarts `vllm serve` with that workload's `max_model_len` (2048 / 4096 / 8192) so small-RAM hosts do not reserve KV for unused long-context headroom. Before starting a workload, `workload_kv_fits()` skips combos that would KV-OOM on CPU (weights-only `model_fits` is not enough for long ctx). Budget planning includes the extra startup time.
+
+JSONL rows include `max_model_len`, `tuning_version`, and a `tuning` object (`tuning_version=3`: time-only GuideLLM stages, workload-aware sweep timing, KV pre-check, server stderr in logs). `tuning.max_requests` is `null` unless env override. Host vCPU/RAM come from the `server` table when querying the DB. Disable autoconfig for A/B against older data: `BENCHMARK_VLLM_AUTOCONFIG=0`. Disable per-workload server restarts: `BENCHMARK_VLLM_PER_WORKLOAD_SERVER=0`.
 
 ## Tensor parallelism
 

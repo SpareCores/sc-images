@@ -43,7 +43,7 @@ SERVER_START_TIMEOUT_CPU_SEC = 10 * 60
 SERVER_START_TIMEOUT_PROBE_GPU_SEC = 8 * 60
 SERVER_START_TIMEOUT_PROBE_CPU_SEC = 15 * 60
 MIN_OUTPUT_TOKENS_PER_SEC = 1.0
-TUNING_VERSION = 2
+TUNING_VERSION = 3
 BUDGET_RESERVE_STARTUP_SEC = 600
 BUDGET_MIN_PER_RUN_SEC = 45
 BUDGET_MAX_PER_RUN_SEC = 240
@@ -189,7 +189,7 @@ class BenchmarkTuning:
     autoconfig: bool
     sweep_size: int
     max_concurrency: int
-    max_requests: int
+    max_requests: int | None
     max_workers: int
     rampup_duration: float
     warmup: str
@@ -231,6 +231,7 @@ class BenchmarkTuning:
 _HOST: HostProfile | None = None
 _BUDGET: BudgetPlan | None = None
 _TUNING: BenchmarkTuning | None = None
+_SERVER_STDERR_PATH: Path | None = None
 
 
 @cache
@@ -376,16 +377,28 @@ def _env_int(*keys: str) -> int | None:
     return None
 
 
-def _fit_sweep_to_budget(desired_sweep: int, per_run_sec: int) -> tuple[int, int]:
+def workload_time_factor(max_model_len: int) -> float:
+    """Scale per-strategy wall time for longer contexts (rag @ 4096 vs chat @ 2048)."""
+    return max(1.0, max_model_len / 2048.0)
+
+
+def _fit_sweep_to_budget(
+    desired_sweep: int,
+    per_run_sec: int,
+    *,
+    min_seconds_per_strategy: int | None = None,
+) -> tuple[int, int]:
     """Return (sweep_size, max_seconds_per_strategy) within per-run wall budget."""
+    min_sec = min_seconds_per_strategy or (BUDGET_MIN_PER_RUN_SEC // 2)
+    min_sec = min(min_sec, BUDGET_MAX_PER_RUN_SEC)
     sweep = max(2, desired_sweep)
     while sweep >= 2:
-        max_seconds = max(BUDGET_MIN_PER_RUN_SEC // 2, per_run_sec // sweep)
+        max_seconds = max(min_sec, per_run_sec // sweep)
         max_seconds = min(max_seconds, BUDGET_MAX_PER_RUN_SEC)
         if sweep * max_seconds <= per_run_sec:
             return sweep, max_seconds
         sweep -= 1
-    max_seconds = max(BUDGET_MIN_PER_RUN_SEC // 2, min(per_run_sec, BUDGET_MAX_PER_RUN_SEC))
+    max_seconds = max(min_sec, min(per_run_sec, BUDGET_MAX_PER_RUN_SEC))
     return 2, max_seconds
 
 
@@ -413,16 +426,21 @@ def compute_tuning(
     if mode == "cpu":
         max_conc = sublinear_scale(v, 6.0, 0.65, 32)
         max_workers = min(sublinear_scale(v, 2.0, 0.45, 4), max(2, v // 2))
-        max_requests = max(max_conc * 2, sublinear_scale(v, 8.0, 0.55, 50))
         rampup = min(30.0, max(5.0, v / 4.0))
         warmup = "10"
     else:
         max_conc = sublinear_scale(v, 8.0, 0.60, 64)
         max_workers = min(sublinear_scale(v, 3.0, 0.50, 8), max(4, v))
-        max_requests = max(max_conc * 2, sublinear_scale(v, 12.0, 0.55, 120))
         rampup = 10.0
         warmup = "0.05"
 
+    max_requests: int | None = None
+
+    ctx_factor = workload_time_factor(max_model_len)
+    min_sec_per_strategy = min(
+        BUDGET_MAX_PER_RUN_SEC,
+        int((BUDGET_MIN_PER_RUN_SEC // 2) * ctx_factor),
+    )
     desired_sweep = max(
         2,
         min(
@@ -430,7 +448,11 @@ def compute_tuning(
             6 + int(math.log2(max(v, 2)) // 3),
         ),
     )
-    sweep, max_seconds = _fit_sweep_to_budget(desired_sweep, budget.per_run_sec)
+    sweep, max_seconds = _fit_sweep_to_budget(
+        desired_sweep,
+        budget.per_run_sec,
+        min_seconds_per_strategy=min_sec_per_strategy,
+    )
 
     if sweep_env := (
         _env_int("GUIDELLM_CPU_SWEEP_SIZE", "GUIDELLM_SWEEP_SIZE")
@@ -438,7 +460,11 @@ def compute_tuning(
         else _env_int("GUIDELLM_GPU_SWEEP_SIZE", "GUIDELLM_SWEEP_SIZE")
     ):
         sweep = max(2, sweep_env)
-        _, max_seconds = _fit_sweep_to_budget(sweep, budget.per_run_sec)
+        _, max_seconds = _fit_sweep_to_budget(
+            sweep,
+            budget.per_run_sec,
+            min_seconds_per_strategy=min_sec_per_strategy,
+        )
     if max_conc_env := _env_int("GUIDELLM__MAX_CONCURRENCY"):
         max_conc = max_conc_env
     if max_req_env := _env_int("GUIDELLM_MAX_REQUESTS", "GUIDELLM_MAX_REQUESTS_CPU"):
@@ -537,7 +563,7 @@ def init_benchmark_tuning(
         _TUNING.per_run_budget_sec,
         _TUNING.sweep_size,
         _TUNING.max_concurrency,
-        _TUNING.max_requests,
+        _TUNING.max_requests if _TUNING.max_requests is not None else "time-only",
         _TUNING.max_workers,
         _TUNING.max_seconds_per_strategy,
         _TUNING.max_model_len,
@@ -770,6 +796,40 @@ def model_fits(spec: ModelSpec, mode: str) -> bool:
     return need <= have
 
 
+def workload_kv_fits(
+    spec: ModelSpec,
+    mode: str,
+    max_model_len: int,
+    kv_util: float | None = None,
+) -> bool:
+    """Estimate vLLM CPU KV cache headroom after loading weights (see cpu_worker.py)."""
+    if mode != "cpu":
+        return True
+    ram_total_gb, _ram_avail_gb = current_ram_gb()
+    if ram_total_gb <= 0:
+        return True
+    util = (
+        kv_util
+        if kv_util is not None
+        else cpu_kv_memory_util(spec, host_profile(), max_model_len=max_model_len)
+    )
+    weights_gb = model_memory_gb(spec) * 1.3
+    kv_budget_gb = ram_total_gb * util - weights_gb
+    ctx_scale = max_model_len / 2048.0
+    min_kv_gb = 0.4 * ctx_scale * max(1.0, spec.params_b / 2.0)
+    if kv_budget_gb >= min_kv_gb:
+        return True
+    logger.info(
+        "KV check %s max_model_len=%s: budget~%.1f GiB need~%.1f GiB (util=%.2f)",
+        spec.short_name,
+        max_model_len,
+        kv_budget_gb,
+        min_kv_gb,
+        util,
+    )
+    return False
+
+
 def model_requires_gpu(spec: ModelSpec) -> bool:
     """Serve flags that vLLM CPU backend cannot use (e.g. bitsandbytes quant)."""
     return any("bitsandbytes" in a for a in spec.serve_extra_args)
@@ -842,17 +902,29 @@ def guidellm_plan(mode: str, tuning: BenchmarkTuning) -> list[tuple[str, str | N
 
 
 def guidellm_max_seconds(mode: str, spec: ModelSpec, tuning: BenchmarkTuning) -> int:
+    if tuning.autoconfig:
+        return tuning.max_seconds_per_strategy
     if mode == "gpu":
         base = 40 + int(spec.params_b * 8)
     else:
         base = 45 + int(spec.params_b * 12)
-    base *= max(1, cli_args.benchmark_timeout_scale)
-    if tuning.autoconfig:
-        return min(base, tuning.max_seconds_per_strategy)
-    return base
+    return base * max(1, cli_args.benchmark_timeout_scale)
 
 
-def guidellm_max_requests(mode: str, tuning: BenchmarkTuning) -> int:
+def guidellm_subprocess_timeout(tuning: BenchmarkTuning) -> int:
+    """Wall timeout for the full GuideLLM sweep subprocess."""
+    scale = max(1, cli_args.benchmark_timeout_scale)
+    warmup_sec = int(tuning.warmup) if tuning.warmup.isdigit() else 15
+    per_strategy = tuning.max_seconds_per_strategy * tuning.sweep_size * scale
+    return int(
+        max(
+            tuning.per_run_budget_sec * scale * 1.25,
+            per_strategy + warmup_sec + 120,
+        )
+    )
+
+
+def guidellm_max_requests(mode: str, tuning: BenchmarkTuning) -> int | None:
     if tuning.autoconfig:
         return tuning.max_requests
     if mode == "gpu":
@@ -881,18 +953,55 @@ def wait_for_health(timeout_sec: float, server: Optional[Popen[Any]] = None) -> 
     return False
 
 
-def log_server_start_failure(mode: str, spec: ModelSpec | None = None) -> None:
-    if mode != "cpu":
-        return
-    hints = [
-        "vLLM CPU server failed to start.",
-        "Use --privileged --shm-size=4g",
-    ]
-    if host_arch() == "amd64" and not cpu_has_avx512():
-        hints.append("BENCHMARK_VLLM_ALLOW_AVX2_ONLY on AVX2-only amd64")
-    if spec and spec.short_name == "gemma-2b":
-        hints.append("gemma-2b needs bfloat16 on CPU (autoconfig sets VLLM_CPU_DTYPE)")
-    logger.error(" ".join(hints))
+def _server_stderr_tail(max_chars: int = 4000, max_lines: int = 8) -> list[str]:
+    path = _SERVER_STDERR_PATH
+    if path is None or not path.is_file():
+        return []
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")[-max_chars:]
+    except OSError:
+        return []
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return lines[-max_lines:]
+
+
+def _classify_server_failure(tail: list[str]) -> str | None:
+    blob = "\n".join(tail).lower()
+    if "kv cache" in blob and "less than requested" in blob:
+        return "KV cache OOM"
+    if "less than desired cpu memory utilization" in blob:
+        return "CPU memory reservation too high (--gpu-memory-utilization)"
+    if "less than desired gpu memory utilization" in blob:
+        return "memory reservation too high"
+    if "available memory" in blob and "on startup" in blob:
+        return "insufficient RAM at startup"
+    return None
+
+
+def log_server_start_failure(
+    mode: str,
+    spec: ModelSpec | None = None,
+    workload: WorkloadSpec | None = None,
+    server: Optional[Popen[Any]] = None,
+) -> None:
+    tail = _server_stderr_tail()
+    kind = _classify_server_failure(tail)
+    label = spec.short_name if spec else "model"
+    ctx = f" workload={workload.name}" if workload else ""
+    if kind:
+        summary = f"vLLM {mode} server failed for {label}{ctx}: {kind}."
+    else:
+        summary = f"vLLM {mode} server failed for {label}{ctx}."
+    hints = [summary]
+    if server is not None and server.poll() is not None:
+        hints.append(f"exit_code={server.returncode}")
+    if mode == "cpu":
+        hints.append("Try --privileged --shm-size=4g")
+        if host_arch() == "amd64" and not cpu_has_avx512():
+            hints.append("BENCHMARK_VLLM_ALLOW_AVX2_ONLY on AVX2-only amd64")
+    for line in tail:
+        hints.append(f"stderr: {line[:240]}")
+    logger.error(" | ".join(hints))
 
 
 def tensor_parallel_size(mode: str, spec: ModelSpec) -> int:
@@ -910,6 +1019,14 @@ def tensor_parallel_size(mode: str, spec: ModelSpec) -> int:
 
 
 def start_server(model_id: str, mode: str, max_model_len: int, spec: ModelSpec) -> Popen[Any]:
+    global _SERVER_STDERR_PATH
+    err_log = tempfile.NamedTemporaryFile(
+        mode="w+",
+        prefix="vllm-serve-",
+        suffix=".log",
+        delete=False,
+    )
+    _SERVER_STDERR_PATH = Path(err_log.name)
     cmd = [
         "vllm",
         "serve",
@@ -965,7 +1082,7 @@ def start_server(model_id: str, mode: str, max_model_len: int, spec: ModelSpec) 
     return Popen(
         cmd,
         stdout=DEVNULL,
-        stderr=stderr,
+        stderr=err_log,
         env=env,
         start_new_session=True,
     )
@@ -985,6 +1102,12 @@ def stop_server(proc: Optional[Popen[Any]]) -> None:
             os.killpg(proc.pid, signal.SIGKILL)
         except ProcessLookupError:
             proc.kill()
+    if proc.stderr is not None:
+        try:
+            proc.stderr.flush()
+            proc.stderr.close()
+        except OSError:
+            pass
 
 
 def run_guidellm(
@@ -1018,8 +1141,6 @@ def run_guidellm(
         "42",
         "--max-seconds",
         str(max_seconds),
-        "--max-requests",
-        str(guidellm_max_requests(mode, tuning)),
         "--warmup",
         tuning.warmup,
         "--output-dir",
@@ -1030,24 +1151,32 @@ def run_guidellm(
         "--sample-requests",
         "10",
     ]
+    if (max_req := guidellm_max_requests(mode, tuning)) is not None:
+        cmd.extend(["--max-requests", str(max_req)])
     if rate is not None:
         cmd.extend(["--rate", rate])
     elif tuning.autoconfig and tuning.rampup_duration > 0 and profile == "sweep":
         cmd.extend(["--rampup", str(tuning.rampup_duration)])
 
     logger.info("GuideLLM: %s", " ".join(cmd))
+    subprocess_timeout = guidellm_subprocess_timeout(tuning)
     try:
         result = run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=max(max_seconds * (tuning.sweep_size + 2), 120),
+            timeout=subprocess_timeout,
             check=False,
             env=guidellm_env(),
             cwd=str(out_dir),
         )
     except TimeoutExpired:
-        logger.warning("GuideLLM timed out profile=%s workload=%s", profile, workload.name)
+        logger.warning(
+            "GuideLLM timed out profile=%s workload=%s after %ss",
+            profile,
+            workload.name,
+            subprocess_timeout,
+        )
         return None
 
     if result.returncode != 0:
@@ -1264,6 +1393,13 @@ def run_model(spec: ModelSpec, mode: str, start_time: float) -> bool:
             if monotonic() - start_time > OVERALL_TIMEOUT_SEC:
                 return False
             tuning = init_benchmark_tuning(mode, spec, max_model_len=workload.max_model_len)
+            if not workload_kv_fits(spec, mode, workload.max_model_len, tuning.kv_memory_util):
+                logger.info(
+                    "Skipping %s workload=%s — insufficient KV cache headroom",
+                    spec.short_name,
+                    workload.name,
+                )
+                continue
             server = None
             try:
                 server = start_server(
@@ -1280,7 +1416,7 @@ def run_model(spec: ModelSpec, mode: str, start_time: float) -> bool:
                         spec.model_id,
                         workload.name,
                     )
-                    log_server_start_failure(mode, spec)
+                    log_server_start_failure(mode, spec, workload, server)
                     continue
                 peak_output_tps = max(
                     peak_output_tps,
@@ -1299,7 +1435,7 @@ def run_model(spec: ModelSpec, mode: str, start_time: float) -> bool:
             )
             if not wait_for_health(health_timeout, server):
                 logger.warning("Server health check failed for %s", spec.model_id)
-                log_server_start_failure(mode, spec)
+                log_server_start_failure(mode, spec, server=server)
                 return True
             for workload in workloads:
                 if monotonic() - start_time > OVERALL_TIMEOUT_SEC:
@@ -1348,7 +1484,7 @@ def run_probe_only(mode: str) -> None:
         if wait_for_health(probe_health_timeout_sec(mode), server):
             logger.info("probe_ok model=%s mode=%s", spec.model_id, mode)
             sys_exit(0)
-        log_server_start_failure(mode, spec)
+        log_server_start_failure(mode, spec, server=server)
         sys_exit(1)
     finally:
         stop_server(server)
