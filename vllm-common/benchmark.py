@@ -891,14 +891,39 @@ def _guidellm_profile_override(mode: str) -> str:
     )
 
 
+def _is_sweep_profile(profile: str) -> bool:
+    return profile == "sweep" or profile.startswith("sweep,")
+
+
 def guidellm_plan(mode: str, tuning: BenchmarkTuning) -> list[tuple[str, str | None]]:
-    """(profile, rate) runs per model/workload."""
+    """(profile, sweep_size_for_rate) runs per model/workload.
+
+    GuideLLM 0.6+ maps ``--rate`` to ``sweep_size`` when ``--profile sweep``.
+    """
     override = _guidellm_profile_override(mode)
     if override in ("legacy", "sync-throughput", "sync"):
         return [("synchronous", None), ("throughput", guidellm_throughput_rate(mode))]
     if tuning.autoconfig:
         return [("sweep", str(tuning.sweep_size))]
     return [("sweep", guidellm_sweep_size(mode))]
+
+
+def guidellm_cli_load_args(
+    profile: str,
+    rate: str | None,
+    tuning: BenchmarkTuning,
+) -> list[str]:
+    """Extra GuideLLM CLI args for load shaping (sweep size + rampup)."""
+    extras: list[str] = []
+    if rate is not None:
+        extras.extend(["--rate", rate])
+    if (
+        tuning.autoconfig
+        and tuning.rampup_duration > 0
+        and _is_sweep_profile(profile)
+    ):
+        extras.extend(["--rampup", str(tuning.rampup_duration)])
+    return extras
 
 
 def guidellm_max_seconds(mode: str, spec: ModelSpec, tuning: BenchmarkTuning) -> int:
@@ -915,11 +940,14 @@ def guidellm_subprocess_timeout(tuning: BenchmarkTuning) -> int:
     """Wall timeout for the full GuideLLM sweep subprocess."""
     scale = max(1, cli_args.benchmark_timeout_scale)
     warmup_sec = int(tuning.warmup) if tuning.warmup.isdigit() else 15
-    per_strategy = tuning.max_seconds_per_strategy * tuning.sweep_size * scale
+    rampup_sec = int(tuning.rampup_duration) if tuning.rampup_duration > 0 else 0
+    # Stages run up to max_seconds each; slow models may drain in-flight requests after.
+    stage_wall = tuning.max_seconds_per_strategy * tuning.sweep_size * scale
+    drain_pad = tuning.max_seconds_per_strategy * scale
     return int(
         max(
-            tuning.per_run_budget_sec * scale * 1.25,
-            per_strategy + warmup_sec + 120,
+            tuning.per_run_budget_sec * scale * 1.5,
+            stage_wall + warmup_sec + rampup_sec + drain_pad + 180,
         )
     )
 
@@ -1153,10 +1181,7 @@ def run_guidellm(
     ]
     if (max_req := guidellm_max_requests(mode, tuning)) is not None:
         cmd.extend(["--max-requests", str(max_req)])
-    if rate is not None:
-        cmd.extend(["--rate", rate])
-    elif tuning.autoconfig and tuning.rampup_duration > 0 and profile == "sweep":
-        cmd.extend(["--rampup", str(tuning.rampup_duration)])
+    cmd.extend(guidellm_cli_load_args(profile, rate, tuning))
 
     logger.info("GuideLLM: %s", " ".join(cmd))
     subprocess_timeout = guidellm_subprocess_timeout(tuning)
@@ -1177,6 +1202,10 @@ def run_guidellm(
             workload.name,
             subprocess_timeout,
         )
+        report = find_guidellm_report(out_dir)
+        if report is not None:
+            logger.warning("Using partial GuideLLM report after timeout: %s", report)
+            return report
         return None
 
     if result.returncode != 0:
@@ -1186,16 +1215,24 @@ def run_guidellm(
             workload.name,
             (result.stderr or result.stdout)[-3000:],
         )
+        report = find_guidellm_report(out_dir)
+        if report is not None:
+            logger.warning("Using partial GuideLLM report after failure: %s", report)
+            return report
         return None
 
-    report = out_dir / "benchmarks.json"
-    if not report.is_file():
-        candidates = list(out_dir.glob("**/benchmarks.json"))
-        if not candidates:
-            logger.warning("No benchmarks.json under %s", out_dir)
-            return None
-        report = candidates[0]
+    report = find_guidellm_report(out_dir)
+    if report is None:
+        logger.warning("No benchmarks.json under %s", out_dir)
     return report
+
+
+def find_guidellm_report(out_dir: Path) -> Path | None:
+    report = out_dir / "benchmarks.json"
+    if report.is_file():
+        return report
+    candidates = list(out_dir.glob("**/benchmarks.json"))
+    return candidates[0] if candidates else None
 
 
 def _dist_block(metrics: dict[str, Any], key: str) -> dict[str, Any] | None:

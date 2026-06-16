@@ -46,6 +46,8 @@ Example CPU load at different sizes (8 model×workload runs, 2h budget):
 Autoconfig runs `guidellm benchmark run --profile sweep` with **`--max-seconds` only**
 (no `--max-requests`). Each stage stops when its time budget is exhausted.
 Load scales via **`max_concurrency`** (env `GUIDELLM__MAX_CONCURRENCY`, sub-linear in vCPU).
+Pass sweep step count as **`--rate`** (GuideLLM 0.6+ alias for `sweep_size`) and
+**`--rampup`** for throughput-stage ramp-up within the sweep.
 
 **Sweep stages** (see [GuideLLM sweep profile](https://github.com/vllm-project/guidellm/blob/main/docs/getting-started/benchmark.md)):
 
@@ -57,8 +59,8 @@ Load scales via **`max_concurrency`** (env `GUIDELLM__MAX_CONCURRENCY`, sub-line
 A 192-vCPU metal run can schedule ~182 concurrent streams; a 2-vCPU box caps at ~32.
 
 **`max_seconds` per strategy** comes from `per_run_budget / sweep_size`, with a higher
-floor for rag @ 4096 ctx. Subprocess wall time is derived from `per_run_budget_sec`
-and sweep size so long rag sweeps are not killed early.
+floor for rag @ 4096 ctx. Subprocess wall time adds warmup, rampup, one extra stage
+for in-flight drain, and margin so heavy rag sweeps are not killed early.
 
 Optional override: set `GUIDELLM_MAX_REQUESTS` or `GUIDELLM_MAX_REQUESTS_CPU` to pass
 `--max-requests` (legacy path and manual experiments). Legacy autoconfig-off mode still
