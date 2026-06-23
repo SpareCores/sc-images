@@ -80,10 +80,16 @@ PY
 }
 patch_bawt_for_aarch64
 
+# HammerDBFinalize runs wish during single-file executable packaging; needs a display in CI.
+if ! command -v xvfb-run >/dev/null; then
+  echo "build-hammerdb-arm64: xvfb-run required for HammerDB finalize stage" >&2
+  exit 1
+fi
+
 # Upstream Build-Linux.sh uses tclkit-Linux64 (amd64-only) to run Bawt.tcl.
 # System tclsh runs the same orchestrator on arm64. --architecture x64 is BAWT's
 # "64-bit" mode (output under BawtBuild/Linux/x64/...); gcc still targets the host.
-tclsh Bawt.tcl \
+xvfb-run -a tclsh Bawt.tcl \
   --rootdir ../BawtBuild \
   --architecture x64 \
   --numjobs "${NUM_JOBS}" \

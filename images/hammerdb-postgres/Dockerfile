@@ -24,7 +24,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
       build-essential git tcl p7zip-full cmake pkg-config autoconf automake libtool \
       libxft-dev libcairo2-dev libpq-dev python3 python3-dev \
       libssl-dev zlib1g-dev libfontconfig1-dev libx11-dev libxrender-dev libxext-dev \
-      ca-certificates curl wget zip unzip gnupg apt-utils iputils-ping vim netcat-traditional xauth; \
+      ca-certificates curl wget zip unzip gnupg apt-utils iputils-ping vim netcat-traditional xauth xvfb; \
   else \
     apt-get install -y --no-install-recommends \
       ca-certificates curl wget unzip gnupg apt-utils iputils-ping vim netcat-traditional \
