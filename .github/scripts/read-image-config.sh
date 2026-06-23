@@ -9,7 +9,7 @@
 #   CONTEXT     - build context, repo-relative (default: images/<folder>)
 #   DOCKERFILE  - Dockerfile path, repo-relative (default: images/<folder>/Dockerfile)
 #   TARGET      - build target stage (default: none)
-#   BUILD_ARGS  - KEY=VALUE lines; tokens ${ARCH} ${VLLM_VERSION} ${RESOURCE_TRACKER_VERSION}
+#   BUILD_ARGS  - KEY=VALUE lines; tokens ${ARCH} ${VLLM_VERSION} ${HAMMERDB_VERSION} ${RESOURCE_TRACKER_VERSION}
 #   ZRAM        - enable compressed swap on the builder (true/1/yes, or PERCENT e.g. 125); default off
 #   SCCACHE     - enable sccache S3 compile cache (true/1/yes); default off
 #   prepare.sh  - pre-build hook (presence reported as has_prepare=true)
@@ -92,6 +92,7 @@ pull=false
 { [ "${#deps[@]}" -gt 0 ] || [ "$rt_consumer" = true ]; } && pull=true
 
 vllm_version="$(read_scalar vllm-common/VLLM_VERSION || true)"
+hammerdb_version="$(read_scalar "$fdir/HAMMERDB_VERSION" || true)"
 rt_version="$(read_scalar "$images_dir/resource-tracker/RESOURCE_TRACKER_VERSION" || true)"
 
 mkdir -p .cache
@@ -103,6 +104,7 @@ if [ -f "$fdir/BUILD_ARGS" ]; then
     case "$line" in \#*) continue ;; esac
     line="${line//\$\{ARCH\}/$arch}"
     line="${line//\$\{VLLM_VERSION\}/$vllm_version}"
+    line="${line//\$\{HAMMERDB_VERSION\}/$hammerdb_version}"
     line="${line//\$\{RESOURCE_TRACKER_VERSION\}/$rt_version}"
     echo "$line" >> .cache/build-args
   done < "$fdir/BUILD_ARGS"

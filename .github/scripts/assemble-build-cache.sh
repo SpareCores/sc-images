@@ -18,9 +18,14 @@ if [ "$force_rebuild" = "true" ] && [ "$rt_consumer" = "true" ]; then
 fi
 
 scope="${folder}-${arch}"
-if [ "$has_prepare" = "true" ] && [ -f vllm-common/VLLM_VERSION ]; then
-  vllm_version="$(tr -d '[:space:]' < vllm-common/VLLM_VERSION)"
-  [ -n "$vllm_version" ] && scope="${scope}-v${vllm_version}"
+if [ "$has_prepare" = "true" ]; then
+  if [ -f vllm-common/VLLM_VERSION ]; then
+    vllm_version="$(tr -d '[:space:]' < vllm-common/VLLM_VERSION)"
+    [ -n "$vllm_version" ] && scope="${scope}-v${vllm_version}"
+  elif [ -f "images/${folder}/HAMMERDB_VERSION" ]; then
+    hammerdb_version="$(tr -d '[:space:]' < "images/${folder}/HAMMERDB_VERSION")"
+    [ -n "$hammerdb_version" ] && scope="${scope}-v${hammerdb_version}"
+  fi
 fi
 
 registry_ref="${registry}/sparecores/${folder}:buildcache-${arch}"

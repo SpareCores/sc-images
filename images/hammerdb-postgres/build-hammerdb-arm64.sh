@@ -45,7 +45,7 @@ tclsh Bawt.tcl \
   --numjobs "${NUM_JOBS}" \
   --url http://www.hammerdb.com/build5 \
   --finalizefile Setup/HammerDBFinalize.bawt \
-  --update "${SETUP}"
+  --update "${SETUP}" all
 
 dist_dir="../BawtBuild/Linux/x64/Release/Distribution"
 prod_tgz=""
