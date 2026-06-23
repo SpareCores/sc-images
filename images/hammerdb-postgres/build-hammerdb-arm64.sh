@@ -33,6 +33,12 @@ cp "${BAWT_SETUP}" "${BAWT_DIR}/${SETUP}"
 
 export PG_CONFIG="${PG_CONFIG:-/usr/bin/pg_config}"
 export DEBIAN_FRONTEND=noninteractive
+# Tcl/Tk 9 zipfs prefers system zip; without it the build falls back to minizip and
+# can fail under parallel make (see Tcl ticket b38c726c / LFS #5570).
+if ! command -v zip >/dev/null; then
+  echo "build-hammerdb-arm64: zip(1) required for Tcl/Tk zipfs build" >&2
+  exit 1
+fi
 
 cd "${BAWT_DIR}"
 
