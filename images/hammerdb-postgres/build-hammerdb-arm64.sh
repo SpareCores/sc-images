@@ -31,7 +31,12 @@ if [ ! -f "${BAWT_SETUP}" ]; then
 fi
 cp "${BAWT_SETUP}" "${BAWT_DIR}/${SETUP}"
 
-export PG_CONFIG="${PG_CONFIG:-/usr/bin/pg_config}"
+if ! command -v pg_config >/dev/null; then
+  echo "build-hammerdb-arm64: pg_config not found (install libpq-dev)" >&2
+  exit 1
+fi
+# BAWT/pgtcl expects PG_CONFIG to be the directory containing pg_config, not the binary.
+export PG_CONFIG="${PG_CONFIG:-$(dirname "$(command -v pg_config)")}"
 export DEBIAN_FRONTEND=noninteractive
 # Tcl/Tk 9 zipfs prefers system zip; without it the build falls back to minizip and
 # can fail under parallel make (see Tcl ticket b38c726c / LFS #5570).
