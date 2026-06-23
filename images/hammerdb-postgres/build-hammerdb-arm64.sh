@@ -42,6 +42,39 @@ fi
 
 cd "${BAWT_DIR}"
 
+patch_bawt_for_aarch64() {
+  [ "$(uname -m)" = "aarch64" ] || return 0
+  local bawt_tcl="${BAWT_DIR}/Bawt.tcl"
+  if grep -q 'aarch64-unknown-linux-gnu' "${bawt_tcl}"; then
+    return 0
+  fi
+  python3 - "${bawt_tcl}" <<'PY'
+import sys
+path = sys.argv[1]
+text = open(path, encoding="utf-8").read()
+needle = """        if { [IsWindows] } {
+            append cmd "--build=[GetMingwVersion] "
+        }
+"""
+insert = """        if { [IsLinux] } {
+            catch {
+                if {[string equal [exec uname -m] aarch64]} {
+                    append cmd "--build=aarch64-unknown-linux-gnu "
+                    append cmd "--host=aarch64-unknown-linux-gnu "
+                }
+            }
+        }
+"""
+if needle not in text:
+    raise SystemExit("build-hammerdb-arm64: Bawt.tcl aarch64 patch point not found")
+patched = text.replace(needle, needle + insert)
+if patched == text:
+    raise SystemExit("build-hammerdb-arm64: Bawt.tcl aarch64 patch made no changes")
+open(path, "w", encoding="utf-8").write(patched)
+PY
+}
+patch_bawt_for_aarch64
+
 # Upstream Build-Linux.sh uses tclkit-Linux64 (amd64-only) to run Bawt.tcl.
 # System tclsh runs the same orchestrator on arm64. --architecture x64 is BAWT's
 # "64-bit" mode (output under BawtBuild/Linux/x64/...); gcc still targets the host.
