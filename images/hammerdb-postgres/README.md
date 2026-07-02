@@ -32,7 +32,7 @@ docker run --rm -it --network=host ghcr.io/sparecores/hammerdb-postgres:main bas
 docker buildx build \
   --file images/hammerdb-postgres/Dockerfile \
   --platform linux/arm64 \
-  --build-arg HAMMERDB_VERSION=5.0 \
+  --build-arg HAMMERDB_VERSION=6.0 \
   --build-arg NUM_JOBS=4 \
   --tag hammerdb-postgres:local \
   images/hammerdb-postgres

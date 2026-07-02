@@ -4,7 +4,7 @@
 # amd64: official pre-built release (same as tpcorg/hammerdb:postgres base).
 # arm64: HammerDB built from source via upstream BAWT (postgres driver only).
 
-ARG HAMMERDB_VERSION=5.0
+ARG HAMMERDB_VERSION=6.0
 
 FROM ubuntu:24.04
 
