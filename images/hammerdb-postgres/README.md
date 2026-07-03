@@ -1,13 +1,12 @@
 # hammerdb-postgres
 
-Multi-arch HammerDB client image for PostgreSQL benchmarks, aligned with the [official HammerDB postgres Docker image](https://github.com/TPC-Council/HammerDB/blob/master/Docker/postgres/Dockerfile) (`tpcorg/hammerdb:postgres`).
+amd64 HammerDB client image for PostgreSQL benchmarks, aligned with the [official HammerDB postgres Docker image](https://github.com/TPC-Council/HammerDB/blob/master/Docker/postgres/Dockerfile) (`tpcorg/hammerdb:postgres`).
 
 | Arch | HammerDB install |
 |------|------------------|
 | amd64 | Pre-built release `HammerDB-${VERSION}-Prod-Lin-UBU24.tar.gz` (same binary as official) |
-| arm64 | Built from source with upstream [BAWT](https://www.hammerdb.com/blog/uncategorized/how-to-build-hammerdb-from-source/) using a postgres-only driver set |
 
-Published as `ghcr.io/sparecores/hammerdb-postgres:main` (amd64 + arm64 manifest).
+Published as `ghcr.io/sparecores/hammerdb-postgres:main` (amd64 only).
 
 Version pin: [`HAMMERDB_VERSION`](HAMMERDB_VERSION).
 
@@ -28,14 +27,11 @@ docker run --rm -it --network=host ghcr.io/sparecores/hammerdb-postgres:main bas
 ## Local build
 
 ```bash
-# from sc-images repo root (arm64 only compiles from source)
+# from sc-images repo root
 docker buildx build \
   --file images/hammerdb-postgres/Dockerfile \
-  --platform linux/arm64 \
+  --platform linux/amd64 \
   --build-arg HAMMERDB_VERSION=6.0 \
-  --build-arg NUM_JOBS=4 \
   --tag hammerdb-postgres:local \
   images/hammerdb-postgres
 ```
-
-HammerDB sources are cloned inside the Docker build on arm64 (`git clone` in `build-hammerdb-arm64.sh`); no host-side checkout is required. amd64 builds download the official release tarball only.
