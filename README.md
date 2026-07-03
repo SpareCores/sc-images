@@ -108,6 +108,7 @@ Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; `benchmar
 - [vllm-cpu-base-avx2](images/vllm-cpu-base-avx2) - amd64 AVX2 vLLM base built from upstream `Dockerfile.cpu`
 - [benchmark-passmark](images/benchmark-passmark) - PassMark Performance Test benchmarking suite for CPU and memory performance
 - [benchmark-hammerdb-postgres](images/benchmark-hammerdb-postgres) - HammerDB PostgreSQL benchmark wrapper (`tpcorg/hammerdb:v5.0-postgres` + resource-tracker)
+- [benchmark-postgres-server](images/benchmark-postgres-server) - PostgreSQL 18 server for multi-VM DB benchmarks (`postgres:18` + resource-tracker)
 - [benchmark-redis](images/benchmark-redis) - Redis server performance benchmarks using `memtier_benchmark`
 - [benchmark-web](images/benchmark-web) - Static web server performance benchmarks using `wrk` and `binserve`
 - [dmidecode](images/dmidecode) - Hardware information reader using `dmidecode`
