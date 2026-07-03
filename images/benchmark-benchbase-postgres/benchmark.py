@@ -34,6 +34,12 @@ WORKLOADS: dict[str, dict[str, Any]] = {
         "weights": "1,1,7,90,1",
         "extra": {},
     },
+    "ycsb": {
+        "bench": "ycsb",
+        "txn_types": ("ReadRecord", "UpdateRecord"),
+        "weights": "50,50",
+        "extra": {},
+    },
 }
 
 
@@ -118,9 +124,12 @@ def pg_rtt_ms(host: str, port: int, user: str, password: str, dbname: str) -> fl
 
 def default_scalefactor(workload: str, cache_ratio: float) -> int:
     mem = mem_gib()
+    schema_gib = BUFFER_FRAC * mem / cache_ratio
     if workload == "wikipedia":
         return max(10, min(200, int(mem / 2.5)))
-    return max(10, int((BUFFER_FRAC * mem) / max(cache_ratio, 0.05) / WH_SIZE_GIB))
+    if workload == "ycsb":
+        return max(100, min(500_000, int(schema_gib * 1024)))
+    return max(10, int(schema_gib / WH_SIZE_GIB))
 
 
 def config_path(bench: str) -> Path:
