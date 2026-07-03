@@ -1,14 +1,17 @@
 ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
-ARG HAMMERDB_IMAGE=ghcr.io/sparecores/hammerdb-postgres:main
+ARG HAMMERDB_VERSION=5.0
+ARG HAMMERDB_IMAGE=tpcorg/hammerdb:v5.0-postgres
 
 FROM ${RESOURCE_TRACKER_IMAGE} AS resource_tracker
 FROM ${HAMMERDB_IMAGE}
 
+USER root
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
+    mkdir -p /var/lib/apt/lists/partial && \
     apt-get update --error-on=any && \
     apt-get install -y --no-install-recommends \
       python3 \

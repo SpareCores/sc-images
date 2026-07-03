@@ -82,7 +82,7 @@ CI auto-discovers every folder under `images/` (any dir with a `Dockerfile` or `
 | `CONTEXT` | build context, repo-relative | `images/<folder>` |
 | `DOCKERFILE` | Dockerfile path, repo-relative | `images/<folder>/Dockerfile` |
 | `TARGET` | build target stage | none |
-| `BUILD_ARGS` | `KEY=VALUE` lines; tokens `${ARCH}`, `${VLLM_VERSION}`, `${RESOURCE_TRACKER_VERSION}` | none |
+| `BUILD_ARGS` | `KEY=VALUE` lines; tokens `${ARCH}`, `${VLLM_VERSION}`, `${HAMMERDB_VERSION}`, `${BENCHBASE_VERSION}`, `${BENCHBASE_IMAGE_DIGEST}`, `${RESOURCE_TRACKER_VERSION}` | none |
 | `ZRAM` | enable compressed swap on the builder (`true`/`1`/`yes`, or a PERCENT e.g. `125`) | off |
 | `SCCACHE` | enable sccache S3 compile cache for source builds (`true`/`1`/`yes`) | off |
 | `prepare.sh` | pre-build hook (clone sources, patch Dockerfile, emit BuildKit secret + parallelism) | none |
@@ -107,6 +107,7 @@ Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; `benchmar
 - [benchmark-vllm-cpu-avx2](images/benchmark-vllm-cpu-avx2) - vLLM CPU serving for AVX2-only amd64
 - [vllm-cpu-base-avx2](images/vllm-cpu-base-avx2) - amd64 AVX2 vLLM base built from upstream `Dockerfile.cpu`
 - [benchmark-passmark](images/benchmark-passmark) - PassMark Performance Test benchmarking suite for CPU and memory performance
+- [benchmark-hammerdb-postgres](images/benchmark-hammerdb-postgres) - HammerDB PostgreSQL benchmark wrapper (`tpcorg/hammerdb:v5.0-postgres` + resource-tracker)
 - [benchmark-redis](images/benchmark-redis) - Redis server performance benchmarks using `memtier_benchmark`
 - [benchmark-web](images/benchmark-web) - Static web server performance benchmarks using `wrk` and `binserve`
 - [dmidecode](images/dmidecode) - Hardware information reader using `dmidecode`

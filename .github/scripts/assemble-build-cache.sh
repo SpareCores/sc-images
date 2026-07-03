@@ -25,6 +25,9 @@ if [ "$has_prepare" = "true" ]; then
   elif [ -f "images/${folder}/HAMMERDB_VERSION" ]; then
     hammerdb_version="$(tr -d '[:space:]' < "images/${folder}/HAMMERDB_VERSION")"
     [ -n "$hammerdb_version" ] && scope="${scope}-v${hammerdb_version}"
+  elif [ -f "images/${folder}/BENCHBASE_VERSION" ]; then
+    benchbase_version="$(tr -d '[:space:]' < "images/${folder}/BENCHBASE_VERSION")"
+    [ -n "$benchbase_version" ] && scope="${scope}-v${benchbase_version}"
   fi
 fi
 

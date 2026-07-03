@@ -1,5 +1,5 @@
 ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
-ARG BENCHBASE_IMAGE=benchbase.azurecr.io/benchbase-postgres:latest
+ARG BENCHBASE_IMAGE=benchbase.azurecr.io/benchbase-postgres@sha256:9a25ca9a86e0a2168a9b16e09095c6d63018f8b590c01c0032b7d8aeb83967c9
 
 FROM ${RESOURCE_TRACKER_IMAGE} AS resource_tracker
 FROM ${BENCHBASE_IMAGE}

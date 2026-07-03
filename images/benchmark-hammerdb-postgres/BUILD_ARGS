@@ -1,2 +1,2 @@
 RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-${ARCH}
-HAMMERDB_IMAGE=ghcr.io/sparecores/hammerdb-postgres:main-${ARCH}
+HAMMERDB_IMAGE=tpcorg/hammerdb:v${HAMMERDB_VERSION}-postgres
