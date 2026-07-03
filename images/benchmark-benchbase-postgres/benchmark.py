@@ -12,9 +12,29 @@ from xml.dom import minidom
 
 WH_SIZE_GIB = 0.095
 BUFFER_FRAC = 0.25
-WH_PER_VU_MIN = 5
+UNITS_PER_VU_MIN = 5
 RESULTS_DIR = Path("/tmp/benchbase-results")
-CONFIG_PATH = Path("/tmp/tpcc_config.xml")
+
+WORKLOADS: dict[str, dict[str, Any]] = {
+    "tpcc": {
+        "bench": "tpcc",
+        "txn_types": ("NewOrder", "Payment", "OrderStatus", "Delivery", "StockLevel"),
+        "weights": "45,43,4,4,4",
+        "extra": {},
+    },
+    "wikipedia": {
+        "bench": "wikipedia",
+        "txn_types": (
+            "AddWatchList",
+            "RemoveWatchList",
+            "UpdatePage",
+            "GetPageAnonymous",
+            "GetPageAuthenticated",
+        ),
+        "weights": "1,1,7,90,1",
+        "extra": {},
+    },
+}
 
 
 def env_int(name: str, default: int) -> int:
@@ -96,49 +116,73 @@ def pg_rtt_ms(host: str, port: int, user: str, password: str, dbname: str) -> fl
     return round(min(samples), 3)
 
 
-def write_tpcc_config(
+def default_scalefactor(workload: str, cache_ratio: float) -> int:
+    mem = mem_gib()
+    if workload == "wikipedia":
+        return max(10, min(200, int(mem / 2.5)))
+    return max(10, int((BUFFER_FRAC * mem) / max(cache_ratio, 0.05) / WH_SIZE_GIB))
+
+
+def config_path(bench: str) -> Path:
+    return Path(f"/tmp/{bench}_config.xml")
+
+
+def write_config(
     *,
+    bench: str,
     host: str,
     port: int,
     user: str,
     password: str,
-    warehouses: int,
+    scalefactor: int,
     terminals: int,
     run_seconds: int,
-) -> None:
+    txn_types: tuple[str, ...],
+    weights: str,
+    extra: dict[str, str],
+) -> Path:
+    path = config_path(bench)
     root = ET.Element("parameters")
     fields = {
         "type": "POSTGRES",
         "driver": "org.postgresql.Driver",
-        "url": f"jdbc:postgresql://{host}:{port}/benchbase?sslmode=disable",
+        "url": (
+            f"jdbc:postgresql://{host}:{port}/benchbase"
+            f"?sslmode=disable&ApplicationName={bench}&reWriteBatchedInserts=true"
+        ),
         "username": user,
         "password": password,
+        "reconnectOnConnectionFailure": "true",
         "isolation": "TRANSACTION_READ_COMMITTED",
         "batchsize": "128",
-        "scalefactor": str(warehouses),
+        "scalefactor": str(scalefactor),
         "terminals": str(terminals),
     }
     for key, value in fields.items():
         elem = ET.SubElement(root, key)
         elem.text = value
+    for key, value in extra.items():
+        elem = ET.SubElement(root, key)
+        elem.text = value
 
     works = ET.SubElement(root, "works")
     work = ET.SubElement(works, "work")
-    for key, value in (("time", str(run_seconds)), ("rate", "unlimited"), ("weights", "45,43,4,4,4")):
+    for key, value in (("time", str(run_seconds)), ("rate", "unlimited"), ("weights", weights)):
         elem = ET.SubElement(work, key)
         elem.text = value
 
     tx_types = ET.SubElement(root, "transactiontypes")
-    for name in ("NewOrder", "Payment", "OrderStatus", "Delivery", "StockLevel"):
+    for name in txn_types:
         tx_type = ET.SubElement(tx_types, "transactiontype")
         tx_name = ET.SubElement(tx_type, "name")
         tx_name.text = name
 
     xml_text = minidom.parseString(ET.tostring(root, encoding="unicode")).toprettyxml(indent="    ")
-    CONFIG_PATH.write_text(xml_text, encoding="utf-8")
+    path.write_text(xml_text, encoding="utf-8")
+    return path
 
 
-def benchbase_cmd(extra_args: list[str], timeout: int) -> str:
+def benchbase_cmd(bench: str, config: Path, extra_args: list[str], timeout: int) -> str:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     proc = run(
         [
@@ -146,9 +190,9 @@ def benchbase_cmd(extra_args: list[str], timeout: int) -> str:
             "-jar",
             "/benchbase/benchbase.jar",
             "-b",
-            "tpcc",
+            bench,
             "-c",
-            str(CONFIG_PATH),
+            str(config),
             "-d",
             str(RESULTS_DIR),
             *extra_args,
@@ -158,8 +202,8 @@ def benchbase_cmd(extra_args: list[str], timeout: int) -> str:
     return proc.stdout + proc.stderr
 
 
-def latest_summary_json() -> dict[str, Any]:
-    files = sorted(RESULTS_DIR.glob("tpcc_*.summary.json"), key=lambda p: p.stat().st_mtime)
+def latest_summary_json(bench: str) -> dict[str, Any]:
+    files = sorted(RESULTS_DIR.glob(f"{bench}_*.summary.json"), key=lambda p: p.stat().st_mtime)
     if not files:
         raise RuntimeError("No BenchBase summary JSON produced")
     return json.loads(files[-1].read_text(encoding="utf-8"))
@@ -167,49 +211,66 @@ def latest_summary_json() -> dict[str, Any]:
 
 def create_and_load(
     *,
+    spec: dict[str, Any],
     host: str,
     port: int,
     user: str,
     password: str,
-    warehouses: int,
+    scalefactor: int,
 ) -> None:
-    write_tpcc_config(
+    bench = spec["bench"]
+    config = write_config(
+        bench=bench,
         host=host,
         port=port,
         user=user,
         password=password,
-        warehouses=warehouses,
+        scalefactor=scalefactor,
         terminals=1,
         run_seconds=10,
+        txn_types=spec["txn_types"],
+        weights=spec["weights"],
+        extra=spec.get("extra", {}),
     )
-    out = benchbase_cmd(["--create=true", "--load=true", "--execute=false"], timeout=14400)
+    out = benchbase_cmd(bench, config, ["--create=true", "--load=true", "--execute=false"], timeout=14400)
     if "Exception" in out and "Finished" not in out and "Data loaded" not in out:
         raise RuntimeError(f"BenchBase load failed: {out[-2000:]}")
 
 
 def run_once(
     *,
+    spec: dict[str, Any],
     host: str,
     port: int,
     user: str,
     password: str,
-    warehouses: int,
+    scalefactor: int,
     terminals: int,
     run_seconds: int,
 ) -> dict[str, Any]:
-    write_tpcc_config(
+    bench = spec["bench"]
+    config = write_config(
+        bench=bench,
         host=host,
         port=port,
         user=user,
         password=password,
-        warehouses=warehouses,
+        scalefactor=scalefactor,
         terminals=terminals,
         run_seconds=run_seconds,
+        txn_types=spec["txn_types"],
+        weights=spec["weights"],
+        extra=spec.get("extra", {}),
     )
-    out = benchbase_cmd(["--create=false", "--load=false", "--execute=true"], timeout=run_seconds + 900)
+    out = benchbase_cmd(
+        bench,
+        config,
+        ["--create=false", "--load=false", "--execute=true"],
+        timeout=run_seconds + 900,
+    )
     if "Unexpected error" in out and "Throughput" not in out:
         raise RuntimeError(f"BenchBase execute failed: {out[-2000:]}")
-    summary = latest_summary_json()
+    summary = latest_summary_json(bench)
     tps = float(summary.get("Throughput (requests/second)", 0))
     return {
         "score": int(round(tps * 60)),
@@ -220,15 +281,15 @@ def run_once(
 def choose_concurrency_candidates(
     *,
     run_vus: int,
-    warehouses: int,
+    scalefactor: int,
     profiling_enabled: bool,
 ) -> list[int]:
-    max_by_warehouses = max(1, warehouses // WH_PER_VU_MIN)
+    max_by_scale = max(1, scalefactor // UNITS_PER_VU_MIN)
     if not profiling_enabled:
-        return [max(1, min(run_vus, max_by_warehouses))]
+        return [max(1, min(run_vus, max_by_scale))]
     points = profile_points(os.cpu_count() or 2)
     points.append(run_vus)
-    return sorted({max(1, min(v, max_by_warehouses)) for v in points})
+    return sorted({max(1, min(v, max_by_scale)) for v in points})
 
 
 def main() -> int:
@@ -236,16 +297,17 @@ def main() -> int:
     db_port = env_int("SC_DB_PORT", 5432)
     cache_ratio = env_float("SC_CACHE_RATIO", 1.0)
     workload = os.environ.get("SC_WORKLOAD", "tpcc").strip().lower()
-    if workload != "tpcc":
-        raise RuntimeError("BenchBase wrapper currently supports SC_WORKLOAD=tpcc")
+    spec = WORKLOADS.get(workload)
+    if spec is None:
+        supported = ", ".join(sorted(WORKLOADS))
+        raise RuntimeError(f"BenchBase wrapper supports SC_WORKLOAD in {{{supported}}}, got {workload!r}")
 
     db_user = os.environ.get("SC_DB_USER", "postgres")
     db_pass = os.environ.get("SC_DB_PASSWORD", "postgres")
     db_name = os.environ.get("SC_DB_NAME", "postgres")
 
-    default_wh = max(10, int((BUFFER_FRAC * mem_gib()) / max(cache_ratio, 0.05) / WH_SIZE_GIB))
-    warehouses = env_int("SC_WAREHOUSES", default_wh)
-    run_vus = env_int("SC_RUN_VUS", min(os.cpu_count() or 2, max(1, warehouses // WH_PER_VU_MIN)))
+    scalefactor = env_int("SC_SCALEFACTOR", default_scalefactor(workload, cache_ratio))
+    run_vus = env_int("SC_RUN_VUS", min(os.cpu_count() or 2, max(1, scalefactor // UNITS_PER_VU_MIN)))
     profiling_enabled = os.environ.get("SC_PROFILE", "0") == "1"
 
     # Exposed for compatibility with HammerDB wrappers even though BenchBase build phase does not use VUs.
@@ -253,27 +315,29 @@ def main() -> int:
 
     rtt_ms = pg_rtt_ms(db_host, db_port, db_user, db_pass, db_name)
     create_and_load(
+        spec=spec,
         host=db_host,
         port=db_port,
         user=db_user,
         password=db_pass,
-        warehouses=warehouses,
+        scalefactor=scalefactor,
     )
 
     candidates = choose_concurrency_candidates(
         run_vus=run_vus,
-        warehouses=warehouses,
+        scalefactor=scalefactor,
         profiling_enabled=profiling_enabled,
     )
     profile: list[dict[str, Any]] = []
     best = {"concurrency": candidates[0], "score": -1}
     for terminals in candidates:
         result = run_once(
+            spec=spec,
             host=db_host,
             port=db_port,
             user=db_user,
             password=db_pass,
-            warehouses=warehouses,
+            scalefactor=scalefactor,
             terminals=terminals,
             run_seconds=90,
         )
@@ -283,27 +347,30 @@ def main() -> int:
             best = {"concurrency": terminals, "score": result["score"]}
 
     final = run_once(
+        spec=spec,
         host=db_host,
         port=db_port,
         user=db_user,
         password=db_pass,
-        warehouses=warehouses,
+        scalefactor=scalefactor,
         terminals=best["concurrency"],
         run_seconds=120,
     )
 
-    summary = {
+    summary: dict[str, Any] = {
         "benchmark": "benchbase_postgres",
         "workload": workload,
         "topology": "multi_vm",
         "cache_ratio": cache_ratio,
-        "warehouses": warehouses,
+        "scalefactor": scalefactor,
         "client_rtt_ms": rtt_ms,
         "peak_concurrency": best["concurrency"],
         "score": final["score"],
         "score_unit": "tpm",
         "profile": profile,
     }
+    if workload == "tpcc":
+        summary["warehouses"] = scalefactor
 
     output = Path("/output")
     output.mkdir(parents=True, exist_ok=True)
