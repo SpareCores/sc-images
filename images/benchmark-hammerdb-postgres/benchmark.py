@@ -211,13 +211,21 @@ def choose_concurrency_candidates(
     run_vus: int,
     warehouses: int,
     profiling_enabled: bool,
+    profile_vcpus: int,
 ) -> list[int]:
     max_by_warehouses = max(1, warehouses // WH_PER_VU_MIN)
     if not profiling_enabled:
         return [max(1, min(run_vus, max_by_warehouses))]
-    points = profile_points(os.cpu_count() or 2)
+    points = profile_points(profile_vcpus)
     points.append(run_vus)
     return sorted({max(1, min(v, max_by_warehouses)) for v in points})
+
+
+def sizing_vcpus(name: str, fallback: int) -> int:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return fallback
+    return max(1, int(value))
 
 
 def main() -> int:
@@ -234,8 +242,14 @@ def main() -> int:
 
     default_wh = max(10, int((BUFFER_FRAC * mem_gib()) / max(cache_ratio, 0.05) / WH_SIZE_GIB))
     warehouses = env_int("SC_WAREHOUSES", default_wh)
-    build_vus = env_int("SC_BUILD_VUS", min(16, os.cpu_count() or 2, warehouses))
-    run_vus = env_int("SC_RUN_VUS", min(os.cpu_count() or 2, max(1, warehouses // WH_PER_VU_MIN)))
+    db_vcpus = sizing_vcpus("SC_DB_VCPUS", os.cpu_count() or 2)
+    client_vcpus = sizing_vcpus("SC_CLIENT_VCPUS", os.cpu_count() or 2)
+    build_vus = min(
+        env_int("SC_BUILD_VUS", min(16, db_vcpus, warehouses)),
+        client_vcpus,
+        warehouses,
+    )
+    run_vus = env_int("SC_RUN_VUS", min(db_vcpus, max(1, warehouses // WH_PER_VU_MIN)))
     profiling_enabled = os.environ.get("SC_PROFILE", "0") == "1"
 
     rtt_ms = pg_rtt_ms(db_host, db_port, db_user, db_pass, db_name)
@@ -249,6 +263,7 @@ def main() -> int:
         run_vus=run_vus,
         warehouses=warehouses,
         profiling_enabled=profiling_enabled,
+        profile_vcpus=db_vcpus,
     )
     profile: list[dict[str, Any]] = []
     best = {"concurrency": candidates[0], "score": -1, "tpm": 0}

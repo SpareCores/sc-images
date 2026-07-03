@@ -292,13 +292,21 @@ def choose_concurrency_candidates(
     run_vus: int,
     scalefactor: int,
     profiling_enabled: bool,
+    profile_vcpus: int,
 ) -> list[int]:
     max_by_scale = max(1, scalefactor // UNITS_PER_VU_MIN)
     if not profiling_enabled:
         return [max(1, min(run_vus, max_by_scale))]
-    points = profile_points(os.cpu_count() or 2)
+    points = profile_points(profile_vcpus)
     points.append(run_vus)
     return sorted({max(1, min(v, max_by_scale)) for v in points})
+
+
+def sizing_vcpus(name: str, fallback: int) -> int:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return fallback
+    return max(1, int(value))
 
 
 def main() -> int:
@@ -316,11 +324,12 @@ def main() -> int:
     db_name = os.environ.get("SC_DB_NAME", "postgres")
 
     scalefactor = env_int("SC_SCALEFACTOR", default_scalefactor(workload, cache_ratio))
-    run_vus = env_int("SC_RUN_VUS", min(os.cpu_count() or 2, max(1, scalefactor // UNITS_PER_VU_MIN)))
+    db_vcpus = sizing_vcpus("SC_DB_VCPUS", os.cpu_count() or 2)
+    run_vus = env_int("SC_RUN_VUS", min(db_vcpus, max(1, scalefactor // UNITS_PER_VU_MIN)))
     profiling_enabled = os.environ.get("SC_PROFILE", "0") == "1"
 
     # Exposed for compatibility with HammerDB wrappers even though BenchBase build phase does not use VUs.
-    _ = env_int("SC_BUILD_VUS", min(16, os.cpu_count() or 2))
+    _ = env_int("SC_BUILD_VUS", min(16, db_vcpus))
 
     rtt_ms = pg_rtt_ms(db_host, db_port, db_user, db_pass, db_name)
     create_and_load(
@@ -336,6 +345,7 @@ def main() -> int:
         run_vus=run_vus,
         scalefactor=scalefactor,
         profiling_enabled=profiling_enabled,
+        profile_vcpus=db_vcpus,
     )
     profile: list[dict[str, Any]] = []
     best = {"concurrency": candidates[0], "score": -1}
