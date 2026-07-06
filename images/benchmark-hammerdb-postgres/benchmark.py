@@ -72,6 +72,66 @@ def parse_profile_vus() -> list[int] | None:
     if not raw:
         return None
     return [int(part) for part in raw.split(",") if part.strip()]
+
+
+def _extract_json_object(text: str, start_marker: str) -> dict[str, Any] | None:
+    """Parse the first JSON object after ``start_marker`` (HammerDB job timing)."""
+    idx = text.find(start_marker)
+    if idx < 0:
+        return None
+    chunk = text[idx + len(start_marker) :]
+    brace = chunk.find("{")
+    if brace < 0:
+        return None
+    depth = 0
+    for offset, ch in enumerate(chunk[brace:], start=brace):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    payload = json.loads(chunk[brace : offset + 1])
+                except json.JSONDecodeError:
+                    return None
+                return payload if isinstance(payload, dict) else None
+    return None
+
+
+def hammerdb_timing_latency_ms(out: str) -> dict[str, float] | None:
+    """Weighted transaction latency (ms) from HammerDB ``job timing`` JSON."""
+    timing = _extract_json_object(out, "SC_TIMING_JSON_START")
+    if timing is None:
+        timing = _extract_json_object(out, "TRANSACTION RESPONSE TIMES")
+    if not timing:
+        return None
+
+    weighted: list[tuple[float, dict[str, Any]]] = []
+    for stats in timing.values():
+        if not isinstance(stats, dict):
+            continue
+        weight = float(stats.get("ratio_pct", 0) or 0)
+        if weight <= 0:
+            continue
+        weighted.append((weight, stats))
+    if not weighted:
+        return None
+
+    total = sum(w for w, _ in weighted)
+
+    def wavg(field: str) -> float:
+        return round(sum(float(s[field]) * w for w, s in weighted) / total, 3)
+
+    return {
+        "p50": wavg("p50_ms"),
+        "p95": wavg("p95_ms"),
+        "p99": wavg("p99_ms"),
+        "avg": wavg("avg_ms"),
+        "min": round(min(float(s["min_ms"]) for _, s in weighted), 3),
+        "max": round(max(float(s["max_ms"]) for _, s in weighted), 3),
+    }
+
+
 def run(args: list[str], *, timeout: int = 1200) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         args,
@@ -190,19 +250,27 @@ diset tpcc pg_user tpcc
 diset tpcc pg_pass tpcc
 diset tpcc pg_storedprocs true
 diset tpcc pg_driver timed
+diset tpcc pg_timeprofile true
 diset tpcc pg_rampup {rampup}
 diset tpcc pg_duration {duration}
 loadscript
 vuset vu {run_vus}
 vucreate
-vurun
+set jobid [ vurun ]
 vudestroy
+puts SC_TIMING_JSON_START
+job $jobid timing
+puts SC_TIMING_JSON_END
 """
     out = hammerdb_cli(script, timeout=3600)
     match = re.search(r"TEST RESULT : System achieved (\d+) NOPM from (\d+) PostgreSQL TPM", out)
     if not match:
         raise RuntimeError(f"no TPROC-C result found: {out[-2000:]}")
-    return {"score": int(match.group(1)), "tpm": int(match.group(2))}
+    result: dict[str, Any] = {"score": int(match.group(1)), "tpm": int(match.group(2))}
+    latency_ms = hammerdb_timing_latency_ms(out)
+    if latency_ms:
+        result["latency_ms"] = latency_ms
+    return result
 
 
 def run_tpch(host: str, port: int, run_vus: int, user: str, password: str) -> dict[str, int]:
@@ -316,13 +384,19 @@ def main() -> int:
         )
 
     profile: list[dict[str, Any]] = []
-    best = {"concurrency": candidates[0], "score": -1, "tpm": 0}
+    best = {"concurrency": candidates[0], "score": -1, "tpm": 0, "latency_ms": None}
+    peak_latency_ms: dict[str, float] | None = None
     for vus in candidates:
         result = measure(vus)
         entry = {"concurrency": vus, **result}
         profile.append(entry)
         if result["score"] > best["score"]:
-            best = {"concurrency": vus, "score": result["score"], "tpm": result["tpm"]}
+            best = {
+                "concurrency": vus,
+                "score": result["score"],
+                "tpm": result["tpm"],
+                "latency_ms": result.get("latency_ms"),
+            }
 
     # Confirm the best concurrency with additional repeats, then report the peak
     # sustained throughput at that concurrency. A single short TPROC-C window is
@@ -331,13 +405,16 @@ def main() -> int:
     repeats = max(1, env_int("SC_FINAL_REPEATS", 1))
     samples_at_best = [best["score"]]
     tpm_by_score = {best["score"]: best["tpm"]}
+    latency_by_score: dict[int, dict[str, float] | None] = {best["score"]: best.get("latency_ms")}
     for _ in range(repeats):
         confirm = measure(best["concurrency"])
         profile.append({"concurrency": best["concurrency"], "confirmation": True, **confirm})
         samples_at_best.append(confirm["score"])
         tpm_by_score[confirm["score"]] = confirm["tpm"]
+        latency_by_score[confirm["score"]] = confirm.get("latency_ms")
 
     peak_score = max(samples_at_best)
+    peak_latency_ms = latency_by_score.get(peak_score) or best.get("latency_ms")
 
     summary: dict[str, Any] = {
         "benchmark": "hammerdb_postgres",
@@ -352,6 +429,8 @@ def main() -> int:
         "score_unit": "NOPM" if workload == "tpcc" else "QphH",
         "profile": profile,
     }
+    if peak_latency_ms:
+        summary["latency_ms"] = peak_latency_ms
     if workload == "tpcc":
         summary["warehouses"] = scale_units
     else:

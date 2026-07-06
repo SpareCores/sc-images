@@ -85,6 +85,32 @@ def parse_profile_vus() -> list[int] | None:
     if not raw:
         return None
     return [int(part) for part in raw.split(",") if part.strip()]
+
+
+def benchbase_latency_ms(summary: dict[str, Any]) -> dict[str, float] | None:
+    """Transaction latency (ms) from BenchBase ``Latency Distribution`` (microseconds)."""
+    dist = summary.get("Latency Distribution")
+    if not isinstance(dist, dict):
+        return None
+
+    def us_to_ms(key: str) -> float | None:
+        if key not in dist:
+            return None
+        return round(float(dist[key]) / 1000.0, 3)
+
+    latency = {
+        "p50": us_to_ms("Median Latency (microseconds)"),
+        "p95": us_to_ms("95th Percentile Latency (microseconds)"),
+        "p99": us_to_ms("99th Percentile Latency (microseconds)"),
+        "avg": us_to_ms("Average Latency (microseconds)"),
+        "min": us_to_ms("Minimum Latency (microseconds)"),
+        "max": us_to_ms("Maximum Latency (microseconds)"),
+    }
+    if all(v is None for v in latency.values()):
+        return None
+    return {k: v for k, v in latency.items() if v is not None}
+
+
 def run(args: list[str], *, timeout: int = 7200) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         args,
@@ -299,10 +325,14 @@ def run_once(
         raise RuntimeError(f"BenchBase execute failed: {out[-2000:]}")
     summary = latest_summary_json(bench)
     tps = float(summary.get("Throughput (requests/second)", 0))
-    return {
+    result: dict[str, Any] = {
         "score": int(round(tps * 60)),
         "tps": round(tps, 2),
     }
+    latency_ms = benchbase_latency_ms(summary)
+    if latency_ms:
+        result["latency_ms"] = latency_ms
+    return result
 
 
 def choose_concurrency_candidates(
@@ -411,6 +441,8 @@ def main() -> int:
         "score_unit": "tpm",
         "profile": profile,
     }
+    if final.get("latency_ms"):
+        summary["latency_ms"] = final["latency_ms"]
     if workload == "tpcc":
         summary["warehouses"] = scalefactor
 
