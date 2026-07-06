@@ -393,6 +393,7 @@ def main() -> int:
         "workload": workload,
         "topology": "multi_vm",
         "cache_ratio": cache_ratio,
+        "durability": os.environ.get("SC_DURABILITY", "durable"),
         "scalefactor": scalefactor,
         "client_rtt_ms": rtt_ms,
         "peak_concurrency": best["concurrency"],
