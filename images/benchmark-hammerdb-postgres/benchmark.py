@@ -13,6 +13,8 @@ from typing import Any
 WH_SIZE_GIB = 0.095
 BUFFER_FRAC = 0.25
 WH_PER_VU_MIN = 5
+TPCH_SCALE_FACTORS = (1, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000)
+TPCH_GIB_PER_SF = 1.0
 
 
 def env_int(name: str, default: int) -> int:
@@ -36,6 +38,22 @@ def mem_gib() -> float:
                 kb = int(line.split()[1])
                 return kb / 1024 / 1024
     return 4.0
+
+
+def snap_tpch_scale(value: int) -> int:
+    if value in TPCH_SCALE_FACTORS:
+        return value
+    allowed = [sf for sf in TPCH_SCALE_FACTORS if sf <= value]
+    if allowed:
+        return max(allowed)
+    return min(TPCH_SCALE_FACTORS, key=lambda sf: abs(sf - value))
+
+
+def tpch_scale_factor(cache_ratio: float, mem_gib: float) -> int:
+    schema_gib = BUFFER_FRAC * mem_gib / max(cache_ratio, 0.05)
+    target = schema_gib / TPCH_GIB_PER_SF
+    allowed = [sf for sf in TPCH_SCALE_FACTORS if sf <= max(target, 1)]
+    return max(allowed) if allowed else TPCH_SCALE_FACTORS[0]
 
 
 def profile_points(vcpus: int) -> list[int]:
@@ -240,28 +258,37 @@ def main() -> int:
     db_pass = os.environ.get("SC_DB_PASSWORD", "postgres")
     db_name = os.environ.get("SC_DB_NAME", "postgres")
 
-    default_wh = max(10, int((BUFFER_FRAC * mem_gib()) / max(cache_ratio, 0.05) / WH_SIZE_GIB))
-    warehouses = env_int("SC_WAREHOUSES", default_wh)
+    mem = mem_gib()
+    default_wh = max(10, int((BUFFER_FRAC * mem) / max(cache_ratio, 0.05) / WH_SIZE_GIB))
     db_vcpus = sizing_vcpus("SC_DB_VCPUS", os.cpu_count() or 2)
     client_vcpus = sizing_vcpus("SC_CLIENT_VCPUS", os.cpu_count() or 2)
-    build_vus = min(
-        env_int("SC_BUILD_VUS", min(16, db_vcpus, warehouses)),
-        client_vcpus,
-        warehouses,
-    )
-    run_vus = env_int("SC_RUN_VUS", min(db_vcpus, max(1, warehouses // WH_PER_VU_MIN)))
     profiling_enabled = os.environ.get("SC_PROFILE", "0") == "1"
+
+    if workload == "tpcc":
+        warehouses = env_int("SC_WAREHOUSES", default_wh)
+        scale_units = warehouses
+        build_vus = min(
+            env_int("SC_BUILD_VUS", min(16, db_vcpus, warehouses)),
+            client_vcpus,
+            warehouses,
+        )
+        run_vus = env_int("SC_RUN_VUS", min(db_vcpus, max(1, warehouses // WH_PER_VU_MIN)))
+    else:
+        wh_env = os.environ.get("SC_WAREHOUSES")
+        scale_units = snap_tpch_scale(int(wh_env)) if wh_env else tpch_scale_factor(cache_ratio, mem)
+        build_vus = min(env_int("SC_BUILD_VUS", min(16, db_vcpus)), client_vcpus)
+        run_vus = env_int("SC_RUN_VUS", min(db_vcpus, max(1, scale_units // WH_PER_VU_MIN)))
 
     rtt_ms = pg_rtt_ms(db_host, db_port, db_user, db_pass, db_name)
 
     if workload == "tpcc":
-        buildschema_tpcc(db_host, db_port, warehouses, build_vus, db_user, db_pass)
+        buildschema_tpcc(db_host, db_port, scale_units, build_vus, db_user, db_pass)
     else:
-        buildschema_tpch(db_host, db_port, warehouses, db_user, db_pass)
+        buildschema_tpch(db_host, db_port, scale_units, db_user, db_pass)
 
     candidates = choose_concurrency_candidates(
         run_vus=run_vus,
-        warehouses=warehouses,
+        warehouses=scale_units,
         profiling_enabled=profiling_enabled,
         profile_vcpus=db_vcpus,
     )
@@ -276,18 +303,21 @@ def main() -> int:
 
     final = run_tpcc(db_host, db_port, best["concurrency"], db_user, db_pass) if workload == "tpcc" else run_tpch(db_host, db_port, best["concurrency"], db_user, db_pass)
 
-    summary = {
+    summary: dict[str, Any] = {
         "benchmark": "hammerdb_postgres",
         "workload": workload,
         "topology": "multi_vm",
         "cache_ratio": cache_ratio,
-        "warehouses": warehouses,
         "client_rtt_ms": rtt_ms,
         "peak_concurrency": best["concurrency"],
         "score": final["score"],
         "score_unit": "NOPM" if workload == "tpcc" else "QphH",
         "profile": profile,
     }
+    if workload == "tpcc":
+        summary["warehouses"] = scale_units
+    else:
+        summary["scale_factor"] = scale_units
 
     output = Path("/output")
     output.mkdir(parents=True, exist_ok=True)

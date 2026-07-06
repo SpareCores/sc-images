@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import time
 import xml.etree.ElementTree as ET
@@ -14,6 +15,8 @@ WH_SIZE_GIB = 0.095
 BUFFER_FRAC = 0.25
 UNITS_PER_VU_MIN = 5
 RESULTS_DIR = Path("/tmp/benchbase-results")
+BENCHBASE_JAR = Path("/benchbase/profiles/postgres/benchbase.jar")
+BENCHBASE_JAVA = Path("/opt/java/openjdk/bin/java")
 
 WORKLOADS: dict[str, dict[str, Any]] = {
     "tpcc": {
@@ -191,13 +194,22 @@ def write_config(
     return path
 
 
+def java_bin() -> str:
+    if BENCHBASE_JAVA.is_file():
+        return str(BENCHBASE_JAVA)
+    found = shutil.which("java")
+    if found:
+        return found
+    raise RuntimeError("java not found (expected /opt/java/openjdk/bin/java in BenchBase image)")
+
+
 def benchbase_cmd(bench: str, config: Path, extra_args: list[str], timeout: int) -> str:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     proc = run(
         [
-            "java",
+            java_bin(),
             "-jar",
-            "/benchbase/benchbase.jar",
+            str(BENCHBASE_JAR),
             "-b",
             bench,
             "-c",
