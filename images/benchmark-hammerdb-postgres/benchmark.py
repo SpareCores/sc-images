@@ -57,15 +57,21 @@ def tpch_scale_factor(cache_ratio: float, mem_gib: float) -> int:
 
 
 def profile_points(vcpus: int) -> list[int]:
+    """Legacy local ladder when SC_PROFILE_VUS is not set (older inspector builds)."""
     if vcpus <= 2:
         return sorted({1, vcpus})
     if vcpus <= 8:
         return sorted({1, 2, 4, vcpus})
     if vcpus <= 32:
-        return sorted({1, 4, 8, 16, min(vcpus, 24)})
-    return sorted({1, 8, 16, 32, min(vcpus, 48)})
+        return sorted({1, 4, 8, 16, vcpus})
+    return sorted({1, 8, 16, 32, vcpus})
 
 
+def parse_profile_vus() -> list[int] | None:
+    raw = os.environ.get("SC_PROFILE_VUS", "").strip()
+    if not raw:
+        return None
+    return [int(part) for part in raw.split(",") if part.strip()]
 def run(args: list[str], *, timeout: int = 1200) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         args,
@@ -234,12 +240,17 @@ def choose_concurrency_candidates(
     warehouses: int,
     profiling_enabled: bool,
     profile_vcpus: int,
+    wh_per_vu_min: int,
 ) -> list[int]:
-    max_by_warehouses = max(1, warehouses // WH_PER_VU_MIN)
+    max_by_warehouses = max(1, warehouses // wh_per_vu_min)
     if not profiling_enabled:
         return [max(1, min(run_vus, max_by_warehouses))]
-    points = profile_points(profile_vcpus)
-    points.append(run_vus)
+    profile_vus = parse_profile_vus()
+    if profile_vus is not None:
+        points = list(profile_vus)
+    else:
+        points = list(profile_points(profile_vcpus))
+        points.append(run_vus)
     return sorted({max(1, min(v, max_by_warehouses)) for v in points})
 
 
@@ -295,6 +306,7 @@ def main() -> int:
         warehouses=scale_units,
         profiling_enabled=profiling_enabled,
         profile_vcpus=db_vcpus,
+        wh_per_vu_min=env_int("SC_WH_PER_VU_MIN", WH_PER_VU_MIN),
     )
     def measure(vus: int) -> dict[str, int]:
         return (
