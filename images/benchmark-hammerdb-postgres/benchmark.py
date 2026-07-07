@@ -215,7 +215,22 @@ buildschema
         raise RuntimeError(f"buildschema failed: {out[-2000:]}")
 
 
-def buildschema_tpch(host: str, port: int, scale_factor: int, user: str, password: str) -> None:
+def tpch_degree_of_parallel(db_vcpus: int) -> int:
+    raw = os.environ.get("SC_TPCH_DEGREE_OF_PARALLEL", "").strip()
+    if raw:
+        return max(1, int(raw))
+    return min(max(1, db_vcpus), 16)
+
+
+def buildschema_tpch(
+    host: str,
+    port: int,
+    scale_factor: int,
+    build_threads: int,
+    user: str,
+    password: str,
+) -> None:
+    build_threads = max(1, int(build_threads))
     script = f"""
 dbset db pg
 dbset bm TPC-H
@@ -226,6 +241,7 @@ diset tpch pg_superuser {user}
 diset tpch pg_superuserpass {password}
 diset tpch pg_defaultdbase postgres
 diset tpch pg_scale_fact {scale_factor}
+diset tpch pg_num_tpch_threads {build_threads}
 buildschema
 """
     out = hammerdb_cli(script, timeout=14400)
@@ -273,9 +289,15 @@ puts SC_TIMING_JSON_END
     return result
 
 
-def run_tpch(host: str, port: int, run_vus: int, user: str, password: str) -> dict[str, int]:
-    rampup = env_int("SC_RAMPUP_MIN", 1)
-    duration = env_int("SC_DURATION_MIN", 2)
+def run_tpch(
+    host: str,
+    port: int,
+    run_vus: int,
+    *,
+    tpch_user: str,
+    tpch_pass: str,
+    degree_of_parallel: int,
+) -> dict[str, int]:
     script = f"""
 dbset db pg
 dbset bm TPC-H
@@ -283,16 +305,16 @@ vuset logtotemp 1
 vuset unique 1
 diset connection pg_host {host}
 diset connection pg_port {port}
-diset tpch pg_superuser {user}
-diset tpch pg_superuserpass {password}
-diset tpch pg_defaultdbase tpch
-diset tpch pg_driver timed
-diset tpch pg_rampup {rampup}
-diset tpch pg_duration {duration}
+diset tpch pg_tpch_user {tpch_user}
+diset tpch pg_tpch_pass {tpch_pass}
+diset tpch pg_tpch_dbase tpch
+diset tpch pg_total_querysets 1
+diset tpch pg_degree_of_parallel {degree_of_parallel}
+diset tpch pg_refresh_on false
 loadscript
 vuset vu {run_vus}
 vucreate
-vurun
+set jobid [ vurun ]
 vudestroy
 """
     out = hammerdb_cli(script, timeout=3600)
@@ -364,10 +386,14 @@ def main() -> int:
 
     rtt_ms = pg_rtt_ms(db_host, db_port, db_user, db_pass, db_name)
 
+    tpch_user = os.environ.get("SC_TPCH_USER", "tpch")
+    tpch_pass = os.environ.get("SC_TPCH_PASS", "tpch")
+    tpch_dop = tpch_degree_of_parallel(db_vcpus)
+
     if workload == "tpcc":
         buildschema_tpcc(db_host, db_port, scale_units, build_vus, db_user, db_pass)
     else:
-        buildschema_tpch(db_host, db_port, scale_units, db_user, db_pass)
+        buildschema_tpch(db_host, db_port, scale_units, build_vus, db_user, db_pass)
 
     candidates = choose_concurrency_candidates(
         run_vus=run_vus,
@@ -380,7 +406,14 @@ def main() -> int:
         return (
             run_tpcc(db_host, db_port, vus, db_user, db_pass)
             if workload == "tpcc"
-            else run_tpch(db_host, db_port, vus, db_user, db_pass)
+            else run_tpch(
+                db_host,
+                db_port,
+                vus,
+                tpch_user=tpch_user,
+                tpch_pass=tpch_pass,
+                degree_of_parallel=tpch_dop,
+            )
         )
 
     profile: list[dict[str, Any]] = []
