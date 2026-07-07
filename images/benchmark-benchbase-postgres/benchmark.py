@@ -69,6 +69,34 @@ def mem_gib() -> float:
     return 4.0
 
 
+def provision_context() -> dict[str, Any]:
+    if not os.environ.get("SC_PROVISION_VENDOR_ID"):
+        return {}
+    ctx: dict[str, Any] = {
+        "topology": os.environ.get("SC_TOPOLOGY", "dbaas"),
+        "cache_tier": os.environ.get("SC_CACHE_TIER", ""),
+        "vendor_id": os.environ["SC_PROVISION_VENDOR_ID"],
+        "native_id": os.environ.get("SC_PROVISION_NATIVE_ID", ""),
+        "engine_version": os.environ.get("SC_PROVISION_ENGINE_VERSION", ""),
+        "ha_mode": os.environ.get("SC_PROVISION_HA_MODE", ""),
+        "sku_id": os.environ.get("SC_PROVISION_SKU_ID", ""),
+        "cpu_count": float(os.environ.get("SC_PROVISION_CPU_COUNT", "0") or 0),
+        "memory_gib": float(os.environ.get("SC_PROVISION_MEMORY_GIB", "0") or 0),
+        "storage_gib": int(os.environ.get("SC_PROVISION_STORAGE_GIB", "0") or 0),
+        "storage_edition": os.environ.get("SC_PROVISION_STORAGE_EDITION", ""),
+        "iops_tier": os.environ.get("SC_PROVISION_IOPS_TIER", ""),
+        "client_instance": os.environ.get("SC_PROVISION_CLIENT_INSTANCE", ""),
+        "region": os.environ.get("SC_PROVISION_REGION", ""),
+        "zone": os.environ.get("SC_PROVISION_ZONE", ""),
+        "db_fqdn": os.environ.get("SC_DB_HOST", ""),
+        "network_mode": os.environ.get("SC_PROVISION_NETWORK_MODE", ""),
+    }
+    raw = os.environ.get("SC_PROVISION_SYNC_COMMIT_SETTABLE", "").strip().lower()
+    if raw in ("true", "false"):
+        ctx["sync_commit_session_settable"] = raw == "true"
+    return ctx
+
+
 def profile_points(vcpus: int) -> list[int]:
     """Legacy local ladder when SC_PROFILE_VUS is not set (older inspector builds)."""
     if vcpus <= 2:
@@ -431,7 +459,7 @@ def main() -> int:
     summary: dict[str, Any] = {
         "benchmark": "benchbase_postgres",
         "workload": workload,
-        "topology": "multi_vm",
+        "topology": os.environ.get("SC_TOPOLOGY", "multi_vm"),
         "cache_ratio": cache_ratio,
         "durability": os.environ.get("SC_DURABILITY", "durable"),
         "scalefactor": scalefactor,
@@ -441,6 +469,7 @@ def main() -> int:
         "score_unit": "tpm",
         "profile": profile,
     }
+    summary.update(provision_context())
     if final.get("latency_ms"):
         summary["latency_ms"] = final["latency_ms"]
     if workload == "tpcc":

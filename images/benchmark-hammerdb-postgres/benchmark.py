@@ -351,6 +351,35 @@ def sizing_vcpus(name: str, fallback: int) -> int:
     return max(1, int(value))
 
 
+def provision_context() -> dict[str, Any]:
+    """Merge managed-DB provision metadata when SC_PROVISION_* env vars are set."""
+    if not os.environ.get("SC_PROVISION_VENDOR_ID"):
+        return {}
+    ctx: dict[str, Any] = {
+        "topology": os.environ.get("SC_TOPOLOGY", "dbaas"),
+        "cache_tier": os.environ.get("SC_CACHE_TIER", ""),
+        "vendor_id": os.environ["SC_PROVISION_VENDOR_ID"],
+        "native_id": os.environ.get("SC_PROVISION_NATIVE_ID", ""),
+        "engine_version": os.environ.get("SC_PROVISION_ENGINE_VERSION", ""),
+        "ha_mode": os.environ.get("SC_PROVISION_HA_MODE", ""),
+        "sku_id": os.environ.get("SC_PROVISION_SKU_ID", ""),
+        "cpu_count": float(os.environ.get("SC_PROVISION_CPU_COUNT", "0") or 0),
+        "memory_gib": float(os.environ.get("SC_PROVISION_MEMORY_GIB", "0") or 0),
+        "storage_gib": int(os.environ.get("SC_PROVISION_STORAGE_GIB", "0") or 0),
+        "storage_edition": os.environ.get("SC_PROVISION_STORAGE_EDITION", ""),
+        "iops_tier": os.environ.get("SC_PROVISION_IOPS_TIER", ""),
+        "client_instance": os.environ.get("SC_PROVISION_CLIENT_INSTANCE", ""),
+        "region": os.environ.get("SC_PROVISION_REGION", ""),
+        "zone": os.environ.get("SC_PROVISION_ZONE", ""),
+        "db_fqdn": os.environ.get("SC_DB_HOST", ""),
+        "network_mode": os.environ.get("SC_PROVISION_NETWORK_MODE", ""),
+    }
+    raw = os.environ.get("SC_PROVISION_SYNC_COMMIT_SETTABLE", "").strip().lower()
+    if raw in ("true", "false"):
+        ctx["sync_commit_session_settable"] = raw == "true"
+    return ctx
+
+
 def main() -> int:
     db_host = os.environ["SC_DB_HOST"]
     db_port = env_int("SC_DB_PORT", 5432)
@@ -452,7 +481,7 @@ def main() -> int:
     summary: dict[str, Any] = {
         "benchmark": "hammerdb_postgres",
         "workload": workload,
-        "topology": "multi_vm",
+        "topology": os.environ.get("SC_TOPOLOGY", "multi_vm"),
         "cache_ratio": cache_ratio,
         "durability": os.environ.get("SC_DURABILITY", "durable"),
         "client_rtt_ms": rtt_ms,
@@ -462,6 +491,7 @@ def main() -> int:
         "score_unit": "NOPM" if workload == "tpcc" else "QphH",
         "profile": profile,
     }
+    summary.update(provision_context())
     if peak_latency_ms:
         summary["latency_ms"] = peak_latency_ms
     if workload == "tpcc":
