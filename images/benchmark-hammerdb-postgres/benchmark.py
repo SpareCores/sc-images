@@ -142,6 +142,17 @@ def run(args: list[str], *, timeout: int = 1200) -> subprocess.CompletedProcess[
     )
 
 
+def db_sslmode() -> str:
+    return os.environ.get("SC_DB_SSLMODE", "prefer").strip() or "prefer"
+
+
+def pg_connect_kwargs() -> dict[str, str]:
+    mode = db_sslmode()
+    if mode == "disable":
+        return {}
+    return {"sslmode": mode}
+
+
 def pg_rtt_ms(host: str, port: int, user: str, password: str, dbname: str) -> float:
     """Round-trip latency on a warm connection (min of timed SELECT 1 samples)."""
     import psycopg
@@ -157,6 +168,7 @@ def pg_rtt_ms(host: str, port: int, user: str, password: str, dbname: str) -> fl
         dbname=dbname,
         connect_timeout=10,
         autocommit=True,
+        **pg_connect_kwargs(),
     ) as conn:
         with conn.cursor() as cur:
             for _ in range(warmup):
@@ -196,15 +208,17 @@ def hammerdb_cli(script: str, timeout: int = 7200) -> str:
 
 
 def buildschema_tpcc(host: str, port: int, warehouses: int, build_vus: int, user: str, password: str) -> None:
+    sslmode = db_sslmode()
     script = f"""
 dbset db pg
 dbset bm TPC-C
 vuset logtotemp 0
 diset connection pg_host {host}
 diset connection pg_port {port}
+diset connection pg_sslmode {sslmode}
 diset tpcc pg_superuser {user}
 diset tpcc pg_superuserpass {password}
-diset tpcc pg_defaultdbase postgres
+diset tpcc pg_defaultdbase tpcc
 diset tpcc pg_storedprocs true
 diset tpcc pg_count_ware {warehouses}
 diset tpcc pg_num_vu {build_vus}
@@ -229,17 +243,26 @@ def buildschema_tpch(
     build_threads: int,
     user: str,
     password: str,
+    *,
+    admin_db: str,
+    tpch_user: str,
+    tpch_pass: str,
 ) -> None:
     build_threads = max(1, int(build_threads))
+    sslmode = db_sslmode()
     script = f"""
 dbset db pg
 dbset bm TPC-H
 vuset logtotemp 0
 diset connection pg_host {host}
 diset connection pg_port {port}
-diset tpch pg_superuser {user}
-diset tpch pg_superuserpass {password}
-diset tpch pg_defaultdbase postgres
+diset connection pg_sslmode {sslmode}
+diset tpch pg_tpch_superuser {user}
+diset tpch pg_tpch_superuserpass {password}
+diset tpch pg_tpch_defaultdbase {admin_db}
+diset tpch pg_tpch_user {tpch_user}
+diset tpch pg_tpch_pass {tpch_pass}
+diset tpch pg_tpch_dbase tpch
 diset tpch pg_scale_fact {scale_factor}
 diset tpch pg_num_tpch_threads {build_threads}
 buildschema
@@ -252,6 +275,7 @@ buildschema
 def run_tpcc(host: str, port: int, run_vus: int, user: str, password: str) -> dict[str, int]:
     rampup = env_int("SC_RAMPUP_MIN", 1)
     duration = env_int("SC_DURATION_MIN", 2)
+    sslmode = db_sslmode()
     script = f"""
 dbset db pg
 dbset bm TPC-C
@@ -259,6 +283,7 @@ vuset logtotemp 1
 vuset unique 1
 diset connection pg_host {host}
 diset connection pg_port {port}
+diset connection pg_sslmode {sslmode}
 diset tpcc pg_superuser {user}
 diset tpcc pg_superuserpass {password}
 diset tpcc pg_defaultdbase tpcc
@@ -298,6 +323,7 @@ def run_tpch(
     tpch_pass: str,
     degree_of_parallel: int,
 ) -> dict[str, int]:
+    sslmode = db_sslmode()
     script = f"""
 dbset db pg
 dbset bm TPC-H
@@ -305,6 +331,7 @@ vuset logtotemp 1
 vuset unique 1
 diset connection pg_host {host}
 diset connection pg_port {port}
+diset connection pg_sslmode {sslmode}
 diset tpch pg_tpch_user {tpch_user}
 diset tpch pg_tpch_pass {tpch_pass}
 diset tpch pg_tpch_dbase tpch
@@ -422,7 +449,17 @@ def main() -> int:
     if workload == "tpcc":
         buildschema_tpcc(db_host, db_port, scale_units, build_vus, db_user, db_pass)
     else:
-        buildschema_tpch(db_host, db_port, scale_units, build_vus, db_user, db_pass)
+        buildschema_tpch(
+            db_host,
+            db_port,
+            scale_units,
+            build_vus,
+            db_user,
+            db_pass,
+            admin_db=db_name,
+            tpch_user=tpch_user,
+            tpch_pass=tpch_pass,
+        )
 
     candidates = choose_concurrency_candidates(
         run_vus=run_vus,

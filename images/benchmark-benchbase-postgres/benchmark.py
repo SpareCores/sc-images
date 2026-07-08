@@ -199,6 +199,10 @@ def config_path(bench: str) -> Path:
     return Path(f"/tmp/{bench}_config.xml")
 
 
+def jdbc_sslmode() -> str:
+    return os.environ.get("SC_DB_SSLMODE", "disable").strip() or "disable"
+
+
 def write_config(
     *,
     bench: str,
@@ -220,7 +224,7 @@ def write_config(
         "driver": "org.postgresql.Driver",
         "url": (
             f"jdbc:postgresql://{host}:{port}/benchbase"
-            f"?sslmode=disable&ApplicationName={bench}&reWriteBatchedInserts=true"
+            f"?sslmode={jdbc_sslmode()}&ApplicationName={bench}&reWriteBatchedInserts=true"
         ),
         "username": user,
         "password": password,
