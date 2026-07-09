@@ -153,6 +153,74 @@ def pg_connect_kwargs() -> dict[str, str]:
     return {"sslmode": mode}
 
 
+def show_synchronous_commit(host: str, port: int, user: str, password: str, dbname: str) -> str:
+    """Return SHOW synchronous_commit for a benchmark DB session."""
+    import psycopg
+
+    with psycopg.connect(
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        dbname=dbname,
+        connect_timeout=10,
+        autocommit=True,
+        **pg_connect_kwargs(),
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SHOW synchronous_commit")
+            return str(cur.fetchone()[0])
+
+
+def synchronous_commit_verify(
+    host: str,
+    port: int,
+    sessions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Capture SHOW synchronous_commit for each benchmark-relevant DB session."""
+    verified: list[dict[str, str]] = []
+    benchmark_session: dict[str, str] | None = None
+    for sess in sessions:
+        value = show_synchronous_commit(
+            host,
+            port,
+            sess["user"],
+            sess["password"],
+            sess["database"],
+        )
+        entry = {
+            "user": sess["user"],
+            "database": sess["database"],
+            "synchronous_commit": value,
+        }
+        verified.append(entry)
+        if sess.get("benchmark"):
+            benchmark_session = entry
+    out: dict[str, Any] = {"sessions": verified}
+    if benchmark_session is not None:
+        out["benchmark_session"] = benchmark_session
+    return out
+
+
+def sync_commit_sessions(
+    workload: str,
+    db_user: str,
+    db_pass: str,
+    *,
+    tpch_user: str,
+    tpch_pass: str,
+) -> list[dict[str, Any]]:
+    if workload == "tpcc":
+        return [
+            {"user": db_user, "password": db_pass, "database": "tpcc", "benchmark": False},
+            {"user": "tpcc", "password": "tpcc", "database": "tpcc", "benchmark": True},
+        ]
+    return [
+        {"user": db_user, "password": db_pass, "database": "tpch", "benchmark": False},
+        {"user": tpch_user, "password": tpch_pass, "database": "tpch", "benchmark": True},
+    ]
+
+
 def pg_rtt_ms(host: str, port: int, user: str, password: str, dbname: str) -> float:
     """Round-trip latency on a warm connection (min of timed SELECT 1 samples)."""
     import psycopg
@@ -461,6 +529,18 @@ def main() -> int:
             tpch_pass=tpch_pass,
         )
 
+    sync_verify = synchronous_commit_verify(
+        db_host,
+        db_port,
+        sync_commit_sessions(
+            workload,
+            db_user,
+            db_pass,
+            tpch_user=tpch_user,
+            tpch_pass=tpch_pass,
+        ),
+    )
+
     candidates = choose_concurrency_candidates(
         run_vus=run_vus,
         warehouses=scale_units,
@@ -529,6 +609,7 @@ def main() -> int:
         "profile": profile,
     }
     summary.update(provision_context())
+    summary["synchronous_commit"] = sync_verify
     if peak_latency_ms:
         summary["latency_ms"] = peak_latency_ms
     if workload == "tpcc":
