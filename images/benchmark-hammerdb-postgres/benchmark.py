@@ -446,6 +446,58 @@ def sizing_vcpus(name: str, fallback: int) -> int:
     return max(1, int(value))
 
 
+def host_context() -> dict[str, Any]:
+    """Merge multi-VM host disk metadata when SC_MULTI_VM_* env vars are set."""
+    if os.environ.get("SC_TOPOLOGY", "multi_vm") != "multi_vm":
+        return {}
+    ctx: dict[str, Any] = {"topology": "multi_vm"}
+    raw_gib = os.environ.get("SC_PROVISIONED_DISK_GIB", "").strip()
+    if raw_gib:
+        ctx["storage_gib"] = int(raw_gib)
+    disk_type = os.environ.get("SC_MULTI_VM_DB_DISK_TYPE", "").strip()
+    if disk_type:
+        ctx["storage_type"] = disk_type
+    disk_iops = os.environ.get("SC_MULTI_VM_DB_DISK_IOPS", "").strip()
+    if disk_iops:
+        ctx["disk_iops"] = int(disk_iops)
+    disk_throughput = os.environ.get("SC_MULTI_VM_DB_DISK_THROUGHPUT", "").strip()
+    if disk_throughput:
+        ctx["disk_throughput_mb_s"] = int(disk_throughput)
+    return ctx
+
+
+def hammerdb_params(
+    *,
+    workload: str,
+    scale_units: int,
+    build_vus: int,
+    run_vus: int,
+    profile_vus: list[int],
+    wh_per_vu_min: int,
+) -> dict[str, Any]:
+    params: dict[str, Any] = {
+        "build_vus": build_vus,
+        "run_vus": run_vus,
+        "rampup_min": env_int("SC_RAMPUP_MIN", 1),
+        "duration_min": env_int("SC_DURATION_MIN", 2),
+        "profile_vus": profile_vus,
+        "final_repeats": max(1, env_int("SC_FINAL_REPEATS", 1)),
+        "wh_per_vu_min": wh_per_vu_min,
+        "storedprocs": True,
+        "driver": "timed",
+    }
+    if workload == "tpcc":
+        params["warehouses"] = scale_units
+        params["benchmark_user"] = "tpcc"
+    else:
+        params["scale_factor"] = scale_units
+        params["benchmark_user"] = os.environ.get("SC_TPCH_USER", "tpch")
+        params["degree_of_parallel"] = tpch_degree_of_parallel(
+            sizing_vcpus("SC_DB_VCPUS", os.cpu_count() or 2)
+        )
+    return params
+
+
 def provision_context() -> dict[str, Any]:
     """Merge managed-DB provision metadata when SC_PROVISION_* env vars are set."""
     if not os.environ.get("SC_PROVISION_VENDOR_ID"):
@@ -462,13 +514,15 @@ def provision_context() -> dict[str, Any]:
         "memory_gib": float(os.environ.get("SC_PROVISION_MEMORY_GIB", "0") or 0),
         "storage_gib": int(os.environ.get("SC_PROVISION_STORAGE_GIB", "0") or 0),
         "storage_edition": os.environ.get("SC_PROVISION_STORAGE_EDITION", ""),
-        "iops_tier": os.environ.get("SC_PROVISION_IOPS_TIER", ""),
         "client_instance": os.environ.get("SC_PROVISION_CLIENT_INSTANCE", ""),
         "region": os.environ.get("SC_PROVISION_REGION", ""),
         "zone": os.environ.get("SC_PROVISION_ZONE", ""),
         "db_fqdn": os.environ.get("SC_DB_HOST", ""),
         "network_mode": os.environ.get("SC_PROVISION_NETWORK_MODE", ""),
     }
+    iops_tier = os.environ.get("SC_PROVISION_IOPS_TIER", "").strip()
+    if iops_tier:
+        ctx["iops_tier"] = iops_tier
     raw = os.environ.get("SC_PROVISION_SYNC_COMMIT_SETTABLE", "").strip().lower()
     if raw in ("true", "false"):
         ctx["sync_commit_session_settable"] = raw == "true"
@@ -609,6 +663,15 @@ def main() -> int:
         "profile": profile,
     }
     summary.update(provision_context())
+    summary.update(host_context())
+    summary["hammerdb"] = hammerdb_params(
+        workload=workload,
+        scale_units=scale_units,
+        build_vus=build_vus,
+        run_vus=run_vus,
+        profile_vus=candidates,
+        wh_per_vu_min=env_int("SC_WH_PER_VU_MIN", WH_PER_VU_MIN),
+    )
     summary["synchronous_commit"] = sync_verify
     if peak_latency_ms:
         summary["latency_ms"] = peak_latency_ms

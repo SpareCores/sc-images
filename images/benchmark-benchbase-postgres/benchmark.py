@@ -84,13 +84,15 @@ def provision_context() -> dict[str, Any]:
         "memory_gib": float(os.environ.get("SC_PROVISION_MEMORY_GIB", "0") or 0),
         "storage_gib": int(os.environ.get("SC_PROVISION_STORAGE_GIB", "0") or 0),
         "storage_edition": os.environ.get("SC_PROVISION_STORAGE_EDITION", ""),
-        "iops_tier": os.environ.get("SC_PROVISION_IOPS_TIER", ""),
         "client_instance": os.environ.get("SC_PROVISION_CLIENT_INSTANCE", ""),
         "region": os.environ.get("SC_PROVISION_REGION", ""),
         "zone": os.environ.get("SC_PROVISION_ZONE", ""),
         "db_fqdn": os.environ.get("SC_DB_HOST", ""),
         "network_mode": os.environ.get("SC_PROVISION_NETWORK_MODE", ""),
     }
+    iops_tier = os.environ.get("SC_PROVISION_IOPS_TIER", "").strip()
+    if iops_tier:
+        ctx["iops_tier"] = iops_tier
     raw = os.environ.get("SC_PROVISION_SYNC_COMMIT_SETTABLE", "").strip().lower()
     if raw in ("true", "false"):
         ctx["sync_commit_session_settable"] = raw == "true"
