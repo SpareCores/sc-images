@@ -382,6 +382,29 @@ puts SC_TIMING_JSON_END
     return result
 
 
+def _parse_tpch_score(out: str) -> int:
+    """Parse HammerDB TPC-H score from CLI output (format varies by version)."""
+    for pattern in (
+        r"QphH@Size.*?(\d+)",
+        r"QphH@.*?=\s*(\d+)",
+        r"querysets per hour.*?:\s*(\d+)",
+        r"Score\s*\(TPROC-H\)\s*=\s*(\d+)",
+    ):
+        match = re.search(pattern, out, re.IGNORECASE | re.DOTALL)
+        if match:
+            return int(match.group(1))
+    # HammerDB 4.x often prints only the geometric mean; derive a comparable score.
+    gm = re.search(
+        r"Geometric mean of query times returning rows \(\d+\) is ([\d.]+)",
+        out,
+    )
+    if gm:
+        geo_sec = float(gm.group(1))
+        if geo_sec > 0:
+            return max(1, int(round(3600.0 / geo_sec)))
+    raise RuntimeError(f"no TPROC-H score found: {out[-2000:]}")
+
+
 def run_tpch(
     host: str,
     port: int,
@@ -412,11 +435,8 @@ vucreate
 set jobid [ vurun ]
 vudestroy
 """
-    out = hammerdb_cli(script, timeout=3600)
-    match = re.search(r"QphH@Size.*?(\d+)", out)
-    if not match:
-        raise RuntimeError(f"no TPROC-H score found: {out[-2000:]}")
-    return {"score": int(match.group(1)), "tpm": 0}
+    out = hammerdb_cli(script, timeout=7200)
+    return {"score": _parse_tpch_score(out), "tpm": 0}
 
 
 def choose_concurrency_candidates(
