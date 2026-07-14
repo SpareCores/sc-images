@@ -258,7 +258,13 @@ def pg_rtt_ms(host: str, port: int, user: str, password: str, dbname: str) -> fl
     return round(min(samples), 3)
 
 
-def hammerdb_cli(script: str, timeout: int = 7200) -> str:
+def hammerdb_cli_timeout(default: int = 7200) -> int:
+    return env_int("SC_HAMMERDB_CLI_TIMEOUT", default)
+
+
+def hammerdb_cli(script: str, timeout: int | None = None) -> str:
+    if timeout is None:
+        timeout = hammerdb_cli_timeout()
     with tempfile.NamedTemporaryFile("w", suffix=".tcl", delete=False, encoding="utf-8") as fh:
         fh.write(script)
         path = fh.name
@@ -275,7 +281,51 @@ def hammerdb_cli(script: str, timeout: int = 7200) -> str:
             pass
 
 
-def buildschema_tpcc(host: str, port: int, warehouses: int, build_vus: int, user: str, password: str) -> None:
+def ensure_database_exists(
+    host: str,
+    port: int,
+    user: str,
+    password: str,
+    admin_db: str,
+    dbname: str,
+) -> None:
+    """Create an empty benchmark database if HammerDB will connect to it before buildschema."""
+    import psycopg
+
+    with psycopg.connect(
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        dbname=admin_db,
+        connect_timeout=10,
+        autocommit=True,
+        **pg_connect_kwargs(),
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (dbname,))
+            if cur.fetchone():
+                return
+            cur.execute(f'CREATE DATABASE "{dbname}"')
+
+
+def _buildschema_failed(out: str, success_markers: tuple[str, ...]) -> bool:
+    if "FINISHED FAILED" in out or "Connection to database failed" in out:
+        return True
+    return not any(marker in out for marker in success_markers)
+
+
+def buildschema_tpcc(
+    host: str,
+    port: int,
+    warehouses: int,
+    build_vus: int,
+    user: str,
+    password: str,
+    *,
+    admin_db: str,
+) -> None:
+    ensure_database_exists(host, port, user, password, admin_db, "tpcc")
     sslmode = db_sslmode()
     script = f"""
 dbset db pg
@@ -292,8 +342,8 @@ diset tpcc pg_count_ware {warehouses}
 diset tpcc pg_num_vu {build_vus}
 buildschema
 """
-    out = hammerdb_cli(script, timeout=14400)
-    if "TPCC SCHEMA COMPLETE" not in out:
+    out = hammerdb_cli(script, timeout=hammerdb_cli_timeout(14400))
+    if _buildschema_failed(out, ("TPCC SCHEMA COMPLETE",)):
         raise RuntimeError(f"buildschema failed: {out[-2000:]}")
 
 
@@ -335,8 +385,8 @@ diset tpch pg_scale_fact {scale_factor}
 diset tpch pg_num_tpch_threads {build_threads}
 buildschema
 """
-    out = hammerdb_cli(script, timeout=14400)
-    if "TPCH SCHEMA COMPLETE" not in out and "SCHEMA COMPLETE" not in out:
+    out = hammerdb_cli(script, timeout=hammerdb_cli_timeout(14400))
+    if _buildschema_failed(out, ("TPCH SCHEMA COMPLETE", "SCHEMA COMPLETE")):
         raise RuntimeError(f"buildschema failed: {out[-2000:]}")
 
 
@@ -435,7 +485,7 @@ vucreate
 set jobid [ vurun ]
 vudestroy
 """
-    out = hammerdb_cli(script, timeout=7200)
+    out = hammerdb_cli(script, timeout=hammerdb_cli_timeout(14400))
     return {"score": _parse_tpch_score(out), "tpm": 0}
 
 
@@ -589,7 +639,15 @@ def main() -> int:
     tpch_dop = tpch_degree_of_parallel(db_vcpus)
 
     if workload == "tpcc":
-        buildschema_tpcc(db_host, db_port, scale_units, build_vus, db_user, db_pass)
+        buildschema_tpcc(
+            db_host,
+            db_port,
+            scale_units,
+            build_vus,
+            db_user,
+            db_pass,
+            admin_db=db_name,
+        )
     else:
         buildschema_tpch(
             db_host,
