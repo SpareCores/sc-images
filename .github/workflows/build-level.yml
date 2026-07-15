@@ -180,7 +180,9 @@ jobs:
   merge:
     name: Merge manifest (${{ matrix.folder }})
     needs: build
-    if: ${{ !cancelled() && needs.build.result != 'failure' && inputs.folders != '[]' }}
+    # Run even when some matrix builds fail: each folder merges independently,
+    # so unrelated arm64 failures must not block promoting amd64-only images.
+    if: ${{ !cancelled() && needs.build.result != 'cancelled' && inputs.folders != '[]' }}
     strategy:
       fail-fast: false
       matrix:
@@ -220,9 +222,19 @@ jobs:
           while IFS= read -r tag; do
             [ -z "$tag" ] && continue
             refs=()
+            missing=0
             for arch in "${sources[@]}"; do
-              refs+=("${tag}-${arch}")
+              ref="${tag}-${arch}"
+              if ! docker buildx imagetools inspect "$ref" >/dev/null 2>&1; then
+                echo "Skipping ${tag}: missing ${ref}"
+                missing=1
+                break
+              fi
+              refs+=("$ref")
             done
+            if [ "$missing" -ne 0 ]; then
+              continue
+            fi
             echo "Creating ${tag} from: ${refs[*]}"
             docker buildx imagetools create --tag "$tag" "${refs[@]}"
           done <<< "${{ steps.meta.outputs.tags }}"
