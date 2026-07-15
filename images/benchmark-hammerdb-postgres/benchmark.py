@@ -311,6 +311,85 @@ def ensure_tpcc_role(host: str, port: int, user: str, password: str, admin_db: s
             cur.execute("CREATE ROLE tpcc LOGIN PASSWORD 'tpcc'")
 
 
+def grant_tpcc_privileges(
+    host: str,
+    port: int,
+    user: str,
+    password: str,
+    *,
+    dbname: str = "tpcc",
+) -> None:
+    """Grant tpcc access to objects restored from a no-privileges CDN dump.
+
+    pg_dump uses --no-owner --no-privileges, so a CDN restore leaves tables owned
+    by the restoring superuser. Native buildschema creates them as tpcc instead.
+    """
+    import psycopg
+
+    with psycopg.connect(
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        dbname=dbname,
+        connect_timeout=10,
+        autocommit=True,
+        **pg_connect_kwargs(),
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute("GRANT USAGE, CREATE ON SCHEMA public TO tpcc")
+            cur.execute("GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO tpcc")
+            cur.execute("GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO tpcc")
+            cur.execute("GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO tpcc")
+            cur.execute("GRANT ALL PRIVILEGES ON ALL PROCEDURES IN SCHEMA public TO tpcc")
+            # Prefer ownership matching native HammerDB buildschema.
+            cur.execute(
+                """
+                DO $$
+                DECLARE
+                  r record;
+                BEGIN
+                  FOR r IN
+                    SELECT c.relkind, n.nspname, c.relname
+                    FROM pg_class c
+                    JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE n.nspname = 'public'
+                      AND c.relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
+                  LOOP
+                    EXECUTE format(
+                      'ALTER %s %I.%I OWNER TO tpcc',
+                      CASE r.relkind
+                        WHEN 'S' THEN 'SEQUENCE'
+                        WHEN 'v' THEN 'VIEW'
+                        WHEN 'm' THEN 'MATERIALIZED VIEW'
+                        WHEN 'f' THEN 'FOREIGN TABLE'
+                        ELSE 'TABLE'
+                      END,
+                      r.nspname,
+                      r.relname
+                    );
+                  END LOOP;
+                  FOR r IN
+                    SELECT n.nspname, p.proname, pg_get_function_identity_arguments(p.oid) AS args,
+                           CASE p.prokind WHEN 'p' THEN 'PROCEDURE' ELSE 'FUNCTION' END AS kind
+                    FROM pg_proc p
+                    JOIN pg_namespace n ON n.oid = p.pronamespace
+                    WHERE n.nspname = 'public'
+                      AND p.prokind IN ('f', 'p')
+                  LOOP
+                    EXECUTE format(
+                      'ALTER %s %I.%I(%s) OWNER TO tpcc',
+                      r.kind,
+                      r.nspname,
+                      r.proname,
+                      r.args
+                    );
+                  END LOOP;
+                END $$;
+                """
+            )
+
+
 def ensure_database_exists(
     host: str,
     port: int,
@@ -691,6 +770,7 @@ def main() -> int:
                 admin_db=db_name,
             ),
         )
+        grant_tpcc_privileges(db_host, db_port, db_user, db_pass, dbname="tpcc")
     else:
         dataset_meta = None
         buildschema_tpch(
