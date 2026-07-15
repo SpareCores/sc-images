@@ -43,7 +43,7 @@ SERVER_START_TIMEOUT_CPU_SEC = 10 * 60
 SERVER_START_TIMEOUT_PROBE_GPU_SEC = 8 * 60
 SERVER_START_TIMEOUT_PROBE_CPU_SEC = 15 * 60
 MIN_OUTPUT_TOKENS_PER_SEC = 1.0
-TUNING_VERSION = 3
+TUNING_VERSION = 5
 BUDGET_RESERVE_STARTUP_SEC = 600
 BUDGET_MIN_PER_RUN_SEC = 45
 BUDGET_MAX_PER_RUN_SEC = 240
@@ -326,6 +326,20 @@ def host_vcpus() -> int:
         return max(1, os.cpu_count() or 1)
 
 
+@cache
+def host_numa_count() -> int:
+    """Number of NUMA nodes visible to this process (CPU topology)."""
+    override = environ.get("BENCHMARK_VLLM_NUMA_NODES", "").strip()
+    if override:
+        return max(1, int(override))
+    base = Path("/sys/devices/system/node")
+    if base.is_dir():
+        nodes = [p for p in base.glob("node[0-9]*") if p.is_dir()]
+        if nodes:
+            return max(1, len(nodes))
+    return 1
+
+
 def host_profile() -> HostProfile:
     global _HOST
     if _HOST is None:
@@ -340,6 +354,53 @@ def host_profile() -> HostProfile:
 
 def sublinear_scale(vcpus: int, base: float, exp: float, floor: int) -> int:
     return max(floor, int(base * max(vcpus, 1) ** exp))
+
+
+def cpu_tensor_parallel_size(spec: ModelSpec) -> int:
+    """TP across NUMA nodes when attention heads divide evenly by NUMA count.
+
+    Official CPU guidance: set tensor-parallel-size to the NUMA node count so
+    ``VLLM_CPU_OMP_THREADS_BIND=auto`` places one rank per socket. If heads are
+    not divisible by NUMA count, keep TP=1 and use data-parallel instead
+    (see ``cpu_data_parallel_size``) — partial TP (e.g. 3 of 4 nodes) leaves a
+    socket idle, and cross-NUMA single-rank binds hurt throughput.
+    """
+    override = _env_int("BENCHMARK_VLLM_CPU_TP", "VLLM_CPU_TENSOR_PARALLEL_SIZE")
+    if override is not None:
+        return max(1, override)
+    numa = host_numa_count()
+    if numa <= 1:
+        return 1
+    heads = spec.num_attention_heads
+    if heads and heads % numa == 0:
+        return numa
+    return 1
+
+
+def cpu_data_parallel_size(spec: ModelSpec) -> int:
+    """DP across NUMA nodes when TP cannot span every socket.
+
+    Dense-model DP ranks are independent replicas; vLLM assigns each local DP
+    rank its own NUMA node via ``CPU_VISIBLE_MEMORY_NODES``. Use DP when TP
+    stays 1 on a multi-NUMA host so all sockets serve traffic.
+    """
+    override = _env_int("BENCHMARK_VLLM_CPU_DP", "VLLM_CPU_DATA_PARALLEL_SIZE")
+    if override is not None:
+        return max(1, override)
+    numa = host_numa_count()
+    if numa <= 1:
+        return 1
+    if cpu_tensor_parallel_size(spec) >= numa:
+        return 1
+    return numa
+
+
+def cpu_omp_threads_bind(spec: ModelSpec, tp: int) -> str:
+    """Always prefer auto: one NUMA node per TP/PP rank (NUMA-local)."""
+    override = environ.get("VLLM_CPU_OMP_THREADS_BIND", "").strip()
+    if override and override != "auto":
+        return override
+    return "auto"
 
 
 def runnable_models(mode: str) -> list[ModelSpec]:
@@ -424,8 +485,10 @@ def compute_tuning(
         max_model_len = max(w.max_model_len for w in workloads_for_mode(mode))
 
     if mode == "cpu":
-        max_conc = sublinear_scale(v, 6.0, 0.65, 32)
-        max_workers = min(sublinear_scale(v, 2.0, 0.45, 4), max(2, v // 2))
+        # Floor concurrency/seqs with v so 1–2 vCPU hosts are not oversubscribed.
+        conc_floor = max(1, min(32, v * 4))
+        max_conc = sublinear_scale(v, 6.0, 0.65, conc_floor)
+        max_workers = min(sublinear_scale(v, 2.0, 0.45, max(1, min(4, v))), max(1, v // 2 or 1))
         rampup = min(30.0, max(5.0, v / 4.0))
         warmup = "10"
     else:
@@ -473,10 +536,22 @@ def compute_tuning(
         max_workers = workers_env
 
     seq_scale = min(1.0, 2048 / max(max_model_len, 512))
-    max_num_seqs = max(
-        4,
-        int(min(max_conc, sublinear_scale(v, 4.0, 0.55, 16)) * seq_scale),
-    )
+    if mode == "cpu":
+        seqs_floor = max(1, min(16, v * 2))
+        # Cap batching per DP/TP worker: --max-num-seqs is per DP rank.
+        tp = cpu_tensor_parallel_size(spec)
+        dp = cpu_data_parallel_size(spec)
+        cores_per_worker = max(1, v // max(1, tp * dp))
+        seq_cap = max(seqs_floor, cores_per_worker)
+        max_num_seqs = max(
+            seqs_floor,
+            int(min(max_conc, sublinear_scale(v, 4.0, 0.55, seqs_floor), seq_cap) * seq_scale),
+        )
+    else:
+        max_num_seqs = max(
+            4,
+            int(min(max_conc, sublinear_scale(v, 4.0, 0.55, 16)) * seq_scale),
+        )
     max_batched = min(max_model_len, max(2048, sublinear_scale(v, 64.0, 0.50, 2048)))
 
     dtype = cpu_serve_dtype(spec)
@@ -557,9 +632,12 @@ def init_benchmark_tuning(
         _BUDGET = compute_budget(mode)
     _TUNING = compute_tuning(mode, spec, _BUDGET, max_model_len=max_model_len)
     logger.info(
-        "autoconfig vcpus=%s budget_per_run=%ss sweep=%s max_conc=%s max_req=%s "
-        "workers=%s max_sec/strategy=%s max_model_len=%s per_workload_server=%s",
+        "autoconfig vcpus=%s numa=%s cpu_tp=%s cpu_dp=%s budget_per_run=%ss sweep=%s max_conc=%s max_req=%s "
+        "workers=%s max_sec/strategy=%s max_model_len=%s max_num_seqs=%s per_workload_server=%s",
         host_profile().vcpus,
+        host_numa_count() if mode == "cpu" else 1,
+        cpu_tensor_parallel_size(spec) if mode == "cpu" else 1,
+        cpu_data_parallel_size(spec) if mode == "cpu" else 1,
         _TUNING.per_run_budget_sec,
         _TUNING.sweep_size,
         _TUNING.max_concurrency,
@@ -567,6 +645,7 @@ def init_benchmark_tuning(
         _TUNING.max_workers,
         _TUNING.max_seconds_per_strategy,
         _TUNING.max_model_len,
+        _TUNING.max_num_seqs,
         per_workload_server_enabled(),
     )
     return _TUNING
@@ -663,9 +742,12 @@ def check_cpu_isa_compat(mode: str) -> None:
 def cpu_server_env(
     base: dict[str, str],
     tuning: BenchmarkTuning | None = None,
+    *,
+    spec: ModelSpec | None = None,
 ) -> dict[str, str]:
     env = dict(base)
-    env.setdefault("VLLM_CPU_OMP_THREADS_BIND", "auto")
+    tp = cpu_tensor_parallel_size(spec) if spec is not None else 1
+    env["VLLM_CPU_OMP_THREADS_BIND"] = cpu_omp_threads_bind(spec or DEFAULT_MODELS[0], tp)
     if environ.get("VLLM_CPU_KVCACHE_SPACE"):
         env.setdefault("VLLM_CPU_KVCACHE_SPACE", environ["VLLM_CPU_KVCACHE_SPACE"])
     elif tuning and tuning.kv_cache_gib is not None:
@@ -854,10 +936,19 @@ def probe_model_spec() -> ModelSpec:
 
 def models_to_run(mode: str) -> list[ModelSpec]:
     if cli_args.models:
-        return [
-            ModelSpec(os.path.basename(m.rstrip("/")), m, max(0.135, len(m) / 20))
-            for m in cli_args.models
-        ]
+        by_id = {s.model_id: s for s in DEFAULT_MODELS}
+        by_short = {s.short_name: s for s in DEFAULT_MODELS}
+        out: list[ModelSpec] = []
+        for m in cli_args.models:
+            if m in by_id:
+                out.append(by_id[m])
+            elif m in by_short:
+                out.append(by_short[m])
+            else:
+                out.append(
+                    ModelSpec(os.path.basename(m.rstrip("/")), m, max(0.135, len(m) / 20))
+                )
+        return out
     return [spec for spec in DEFAULT_MODELS if model_supported_on_mode(spec, mode)]
 
 
@@ -1033,9 +1124,11 @@ def log_server_start_failure(
 
 
 def tensor_parallel_size(mode: str, spec: ModelSpec) -> int:
-    """Largest TP <= GPU count where num_attention_heads % TP == 0 (vLLM requirement)."""
+    """Largest TP for the active backend (GPU count or CPU NUMA nodes)."""
+    if mode == "cpu":
+        return cpu_tensor_parallel_size(spec)
     gpus = max(1, int(gpu_info()["gpu_count"] or 1))
-    if mode != "gpu" or gpus <= 1:
+    if gpus <= 1:
         return 1
     heads = spec.num_attention_heads
     if not heads:
@@ -1090,6 +1183,12 @@ def start_server(model_id: str, mode: str, max_model_len: int, spec: ModelSpec) 
                 f"{mem_util:.2f}",
             ]
         )
+        tp = tensor_parallel_size(mode, spec)
+        if tp > 1:
+            cmd.extend(["--tensor-parallel-size", str(tp)])
+        dp = cpu_data_parallel_size(spec)
+        if dp > 1:
+            cmd.extend(["--data-parallel-size", str(dp)])
         if tuning.autoconfig:
             cmd.extend(
                 [
@@ -1104,9 +1203,17 @@ def start_server(model_id: str, mode: str, max_model_len: int, spec: ModelSpec) 
     env.setdefault("HF_HOME", cli_args.models_dir)
     env.setdefault("HUGGINGFACE_HUB_CACHE", cli_args.models_dir)
     if mode == "cpu":
-        env = cpu_server_env(env, tuning)
+        env = cpu_server_env(env, tuning, spec=spec)
     os.makedirs(cli_args.models_dir, exist_ok=True)
     logger.info("Starting server: %s", " ".join(cmd))
+    if mode == "cpu":
+        logger.info(
+            "cpu parallel: numa=%s tp=%s dp=%s omp_bind=%s",
+            host_numa_count(),
+            tensor_parallel_size(mode, spec),
+            cpu_data_parallel_size(spec),
+            env.get("VLLM_CPU_OMP_THREADS_BIND", ""),
+        )
     return Popen(
         cmd,
         stdout=DEVNULL,
@@ -1306,7 +1413,8 @@ def report_to_jsonl(
         in ("1", "true", "yes"),
         "vllm_version": read_vllm_version(),
         "guidellm_version": read_guidellm_version(),
-        "tensor_parallel": tensor_parallel_size(mode, spec) if mode == "gpu" else 0,
+        "tensor_parallel": tensor_parallel_size(mode, spec),
+        "data_parallel": cpu_data_parallel_size(spec) if mode == "cpu" else 1,
         "gpu_count": gi["gpu_count"],
         "gpu_model": gi["gpu_model"],
         "total_vram_gb": round(float(gi["total_vram_gb"]), 2),

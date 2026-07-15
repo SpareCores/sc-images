@@ -68,14 +68,29 @@ uses fixed request caps (CPU 25 / GPU 120).
 
 Per workload (chat / rag / long), autoconfig restarts `vllm serve` with that workload's `max_model_len` (2048 / 4096 / 8192) so small-RAM hosts do not reserve KV for unused long-context headroom. Before starting a workload, `workload_kv_fits()` skips combos that would KV-OOM on CPU (weights-only `model_fits` is not enough for long ctx). Budget planning includes the extra startup time.
 
-JSONL rows include `max_model_len`, `tuning_version`, and a `tuning` object (`tuning_version=3`: time-only GuideLLM stages, workload-aware sweep timing, KV pre-check, server stderr in logs). `tuning.max_requests` is `null` unless env override. Host vCPU/RAM come from the `server` table when querying the DB. Disable autoconfig for A/B against older data: `BENCHMARK_VLLM_AUTOCONFIG=0`. Disable per-workload server restarts: `BENCHMARK_VLLM_PER_WORKLOAD_SERVER=0`.
+JSONL rows include `max_model_len`, `tuning_version`, and a `tuning` object (`tuning_version=5`: CPU NUMA-aware TP/DP, time-only GuideLLM stages, workload-aware sweep timing, KV pre-check, server stderr in logs). `tuning.max_requests` is `null` unless env override. Host vCPU/RAM come from the `server` table when querying the DB. Disable autoconfig for A/B against older data: `BENCHMARK_VLLM_AUTOCONFIG=0`. Disable per-workload server restarts: `BENCHMARK_VLLM_PER_WORKLOAD_SERVER=0`.
 
-## Tensor parallelism
+## Tensor / data parallelism
 
-vLLM does **not** always use every visible GPU. The harness sets the largest
-`--tensor-parallel-size` (TP) that is ≤ GPU count and divides the model's
-attention head count (`tensor_parallel_size()` in `benchmark.py`). vLLM rejects
-invalid TP with e.g. `attention heads (9) must be divisible by tensor parallel size (2)`.
+vLLM does **not** always use every visible GPU or CPU socket. The harness picks
+parallelism as follows:
+
+**GPU:** largest `--tensor-parallel-size` (TP) ≤ GPU count that divides the
+model's attention head count (`tensor_parallel_size()` in `benchmark.py`).
+vLLM rejects invalid TP with e.g. `attention heads (9) must be divisible by tensor parallel size (2)`.
+
+**CPU (multi-NUMA):** with `VLLM_CPU_OMP_THREADS_BIND=auto`, each TP/PP rank
+binds to one NUMA node. Autoconfig therefore:
+
+1. Sets `--tensor-parallel-size = NUMA node count` when heads are divisible by
+   that count (official CPU guidance).
+2. Otherwise sets `--data-parallel-size = NUMA node count` (TP=1) so every
+   socket serves as an independent replica — needed for models like SmolLM2
+   (9 heads) on 4-node boxes.
+
+Overrides: `BENCHMARK_VLLM_CPU_TP` / `BENCHMARK_VLLM_CPU_DP`. Docker runs need
+`--shm-size` ≥ 4g (see `VLLM_DOCKER_OPTS` in inspector) or TP/DP workers fail
+during gloo/shm init.
 
 On a **2-GPU** host, default ladder TP:
 
@@ -91,8 +106,8 @@ On a **2-GPU** host, default ladder TP:
 SmolLM on 2×GPU is still a real GPU run (`mode=gpu` in JSONL); `nvidia-smi pmon`
 showing ~95% SM on one GPU and idle on the other is expected for TP=1.
 
-Emitted JSONL includes `tensor_parallel` (TP used) and `gpu_count` (visible GPUs)
-so results are comparable across single- and multi-GPU instances.
+Emitted JSONL includes `tensor_parallel`, `data_parallel` (CPU), and `gpu_count`
+so results are comparable across single- and multi-device instances.
 
 ## JSONL fields
 
