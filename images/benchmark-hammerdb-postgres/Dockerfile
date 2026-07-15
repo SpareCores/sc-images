@@ -16,10 +16,13 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     apt-get install -y --no-install-recommends \
       python3 \
       python3-psycopg \
+      curl \
+      zstd \
+      postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=resource_tracker /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
-COPY benchmark.py /benchmark.py
+COPY benchmark.py db_dataset_cache.py /benchmark/
 
 ENV TRACKER_QUIET=true
-ENTRYPOINT ["/usr/local/bin/resource-tracker", "--", "python3", "/benchmark.py"]
+ENTRYPOINT ["/usr/local/bin/resource-tracker", "--", "python3", "/benchmark/benchmark.py"]

@@ -5,10 +5,19 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from db_dataset_cache import (
+    dataset_spec_for_hammerdb_tpcc,
+    hammerdb_tpcc_partition,
+    prepare_database,
+)
 
 WH_SIZE_GIB = 0.095
 BUFFER_FRAC = 0.25
@@ -281,6 +290,27 @@ def hammerdb_cli(script: str, timeout: int | None = None) -> str:
             pass
 
 
+def ensure_tpcc_role(host: str, port: int, user: str, password: str, admin_db: str) -> None:
+    """Create the HammerDB benchmark role when restoring from a CDN dump."""
+    import psycopg
+
+    with psycopg.connect(
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        dbname=admin_db,
+        connect_timeout=10,
+        autocommit=True,
+        **pg_connect_kwargs(),
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_roles WHERE rolname = 'tpcc'")
+            if cur.fetchone():
+                return
+            cur.execute("CREATE ROLE tpcc LOGIN PASSWORD 'tpcc'")
+
+
 def ensure_database_exists(
     host: str,
     port: int,
@@ -327,6 +357,7 @@ def buildschema_tpcc(
 ) -> None:
     ensure_database_exists(host, port, user, password, admin_db, "tpcc")
     sslmode = db_sslmode()
+    partition = "true" if hammerdb_tpcc_partition(warehouses) else "false"
     script = f"""
 dbset db pg
 dbset bm TPC-C
@@ -338,6 +369,7 @@ diset tpcc pg_superuser {user}
 diset tpcc pg_superuserpass {password}
 diset tpcc pg_defaultdbase tpcc
 diset tpcc pg_storedprocs true
+diset tpcc pg_partition {partition}
 diset tpcc pg_count_ware {warehouses}
 diset tpcc pg_num_vu {build_vus}
 buildschema
@@ -639,16 +671,28 @@ def main() -> int:
     tpch_dop = tpch_degree_of_parallel(db_vcpus)
 
     if workload == "tpcc":
-        buildschema_tpcc(
-            db_host,
-            db_port,
-            scale_units,
-            build_vus,
-            db_user,
-            db_pass,
+        ensure_tpcc_role(db_host, db_port, db_user, db_pass, db_name)
+        spec = dataset_spec_for_hammerdb_tpcc(warehouses=scale_units)
+        dataset_meta = prepare_database(
+            spec,
+            host=db_host,
+            port=db_port,
+            user=db_user,
+            password=db_pass,
+            dbname="tpcc",
             admin_db=db_name,
+            build=lambda: buildschema_tpcc(
+                db_host,
+                db_port,
+                scale_units,
+                build_vus,
+                db_user,
+                db_pass,
+                admin_db=db_name,
+            ),
         )
     else:
+        dataset_meta = None
         buildschema_tpch(
             db_host,
             db_port,
@@ -755,6 +799,8 @@ def main() -> int:
         summary["latency_ms"] = peak_latency_ms
     if workload == "tpcc":
         summary["warehouses"] = scale_units
+        if dataset_meta is not None:
+            summary["dataset"] = dataset_meta
     else:
         summary["scale_factor"] = scale_units
 

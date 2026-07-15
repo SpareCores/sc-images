@@ -5,11 +5,16 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 from xml.dom import minidom
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from db_dataset_cache import dataset_spec_for_benchbase, prepare_database
 
 WH_SIZE_GIB = 0.095
 BUFFER_FRAC = 0.25
@@ -461,8 +466,8 @@ def main() -> int:
     db_port = env_int("SC_DB_PORT", 5432)
     cache_ratio = env_float("SC_CACHE_RATIO", 1.0)
     workload = os.environ.get("SC_WORKLOAD", "tpcc").strip().lower()
-    spec = WORKLOADS.get(workload)
-    if spec is None:
+    workload_spec = WORKLOADS.get(workload)
+    if workload_spec is None:
         supported = ", ".join(sorted(WORKLOADS))
         raise RuntimeError(f"BenchBase wrapper supports SC_WORKLOAD in {{{supported}}}, got {workload!r}")
 
@@ -478,14 +483,25 @@ def main() -> int:
     # Exposed for compatibility with HammerDB wrappers even though BenchBase build phase does not use VUs.
     _ = env_int("SC_BUILD_VUS", min(16, db_vcpus))
 
+    bench_db = "benchbase"
     rtt_ms = pg_rtt_ms(db_host, db_port, db_user, db_pass, db_name)
-    create_and_load(
-        spec=spec,
+    dataset_spec = dataset_spec_for_benchbase(workload=workload, scalefactor=scalefactor)
+    dataset_meta = prepare_database(
+        dataset_spec,
         host=db_host,
         port=db_port,
         user=db_user,
         password=db_pass,
-        scalefactor=scalefactor,
+        dbname=bench_db,
+        admin_db=db_name,
+        build=lambda: create_and_load(
+            spec=workload_spec,
+            host=db_host,
+            port=db_port,
+            user=db_user,
+            password=db_pass,
+            scalefactor=scalefactor,
+        ),
     )
 
     sync_verify = synchronous_commit_verify(
@@ -504,7 +520,7 @@ def main() -> int:
     best = {"concurrency": candidates[0], "score": -1}
     for terminals in candidates:
         result = run_once(
-            spec=spec,
+            spec=workload_spec,
             host=db_host,
             port=db_port,
             user=db_user,
@@ -519,7 +535,7 @@ def main() -> int:
             best = {"concurrency": terminals, "score": result["score"]}
 
     final = run_once(
-        spec=spec,
+        spec=workload_spec,
         host=db_host,
         port=db_port,
         user=db_user,
@@ -543,6 +559,7 @@ def main() -> int:
         "profile": profile,
     }
     summary.update(provision_context())
+    summary["dataset"] = dataset_meta
     summary["synchronous_commit"] = sync_verify
     if final.get("latency_ms"):
         summary["latency_ms"] = final["latency_ms"]
