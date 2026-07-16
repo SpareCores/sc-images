@@ -104,6 +104,49 @@ def provision_context() -> dict[str, Any]:
     return ctx
 
 
+def host_context() -> dict[str, Any]:
+    """Merge multi-VM host disk metadata when SC_MULTI_VM_* env vars are set."""
+    if os.environ.get("SC_TOPOLOGY", "multi_vm") != "multi_vm":
+        return {}
+    ctx: dict[str, Any] = {"topology": "multi_vm"}
+    raw_gib = os.environ.get("SC_PROVISIONED_DISK_GIB", "").strip()
+    if raw_gib:
+        ctx["storage_gib"] = int(raw_gib)
+    disk_type = os.environ.get("SC_MULTI_VM_DB_DISK_TYPE", "").strip()
+    if disk_type:
+        ctx["storage_type"] = disk_type
+    disk_iops = os.environ.get("SC_MULTI_VM_DB_DISK_IOPS", "").strip()
+    if disk_iops:
+        ctx["disk_iops"] = int(disk_iops)
+    disk_throughput = os.environ.get("SC_MULTI_VM_DB_DISK_THROUGHPUT", "").strip()
+    if disk_throughput:
+        ctx["disk_throughput_mb_s"] = int(disk_throughput)
+    return ctx
+
+
+def sizing_context() -> dict[str, Any]:
+    """Client/DB sizing knobs forwarded from inspector via SC_* env vars."""
+    ctx: dict[str, Any] = {}
+    shirt = os.environ.get("SC_SHIRT_SIZE", "").strip()
+    if shirt:
+        ctx["shirt_size"] = shirt
+    for key, env_name, cast in (
+        ("db_vcpus", "SC_DB_VCPUS", int),
+        ("client_vcpus", "SC_CLIENT_VCPUS", int),
+        ("db_mem_gib", "SC_DB_MEM_GIB", float),
+    ):
+        raw = os.environ.get(env_name, "").strip()
+        if raw:
+            ctx[key] = cast(raw)
+    profile = os.environ.get("SC_PROFILE_VUS", "").strip()
+    if profile:
+        ctx["profile_vus"] = [int(p) for p in profile.split(",") if p.strip()]
+    pg_image = os.environ.get("SC_PG_IMAGE", "").strip()
+    if pg_image:
+        ctx["pg_image"] = pg_image
+    return ctx
+
+
 def profile_points(vcpus: int) -> list[int]:
     """Legacy local ladder when SC_PROFILE_VUS is not set (older inspector builds)."""
     if vcpus <= 2:
@@ -213,6 +256,124 @@ def synchronous_commit_verify(
     out: dict[str, Any] = {"sessions": verified}
     if benchmark_session is not None:
         out["benchmark_session"] = benchmark_session
+    return out
+
+
+def postgres_repro_context(
+    host: str,
+    port: int,
+    user: str,
+    password: str,
+    dbname: str,
+) -> dict[str, Any]:
+    """Snapshot live Postgres GUCs and related knobs for run reproduction."""
+    import psycopg
+
+    with psycopg.connect(
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        dbname=dbname,
+        connect_timeout=10,
+        autocommit=True,
+        **pg_connect_kwargs(),
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT version()")
+            version = str(cur.fetchone()[0])
+            cur.execute("SHOW server_version")
+            server_version = str(cur.fetchone()[0])
+            cur.execute("SHOW server_version_num")
+            server_version_num = int(cur.fetchone()[0])
+            cur.execute("SELECT pg_is_in_recovery()")
+            in_recovery = bool(cur.fetchone()[0])
+            cur.execute(
+                """
+                SELECT name, setting, unit, current_setting(name) AS pretty,
+                       category, short_desc, context, vartype,
+                       source, pending_restart
+                FROM pg_settings
+                ORDER BY name
+                """
+            )
+            settings: dict[str, str] = {}
+            nondefault: dict[str, dict[str, Any]] = {}
+            for (
+                name,
+                setting,
+                unit,
+                pretty,
+                category,
+                short_desc,
+                context,
+                vartype,
+                source,
+                pending_restart,
+            ) in cur.fetchall():
+                # Prefer SHOW-style values (e.g. 4GB) over raw unit counts.
+                settings[name] = pretty
+                if source and source != "default":
+                    entry: dict[str, Any] = {
+                        "setting": pretty,
+                        "source": source,
+                        "context": context,
+                        "vartype": vartype,
+                        "category": category,
+                    }
+                    if unit:
+                        entry["unit"] = unit
+                        entry["setting_raw"] = setting
+                    if short_desc:
+                        entry["short_desc"] = short_desc
+                    if pending_restart:
+                        entry["pending_restart"] = True
+                    nondefault[name] = entry
+            cur.execute(
+                "SELECT extname, extversion FROM pg_extension ORDER BY extname"
+            )
+            extensions = [
+                {"name": name, "version": ver} for name, ver in cur.fetchall()
+            ]
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(r.rolname, 'All'),
+                    COALESCE(d.datname, 'All'),
+                    s.setconfig
+                FROM pg_db_role_setting s
+                LEFT JOIN pg_roles r ON r.oid = s.setrole
+                LEFT JOIN pg_database d ON d.oid = s.setdatabase
+                ORDER BY 1, 2
+                """
+            )
+            role_settings = [
+                {
+                    "role": role,
+                    "database": database,
+                    "config": list(config or []),
+                }
+                for role, database, config in cur.fetchall()
+            ]
+
+    out: dict[str, Any] = {
+        "version": version,
+        "server_version": server_version,
+        "server_version_num": server_version_num,
+        "in_recovery": in_recovery,
+        "settings": settings,
+        "nondefault_settings": nondefault,
+        "extensions": extensions,
+        "role_settings": role_settings,
+    }
+    raw_requested = os.environ.get("SC_PG_GUCS_REQUESTED", "").strip()
+    if raw_requested:
+        try:
+            requested = json.loads(raw_requested)
+            if isinstance(requested, dict):
+                out["requested_gucs"] = requested
+        except json.JSONDecodeError:
+            out["requested_gucs_raw"] = raw_requested
     return out
 
 
@@ -509,6 +670,12 @@ def main() -> int:
         db_port,
         [{"user": db_user, "password": db_pass, "database": db_name, "benchmark": True}],
     )
+    try:
+        postgres_repro = postgres_repro_context(
+            db_host, db_port, db_user, db_pass, db_name
+        )
+    except Exception as exc:
+        postgres_repro = {"error": str(exc)}
 
     candidates = choose_concurrency_candidates(
         run_vus=run_vus,
@@ -559,8 +726,11 @@ def main() -> int:
         "profile": profile,
     }
     summary.update(provision_context())
+    summary.update(host_context())
+    summary.update(sizing_context())
     summary["dataset"] = dataset_meta
     summary["synchronous_commit"] = sync_verify
+    summary["postgres"] = postgres_repro
     if final.get("latency_ms"):
         summary["latency_ms"] = final["latency_ms"]
     if workload == "tpcc":
