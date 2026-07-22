@@ -95,9 +95,18 @@ def provision_context() -> dict[str, Any]:
         "db_fqdn": os.environ.get("SC_DB_HOST", ""),
         "network_mode": os.environ.get("SC_PROVISION_NETWORK_MODE", ""),
     }
+    storage_type = os.environ.get("SC_PROVISION_STORAGE_TYPE", "").strip()
+    if storage_type:
+        ctx["storage_type"] = storage_type
     iops_tier = os.environ.get("SC_PROVISION_IOPS_TIER", "").strip()
     if iops_tier:
         ctx["iops_tier"] = iops_tier
+    disk_iops = os.environ.get("SC_PROVISION_DISK_IOPS", "").strip()
+    if disk_iops:
+        ctx["disk_iops"] = int(disk_iops)
+    disk_throughput = os.environ.get("SC_PROVISION_DISK_THROUGHPUT", "").strip()
+    if disk_throughput:
+        ctx["disk_throughput_mb_s"] = int(disk_throughput)
     raw = os.environ.get("SC_PROVISION_SYNC_COMMIT_SETTABLE", "").strip().lower()
     if raw in ("true", "false"):
         ctx["sync_commit_session_settable"] = raw == "true"
@@ -127,9 +136,6 @@ def host_context() -> dict[str, Any]:
 def sizing_context() -> dict[str, Any]:
     """Client/DB sizing knobs forwarded from inspector via SC_* env vars."""
     ctx: dict[str, Any] = {}
-    shirt = os.environ.get("SC_SHIRT_SIZE", "").strip()
-    if shirt:
-        ctx["shirt_size"] = shirt
     for key, env_name, cast in (
         ("db_vcpus", "SC_DB_VCPUS", int),
         ("client_vcpus", "SC_CLIENT_VCPUS", int),
@@ -149,13 +155,12 @@ def sizing_context() -> dict[str, Any]:
 
 def profile_points(vcpus: int) -> list[int]:
     """Legacy local ladder when SC_PROFILE_VUS is not set (older inspector builds)."""
-    if vcpus <= 2:
-        return sorted({1, vcpus})
-    if vcpus <= 8:
-        return sorted({1, 2, 4, vcpus})
-    if vcpus <= 32:
-        return sorted({1, 4, 8, 16, vcpus})
-    return sorted({1, 8, 16, 32, vcpus})
+    vcpus = max(1, int(vcpus))
+    rungs = [1]
+    if vcpus >= 2:
+        rungs.append(max(1, vcpus // 2))
+        rungs.append(vcpus)
+    return sorted(set(rungs))
 
 
 def parse_profile_vus() -> list[int] | None:
@@ -163,6 +168,14 @@ def parse_profile_vus() -> list[int] | None:
     if not raw:
         return None
     return [int(part) for part in raw.split(",") if part.strip()]
+
+
+def timed_run_seconds() -> int:
+    return env_int("SC_RUN_SECONDS", 300)
+
+
+def timed_warmup_seconds() -> int:
+    return env_int("SC_WARMUP_SECONDS", 120)
 
 
 def benchbase_latency_ms(summary: dict[str, Any]) -> dict[str, float] | None:
@@ -445,6 +458,7 @@ def write_config(
     txn_types: tuple[str, ...],
     weights: str,
     extra: dict[str, str],
+    warmup_seconds: int = 0,
 ) -> Path:
     path = config_path(bench)
     root = ET.Element("parameters")
@@ -472,7 +486,12 @@ def write_config(
 
     works = ET.SubElement(root, "works")
     work = ET.SubElement(works, "work")
-    for key, value in (("time", str(run_seconds)), ("rate", "unlimited"), ("weights", weights)):
+    for key, value in (
+        ("warmup", str(max(0, int(warmup_seconds)))),
+        ("time", str(run_seconds)),
+        ("rate", "unlimited"),
+        ("weights", weights),
+    ):
         elem = ET.SubElement(work, key)
         elem.text = value
 
@@ -561,6 +580,7 @@ def run_once(
     scalefactor: int,
     terminals: int,
     run_seconds: int,
+    warmup_seconds: int,
 ) -> dict[str, Any]:
     bench = spec["bench"]
     config = write_config(
@@ -572,6 +592,7 @@ def run_once(
         scalefactor=scalefactor,
         terminals=terminals,
         run_seconds=run_seconds,
+        warmup_seconds=warmup_seconds,
         txn_types=spec["txn_types"],
         weights=spec["weights"],
         extra=spec.get("extra", {}),
@@ -580,7 +601,7 @@ def run_once(
         bench,
         config,
         ["--create=false", "--load=false", "--execute=true"],
-        timeout=run_seconds + 900,
+        timeout=run_seconds + warmup_seconds + 900,
     )
     if "Unexpected error" in out and "Throughput" not in out:
         raise RuntimeError(f"BenchBase execute failed: {out[-2000:]}")
@@ -603,15 +624,16 @@ def choose_concurrency_candidates(
     profiling_enabled: bool,
     profile_vcpus: int,
 ) -> list[int]:
+    # Explicit inspector ladder is authoritative (RAM-scaled wikipedia no longer
+    # ties SF to terminals the way warehouse-based OLTP did).
+    profile_vus = parse_profile_vus()
+    if profile_vus is not None:
+        return sorted({max(1, int(v)) for v in profile_vus})
     max_by_scale = max(1, scalefactor // UNITS_PER_VU_MIN)
     if not profiling_enabled:
         return [max(1, min(run_vus, max_by_scale))]
-    profile_vus = parse_profile_vus()
-    if profile_vus is not None:
-        points = list(profile_vus)
-    else:
-        points = list(profile_points(profile_vcpus))
-        points.append(run_vus)
+    points = list(profile_points(profile_vcpus))
+    points.append(run_vus)
     return sorted({max(1, min(v, max_by_scale)) for v in points})
 
 
@@ -640,9 +662,8 @@ def main() -> int:
     db_vcpus = sizing_vcpus("SC_DB_VCPUS", os.cpu_count() or 2)
     run_vus = env_int("SC_RUN_VUS", min(db_vcpus, max(1, scalefactor // UNITS_PER_VU_MIN)))
     profiling_enabled = os.environ.get("SC_PROFILE", "0") == "1"
-
-    # Exposed for compatibility with HammerDB wrappers even though BenchBase build phase does not use VUs.
-    _ = env_int("SC_BUILD_VUS", min(16, db_vcpus))
+    run_seconds = timed_run_seconds()
+    warmup_seconds = timed_warmup_seconds()
 
     bench_db = "benchbase"
     rtt_ms = pg_rtt_ms(db_host, db_port, db_user, db_pass, db_name)
@@ -694,23 +715,15 @@ def main() -> int:
             password=db_pass,
             scalefactor=scalefactor,
             terminals=terminals,
-            run_seconds=90,
+            run_seconds=run_seconds,
+            warmup_seconds=warmup_seconds,
         )
         entry = {"concurrency": terminals, **result}
         profile.append(entry)
         if result["score"] > best["score"]:
             best = {"concurrency": terminals, "score": result["score"]}
 
-    final = run_once(
-        spec=workload_spec,
-        host=db_host,
-        port=db_port,
-        user=db_user,
-        password=db_pass,
-        scalefactor=scalefactor,
-        terminals=best["concurrency"],
-        run_seconds=120,
-    )
+    best_entry = next(p for p in profile if p["concurrency"] == best["concurrency"])
 
     summary: dict[str, Any] = {
         "benchmark": "benchbase_postgres",
@@ -719,9 +732,11 @@ def main() -> int:
         "cache_ratio": cache_ratio,
         "durability": os.environ.get("SC_DURABILITY", "durable"),
         "scalefactor": scalefactor,
+        "run_seconds": run_seconds,
+        "warmup_seconds": warmup_seconds,
         "client_rtt_ms": rtt_ms,
         "peak_concurrency": best["concurrency"],
-        "score": final["score"],
+        "score": best_entry["score"],
         "score_unit": "tpm",
         "profile": profile,
     }
@@ -731,8 +746,8 @@ def main() -> int:
     summary["dataset"] = dataset_meta
     summary["synchronous_commit"] = sync_verify
     summary["postgres"] = postgres_repro
-    if final.get("latency_ms"):
-        summary["latency_ms"] = final["latency_ms"]
+    if best_entry.get("latency_ms"):
+        summary["latency_ms"] = best_entry["latency_ms"]
     if workload == "tpcc":
         summary["warehouses"] = scalefactor
 
