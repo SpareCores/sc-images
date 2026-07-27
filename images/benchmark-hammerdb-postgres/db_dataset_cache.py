@@ -52,6 +52,11 @@ def benchbase_filename(*, workload: str, scalefactor: int) -> str:
     return f"benchbase-{workload}-sf{scalefactor}.sql.zst"
 
 
+def pgbench_filename(*, workload: str, scalefactor: int) -> str:
+    """Cached dumps from ``pgbench -i -s N`` (RO and TPC-B share the same schema)."""
+    return f"pgbench-{workload}-sf{scalefactor}.sql.zst"
+
+
 def cdn_base_url() -> str:
     base = os.environ.get("SC_CDN_BASE_URL", "https://cdn.sparecores.net/sc-inspector").rstrip("/")
     return base
@@ -393,4 +398,13 @@ def dataset_spec_for_benchbase(*, workload: str, scalefactor: int) -> DatasetSpe
         tool="benchbase",
         workload=workload,
         filename=benchbase_filename(workload=workload, scalefactor=scalefactor),
+    )
+
+
+def dataset_spec_for_pgbench(*, scalefactor: int) -> DatasetSpec:
+    # Schema from ``pgbench -i`` is identical for -S and tpcb-like; one dump key.
+    return DatasetSpec(
+        tool="pgbench",
+        workload="init",
+        filename=pgbench_filename(workload="init", scalefactor=scalefactor),
     )

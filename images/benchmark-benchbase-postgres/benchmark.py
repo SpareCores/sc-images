@@ -153,6 +153,34 @@ def sizing_context() -> dict[str, Any]:
     return ctx
 
 
+# Keep in sync with sc-inspector/inspector/benchmark_tiers.py
+GEOMETRIC_CONCURRENCY_LADDER: tuple[int, ...] = (
+    1,
+    2,
+    3,
+    4,
+    6,
+    8,
+    12,
+    16,
+    24,
+    32,
+    48,
+    64,
+    96,
+    128,
+    192,
+    256,
+    384,
+    512,
+    768,
+    1024,
+    1536,
+    2048,
+    3072,
+)
+
+
 def profile_points(vcpus: int) -> list[int]:
     """Legacy local ladder when SC_PROFILE_VUS is not set (older inspector builds)."""
     vcpus = max(1, int(vcpus))
@@ -176,6 +204,49 @@ def timed_run_seconds() -> int:
 
 def timed_warmup_seconds() -> int:
     return env_int("SC_WARMUP_SECONDS", 120)
+
+
+def timed_settle_seconds() -> int:
+    return env_int("SC_SETTLE_SECONDS", 60)
+
+
+def env_bool(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def choose_concurrency_candidates(
+    *,
+    run_vus: int,
+    scalefactor: int,
+    profiling_enabled: bool,
+    profile_vcpus: int,
+) -> tuple[list[int], set[int]]:
+    """Return (ordered plan, anchor set).
+
+    Anchors from ``SC_PROFILE_VUS`` (or legacy 1/n/2/n) are always measured.
+    When ``SC_PROFILE_SEARCH=1``, append geometric rungs above max(anchor) up to
+    ``SC_PROFILE_MAX_CLIENTS``; the main loop early-stops the search tail.
+    """
+    del scalefactor  # wikipedia no longer ties SF to terminals
+    profile_vus = parse_profile_vus()
+    if profile_vus is not None:
+        anchors = sorted({max(1, int(v)) for v in profile_vus})
+    elif not profiling_enabled:
+        anchors = [max(1, run_vus)]
+    else:
+        anchors = sorted(set(profile_points(profile_vcpus) + [run_vus]))
+
+    plan = list(anchors)
+    if env_bool("SC_PROFILE_SEARCH", False) and anchors:
+        max_clients = env_int("SC_PROFILE_MAX_CLIENTS", max(anchors) * 4)
+        start = max(anchors)
+        plan.extend(
+            c for c in GEOMETRIC_CONCURRENCY_LADDER if start < c <= max_clients
+        )
+    return plan, set(anchors)
 
 
 def benchbase_latency_ms(summary: dict[str, Any]) -> dict[str, float] | None:
@@ -617,26 +688,6 @@ def run_once(
     return result
 
 
-def choose_concurrency_candidates(
-    *,
-    run_vus: int,
-    scalefactor: int,
-    profiling_enabled: bool,
-    profile_vcpus: int,
-) -> list[int]:
-    # Explicit inspector ladder is authoritative (RAM-scaled wikipedia no longer
-    # ties SF to terminals the way warehouse-based OLTP did).
-    profile_vus = parse_profile_vus()
-    if profile_vus is not None:
-        return sorted({max(1, int(v)) for v in profile_vus})
-    max_by_scale = max(1, scalefactor // UNITS_PER_VU_MIN)
-    if not profiling_enabled:
-        return [max(1, min(run_vus, max_by_scale))]
-    points = list(profile_points(profile_vcpus))
-    points.append(run_vus)
-    return sorted({max(1, min(v, max_by_scale)) for v in points})
-
-
 def sizing_vcpus(name: str, fallback: int) -> int:
     value = os.environ.get(name)
     if value is None or value.strip() == "":
@@ -698,15 +749,25 @@ def main() -> int:
     except Exception as exc:
         postgres_repro = {"error": str(exc)}
 
-    candidates = choose_concurrency_candidates(
+    candidates, anchors = choose_concurrency_candidates(
         run_vus=run_vus,
         scalefactor=scalefactor,
         profiling_enabled=profiling_enabled,
         profile_vcpus=db_vcpus,
     )
+    warmup_once = env_bool("SC_WARMUP_ONCE", True)
+    settle_seconds = timed_settle_seconds()
+    improve_pct = env_float("SC_PROFILE_IMPROVE_PCT", 5.0)
     profile: list[dict[str, Any]] = []
     best = {"concurrency": candidates[0], "score": -1}
+    peak_score = 0
+    warmup_done = False
+    stop_reason = ""
     for terminals in candidates:
+        is_anchor = terminals in anchors
+        w_secs = warmup_seconds
+        if warmup_once and warmup_done:
+            w_secs = settle_seconds
         result = run_once(
             spec=workload_spec,
             host=db_host,
@@ -716,12 +777,34 @@ def main() -> int:
             scalefactor=scalefactor,
             terminals=terminals,
             run_seconds=run_seconds,
-            warmup_seconds=warmup_seconds,
+            warmup_seconds=w_secs,
         )
-        entry = {"concurrency": terminals, **result}
+        warmup_done = True
+        score = int(result.get("score") or 0)
+        prev_peak = peak_score
+        if score > peak_score:
+            peak_score = score
+        entry = {
+            "concurrency": terminals,
+            "anchor": is_anchor,
+            "warmup_seconds": w_secs,
+            **result,
+        }
+        if peak_score > 0:
+            entry["tpm_vs_peak_pct"] = round(100.0 * score / peak_score, 2)
         profile.append(entry)
-        if result["score"] > best["score"]:
-            best = {"concurrency": terminals, "score": result["score"]}
+        if score > best["score"]:
+            best = {"concurrency": terminals, "score": score}
+        if (
+            not is_anchor
+            and prev_peak > 0
+            and score < prev_peak * (1.0 + improve_pct / 100.0)
+        ):
+            stop_reason = (
+                f"tpm {score} did not improve peak {prev_peak} by >={improve_pct:g}%"
+            )
+            entry["stop_reason"] = stop_reason
+            break
 
     best_entry = next(p for p in profile if p["concurrency"] == best["concurrency"])
 
@@ -734,11 +817,17 @@ def main() -> int:
         "scalefactor": scalefactor,
         "run_seconds": run_seconds,
         "warmup_seconds": warmup_seconds,
+        "settle_seconds": settle_seconds,
+        "warmup_once": warmup_once,
+        "improve_pct": improve_pct,
+        "profile_search": env_bool("SC_PROFILE_SEARCH", False),
         "client_rtt_ms": rtt_ms,
         "peak_concurrency": best["concurrency"],
         "score": best_entry["score"],
         "score_unit": "tpm",
+        "tps": best_entry.get("tps"),
         "profile": profile,
+        "stop_reason": stop_reason,
     }
     summary.update(provision_context())
     summary.update(host_context())

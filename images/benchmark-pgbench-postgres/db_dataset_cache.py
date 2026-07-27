@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 CDN_PREFIX = "sc-inspector"
-HAMMERDB_PARTITION_WAREHOUSE_THRESHOLD = 200
 
 
 @dataclass(frozen=True)
@@ -33,23 +32,6 @@ class DatasetSpec:
     @property
     def s3_key(self) -> str:
         return f"{CDN_PREFIX}/{self.filename}"
-
-
-def hammerdb_tpcc_partition(warehouses: int) -> bool:
-    """Match HammerDB sample buildschema scripts (partition when warehouses >= 200)."""
-    return warehouses >= HAMMERDB_PARTITION_WAREHOUSE_THRESHOLD
-
-
-def hammerdb_tpcc_filename(*, warehouses: int, storedprocs: bool = True) -> str:
-    partition = hammerdb_tpcc_partition(warehouses)
-    return (
-        f"hammerdb-tpcc-wh{warehouses}-storedprocs-{str(storedprocs).lower()}"
-        f"-partition-{str(partition).lower()}.sql.zst"
-    )
-
-
-def benchbase_filename(*, workload: str, scalefactor: int) -> str:
-    return f"benchbase-{workload}-sf{scalefactor}.sql.zst"
 
 
 def pgbench_filename(*, workload: str, scalefactor: int) -> str:
@@ -383,22 +365,6 @@ def cdn_env_for_benchmark() -> dict[str, str]:
         if value:
             env[key] = value
     return env
-
-
-def dataset_spec_for_hammerdb_tpcc(*, warehouses: int) -> DatasetSpec:
-    return DatasetSpec(
-        tool="hammerdb",
-        workload="tpcc",
-        filename=hammerdb_tpcc_filename(warehouses=warehouses),
-    )
-
-
-def dataset_spec_for_benchbase(*, workload: str, scalefactor: int) -> DatasetSpec:
-    return DatasetSpec(
-        tool="benchbase",
-        workload=workload,
-        filename=benchbase_filename(workload=workload, scalefactor=scalefactor),
-    )
 
 
 def dataset_spec_for_pgbench(*, scalefactor: int) -> DatasetSpec:
