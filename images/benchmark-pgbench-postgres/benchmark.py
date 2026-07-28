@@ -8,6 +8,7 @@ Env (set by postgres_multi / postgres_dbaas):
   SC_PROFILE_SEARCH=1 — walk geometric ladder upward while TPM improves ≥5%
   SC_PROFILE_IMPROVE_PCT — default 5
   SC_PROFILE_MAX_CLIENTS — host search cap (inclusive); TPC-B also caps at -s
+  SC_PROFILE_HARD_MAX_CLIENTS — adaptive tail hard cap (inclusive)
   SC_WARMUP_ONCE=1 — full warmup only on the first timed rung; then settle
   SC_WARMUP_SECONDS / SC_SETTLE_SECONDS / SC_RUN_SECONDS
   SC_DB_* — connection
@@ -321,6 +322,14 @@ def choose_concurrency_plan(
     return base + tail
 
 
+def next_ladder_rung(current: int, cap: int) -> int | None:
+    """Next ladder rung after ``current`` up to ``cap``."""
+    for candidate in GEOMETRIC_CONCURRENCY_LADDER:
+        if candidate > current and candidate <= cap:
+            return candidate
+    return None
+
+
 def plan_for_scale(
     *,
     workload: str,
@@ -421,6 +430,7 @@ def run_size(
     plan: list[int],
     anchors: set[int],
     improve_pct: float,
+    hard_max_clients: int,
     run_seconds: int,
     warmup_seconds: int,
     settle_seconds: int,
@@ -451,9 +461,12 @@ def run_size(
     profile: list[dict[str, Any]] = []
     peak_tpm = 0.0
     stop_reason = ""
+    plan_dyn = list(plan)
     with tempfile.TemporaryDirectory(prefix="pgbench-") as tmp:
         tmp_path = Path(tmp)
-        for clients in plan:
+        i = 0
+        while i < len(plan_dyn):
+            clients = plan_dyn[i]
             is_anchor = clients in anchors
             # After anchors, stop when a search rung fails to improve peak by IMPROVE_PCT.
             need_warmup = not (warmup_once and warmup_done)
@@ -517,6 +530,19 @@ def run_size(
                 )
                 entry["stop_reason"] = stop_reason
                 break
+            # If we hit the planned cap and it still improves, extend by one rung
+            # (bounded by hard_max_clients) and keep searching.
+            if (
+                i == len(plan_dyn) - 1
+                and not is_anchor
+                and prev_peak > 0
+                and tpm >= prev_peak * (1.0 + improve_pct / 100.0)
+                and clients < hard_max_clients
+            ):
+                nxt = next_ladder_rung(clients, hard_max_clients)
+                if nxt is not None:
+                    plan_dyn.append(nxt)
+            i += 1
 
     best = max(profile, key=lambda r: float(r.get("tpm") or 0)) if profile else {}
     return (
@@ -525,7 +551,7 @@ def run_size(
             "dataset": dataset_meta,
             "profile": profile,
             "profile_vus": sorted(anchors),
-            "concurrency_plan": plan,
+            "concurrency_plan": plan_dyn,
             "profile_max_clients": max(plan) if plan else 1,
             "peak_concurrency": best.get("concurrency"),
             "score": best.get("tpm") or best.get("score") or 0,
@@ -560,6 +586,9 @@ def main() -> int:
     db_vcpus = env_int("SC_DB_VCPUS", os.cpu_count() or 2)
     host_anchors = parse_csv_ints("SC_PROFILE_VUS") or [1, max(1, db_vcpus)]
     host_max_clients = env_int("SC_PROFILE_MAX_CLIENTS", max(host_anchors) * 4)
+    host_hard_max_clients = env_int(
+        "SC_PROFILE_HARD_MAX_CLIENTS", GEOMETRIC_CONCURRENCY_LADDER[-1]
+    )
     scales = expand_scales(workload)
 
     sync_commit = show_synchronous_commit(host, port, user, password, admin_db)
@@ -574,6 +603,9 @@ def main() -> int:
             search=search,
             host_max_clients=host_max_clients,
             db_vcpus=db_vcpus,
+        )
+        hard_max = host_hard_max_clients if workload != "pgbench_tpcb" else min(
+            host_hard_max_clients, scale
         )
         if workload == "pgbench_tpcb" and plan and max(plan) > scale:
             raise RuntimeError(
@@ -592,6 +624,7 @@ def main() -> int:
             plan=plan,
             anchors=set(anchors),
             improve_pct=improve_pct,
+            hard_max_clients=hard_max,
             run_seconds=run_seconds,
             warmup_seconds=warmup_seconds,
             settle_seconds=settle_seconds,
@@ -618,6 +651,7 @@ def main() -> int:
         "profile_search": search,
         "profile_vus": host_anchors,
         "profile_max_clients": host_max_clients,
+        "profile_hard_max_clients": host_hard_max_clients,
         "scalefactors": scales,
         "db_vcpus": db_vcpus,
         "client_vcpus": env_int("SC_CLIENT_VCPUS", os.cpu_count() or 2),

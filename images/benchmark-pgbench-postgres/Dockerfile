@@ -15,6 +15,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
       ca-certificates \
       curl \
       python3 \
+      python3-psycopg \
       zstd \
     && rm -rf /var/lib/apt/lists/*
 
