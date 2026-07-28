@@ -16,6 +16,9 @@ Env (set by postgres_multi / postgres_dbaas):
 
 TPC-B (tpcb-like): pgbench docs require -s >= max -c. We keep fixed GiB size
 rungs from the inspector and never run more clients than the scale factor.
+
+The driver also SHOW max_connections and clamps SC_PROFILE_* client caps to
+max_connections - 50 so search cannot exceed the live server limit (DBaaS).
 """
 
 from __future__ import annotations
@@ -391,6 +394,31 @@ def show_synchronous_commit(host: str, port: int, user: str, password: str, dbna
     return out.strip()
 
 
+def show_max_connections(host: str, port: int, user: str, password: str, dbname: str) -> int:
+    out = run(
+        [
+            "psql",
+            "-h",
+            host,
+            "-p",
+            str(port),
+            "-U",
+            user,
+            "-d",
+            dbname,
+            "-Atc",
+            "SHOW max_connections;",
+        ],
+        timeout=60,
+        env=pg_env(password),
+    )
+    return int(out.strip())
+
+
+# Leave room for autovacuum workers, admin sessions, and prepare_database.
+MAX_CONNECTIONS_CLIENT_RESERVE = 50
+
+
 def ensure_db(host: str, port: int, user: str, password: str, admin_db: str, dbname: str) -> None:
     try:
         run(
@@ -594,6 +622,12 @@ def main() -> int:
     scales = expand_scales(workload)
 
     sync_commit = show_synchronous_commit(host, port, user, password, admin_db)
+    max_connections = show_max_connections(host, port, user, password, admin_db)
+    # Never open more pgbench clients than the server can accept.
+    conn_cap = max(1, max_connections - MAX_CONNECTIONS_CLIENT_RESERVE)
+    host_max_clients = min(host_max_clients, conn_cap)
+    host_hard_max_clients = min(host_hard_max_clients, conn_cap)
+    host_anchors = [c for c in host_anchors if c <= conn_cap] or [1]
 
     sizes: list[dict[str, Any]] = []
     warmup_done = False
@@ -645,6 +679,8 @@ def main() -> int:
         "topology": os.environ.get("SC_TOPOLOGY", "multi_vm"),
         "durability": os.environ.get("SC_DURABILITY", "durable"),
         "synchronous_commit": sync_commit,
+        "max_connections": max_connections,
+        "max_connections_client_cap": conn_cap,
         "run_seconds": run_seconds,
         "warmup_seconds": warmup_seconds,
         "settle_seconds": settle_seconds,
