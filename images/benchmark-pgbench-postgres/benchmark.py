@@ -667,9 +667,6 @@ def main() -> int:
         "latency_ms": best_size.get("latency_ms"),
         "latency_avg_ms": best_size.get("latency_avg_ms"),
         "latency_stddev_ms": best_size.get("latency_stddev_ms"),
-        # Flat profile of the winning size for consumers that expect profile[].
-        "profile": best_size.get("profile") or [],
-        "concurrency_plan": best_size.get("concurrency_plan") or [],
         "scalefactor": best_size.get("scalefactor"),
     }
     print(json.dumps(summary, indent=2, sort_keys=True))
