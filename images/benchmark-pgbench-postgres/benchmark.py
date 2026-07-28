@@ -511,10 +511,6 @@ def run_size(
                 "warmup_seconds": w_secs,
                 **{k: v for k, v in measure.items()},
             }
-            if peak_tpm > 0:
-                entry["tpm_vs_peak_pct"] = round(100.0 * tpm / peak_tpm, 2)
-            else:
-                entry["tpm_vs_peak_pct"] = 100.0
             profile.append(entry)
 
             # Early-stop only on search (non-anchor) rungs: require ≥ IMPROVE_PCT
@@ -545,6 +541,12 @@ def run_size(
             i += 1
 
     best = max(profile, key=lambda r: float(r.get("tpm") or 0)) if profile else {}
+    final_peak = float(best.get("tpm") or 0)
+    for entry in profile:
+        tpm = float(entry.get("tpm") or 0)
+        entry["tpm_vs_final_peak_pct"] = (
+            round(100.0 * tpm / final_peak, 2) if final_peak > 0 else 100.0
+        )
     return (
         {
             "scalefactor": scale,
