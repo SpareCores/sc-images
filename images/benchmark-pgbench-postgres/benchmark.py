@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
-"""pgbench RO (-S) and TPC-B (tpcb-like) driver for Spare Cores inspector.
+"""pgbench driver for Spare Cores inspector.
+
+Workloads:
+  * ``pgbench_ro`` — cached CPU-heavy ``ro_cpu_*`` script (``-f`` + ``-D scale``).
+    Fixed concurrency ``{1, V/2, V, 2·V}``; no geometric ladder / adaptive search.
+    Headline score is TPM only (txn/min); per-second TPS is omitted.
+  * ``pgbench_tpcb`` — built-in tpcb-like; geometric anchors + upward search.
 
 Env (set by postgres_multi / postgres_dbaas):
   SC_WORKLOAD=pgbench_ro|pgbench_tpcb
-  SC_SCALEFACTOR / SC_SCALEFACTORS — one or more pgbench -s values
-  SC_PROFILE_VUS — host anchor concurrencies (comma list); TPC-B may shrink
-  SC_PROFILE_SEARCH=1 — walk geometric ladder upward while TPM improves ≥5%
-  SC_PROFILE_IMPROVE_PCT — default 5
-  SC_PROFILE_MAX_CLIENTS — host search cap (inclusive); TPC-B also caps at -s
-  SC_PROFILE_HARD_MAX_CLIENTS — adaptive tail hard cap (inclusive)
-  SC_WARMUP_ONCE=1 — full warmup only on the first timed rung; then settle
-  SC_WARMUP_SECONDS / SC_SETTLE_SECONDS / SC_RUN_SECONDS
-  SC_DB_* — connection
-  SC_CDN_* — dump cache (prepare_database)
-
-TPC-B (tpcb-like): pgbench docs require -s >= max -c. We keep fixed GiB size
-rungs from the inspector and never run more clients than the scale factor.
-
-The driver also SHOW max_connections and clamps SC_PROFILE_* client caps to
-max_connections - 50 so search cannot exceed the live server limit (DBaaS).
+  SC_CPU_SCALE — RO work multiplier (``-D scale=N``), default 1
+  SC_SCALEFACTOR / SC_SCALEFACTORS — TPC-B pgbench ``-s`` values
+  SC_PROFILE_VUS — concurrency list (RO: 1,V/2,V,2V; TPC-B: anchors)
+  SC_PROFILE_SEARCH — TPC-B only (RO forces off)
+  SC_PROFILE_IMPROVE_PCT / SC_PROFILE_MAX_CLIENTS / SC_PROFILE_HARD_MAX_CLIENTS
+  SC_WARMUP_ONCE / SC_WARMUP_SECONDS / SC_SETTLE_SECONDS / SC_RUN_SECONDS
+  SC_DB_* — connection; SC_CDN_* — dump cache
 """
 
 from __future__ import annotations
@@ -33,9 +30,18 @@ import time
 from pathlib import Path
 from typing import Any
 
-from db_dataset_cache import dataset_spec_for_pgbench, prepare_database
+from db_dataset_cache import (
+    dataset_spec_for_pgbench,
+    dataset_spec_for_pgbench_ro_cpu,
+    prepare_database,
+)
 
-# Keep in sync with sc-inspector/inspector/benchmark_tiers.py
+SCRIPT_DIR = Path(__file__).resolve().parent
+RO_SETUP_SQL = SCRIPT_DIR / "ro_cpu_setup.sql"
+RO_TXN_SQL = SCRIPT_DIR / "ro_cpu_txn.sql"
+RO_MAX_JOBS = 32
+
+# Keep in sync with sc-inspector/inspector/benchmark_tiers.py (TPC-B only).
 GEOMETRIC_CONCURRENCY_LADDER: tuple[int, ...] = (
     1,
     2,
@@ -125,11 +131,11 @@ def pg_env(password: str) -> dict[str, str]:
 
 
 def parse_pgbench_summary(text: str) -> dict[str, Any]:
+    """Parse pgbench stdout. Score is TPM only (no TPS field)."""
     out: dict[str, Any] = {}
     m = _RE_TPS.search(text)
     if m:
         tps = float(m.group(1))
-        out["tps"] = round(tps, 2)
         out["tpm"] = int(round(tps * 60))
         out["score"] = out["tpm"]
     m = _RE_LAT_AVG.search(text)
@@ -190,7 +196,74 @@ def percentiles_from_logs(work_dir: Path) -> dict[str, Any]:
     }
 
 
-def pgbench_init(
+def psql_file(
+    *,
+    host: str,
+    port: int,
+    user: str,
+    password: str,
+    dbname: str,
+    sql_path: Path,
+    timeout: int = 14400,
+) -> None:
+    run(
+        [
+            "psql",
+            "-h",
+            host,
+            "-p",
+            str(port),
+            "-U",
+            user,
+            "-d",
+            dbname,
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-f",
+            str(sql_path),
+        ],
+        timeout=timeout,
+        env=pg_env(password),
+    )
+
+
+def apply_ro_session_defaults(
+    *,
+    host: str,
+    port: int,
+    user: str,
+    password: str,
+    dbname: str,
+) -> None:
+    """One-time GUCs so the txn script does not pay per-txn SET round-trips."""
+    stmts = [
+        f'ALTER DATABASE "{dbname}" SET jit = off',
+        f"ALTER DATABASE \"{dbname}\" SET work_mem = '64MB'",
+        f'ALTER DATABASE "{dbname}" SET max_parallel_workers_per_gather = 0',
+    ]
+    for stmt in stmts:
+        run(
+            [
+                "psql",
+                "-h",
+                host,
+                "-p",
+                str(port),
+                "-U",
+                user,
+                "-d",
+                dbname,
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-c",
+                stmt,
+            ],
+            timeout=60,
+            env=pg_env(password),
+        )
+
+
+def pgbench_init_tpcb(
     *,
     host: str,
     port: int,
@@ -218,6 +291,29 @@ def pgbench_init(
     )
 
 
+def pgbench_init_ro_cpu(
+    *,
+    host: str,
+    port: int,
+    user: str,
+    password: str,
+    dbname: str,
+) -> None:
+    if not RO_SETUP_SQL.is_file():
+        raise RuntimeError(f"missing RO setup script: {RO_SETUP_SQL}")
+    psql_file(
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        dbname=dbname,
+        sql_path=RO_SETUP_SQL,
+    )
+    apply_ro_session_defaults(
+        host=host, port=port, user=user, password=password, dbname=dbname
+    )
+
+
 def pgbench_run(
     *,
     host: str,
@@ -231,9 +327,13 @@ def pgbench_run(
     progress: bool,
     latency_log: bool,
     work_dir: Path,
+    cpu_scale: int = 1,
 ) -> dict[str, Any]:
     work_dir.mkdir(parents=True, exist_ok=True)
-    jobs = clients
+    if workload == "pgbench_ro":
+        jobs = min(clients, RO_MAX_JOBS)
+    else:
+        jobs = clients
     args = [
         "pgbench",
         "-h",
@@ -253,7 +353,9 @@ def pgbench_run(
         "-n",
     ]
     if workload == "pgbench_ro":
-        args.append("-S")
+        if not RO_TXN_SQL.is_file():
+            raise RuntimeError(f"missing RO txn script: {RO_TXN_SQL}")
+        args.extend(["-D", f"scale={cpu_scale}", "-f", str(RO_TXN_SQL)])
     elif workload == "pgbench_tpcb":
         args.extend(["-b", "tpcb-like"])
     else:
@@ -275,12 +377,13 @@ def pgbench_run(
     except RuntimeError as exc:
         text = str(exc)
         parsed = parse_pgbench_summary(text)
-        if not parsed.get("tps"):
+        if not parsed.get("tpm"):
             raise
         out = text
     elapsed = round(time.time() - t0, 1)
     parsed = parse_pgbench_summary(out)
     parsed["run_seconds"] = elapsed
+    parsed["jobs"] = jobs
     if latency_log:
         pct = percentiles_from_logs(work_dir)
         if pct:
@@ -291,19 +394,22 @@ def pgbench_run(
                 "avg": pct.get("avg", parsed.get("latency_avg_ms")),
                 "samples": pct["samples"],
             }
-            # Prefer sampled avg when present for the headline latency_ms.avg
             if "latency_avg_ms" in parsed and "avg" not in pct:
                 parsed["latency_ms"]["avg"] = parsed["latency_avg_ms"]
     return parsed
 
 
 def rung(x: float) -> int:
-    """Snap a concurrency target onto ``GEOMETRIC_CONCURRENCY_LADDER``."""
     target = max(1.0, float(x))
     return min(GEOMETRIC_CONCURRENCY_LADDER, key=lambda v: (abs(v - target), v))
 
 
-def concurrency_anchors(vcpus: int) -> list[int]:
+def concurrency_profile_ro(vcpus: int) -> list[int]:
+    v = max(1, int(vcpus))
+    return sorted({1, max(1, v // 2), v, 2 * v})
+
+
+def concurrency_anchors_tpcb(vcpus: int) -> list[int]:
     v = max(1, int(vcpus))
     return sorted({1, rung(v / 4), rung(v / 2), rung(v)})
 
@@ -314,19 +420,15 @@ def choose_concurrency_plan(
     search: bool,
     max_clients: int,
 ) -> list[int]:
-    """Anchors first (all measured), then optional upward search candidates."""
-    # Drop anchors above the client cap (TPC-B: max_clients <= scale).
     base = sorted({max(1, int(c)) for c in anchors if int(c) <= max_clients}) or [1]
     if not search:
         return base
     start = max(base)
     tail = [c for c in GEOMETRIC_CONCURRENCY_LADDER if start < c <= max_clients]
-    # Return anchors + tail; early-stop happens while iterating.
     return base + tail
 
 
 def next_ladder_rung(current: int, cap: int) -> int | None:
-    """Next ladder rung after ``current`` up to ``cap``."""
     for candidate in GEOMETRIC_CONCURRENCY_LADDER:
         if candidate > current and candidate <= cap:
             return candidate
@@ -342,23 +444,14 @@ def plan_for_scale(
     host_max_clients: int,
     db_vcpus: int,
 ) -> tuple[list[int], list[int], int]:
-    """Return ``(anchors, plan, max_clients)`` for one scale.
+    if workload == "pgbench_ro":
+        # Fixed profile; ignore search.
+        anchors = [c for c in host_anchors if c <= host_max_clients] or [1]
+        return anchors, list(anchors), host_max_clients
 
-    For TPC-B, enforce pgbench's ``-s >= -c`` by capping clients at ``scale``
-    and recomputing anchors against ``min(V, scale)`` so small rungs still get
-    four always-measured points instead of early-stopping the whole ladder.
-    """
-    if workload != "pgbench_tpcb":
-        plan = choose_concurrency_plan(
-            anchors=host_anchors, search=search, max_clients=host_max_clients
-        )
-        return host_anchors, plan, host_max_clients
-
-    # Keep in sync with sc-inspector/inspector/benchmark_tiers.py
-    # pgbench_tpcb_client_cap / pgbench_tpcb_anchor_vcpus.
     max_clients = max(1, min(int(scale), int(host_max_clients)))
     anchor_v = max(1, min(int(db_vcpus), int(scale)))
-    anchors = concurrency_anchors(anchor_v)
+    anchors = concurrency_anchors_tpcb(anchor_v)
     plan = choose_concurrency_plan(
         anchors=anchors, search=search, max_clients=max_clients
     )
@@ -366,11 +459,13 @@ def plan_for_scale(
 
 
 def expand_scales(workload: str) -> list[int]:
+    if workload == "pgbench_ro":
+        # One fixed schema; cpu_scale is separate.
+        return [0]
     many = parse_csv_ints("SC_SCALEFACTORS")
     if many:
         return many
-    one = env_int("SC_SCALEFACTOR", 65 if workload == "pgbench_ro" else 65)
-    return [one]
+    return [env_int("SC_SCALEFACTOR", 65)]
 
 
 def show_synchronous_commit(host: str, port: int, user: str, password: str, dbname: str) -> str:
@@ -415,7 +510,6 @@ def show_max_connections(host: str, port: int, user: str, password: str, dbname:
     return int(out.strip())
 
 
-# Leave room for autovacuum workers, admin sessions, and prepare_database.
 MAX_CONNECTIONS_CLIENT_RESERVE = 50
 
 
@@ -449,6 +543,7 @@ def run_size(
     *,
     workload: str,
     scale: int,
+    cpu_scale: int,
     host: str,
     port: int,
     user: str,
@@ -464,10 +559,24 @@ def run_size(
     settle_seconds: int,
     warmup_once: bool,
     warmup_done: bool,
+    search: bool,
 ) -> tuple[dict[str, Any], bool]:
-    """Load one scale and run the concurrency plan. Returns (size_result, warmup_done)."""
     ensure_db(host, port, user, password, admin_db, dbname)
-    spec = dataset_spec_for_pgbench(scalefactor=scale)
+    if workload == "pgbench_ro":
+        spec = dataset_spec_for_pgbench_ro_cpu()
+        build = lambda: pgbench_init_ro_cpu(
+            host=host, port=port, user=user, password=password, dbname=dbname
+        )
+    else:
+        spec = dataset_spec_for_pgbench(scalefactor=scale)
+        build = lambda: pgbench_init_tpcb(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            dbname=dbname,
+            scale=scale,
+        )
     dataset_meta = prepare_database(
         spec,
         host=host,
@@ -476,15 +585,13 @@ def run_size(
         password=password,
         dbname=dbname,
         admin_db=admin_db,
-        build=lambda: pgbench_init(
-            host=host,
-            port=port,
-            user=user,
-            password=password,
-            dbname=dbname,
-            scale=scale,
-        ),
+        build=build,
     )
+    if workload == "pgbench_ro":
+        # Restores from CDN skip setup's ALTER DATABASE; re-apply cheaply.
+        apply_ro_session_defaults(
+            host=host, port=port, user=user, password=password, dbname=dbname
+        )
 
     profile: list[dict[str, Any]] = []
     peak_tpm = 0.0
@@ -496,7 +603,6 @@ def run_size(
         while i < len(plan_dyn):
             clients = plan_dyn[i]
             is_anchor = clients in anchors
-            # After anchors, stop when a search rung fails to improve peak by IMPROVE_PCT.
             need_warmup = not (warmup_once and warmup_done)
             w_secs = warmup_seconds if need_warmup else settle_seconds
             if w_secs > 0:
@@ -512,6 +618,7 @@ def run_size(
                     progress=False,
                     latency_log=False,
                     work_dir=tmp_path / f"warm_{clients}",
+                    cpu_scale=cpu_scale,
                 )
                 warmup_done = True
 
@@ -527,6 +634,7 @@ def run_size(
                 progress=True,
                 latency_log=True,
                 work_dir=tmp_path / f"meas_{clients}",
+                cpu_scale=cpu_scale,
             )
             tpm = float(measure.get("tpm") or 0)
             prev_peak = peak_tpm
@@ -534,38 +642,35 @@ def run_size(
                 peak_tpm = tpm
             entry = {
                 "concurrency": clients,
-                "jobs": clients,
+                "jobs": measure.get("jobs", clients),
                 "anchor": is_anchor,
                 "warmup_seconds": w_secs,
-                **{k: v for k, v in measure.items()},
+                **{k: v for k, v in measure.items() if k != "jobs"},
             }
             profile.append(entry)
 
-            # Early-stop only on search (non-anchor) rungs: require ≥ IMPROVE_PCT
-            # gain vs the previous peak to continue.
-            if (
-                not is_anchor
-                and prev_peak > 0
-                and tpm < prev_peak * (1.0 + improve_pct / 100.0)
-            ):
-                stop_reason = (
-                    f"tpm {tpm:.0f} did not improve peak {prev_peak:.0f} "
-                    f"by >={improve_pct:g}%"
-                )
-                entry["stop_reason"] = stop_reason
-                break
-            # If we hit the planned cap and it still improves, extend by one rung
-            # (bounded by hard_max_clients) and keep searching.
-            if (
-                i == len(plan_dyn) - 1
-                and not is_anchor
-                and prev_peak > 0
-                and tpm >= prev_peak * (1.0 + improve_pct / 100.0)
-                and clients < hard_max_clients
-            ):
-                nxt = next_ladder_rung(clients, hard_max_clients)
-                if nxt is not None:
-                    plan_dyn.append(nxt)
+            if workload == "pgbench_tpcb" and search:
+                if (
+                    not is_anchor
+                    and prev_peak > 0
+                    and tpm < prev_peak * (1.0 + improve_pct / 100.0)
+                ):
+                    stop_reason = (
+                        f"tpm {tpm:.0f} did not improve peak {prev_peak:.0f} "
+                        f"by >={improve_pct:g}%"
+                    )
+                    entry["stop_reason"] = stop_reason
+                    break
+                if (
+                    i == len(plan_dyn) - 1
+                    and not is_anchor
+                    and prev_peak > 0
+                    and tpm >= prev_peak * (1.0 + improve_pct / 100.0)
+                    and clients < hard_max_clients
+                ):
+                    nxt = next_ladder_rung(clients, hard_max_clients)
+                    if nxt is not None:
+                        plan_dyn.append(nxt)
             i += 1
 
     best = max(profile, key=lambda r: float(r.get("tpm") or 0)) if profile else {}
@@ -575,24 +680,24 @@ def run_size(
         entry["tpm_vs_final_peak_pct"] = (
             round(100.0 * tpm / final_peak, 2) if final_peak > 0 else 100.0
         )
-    return (
-        {
-            "scalefactor": scale,
-            "dataset": dataset_meta,
-            "profile": profile,
-            "profile_vus": sorted(anchors),
-            "concurrency_plan": plan_dyn,
-            "profile_max_clients": max(plan) if plan else 1,
-            "peak_concurrency": best.get("concurrency"),
-            "score": best.get("tpm") or best.get("score") or 0,
-            "tps": best.get("tps"),
-            "latency_ms": best.get("latency_ms"),
-            "latency_avg_ms": best.get("latency_avg_ms"),
-            "latency_stddev_ms": best.get("latency_stddev_ms"),
-            "stop_reason": stop_reason,
-        },
-        warmup_done,
-    )
+    size_out: dict[str, Any] = {
+        "dataset": dataset_meta,
+        "profile": profile,
+        "profile_vus": sorted(anchors),
+        "concurrency_plan": plan_dyn,
+        "profile_max_clients": max(plan) if plan else 1,
+        "peak_concurrency": best.get("concurrency"),
+        "score": best.get("tpm") or best.get("score") or 0,
+        "latency_ms": best.get("latency_ms"),
+        "latency_avg_ms": best.get("latency_avg_ms"),
+        "latency_stddev_ms": best.get("latency_stddev_ms"),
+        "stop_reason": stop_reason,
+    }
+    if workload == "pgbench_ro":
+        size_out["cpu_scale"] = cpu_scale
+    else:
+        size_out["scalefactor"] = scale
+    return size_out, warmup_done
 
 
 def main() -> int:
@@ -612,18 +717,28 @@ def main() -> int:
     settle_seconds = env_int("SC_SETTLE_SECONDS", 60)
     warmup_once = env_bool("SC_WARMUP_ONCE", True)
     improve_pct = env_float("SC_PROFILE_IMPROVE_PCT", 5.0)
-    search = env_bool("SC_PROFILE_SEARCH", True)
+    search = env_bool("SC_PROFILE_SEARCH", workload == "pgbench_tpcb")
+    if workload == "pgbench_ro":
+        search = False
     db_vcpus = env_int("SC_DB_VCPUS", os.cpu_count() or 2)
-    host_anchors = parse_csv_ints("SC_PROFILE_VUS") or [1, max(1, db_vcpus)]
-    host_max_clients = env_int("SC_PROFILE_MAX_CLIENTS", max(host_anchors) * 4)
+    cpu_scale = env_int("SC_CPU_SCALE", 1)
+    if workload == "pgbench_ro":
+        host_anchors = parse_csv_ints("SC_PROFILE_VUS") or concurrency_profile_ro(
+            db_vcpus
+        )
+    else:
+        host_anchors = parse_csv_ints("SC_PROFILE_VUS") or concurrency_anchors_tpcb(
+            db_vcpus
+        )
+    host_max_clients = env_int("SC_PROFILE_MAX_CLIENTS", max(host_anchors))
     host_hard_max_clients = env_int(
-        "SC_PROFILE_HARD_MAX_CLIENTS", GEOMETRIC_CONCURRENCY_LADDER[-1]
+        "SC_PROFILE_HARD_MAX_CLIENTS",
+        max(host_anchors) if workload == "pgbench_ro" else GEOMETRIC_CONCURRENCY_LADDER[-1],
     )
     scales = expand_scales(workload)
 
     sync_commit = show_synchronous_commit(host, port, user, password, admin_db)
     max_connections = show_max_connections(host, port, user, password, admin_db)
-    # Never open more pgbench clients than the server can accept.
     conn_cap = max(1, max_connections - MAX_CONNECTIONS_CLIENT_RESERVE)
     host_max_clients = min(host_max_clients, conn_cap)
     host_hard_max_clients = min(host_hard_max_clients, conn_cap)
@@ -634,14 +749,16 @@ def main() -> int:
     for scale in scales:
         anchors, plan, scale_max = plan_for_scale(
             workload=workload,
-            scale=scale,
+            scale=scale if workload != "pgbench_ro" else 1,
             host_anchors=host_anchors,
             search=search,
             host_max_clients=host_max_clients,
             db_vcpus=db_vcpus,
         )
-        hard_max = host_hard_max_clients if workload != "pgbench_tpcb" else min(
-            host_hard_max_clients, scale
+        hard_max = (
+            host_hard_max_clients
+            if workload != "pgbench_tpcb"
+            else min(host_hard_max_clients, scale)
         )
         if workload == "pgbench_tpcb" and plan and max(plan) > scale:
             raise RuntimeError(
@@ -651,6 +768,7 @@ def main() -> int:
         size_result, warmup_done = run_size(
             workload=workload,
             scale=scale,
+            cpu_scale=cpu_scale,
             host=host,
             port=port,
             user=user,
@@ -666,12 +784,12 @@ def main() -> int:
             settle_seconds=settle_seconds,
             warmup_once=warmup_once,
             warmup_done=warmup_done,
+            search=search,
         )
         size_result["clients_capped_at_scale"] = workload == "pgbench_tpcb"
         size_result["profile_max_clients"] = scale_max
         sizes.append(size_result)
 
-    # Headline score: best TPM across sizes (and their concurrency peaks).
     best_size = max(sizes, key=lambda s: float(s.get("score") or 0)) if sizes else {}
     summary: dict[str, Any] = {
         "benchmark": "pgbench_postgres",
@@ -685,26 +803,29 @@ def main() -> int:
         "warmup_seconds": warmup_seconds,
         "settle_seconds": settle_seconds,
         "warmup_once": warmup_once,
-        "improve_pct": improve_pct,
+        "improve_pct": improve_pct if workload == "pgbench_tpcb" else None,
         "profile_search": search,
         "profile_vus": host_anchors,
         "profile_max_clients": host_max_clients,
         "profile_hard_max_clients": host_hard_max_clients,
-        "scalefactors": scales,
         "db_vcpus": db_vcpus,
         "client_vcpus": env_int("SC_CLIENT_VCPUS", os.cpu_count() or 2),
         "db_mem_gib": env_float("SC_DB_MEM_GIB", 0.0) or None,
         "sizes": sizes,
-        "peak_scalefactor": best_size.get("scalefactor"),
         "peak_concurrency": best_size.get("peak_concurrency"),
         "score": best_size.get("score") or 0,
         "score_unit": "tpm",
-        "tps": best_size.get("tps"),
         "latency_ms": best_size.get("latency_ms"),
         "latency_avg_ms": best_size.get("latency_avg_ms"),
         "latency_stddev_ms": best_size.get("latency_stddev_ms"),
-        "scalefactor": best_size.get("scalefactor"),
     }
+    if workload == "pgbench_ro":
+        summary["cpu_scale"] = cpu_scale
+        summary["peak_cpu_scale"] = best_size.get("cpu_scale")
+    else:
+        summary["scalefactors"] = scales
+        summary["peak_scalefactor"] = best_size.get("scalefactor")
+        summary["scalefactor"] = best_size.get("scalefactor")
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
 
