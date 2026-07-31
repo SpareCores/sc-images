@@ -1,22 +1,61 @@
 -- Mixed read-only transaction for pgbench (-f), with work multiplier.
 --
 -- Pass scale via:  pgbench -D scale=N -f this_file ...
--- scale=1 matches the original 03_run_benchmark.sql work amounts.
--- Scale multiplies LIMIT/slice widths (≈ linear CPU on a cached working set).
+-- Scale multiplies LIMIT/slice widths (~linear CPU on a cached working set).
 --
 -- Session GUCs (jit/work_mem/max_parallel_workers_per_gather) must be set
--- once on the database/role — not per transaction — so serial vs pipeline
+-- once on the database/role -- not per transaction -- so serial vs pipeline
 -- comparisons are not dominated by extra SET round-trips.
+--
+-- Design goal: spread CPU across distinct Postgres subsystems so no single
+-- one dominates (earlier version spent ~70% of its time in regex alone; the
+-- whole script never touched a non-btree index AM, a hash/merge join, full
+-- text search, arrays, ordered-set aggregates, or TOAST). Each block below
+-- targets code the old script skipped entirely; weights were calibrated
+-- empirically in a local Docker Postgres 18 (see profile_v2_breakdown.sql)
+-- so no block exceeds ~30% of total transaction time at scale=1:
+--   q_idx ~0.1ms  q_hashjoin ~24ms  q_regex ~15ms  q_fts ~12ms
+--   q_array ~8ms  q_stats ~13ms  q_toast ~4ms  q_seqscan ~2ms  (total ~78ms)
+--
+--   q_idx       btree index scan, nested loop, window agg      (nodeIndexscan.c, nodeWindowAgg.c)
+--   q_hashjoin  time-windowed order slice -> hash join against
+--               the product dimension -> hash aggregate.       (nodeHash.c, nodeHashjoin.c)
+--               Verified via EXPLAIN: at the calibrated window width the
+--               planner also throws in a Merge Join (nodeMergejoin.c) for
+--               the outer product join; the time-range scan itself picks
+--               either the BRIN index or a btree skip-scan over
+--               (status, ordered_at) depending on window width -- not
+--               force-pinned, since a single monolithic statement can't
+--               apply per-block planner GUCs without affecting every block.
+--   q_regex     regex + md5 over a small order slice            (utils/adt/regexp.c) -- shrunk, no longer dominant
+--   q_fts       full text search via tsvector/GIN/ts_rank        (utils/adt/tsvector_op.c, access/gin)
+--   q_array     array containment via GIN, bounded join          (utils/adt/arrayfuncs.c, access/gin)
+--   q_stats     ordered-set + statistical aggregates              (percentile_cont/stddev/corr in nodeAgg.c, numeric.c)
+--   q_toast     out-of-line TOAST fetch + decompression           (access/heap/heaptoast.c)
+--   q_seqscan   plain seq scan + aggregate, no predicate/index     (nodeSeqscan.c)
 
 \set aid random(1, 50000)
 \set oid random(1, 250000)
 \set pid random(1, 5000)
 \set region_i random(0, 4)
--- :scale comes from pgbench -D scale=N (integer work multiplier).
-\set recent_lim 40 * :scale
-\set cohort_lim 800 * :scale
-\set slice_width 12000 * :scale
-\set topn_lim 25 * :scale
+\set tag1_i random(0, 9)
+\set tag2_i random(0, 4)
+\set fts1_i random(0, 9)
+\set fts2_i random(0, 2)
+
+-- :scale comes from pgbench -D scale=N (integer work multiplier). Weights
+-- below were calibrated on a local Docker Postgres 18 so no block exceeds
+-- ~30% of total transaction time at scale=1 (see profile_v2_breakdown.sql):
+--   q_idx ~0.1ms  q_hashjoin ~24ms  q_regex ~15ms  q_fts ~12ms
+--   q_array ~8ms  q_stats ~13ms  q_toast ~4ms  q_seqscan ~2ms  (total ~78ms)
+\set regex_width 3600 * :scale
+\set hj_window_sec 1500 * :scale
+\set hj_start_sec random(0, 250000 - :hj_window_sec)
+\set fts_lim 40 * :scale
+\set array_slice_width 48000 * :scale
+\set array_lim 200
+\set stats_width 8000 * :scale
+\set toast_n 700 * :scale
 
 SELECT md5(string_agg(x, '|' ORDER BY x)) AS checksum
 FROM (
@@ -26,31 +65,37 @@ FROM (
             :oid::int AS order_id,
             :pid::int AS product_id,
             (ARRAY['us-east', 'us-west', 'eu-west', 'asia', 'sa'])[1 + :region_i]
-                AS region
+                AS region,
+            (ARRAY['urgent', 'fragile', 'giftwrap', 'backorder', 'expedite',
+                   'digital', 'bulk', 'sample', 'recurring', 'warranty'])[1 + :tag1_i]
+                AS tag1,
+            (ARRAY['north', 'south', 'east', 'west', 'central'])[1 + :tag2_i]
+                AS tag2,
+            (ARRAY['urgent', 'fragile', 'giftwrap', 'backorder', 'expedite',
+                   'digital', 'bulk', 'sample', 'recurring', 'warranty'])[1 + :fts1_i]
+                AS fts_term1,
+            (ARRAY['priority', 'standard', 'economy'])[1 + :fts2_i]
+                AS fts_term2
     ),
-    cust AS (
-        SELECT c.*
-        FROM ro_cpu_customer c
-        JOIN params p ON c.customer_id = p.customer_id
-    ),
+
+    --------------------------------------------------------------------------
+    -- q_idx: btree index scan -> nested loop -> window agg over one
+    -- customer's paid/shipped/done orders (always exactly 3 of 5, see
+    -- ro_cpu_setup.sql status-generation note).
+    --------------------------------------------------------------------------
     recent AS (
-        SELECT o.order_id, o.status, o.ordered_at, o.meta, o.note, o.customer_id
+        SELECT o.order_id, o.customer_id
         FROM ro_cpu_order o
         JOIN params p ON o.customer_id = p.customer_id
         WHERE o.status IN ('paid', 'shipped', 'done')
-        ORDER BY o.ordered_at DESC
-        LIMIT :recent_lim
     ),
     lines AS (
         SELECT
             r.order_id,
-            r.status,
             i.product_id,
-            i.qty,
             i.line_total,
             pr.category,
-            pr.attrs,
-            pr.unit_price
+            pr.attrs
         FROM recent r
         JOIN ro_cpu_order_item i ON i.order_id = r.order_id
         JOIN ro_cpu_product pr ON pr.product_id = i.product_id
@@ -65,9 +110,9 @@ FROM (
             ) AS cat_rank
         FROM lines l
     ),
-    q1 AS (
+    q_idx AS (
         SELECT
-            'q1' AS tag,
+            'q_idx' AS tag,
             count(*)::text
                 || ':' || coalesce(sum(line_total), 0)::text
                 || ':' || coalesce(sum(order_sum) FILTER (WHERE cat_rank = 1), 0)::text
@@ -75,48 +120,59 @@ FROM (
                 AS dig
         FROM ranked
     ),
-    cohort AS (
-        SELECT c.customer_id, c.profile, c.email
-        FROM ro_cpu_customer c
-        JOIN params p ON c.region = p.region
-        WHERE (c.profile ->> 'plan') IN ('pro', 'ent')
-        LIMIT :cohort_lim
+
+    --------------------------------------------------------------------------
+    -- q_hashjoin: time-windowed order slice -> join against the full
+    -- order_item + product tables with no customer/status filter, so the
+    -- planner has no cheap narrowing index into order_item and hashes the
+    -- (small) product side instead of a per-row nested loop.
+    --------------------------------------------------------------------------
+    fact_slice AS (
+        SELECT o.order_id
+        FROM ro_cpu_order o, params p
+        WHERE o.ordered_at >= timestamptz '2022-01-01 00:00:00+00'
+                + make_interval(secs => :hj_start_sec)
+          AND o.ordered_at < timestamptz '2022-01-01 00:00:00+00'
+                + make_interval(secs => :hj_start_sec + :hj_window_sec)
     ),
-    cohort_orders AS (
-        SELECT o.order_id, o.status, o.customer_id, o.meta
-        FROM ro_cpu_order o
-        JOIN cohort c ON c.customer_id = o.customer_id
-        WHERE o.status <> 'cancel'
-          AND (o.meta ->> 'channel') IN ('web', 'api')
+    fact_items AS (
+        SELECT fs.order_id, i.product_id, i.qty, i.line_total
+        FROM fact_slice fs
+        JOIN ro_cpu_order_item i ON i.order_id = fs.order_id
     ),
-    cohort_agg AS (
+    hj_agg AS (
         SELECT
-            co.status,
-            count(*) AS n_orders,
-            sum(i.line_total) AS revenue,
-            count(DISTINCT i.product_id) AS n_products
-        FROM cohort_orders co
-        JOIN ro_cpu_order_item i ON i.order_id = co.order_id
-        GROUP BY co.status
+            pr.category,
+            pr.attrs ->> 'tier' AS tier,
+            count(*) AS n_lines,
+            sum(fi.qty) AS qty,
+            sum(fi.line_total) AS revenue
+        FROM fact_items fi
+        JOIN ro_cpu_product pr ON pr.product_id = fi.product_id
+        GROUP BY pr.category, pr.attrs ->> 'tier'
     ),
-    q2 AS (
+    q_hashjoin AS (
         SELECT
-            'q2' AS tag,
+            'q_hashjoin' AS tag,
             string_agg(
-                status || '=' || n_orders || '/' || revenue::text || '/' || n_products,
-                ';' ORDER BY status
+                category || '/' || tier || '=' || n_lines || ':' || qty || ':' || revenue::text,
+                ';' ORDER BY category, tier
             ) AS dig
-        FROM cohort_agg
+        FROM hj_agg
     ),
+
+    --------------------------------------------------------------------------
+    -- q_regex: regex + md5 over a small order slice (shrunk from the
+    -- original 12000-row width so it no longer dominates the transaction).
+    --------------------------------------------------------------------------
     slice AS (
-        SELECT o.order_id, o.note, o.meta, o.status, o.ordered_at
-        FROM ro_cpu_order o
-        JOIN params p ON true
-        WHERE o.order_id BETWEEN p.order_id AND p.order_id + :slice_width
+        SELECT o.order_id, o.note, o.meta
+        FROM ro_cpu_order o, params p
+        WHERE o.order_id BETWEEN p.order_id AND p.order_id + :regex_width
     ),
     scanned AS (
         SELECT
-            count(*) AS n,
+            count(*) AS nrows,
             count(*) FILTER (
                 WHERE note ~ 'email=user[0-9]+@example\.com'
             ) AS n_email,
@@ -126,46 +182,154 @@ FROM (
             count(*) FILTER (
                 WHERE (meta -> 'flags' ->> 'rush')::boolean
             ) AS n_rush,
-            sum(length(md5(note || (meta ->> 'trace')))) AS hash_work,
-            sum(((meta ->> 'trace') IS NOT NULL)::int) AS n_trace
+            sum(length(md5(note || (meta ->> 'trace')))) AS hash_work
         FROM slice
     ),
-    q3 AS (
+    q_regex AS (
         SELECT
-            'q3' AS tag,
-            n::text || ':' || n_email || ':' || n_path || ':' || n_rush
-                || ':' || hash_work || ':' || n_trace AS dig
+            'q_regex' AS tag,
+            nrows::text || ':' || n_email || ':' || n_path || ':' || n_rush
+                || ':' || hash_work AS dig
         FROM scanned
     ),
-    prod AS (
-        SELECT pr.*
-        FROM ro_cpu_product pr
-        JOIN params p ON pr.product_id = p.product_id
-    ),
-    top_buyers AS (
+
+    --------------------------------------------------------------------------
+    -- q_fts: full text search. GIN index on search_doc, `@@` match + ts_rank
+    -- ordering -- inverted-index posting-list code, distinct from regex.
+    --------------------------------------------------------------------------
+    fts AS (
         SELECT
-            i.order_id,
-            sum(i.qty) AS qty,
-            sum(i.line_total) AS spent
+            o.order_id,
+            o.status,
+            ts_rank(o.search_doc, tq.q) AS rank
+        FROM params p
+        CROSS JOIN LATERAL (
+            SELECT to_tsquery('simple', p.fts_term1 || ' & ' || p.fts_term2) AS q
+        ) tq
+        JOIN ro_cpu_order o ON o.search_doc @@ tq.q
+        ORDER BY rank DESC
+        LIMIT :fts_lim
+    ),
+    q_fts AS (
+        SELECT
+            'q_fts' AS tag,
+            count(*)::text || ':' || coalesce(sum(rank), 0)::text
+                || ':' || coalesce(string_agg(status, ',' ORDER BY rank DESC), '') AS dig
+        FROM fts
+    ),
+
+    --------------------------------------------------------------------------
+    -- q_array: array containment (`@>`) via GIN on product.tags -- exercises
+    -- the array opclass/AM, previously unused. Joined against a *bounded*
+    -- order_id slice of order_item (not the full 750k-row table): an
+    -- unbounded join here made the planner pick the same
+    -- Seq-Scan-order_item + Hash Join plan as q_hashjoin, silently
+    -- duplicating that block's cost instead of isolating the array/GIN path.
+    --------------------------------------------------------------------------
+    arr AS (
+        SELECT pr.product_id, pr.category
+        FROM ro_cpu_product pr, params p
+        WHERE pr.tags @> ARRAY[p.tag1, p.tag2]
+        LIMIT :array_lim
+    ),
+    arr_slice AS (
+        SELECT i.product_id, i.qty, i.line_total
         FROM ro_cpu_order_item i
-        JOIN prod pr ON pr.product_id = i.product_id
-        GROUP BY i.order_id
-        ORDER BY spent DESC, i.order_id
-        LIMIT :topn_lim
+        WHERE i.order_id BETWEEN :oid AND :oid + :array_slice_width
     ),
-    q4 AS (
+    arr_join AS (
+        SELECT a.category, count(*) AS n, sum(s.qty) AS qty, sum(s.line_total) AS revenue
+        FROM arr a
+        JOIN arr_slice s ON s.product_id = a.product_id
+        GROUP BY a.category
+    ),
+    q_array AS (
         SELECT
-            'q4' AS tag,
-            coalesce(sum(qty), 0)::text || ':' || coalesce(sum(spent), 0)::text
-                || ':' || coalesce(string_agg(order_id::text, ',' ORDER BY spent DESC), '')
-                AS dig
-        FROM top_buyers
+            'q_array' AS tag,
+            coalesce(string_agg(
+                category || '=' || n || ':' || qty || ':' || revenue::text,
+                ';' ORDER BY category
+            ), '') AS dig
+        FROM arr_join
+    ),
+
+    --------------------------------------------------------------------------
+    -- q_stats: ordered-set + statistical aggregates (percentile_cont needs a
+    -- per-group sort; stddev/corr use multi-value transition states) --
+    -- previously only plain sum/count were used anywhere in this script.
+    --------------------------------------------------------------------------
+    stats_slice AS (
+        SELECT i.qty, i.line_total, pr.category
+        FROM ro_cpu_order_item i
+        JOIN ro_cpu_product pr ON pr.product_id = i.product_id
+        WHERE i.order_id BETWEEN :oid AND :oid + :stats_width
+    ),
+    stats_agg AS (
+        SELECT
+            category,
+            count(*) AS n,
+            percentile_cont(0.5) WITHIN GROUP (ORDER BY line_total) AS median_total,
+            stddev_samp(line_total) AS sd_total,
+            corr(qty::float8, line_total::float8) AS qty_total_corr
+        FROM stats_slice
+        GROUP BY category
+    ),
+    q_stats AS (
+        SELECT
+            'q_stats' AS tag,
+            coalesce(string_agg(
+                category || '=' || n
+                    || ':' || round(coalesce(median_total, 0)::numeric, 2)
+                    || ':' || round(coalesce(sd_total, 0)::numeric, 2)
+                    || ':' || round(coalesce(qty_total_corr, 0)::numeric, 4),
+                ';' ORDER BY category
+            ), '') AS dig
+        FROM stats_agg
+    ),
+
+    --------------------------------------------------------------------------
+    -- q_toast: fetch+decompress a >2KB out-of-line column for a bounded
+    -- number of rows via a PK range probe -- previously no column in this
+    -- schema was ever large enough to be TOASTed.
+    --------------------------------------------------------------------------
+    toast_probe AS (
+        SELECT pr.product_id, length(pr.spec_blob) AS blob_len, md5(pr.spec_blob) AS blob_hash
+        FROM ro_cpu_product pr
+        WHERE pr.product_id BETWEEN 1 AND :toast_n
+    ),
+    q_toast AS (
+        SELECT
+            'q_toast' AS tag,
+            count(*)::text || ':' || sum(blob_len)::text
+                || ':' || md5(string_agg(blob_hash, ',' ORDER BY product_id)) AS dig
+        FROM toast_probe
+    ),
+
+    --------------------------------------------------------------------------
+    -- q_seqscan: full-table aggregate with no predicate/index -- the only
+    -- plain SeqScan in the script (everything else is index/bitmap/hash-driven).
+    --------------------------------------------------------------------------
+    seq_agg AS (
+        SELECT category, count(*) AS n, avg(unit_price) AS avg_price, sum(unit_price) AS sum_price
+        FROM ro_cpu_product
+        GROUP BY category
+    ),
+    q_seqscan AS (
+        SELECT
+            'q_seqscan' AS tag,
+            string_agg(
+                category || '=' || n || ':' || round(avg_price, 4) || ':' || round(sum_price, 4),
+                ';' ORDER BY category
+            ) AS dig
+        FROM seq_agg
     )
-    SELECT dig AS x FROM q1
-    UNION ALL
-    SELECT dig FROM q2
-    UNION ALL
-    SELECT dig FROM q3
-    UNION ALL
-    SELECT dig FROM q4
+
+    SELECT dig AS x FROM q_idx
+    UNION ALL SELECT dig FROM q_hashjoin
+    UNION ALL SELECT dig FROM q_regex
+    UNION ALL SELECT dig FROM q_fts
+    UNION ALL SELECT dig FROM q_array
+    UNION ALL SELECT dig FROM q_stats
+    UNION ALL SELECT dig FROM q_toast
+    UNION ALL SELECT dig FROM q_seqscan
 ) s;
