@@ -51,11 +51,18 @@
 \set regex_width 3600 * :scale
 \set hj_window_sec 1500 * :scale
 \set hj_start_sec random(0, 250000 - :hj_window_sec)
+-- Precompute sums here (pgbench arithmetic). Under -M prepared, writing
+-- `:a + :b` in SQL becomes `$N + $M` with unknown types and fails with
+-- "operator is not unique: unknown + unknown".
+\set hj_end_sec :hj_start_sec + :hj_window_sec
 \set fts_lim 40 * :scale
 \set array_slice_width 48000 * :scale
+\set array_slice_end :oid + :array_slice_width
 \set array_lim 200
 \set stats_width 8000 * :scale
+\set stats_end :oid + :stats_width
 \set toast_n 700 * :scale
+\set regex_end :oid + :regex_width
 
 SELECT md5(string_agg(x, '|' ORDER BY x)) AS checksum
 FROM (
@@ -131,9 +138,9 @@ FROM (
         SELECT o.order_id
         FROM ro_cpu_order o, params p
         WHERE o.ordered_at >= timestamptz '2022-01-01 00:00:00+00'
-                + make_interval(secs => :hj_start_sec)
+                + make_interval(secs => :hj_start_sec::double precision)
           AND o.ordered_at < timestamptz '2022-01-01 00:00:00+00'
-                + make_interval(secs => :hj_start_sec + :hj_window_sec)
+                + make_interval(secs => :hj_end_sec::double precision)
     ),
     fact_items AS (
         SELECT fs.order_id, i.product_id, i.qty, i.line_total
@@ -168,7 +175,7 @@ FROM (
     slice AS (
         SELECT o.order_id, o.note, o.meta
         FROM ro_cpu_order o, params p
-        WHERE o.order_id BETWEEN p.order_id AND p.order_id + :regex_width
+        WHERE o.order_id BETWEEN p.order_id AND :regex_end::int
     ),
     scanned AS (
         SELECT
@@ -235,7 +242,7 @@ FROM (
     arr_slice AS (
         SELECT i.product_id, i.qty, i.line_total
         FROM ro_cpu_order_item i
-        WHERE i.order_id BETWEEN :oid AND :oid + :array_slice_width
+        WHERE i.order_id BETWEEN :oid::int AND :array_slice_end::int
     ),
     arr_join AS (
         SELECT a.category, count(*) AS n, sum(s.qty) AS qty, sum(s.line_total) AS revenue
@@ -262,7 +269,7 @@ FROM (
         SELECT i.qty, i.line_total, pr.category
         FROM ro_cpu_order_item i
         JOIN ro_cpu_product pr ON pr.product_id = i.product_id
-        WHERE i.order_id BETWEEN :oid AND :oid + :stats_width
+        WHERE i.order_id BETWEEN :oid::int AND :stats_end::int
     ),
     stats_agg AS (
         SELECT
@@ -295,7 +302,7 @@ FROM (
     toast_probe AS (
         SELECT pr.product_id, length(pr.spec_blob) AS blob_len, md5(pr.spec_blob) AS blob_hash
         FROM ro_cpu_product pr
-        WHERE pr.product_id BETWEEN 1 AND :toast_n
+        WHERE pr.product_id BETWEEN 1 AND :toast_n::int
     ),
     q_toast AS (
         SELECT
