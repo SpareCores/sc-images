@@ -4,9 +4,163 @@
 Runs against a separate `postgres:18` server (see
 [`benchmark-postgres-server`](../benchmark-postgres-server)) over the network
 (`SC_DB_HOST`), matching how a real application talks to a managed/remote
-database rather than colocating client and server.
+database rather than colocating client and server. See the [Goal](#goal)
+section below for why this benchmark exists and how its design was reached.
 
 Published as `ghcr.io/sparecores/benchmark-pgbench-postgres:main`.
+
+## Goal
+
+[Spare Cores](https://sparecores.com) monitors ~5,000 cloud server types as
+part of the Navigator project and publishes empirical performance data for
+them: memory bandwidth, OpenSSL speed, compression algorithms, Redis and
+static web-serving throughput, LLM inference speed, and more. Proper database
+measurements were the missing piece — this benchmark closes that gap by
+scoring how cloud servers perform for RDBMS workloads.
+
+Two deployment models are measured with the same client:
+
+- **IaaS**: self-hosted PostgreSQL (`postgres:18`) on a cloud VM, driven by a
+  separate client VM.
+- **DBaaS**: the cloud vendor's managed PostgreSQL offering — similar
+  hardware, but the vendor provisions, manages, and tunes the engine.
+
+This lets users compare "same hardware, self-managed vs. managed". The
+deliverable per server (or managed-database instance) is a single comparable
+headline score in **TPM** plus a concurrency profile (throughput at several
+client counts).
+
+## Why database benchmarking is hard (and what we deliberately exclude)
+
+Most published database benchmarks compare *database engines*, engine
+versions, or config tuning on fixed hardware. Our question is the inverse:
+hold the engine constant and vary the hardware across thousands of server
+types. That inversion drives most of the design:
+
+- **Even the engine can only partly be held constant.** Many DBaaS providers
+  we benchmark do not allow pinning the minor engine version (minor upgrades
+  are applied automatically), so only the *major* PostgreSQL version is fixed
+  across IaaS and DBaaS runs.
+- **Disk would otherwise dominate.** Database throughput usually hinges on
+  the underlying disk (IOPS first, bandwidth second). But in the cloud that
+  disk is almost always network-attached block storage, provisioned
+  independently of the server type and entirely up to the user — so it says
+  little about the server itself. Deploying volumes with high-enough IOPS to
+  never bottleneck, across a ~5,000-server fleet, would also be prohibitively
+  expensive. Decision: eliminate disk from the measurement and score the DB
+  engine's CPU and memory performance.
+- **Network would otherwise dominate.** With a remote client (which is the
+  realistic topology), both bandwidth and especially latency between client
+  and server can dominate chatty workloads. Decision: minimize RTT via
+  placement, then design the workload so the remaining RTT is a rounding
+  error (see below).
+- **Huge size range.** The same workload must produce meaningful, comparable
+  numbers on a 1 vCPU / 500 MiB instance and on machines with hundreds or
+  thousands of vCPUs and TBs of RAM. Classic warehouse/scale-factor sizing
+  schemes don't stretch that far.
+- **DBaaS forbids config control.** The vendor tunes the managed engine, so
+  the harness cannot assume superuser access or GUC control.
+
+## Design constraints we converged on
+
+After many iterations with different tools and configs (see the next
+section) and consulting with our friends at [benchANT](https://benchant.com),
+we settled on three principles:
+
+1. **Small dataset that fits in memory** (~260–320 MB, comfortably inside
+   `shared_buffers` even on the smallest instances) — after warmup, disk is
+   never touched for reads.
+2. **Read-only workload** — no WAL, checkpoint, or any disk-write path.
+3. **CPU-heavy transactions** (~100+ ms of server work per transaction at a
+   single connection) — network round-trip time becomes ~0.2–4% of service
+   time instead of dominating it.
+
+The third point is what our lab measurements forced on us: the default
+lightweight `pgbench` read-only workload (`-S`, one primary-key `SELECT` per
+transaction) lost ~98% of its single-connection throughput when we injected
+just +5 ms of one-way delay, and even same-zone random latency glitches
+visibly distorted results — it measured the network, not the server. The
+CPU-heavy cached read-only script stayed within ±0.3% at high concurrency
+under the same injected delay. It also ranks CPUs honestly: two same-size
+32-vCPU servers of different CPU generations tied under `-S` at high
+concurrency, while the heavy script separates them by ~1.25× at a single
+connection.
+
+## How we got here: tools and approaches we tried
+
+We benchmarked the benchmarks before trusting one. In rough order:
+
+- **sysbench, HammerDB TPROC-C, and BenchBase (Wikipedia read-only and YCSB
+  datasets), alongside pgbench** — on regular block storage vs. `tmpfs`,
+  with baseline vs. host-tuned Postgres configs. `tmpfs` lifted write-heavy
+  OLTP results substantially (~10–25% and more), which proved the point that
+  those suites were measuring storage and WAL behavior more than the server —
+  and `tmpfs` is not an option on DBaaS anyway, so that escape hatch only
+  covers IaaS. Their warehouse/scale-factor sizing also couldn't cover a fleet
+  spanning 1 vCPU to thousands of vCPUs.
+- **A systematic Postgres config (GUC) sweep** — 21 experiments on a 32-vCPU
+  host, where the winning combination (modest `work_mem`, `io_uring`, small
+  WAL buffers, parallel gather off, right-sized `shared_buffers`) gained
+  ~20% throughput over the baseline. Tuning clearly matters, which is why
+  production runs delegate it: pgtune-style host tuning on IaaS, and the
+  vendor's own tuning on DBaaS.
+- **Latency and pipelining experiments** — we measured `pgbench -S` under
+  induced network delay, then even built a custom sliding-window
+  `--pipeline-depth` mode into a `pgbench` fork. Pipelining does rescue
+  RTT-bound scripts (~10× queries/s at +5 ms delay), but for a CPU-bound
+  transaction it adds nothing at low concurrency and actively collapses
+  throughput at high concurrency. Conclusion: make the transaction heavy
+  instead of pipelining a light one — serial mode, a fixed
+  `{1, V/2, V, 2·V}` concurrency profile, and a TPM score.
+- **Outcome**: the `pgbench_ro` cached CPU-heavy workload documented below;
+  `pgbench_tpcb` is kept as a secondary classic-OLTP (TPC-B-like) reference.
+
+A blog post with the detailed findings is planned.
+
+## Disclaimer: what this benchmark does NOT deliver
+
+- **Not a production workload.** The transaction is a synthetic proxy — a
+  deliberately balanced mix of PostgreSQL subsystems (joins, aggregates,
+  full text search, arrays, regex, TOAST, etc.; see
+  [Workloads](#workloads)). It gives a general sense of the relative RDBMS
+  performance you can expect from a server type; it does not predict any
+  specific application's throughput.
+- **Disk I/O is excluded on purpose.** Block storage is provisioned
+  independently of the instance type in most clouds, so it is not a property
+  of the server being ranked. Do not read these scores as storage
+  performance.
+- **Network performance is excluded on purpose**, for the same reason — the
+  design actively minimizes RTT sensitivity, so the scores say nothing about
+  a server's network throughput or latency (Spare Cores publishes separate
+  benchmarks for that).
+- **Known limitations**: data distribution is uniform rather than Zipfian
+  (real-world-like power law); `jit` and parallel query are disabled to
+  measure raw engine/CPU behavior; and the dataset is small by design, so
+  large instances are exercised through concurrency rather than data volume.
+  See [Limitations](#limitations--deliberately-out-of-scope) for details.
+
+## Operational details (production runs)
+
+- **IaaS server tuning**: Postgres GUCs are generated per host by pgtune
+  ([pgtune.leopard.in.ua](https://pgtune.leopard.in.ua/) form defaults: web
+  application / SSD / PG 18, with the host's RAM and CPU count) in the
+  `sc-inspector` orchestration; `synchronous_commit` is set by the
+  durable/async task variant, and `max_connections` is raised to cover the
+  concurrency profile.
+- **DBaaS tuning**: none — the vendor-managed config is left untouched by
+  design, as the managed service's tuning is part of what is being measured.
+- **No OS-level tuning**: no `sysctl` or other host tweaks. Container-level
+  only: the server runs privileged with host networking,
+  `seccomp=unconfined`, and high `nofile`/unlimited `memlock` ulimits
+  (unlocking huge pages and `io_uring`), with the Postgres process at
+  `nice -n -20`.
+- **Topology**: client and server VMs are deployed in the same availability
+  zone of the same region, talking over private VPC addresses, to minimize
+  RTT. That alone proved insufficient — occasional latency glitches still
+  distorted lightweight-workload results even same-zone, which is why the
+  workload itself must be RTT-tolerant.
+- **Timing**: 120 s warmup (once), 60 s settle between concurrency rungs,
+  300 s measurement per rung (see the env-var table below).
 
 ## Usage
 
@@ -56,16 +210,16 @@ executes 8 read-only query blocks per iteration and returns a single
 (wider slices, bigger joins) without touching the underlying dataset, so a
 single fixed schema can represent a range of CPU intensities.
 
-## Design history: how we got here
+## Design history of the `pgbench_ro` script
 
 ### v1: from trivial `pgbench -S` to a cached multi-query script
 
 Plain `pgbench -S` (one `SELECT` by primary key) turned out to be too cheap
 per-transaction to say anything meaningful about CPU under network latency —
 under `netem`-simulated RTT its TPS collapsed almost entirely from RTT, not
-server work (see `sc-db-benchmark-tmp/RESULTS.md`, "Heavy cached RO (table
-CPU) vs classic `-S` under netem"). That motivated a **cached, multi-query,
-CPU-heavy** custom script (`pg_cpu_benchmark/03_run_benchmark.sql`) sized for
+server work (~98% loss at a single connection with +5 ms one-way delay,
+while a CPU-heavy transaction under the same delay barely moved). That
+motivated a **cached, multi-query, CPU-heavy** custom script sized for
 ~100–130 ms of server CPU per transaction at `-c 1`, using a small (~170 MB)
 schema that fits in `shared_buffers` so I/O is never the bottleneck — so that
 RTT stays a small fraction of total latency instead of dominating it.
