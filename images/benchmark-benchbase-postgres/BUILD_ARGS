@@ -1,2 +1,0 @@
-RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-${ARCH}
-BENCHBASE_IMAGE=benchbase.azurecr.io/benchbase-postgres@${BENCHBASE_IMAGE_DIGEST}
