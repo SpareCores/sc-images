@@ -64,6 +64,11 @@ class ScenarioTests(unittest.TestCase):
             },
         )
 
+    def test_parse_frame_rate(self) -> None:
+        self.assertEqual(bench.parse_frame_rate("24/1"), 24.0)
+        self.assertEqual(bench.parse_frame_rate("30000/1001"), 30000 / 1001)
+        self.assertEqual(bench.parse_frame_rate("0/0"), 0.0)
+
     def test_all_existing_video_scenarios_remain(self) -> None:
         self.assertEqual(
             [item.name for item in bench.VIDEO_SCENARIOS],
@@ -112,6 +117,22 @@ class ScenarioTests(unittest.TestCase):
         )
         self.assertLess(command.index("-c:v"), command.index("-i"))
         self.assertEqual(command[command.index("-c:v") + 1], "h264")
+        joined = " ".join(command)
+        self.assertIn("-threads 1", joined)
+        self.assertIn("-threads:v 1", joined)
+        self.assertEqual(joined.count("-threads:v 1"), 1)
+
+    def test_cpu_video_encode_uses_one_thread(self) -> None:
+        for scenario in (bench.VIDEO_SCENARIOS[0], bench.VIDEO_SCENARIOS[1]):
+            command = bench.build_worker_command(
+                scenario, Path("/source.mp4"), 12.0, gpu_index=None
+            )
+            joined = " ".join(command)
+            self.assertIn("-threads 1", joined)
+            self.assertLess(joined.index("-threads:v 1"), joined.index("-i"))
+            self.assertGreater(joined.rindex("-threads:v 1"), joined.index("-i"))
+            if scenario.codec == "libx265":
+                self.assertIn("frame-threads=1:pools=none", joined)
 
     def test_gpu_video_uses_cuvid_for_encode_and_decode(self) -> None:
         for scenario in (bench.VIDEO_SCENARIOS[3], bench.VIDEO_SCENARIOS[4]):
@@ -306,6 +327,7 @@ class MeasurementTests(unittest.TestCase):
             repetition=1,
             finish_times=[10.0, 12.0],
             return_codes=[0, 0],
+            video_fps=30.0,
         )
         self.assertEqual(result.processed_frames, 600)
         self.assertEqual(result.aggregate_fps, 50.0)

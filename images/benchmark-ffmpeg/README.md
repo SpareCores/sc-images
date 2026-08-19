@@ -30,6 +30,46 @@ docker run --rm \
   ghcr.io/sparecores/benchmark-ffmpeg:main
 ```
 
+## Fixtures
+
+The image downloads pinned audio and video fixtures from
+[sc-cdn](https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg/) at build
+time, verifies SHA-256, and needs no runtime network access. Workers loop the
+local files with `-stream_loop -1` and `-t` so fast machines still measure a
+long enough interval without storing an expanded copy.
+
+See also [`SOURCE.md`](SOURCE.md) for regeneration and upload steps.
+
+| File | CDN (image build) | SHA-256 |
+|---|---|---|
+| `source.flac` | https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg/source.flac | `4445399abe62c9d7c546711a853fccfab8ab274226d2e80aa0e5ad948589e516` |
+| `source.mp4` | https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg/source.mp4 | `a49fe8b82c96bafcc344d374facb716f481e3fa9c6753d56f6d1e0ed509a14e7` |
+
+### Audio — original source
+
+| | |
+|---|---|
+| Work | “Entre dos Aguas” sample, performed by Michael Laucke |
+| Format | FLAC, ~85 s, ~8.3 MB |
+| License | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Commons page | https://commons.wikimedia.org/wiki/File:Entre-dos-aguas-laucke-version-sample.flac |
+| Direct download | https://commons.wikimedia.org/wiki/Special:Redirect/file/Entre-dos-aguas-laucke-version-sample.flac |
+
+### Video — original source
+
+| | |
+|---|---|
+| Work | [Tears of Steel](https://mango.blender.org/) (Blender Foundation open movie) |
+| Upstream release | [HD 1080p MOV](https://mango.blender.org/download/) (~557 MB, 1920×800, 24 fps, H.264) |
+| Mirror used by `prepare-video-fixture.sh` | http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_1080p.mov (zip-wrapped MOV) |
+| Alternate upstream | https://download.blender.org/demo/movies/ToS/tears_of_steel_1080p.mov.zip |
+| Bundled excerpt | 30 s cut at 60–90 s with `-c:v copy` → `source.mp4` (~20 MB) |
+| License | [CC BY 3.0](https://mango.blender.org/sharing/) |
+
+To refresh fixtures: `./prepare-video-fixture.sh` (video excerpt from upstream),
+copy or download the FLAC, then `./upload-fixtures.sh` (AWS profile `sc`, bucket
+`sc-cdn-cae3awai`, prefix `sc-inspector/benchmark-ffmpeg/`).
+
 ## Audio profiles
 
 Every audio job decodes the same lossless music source and explicitly produces
@@ -46,15 +86,13 @@ score measures codec capacity rather than storage.
 | `ogg_vorbis_320k` | `libvorbis` | Ogg Vorbis, 320 kbps |
 | `flac_lossless` | `flac` | FLAC, compression level 5 |
 
-The image downloads the 85-second, 8.31 MB “Entre dos Aguas” FLAC from
-[Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Entre-dos-aguas-laucke-version-sample.flac)
-at build time. The recording is dedicated to the public domain under CC0 1.0.
-The build pins and verifies SHA-256
-`4445399abe62c9d7c546711a853fccfab8ab274226d2e80aa0e5ad948589e516`.
-FFmpeg loops the local file to lengthen fast runs; it does not create a large
-expanded fixture.
+Every audio job uses the pinned CC0 FLAC fixture described under
+[Fixtures](#fixtures).
 
 ## Video profiles
+
+Every video job loops the pinned Tears of Steel H.264 excerpt (1920×800, 24 fps,
+30 seconds) described under [Fixtures](#fixtures).
 
 | Scenario | Backend | Operation | Codec |
 |---|---|---|---|
@@ -164,6 +202,7 @@ the same measurement interval.
 | `FFMPEG_BENCH_TIMEOUT_SECONDS` | `7200` | Whole benchmark deadline |
 | `FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` | `max(30, target×6)` | Pilot/repetition deadline |
 | `FFMPEG_BENCH_AUDIO_SOURCE` | bundled fixture | Alternate local FLAC |
+| `FFMPEG_BENCH_VIDEO_SOURCE` | bundled fixture | Alternate local MP4 |
 | `FFMPEG` / `FFPROBE` | PATH binaries | Alternate FFmpeg build |
 
 ### Why five seconds
@@ -202,6 +241,8 @@ Version 3 intentionally removes all derived rollups. Each repetition contains
 ```bash
 python3 images/benchmark-ffmpeg/test_benchmark.py
 python3 -m py_compile images/benchmark-ffmpeg/benchmark.py
+images/benchmark-ffmpeg/prepare-video-fixture.sh   # optional: refresh source.mp4
+images/benchmark-ffmpeg/upload-fixtures.sh         # upload to sc-cdn (AWS profile sc)
 docker build -t benchmark-ffmpeg:local images/benchmark-ffmpeg
 ```
 

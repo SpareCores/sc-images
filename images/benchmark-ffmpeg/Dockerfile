@@ -30,8 +30,11 @@ RUN chmod +x /build-ffmpeg.sh && \
     /build-ffmpeg.sh
 
 FROM ubuntu:24.04
-ARG AUDIO_FIXTURE_URL="https://commons.wikimedia.org/wiki/Special:Redirect/file/Entre-dos-aguas-laucke-version-sample.flac"
+ARG CDN_BASE_URL="https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg"
+ARG AUDIO_FIXTURE_URL="${CDN_BASE_URL}/source.flac"
+ARG VIDEO_FIXTURE_URL="${CDN_BASE_URL}/source.mp4"
 ARG AUDIO_FIXTURE_SHA256="4445399abe62c9d7c546711a853fccfab8ab274226d2e80aa0e5ad948589e516"
+ARG VIDEO_FIXTURE_SHA256="a49fe8b82c96bafcc344d374facb716f481e3fa9c6753d56f6d1e0ed509a14e7"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LD_LIBRARY_PATH=/usr/local/lib
 RUN --mount=type=tmpfs,target=/tmp,rw \
@@ -50,7 +53,9 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
       python3-psutil \
     && install -d /opt/benchmark-ffmpeg \
     && curl --fail --location --retry 3 --output /opt/benchmark-ffmpeg/source.flac "${AUDIO_FIXTURE_URL}" \
+    && curl --fail --location --retry 3 --output /opt/benchmark-ffmpeg/source.mp4 "${VIDEO_FIXTURE_URL}" \
     && echo "${AUDIO_FIXTURE_SHA256}  /opt/benchmark-ffmpeg/source.flac" | sha256sum --check --strict \
+    && echo "${VIDEO_FIXTURE_SHA256}  /opt/benchmark-ffmpeg/source.mp4" | sha256sum --check --strict \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=ffmpeg_builder /usr/local/bin/ffmpeg /usr/local/bin/ffprobe /usr/local/bin/
 COPY --from=ffmpeg_builder /usr/local/lib /usr/local/lib

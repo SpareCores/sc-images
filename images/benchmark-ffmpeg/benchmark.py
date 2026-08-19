@@ -8,6 +8,7 @@ group makespan; individual FFmpeg speed values are deliberately not summed.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -40,10 +41,6 @@ logger = getLogger("benchmark-ffmpeg")
 BENCHMARK_NAME = "ffmpeg_transcoding"
 BENCHMARK_VERSION = "3.0.0"
 
-VIDEO_WIDTH = 1920
-VIDEO_HEIGHT = 1080
-VIDEO_FPS = 30
-VIDEO_SOURCE_DURATION_SEC = 8.0
 VIDEO_CALIBRATION_DURATION_SEC = float(
     os.environ.get("FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS", "1")
 )
@@ -81,6 +78,18 @@ GPU_DECODE_SESSIONS_PER_GPU = max(
 SCALE_CONTINUE_RATIO = max(1.0, float(os.environ.get("FFMPEG_BENCH_SCALE_CONTINUE_RATIO", "1.08")))
 PID_TASKS_PER_WORKER = max(2, int(os.environ.get("FFMPEG_BENCH_PID_TASKS_PER_WORKER", "4")))
 FIXTURE_PATH = Path(os.environ.get("FFMPEG_BENCH_AUDIO_SOURCE", "/opt/benchmark-ffmpeg/source.flac"))
+FIXTURE_VIDEO_PATH = Path(
+    os.environ.get("FFMPEG_BENCH_VIDEO_SOURCE", "/opt/benchmark-ffmpeg/source.mp4")
+)
+FIXTURE_VIDEO_SHA256 = os.environ.get(
+    "FFMPEG_BENCH_VIDEO_SHA256",
+    "a49fe8b82c96bafcc344d374facb716f481e3fa9c6753d56f6d1e0ed509a14e7",
+)
+CDN_FIXTURE_BASE = os.environ.get(
+    "FFMPEG_BENCH_CDN_BASE_URL",
+    "https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg",
+).rstrip("/")
+FIXTURE_AUDIO_SHA256 = "4445399abe62c9d7c546711a853fccfab8ab274226d2e80aa0e5ad948589e516"
 
 CPU_LIST_PART_RE = re.compile(r"^(\d+)(?:-(\d+))?$")
 
@@ -215,6 +224,19 @@ class ScalingStep:
     media_duration_sec: float
     failed_workers: int
     repetitions: list[RepetitionResult] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class VideoFixture:
+    path: Path
+    width: int
+    height: int
+    fps: float
+    duration_sec: float
+    codec: str
+    title: str
+    license_url: str
+    sha256: str
 
 
 @dataclass
@@ -553,16 +575,72 @@ def make_work_dir() -> tempfile.TemporaryDirectory[str]:
     return tempfile.TemporaryDirectory(prefix="ffmpeg-bench-")
 
 
-def generate_video_source(path: Path) -> None:
-    cmd = [
-        ffmpeg_bin(), "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
-        "-f", "lavfi", "-i",
-        f"testsrc2=size={VIDEO_WIDTH}x{VIDEO_HEIGHT}:rate={VIDEO_FPS}:duration={VIDEO_SOURCE_DURATION_SEC}",
-        "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "ultrafast", "-an", str(path),
-    ]
-    proc = run_command(cmd, timeout=120)
-    if proc.returncode != 0:
-        raise RuntimeError(f"failed to generate video source: {proc.stderr.strip()}")
+def parse_frame_rate(value: str) -> float:
+    if not value or value == "0/0":
+        return 0.0
+    if "/" in value:
+        num, den = value.split("/", 1)
+        denominator = float(den)
+        return float(num) / denominator if denominator else 0.0
+    return float(value)
+
+
+def verify_sha256(path: Path, expected: str) -> None:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    if digest.hexdigest() != expected:
+        raise RuntimeError(f"fixture checksum mismatch for {path}")
+
+
+def load_video_fixture(path: Path = FIXTURE_VIDEO_PATH) -> VideoFixture:
+    if not path.is_file():
+        raise FileNotFoundError(f"video fixture not found: {path}")
+    if FIXTURE_VIDEO_SHA256:
+        verify_sha256(path, FIXTURE_VIDEO_SHA256)
+    probe = probe_source(path, "v:0")
+    stream = (probe.get("streams") or [{}])[0]
+    fmt = probe.get("format") or {}
+    fps = parse_frame_rate(
+        str(stream.get("avg_frame_rate") or stream.get("r_frame_rate") or "0/1")
+    )
+    duration = float(fmt.get("duration") or stream.get("duration") or 0.0)
+    width = int(stream.get("width") or 0)
+    height = int(stream.get("height") or 0)
+    codec = str(stream.get("codec_name") or "")
+    if fps <= 0 or duration <= 0 or width <= 0 or height <= 0 or not codec:
+        raise RuntimeError(f"invalid video fixture probe for {path}: {probe}")
+    return VideoFixture(
+        path=path,
+        width=width,
+        height=height,
+        fps=fps,
+        duration_sec=duration,
+        codec=codec,
+        title="Tears of Steel",
+        license_url="https://mango.blender.org/sharing/",
+        sha256=FIXTURE_VIDEO_SHA256,
+    )
+
+
+def stage_video_source(source: Path, work_dir: Path) -> Path:
+    destination = work_dir / source.name
+    shutil.copy2(source, destination)
+    return destination
+
+
+def scenario_video_fields(
+    spec: ScenarioSpec, video: VideoFixture | None
+) -> tuple[str, float]:
+    if spec.media_type != "video" or video is None:
+        return "", 0.0
+    return f"{video.width}x{video.height}", video.fps
+
+
+def video_fps_for(spec: ScenarioSpec, video: VideoFixture | None) -> float:
+    _, fps = scenario_video_fields(spec, video)
+    return fps
 
 
 def probe_source(path: Path, stream: str) -> dict[str, Any]:
@@ -657,6 +735,8 @@ def build_worker_command(
         ]
         return cmd
 
+    if spec.backend == "cpu":
+        cmd += ["-threads", "1"]
     if spec.backend == "gpu":
         assert gpu_index is not None
         cmd += [
@@ -668,14 +748,17 @@ def build_worker_command(
         # Full GPU decode before NVENC; avoids auto_scale/null failures when
         # stream_loop runs past the end of the source clip.
         cmd += ["-c:v", "h264_cuvid"]
-    elif spec.operation == "decode":
-        cmd += ["-c:v", "h264"]
+    elif spec.backend == "cpu":
+        cmd += ["-threads:v", "1", "-c:v", "h264"]
     cmd += ["-i", str(input_path), "-an", "-t", f"{media_duration_sec:.6f}"]
     if spec.operation == "encode":
         if spec.backend == "gpu":
             cmd += ["-c:v", "h264_nvenc", "-preset", "p4", "-gpu", str(gpu_index)]
         else:
-            cmd += ["-threads:v", "1", "-c:v", spec.codec, *spec.encode_args]
+            encode_args = list(spec.encode_args)
+            if spec.codec == "libx265":
+                encode_args += ["-x265-params", "frame-threads=1:pools=none"]
+            cmd += ["-threads:v", "1", "-c:v", spec.codec, *encode_args]
     cmd += ["-f", "null", "-"]
     return cmd
 
@@ -712,6 +795,8 @@ def summarize_repetition(
     repetition: int,
     finish_times: list[float],
     return_codes: list[int],
+    *,
+    video_fps: float = 0.0,
     timed_out: int = 0,
     error_text: str = "",
 ) -> RepetitionResult:
@@ -720,7 +805,7 @@ def summarize_repetition(
     failed = workers - successful
     total_media = successful * media_duration_sec
     processed_frames = (
-        round(total_media * VIDEO_FPS) if spec.media_type == "video" else None
+        round(total_media * video_fps) if spec.media_type == "video" and video_fps > 0 else None
     )
     aggregate_fps = (
         processed_frames / wall
@@ -757,6 +842,8 @@ def run_group_once(
     host: HostProfile,
     repetition: int,
     deadline_monotonic: float,
+    *,
+    video_fps: float = 0.0,
 ) -> RepetitionResult:
     read_fd, write_fd = os.pipe()
     processes: dict[int, subprocess.Popen[bytes]] = {}
@@ -850,8 +937,9 @@ def run_group_once(
         repetition,
         finish_times,
         return_codes,
-        timed_out,
-        error_text,
+        video_fps=video_fps,
+        timed_out=timed_out,
+        error_text=error_text,
     )
 
 
@@ -864,10 +952,12 @@ def repetition_rate(spec: ScenarioSpec, run: RepetitionResult) -> float:
     return float(value or 0.0)
 
 
-def repetition_media_rate(spec: ScenarioSpec, run: RepetitionResult) -> float:
+def repetition_media_rate(
+    spec: ScenarioSpec, run: RepetitionResult, *, video_fps: float = 0.0
+) -> float:
     """Processed source seconds per wall second, used only to size later runs."""
     rate = repetition_rate(spec, run)
-    return rate / VIDEO_FPS if spec.media_type == "video" else rate
+    return rate / video_fps if spec.media_type == "video" and video_fps > 0 else rate
 
 
 def step_rates(spec: ScenarioSpec, step: ScalingStep) -> list[float]:
@@ -894,6 +984,8 @@ def run_scaling_step(
     host: HostProfile,
     repetitions: int,
     deadline_monotonic: float,
+    *,
+    video_fps: float = 0.0,
 ) -> ScalingStep:
     runs: list[RepetitionResult] = []
     for repetition in range(1, repetitions + 1):
@@ -906,6 +998,7 @@ def run_scaling_step(
             host,
             repetition,
             deadline_monotonic,
+            video_fps=video_fps,
         )
         runs.append(run)
         if run.failed_workers:
@@ -924,6 +1017,7 @@ def run_scaling_step(
                 host,
                 len(runs) + 1,
                 deadline_monotonic,
+                video_fps=video_fps,
             )
         )
     return ScalingStep(
@@ -942,8 +1036,10 @@ def calibrated_duration(
     spec: ScenarioSpec,
     calibration: RepetitionResult,
     base_duration: float,
+    *,
+    video_fps: float = 0.0,
 ) -> float:
-    rate = repetition_media_rate(spec, calibration)
+    rate = repetition_media_rate(spec, calibration, video_fps=video_fps)
     if calibration.failed_workers or rate <= 0:
         return clamp_media_duration(base_duration)
     desired = rate * TARGET_REPETITION_SEC
@@ -958,6 +1054,8 @@ def calibrate_group_duration(
     gpus: list[GpuInfo],
     host: HostProfile,
     deadline_monotonic: float,
+    *,
+    video_fps: float = 0.0,
     attempts: int = 4,
 ) -> tuple[float, RepetitionResult]:
     """Pilot a worker count and resize media to the target wall-clock duration.
@@ -977,6 +1075,7 @@ def calibrate_group_duration(
             host,
             -(attempt + 1),
             deadline_monotonic,
+            video_fps=video_fps,
         )
         if last.failed_workers == 0 and last.wall_time_sec > 0:
             return clamp_media_duration(
@@ -991,15 +1090,18 @@ def calibrate_group_duration(
     return duration, last
 
 
-def skipped_result(spec: ScenarioSpec, reason: str) -> ScenarioResult:
+def skipped_result(
+    spec: ScenarioSpec, reason: str, *, video: VideoFixture | None = None
+) -> ScenarioResult:
+    resolution, source_fps = scenario_video_fields(spec, video)
     return ScenarioResult(
         name=spec.name,
         backend=spec.backend,
         operation=spec.operation,
         media_type=spec.media_type,
         codec=spec.codec,
-        resolution=f"{VIDEO_WIDTH}x{VIDEO_HEIGHT}" if spec.media_type == "video" else "",
-        source_fps=float(VIDEO_FPS) if spec.media_type == "video" else 0.0,
+        resolution=resolution,
+        source_fps=source_fps,
         threads_per_worker=1,
         bitrate_kbps=spec.bitrate_kbps,
         compression_level=spec.compression_level,
@@ -1061,11 +1163,15 @@ def run_scenario(
     host: HostProfile,
     gpus: list[GpuInfo],
     deadline_monotonic: float,
+    *,
+    video: VideoFixture | None = None,
 ) -> ScenarioResult:
     target, maximum = max_workers_for_host(host, spec, len(gpus))
     ladder = worker_ladder(target, maximum, backend=spec.backend)
     pending = list(ladder)
     seen: set[int] = set()
+    video_fps = video_fps_for(spec, video)
+    resolution, source_fps = scenario_video_fields(spec, video)
     base_duration = (
         AUDIO_CALIBRATION_DURATION_SEC
         if spec.media_type == "audio"
@@ -1074,15 +1180,18 @@ def run_scenario(
     logger.info("calibrating scenario=%s", spec.name)
     calibration = run_group_once(
         spec, input_paths, 1, base_duration, gpus, host, 0, deadline_monotonic,
+        video_fps=video_fps,
     )
-    if calibration.failed_workers or repetition_media_rate(spec, calibration) <= 0:
-        return skipped_result(spec, calibration.error or "runtime_probe_failed")
-    candidate_duration = calibrated_duration(spec, calibration, base_duration)
+    if calibration.failed_workers or repetition_media_rate(spec, calibration, video_fps=video_fps) <= 0:
+        return skipped_result(spec, calibration.error or "runtime_probe_failed", video=video)
+    candidate_duration = calibrated_duration(
+        spec, calibration, base_duration, video_fps=video_fps,
+    )
     logger.info(
         "scenario=%s initial_media_duration=%.3fs source_rate=%.2fx ladder=%s",
         spec.name,
         candidate_duration,
-        repetition_media_rate(spec, calibration),
+        repetition_media_rate(spec, calibration, video_fps=video_fps),
         ladder,
     )
     steps: list[ScalingStep] = []
@@ -1102,6 +1211,7 @@ def run_scenario(
             gpus,
             host,
             deadline_monotonic,
+            video_fps=video_fps,
         )
         if pilot.failed_workers:
             logger.warning(
@@ -1128,7 +1238,15 @@ def run_scenario(
             REPETITIONS,
         )
         step = run_scaling_step(
-            spec, input_paths, workers, media_duration, gpus, host, REPETITIONS, deadline_monotonic,
+            spec,
+            input_paths,
+            workers,
+            media_duration,
+            gpus,
+            host,
+            REPETITIONS,
+            deadline_monotonic,
+            video_fps=video_fps,
         )
         steps.append(step)
         rates = step_rates(spec, step)
@@ -1144,7 +1262,7 @@ def run_scenario(
         if step.failed_workers:
             break
         media_rates = [
-            repetition_media_rate(spec, run)
+            repetition_media_rate(spec, run, video_fps=video_fps)
             for run in step.repetitions
             if run.failed_workers == 0
         ]
@@ -1163,8 +1281,8 @@ def run_scenario(
         operation=spec.operation,
         media_type=spec.media_type,
         codec=spec.codec,
-        resolution=f"{VIDEO_WIDTH}x{VIDEO_HEIGHT}" if spec.media_type == "video" else "",
-        source_fps=float(VIDEO_FPS) if spec.media_type == "video" else 0.0,
+        resolution=resolution,
+        source_fps=source_fps,
         threads_per_worker=1,
         vbench_scenario=spec.vbench_scenario,
         bitrate_kbps=spec.bitrate_kbps,
@@ -1226,29 +1344,49 @@ def run_benchmark() -> dict[str, Any]:
     host = host_profile()
     gpus = list(host.gpus)
     encoders, decoders = ffmpeg_inventory()
+    video_fixture = load_video_fixture()
     deadline_monotonic = started_monotonic + OVERALL_TIMEOUT_SEC
 
     with make_work_dir() as tmp:
         work_dir = Path(tmp)
-        video_path = work_dir / "source.mp4"
-        generate_video_source(video_path)
+        video_path = stage_video_source(video_fixture.path, work_dir)
         video_probe = probe_source(video_path, "v:0")
         audio_paths = stage_audio_sources(FIXTURE_PATH, work_dir, host)
         audio_probe = probe_source(audio_paths[0], "a:0")
         scenario_results: list[ScenarioResult] = []
         for spec in SCENARIOS:
             if time.monotonic() >= deadline_monotonic:
-                scenario_results.append(skipped_result(spec, "overall_timeout"))
+                scenario_results.append(
+                    skipped_result(spec, "overall_timeout", video=video_fixture)
+                )
                 continue
             supported, reason = scenario_supported(spec, encoders, decoders, gpus)
             if not supported:
                 logger.info("skipping %s: %s", spec.name, reason)
-                scenario_results.append(skipped_result(spec, reason))
+                scenario_results.append(skipped_result(spec, reason, video=video_fixture))
                 continue
             inputs = audio_paths if spec.media_type == "audio" else [video_path]
-            scenario_results.append(run_scenario(spec, inputs, host, gpus, deadline_monotonic))
+            scenario_results.append(
+                run_scenario(
+                    spec, inputs, host, gpus, deadline_monotonic, video=video_fixture,
+                )
+            )
 
     finished = time.time()
+    video_source = {
+        "path": "Tears of Steel excerpt",
+        "title": video_fixture.title,
+        "license": "Creative Commons Attribution 3.0",
+        "license_url": video_fixture.license_url,
+        "source_url": f"{CDN_FIXTURE_BASE}/source.mp4",
+        "upstream_url": "http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_1080p.mov",
+        "sha256": video_fixture.sha256,
+        "resolution": f"{video_fixture.width}x{video_fixture.height}",
+        "fps": video_fixture.fps,
+        "duration_sec": video_fixture.duration_sec,
+        "codec": video_fixture.codec,
+        "probe": video_probe,
+    }
     return {
         "benchmark": BENCHMARK_NAME,
         "version": BENCHMARK_VERSION,
@@ -1266,30 +1404,19 @@ def run_benchmark() -> dict[str, Any]:
             "audio_gpu_reason": "No FFmpeg hardware encoder exists for Vorbis or FLAC",
         },
         "sources": {
-            "video": {
-                "path": "synthetic_testsrc2",
-                "resolution": f"{VIDEO_WIDTH}x{VIDEO_HEIGHT}",
-                "fps": VIDEO_FPS,
-                "duration_sec": VIDEO_SOURCE_DURATION_SEC,
-                "probe": video_probe,
-            },
+            "video": video_source,
             "audio": {
                 "path": "CC0 Entre dos Aguas music sample",
                 "license": "CC0-1.0",
-                "sha256": "4445399abe62c9d7c546711a853fccfab8ab274226d2e80aa0e5ad948589e516",
+                "source_url": f"{CDN_FIXTURE_BASE}/source.flac",
+                "sha256": FIXTURE_AUDIO_SHA256,
                 "sample_rate_hz": AUDIO_SAMPLE_RATE,
                 "channels": AUDIO_CHANNELS,
                 "probe": audio_probe,
             },
         },
         # Preserve the v1 singular source object for downstream consumers.
-        "source": {
-            "path": "synthetic_testsrc2",
-            "resolution": f"{VIDEO_WIDTH}x{VIDEO_HEIGHT}",
-            "fps": VIDEO_FPS,
-            "duration_sec": VIDEO_SOURCE_DURATION_SEC,
-            "probe": video_probe,
-        },
+        "source": video_source,
         "methodology": {
             "concurrency_model": "synchronized_parallel_ffmpeg_processes",
             "aggregate_clock": "time.monotonic_ns",
@@ -1320,9 +1447,9 @@ def run_benchmark() -> dict[str, Any]:
                 "workload": "vbench upload (libx264/libx265, crf 18, threads 1)",
                 "comparable_field": "single_stream_fps",
                 "intentional_differences": [
-                    "synthetic 1080p source vs vbench corpus",
+                    "Tears of Steel excerpt vs full vbench corpus",
                     "synchronized capacity sweep vs serial transcode",
-                    "distro ffmpeg vs PTS static build",
+                    "custom ffmpeg build vs PTS static build",
                     "audio and NVIDIA scenarios are benchmark extensions",
                 ],
             },
