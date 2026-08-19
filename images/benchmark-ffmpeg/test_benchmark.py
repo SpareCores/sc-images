@@ -37,6 +37,8 @@ def host(*, gpus: tuple[object, ...] = ()) -> object:
         numa_nodes=(bench.NumaNode(0, tuple(range(8))),),
         numa_binding=False,
         gpus=gpus,
+        physical_cpu_count=8,
+        logical_cpu_count=8,
     )
 
 
@@ -123,7 +125,7 @@ class ScenarioTests(unittest.TestCase):
             self.assertEqual(command[command.index("-c:v") + 1], "h264_cuvid")
             self.assertIn("-hwaccel_output_format cuda", " ".join(command))
 
-    def test_gpu_decode_worker_cap_is_lower_than_encode(self) -> None:
+    def test_gpu_search_anchor_is_one_session_per_gpu(self) -> None:
         host = bench.HostProfile(
             cpu_count=96,
             affinity_cpu_count=96,
@@ -142,15 +144,20 @@ class ScenarioTests(unittest.TestCase):
             numa_nodes=(bench.NumaNode(0, tuple(range(96))),),
             numa_binding=False,
             gpus=tuple(bench.GpuInfo(i, "GPU") for i in range(4)),
+            physical_cpu_count=48,
+            logical_cpu_count=96,
         )
-        encode_target, _ = bench.max_workers_for_host(
+        encode_target, encode_max = bench.max_workers_for_host(
             host, bench.VIDEO_SCENARIOS[3], 4
         )
-        decode_target, _ = bench.max_workers_for_host(
+        decode_target, decode_max = bench.max_workers_for_host(
             host, bench.VIDEO_SCENARIOS[4], 4
         )
-        self.assertEqual(encode_target, 32)
-        self.assertEqual(decode_target, 16)
+        self.assertEqual(encode_target, 4)
+        self.assertEqual(decode_target, 4)
+        self.assertGreaterEqual(encode_max, 16)
+        self.assertGreaterEqual(decode_max, 16)
+        self.assertEqual(bench.worker_ladder(encode_target, encode_max, backend="gpu"), [1, 4])
 
     def test_multi_gpu_assignment_is_round_robin(self) -> None:
         gpus = [bench.GpuInfo(2, "a"), bench.GpuInfo(7, "b")]
@@ -189,10 +196,54 @@ class CapacityTests(unittest.TestCase):
                 self.assertEqual(bench.worker_ladder(8, 32), [1, 4, 8, 16])
                 self.assertEqual(bench.worker_ladder(96, 96), [1, 48, 96])
 
-    def test_gpu_ladder_reaches_nvenc_session_target(self) -> None:
+    def test_gpu_ladder_starts_at_one_session_per_gpu(self) -> None:
         with patch.object(bench, "OVERSUBSCRIPTION", 1.0):
-            self.assertEqual(bench.worker_ladder(32, 128), [1, 16, 32])
-            self.assertEqual(bench.worker_ladder(16, 64), [1, 8, 16])
+            self.assertEqual(bench.worker_ladder(4, 32, backend="gpu"), [1, 4])
+            self.assertEqual(bench.worker_ladder(1, 8, backend="gpu"), [1])
+
+    def test_gpu_doubles_until_throughput_drops(self) -> None:
+        spec = bench.VIDEO_SCENARIOS[3]
+        improving = [
+            bench.ScalingStep(1, 1.0, 0, [
+                bench.RepetitionResult(1, 1.0, 187, 187.0, None, None, 0.0, 1, 0, 0),
+            ]),
+            bench.ScalingStep(4, 1.0, 0, [
+                bench.RepetitionResult(1, 1.0, 370, 370.0, None, None, 0.0, 4, 0, 0),
+            ]),
+            bench.ScalingStep(8, 1.0, 0, [
+                bench.RepetitionResult(1, 1.0, 647, 647.0, None, None, 0.0, 8, 0, 0),
+            ]),
+        ]
+        self.assertEqual(bench.maybe_next_workers(spec, improving[:1], maximum=32, anchor=4), 2)
+        self.assertEqual(bench.maybe_next_workers(spec, improving[:2], maximum=32, anchor=4), 8)
+        self.assertEqual(bench.maybe_next_workers(spec, improving, maximum=32, anchor=4), 16)
+        dropped = improving + [
+            bench.ScalingStep(16, 1.0, 0, [
+                bench.RepetitionResult(1, 1.0, 619, 619.0, None, None, 0.0, 16, 0, 0),
+            ]),
+        ]
+        self.assertIsNone(bench.maybe_next_workers(spec, dropped, maximum=32, anchor=4))
+
+    def test_cpu_ht_probe_only_when_physical_cores_still_scale(self) -> None:
+        spec = bench.VIDEO_SCENARIOS[0]
+        scaled = [
+            bench.ScalingStep(24, 1.0, 0, [
+                bench.RepetitionResult(1, 1.0, 480, 480.0, None, None, 0.0, 24, 0, 0),
+            ]),
+            bench.ScalingStep(48, 1.0, 0, [
+                bench.RepetitionResult(1, 1.0, 641, 641.0, None, None, 0.0, 48, 0, 0),
+            ]),
+        ]
+        self.assertEqual(bench.maybe_next_workers(spec, scaled, maximum=96, anchor=48), 96)
+        saturated = [
+            bench.ScalingStep(24, 1.0, 0, [
+                bench.RepetitionResult(1, 1.0, 11200, 11200.0, None, None, 0.0, 24, 0, 0),
+            ]),
+            bench.ScalingStep(48, 1.0, 0, [
+                bench.RepetitionResult(1, 1.0, 10386, 10386.0, None, None, 0.0, 48, 0, 0),
+            ]),
+        ]
+        self.assertIsNone(bench.maybe_next_workers(spec, saturated, maximum=96, anchor=48))
 
     def test_explicit_worker_ladder_is_capped_and_deduplicated(self) -> None:
         with patch.dict(os.environ, {"FFMPEG_BENCH_WORKERS": "1,4,4,999"}):

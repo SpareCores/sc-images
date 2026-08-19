@@ -75,8 +75,10 @@ GPU_ENCODE_SESSIONS_PER_GPU = max(
     1, int(os.environ.get("FFMPEG_BENCH_GPU_ENCODE_SESSIONS_PER_GPU", "8"))
 )
 GPU_DECODE_SESSIONS_PER_GPU = max(
-    1, int(os.environ.get("FFMPEG_BENCH_GPU_DECODE_SESSIONS_PER_GPU", "4"))
+    1, int(os.environ.get("FFMPEG_BENCH_GPU_DECODE_SESSIONS_PER_GPU", "8"))
 )
+# Keep searching only while the next larger pool beats the previous by this ratio.
+SCALE_CONTINUE_RATIO = max(1.0, float(os.environ.get("FFMPEG_BENCH_SCALE_CONTINUE_RATIO", "1.08")))
 PID_TASKS_PER_WORKER = max(2, int(os.environ.get("FFMPEG_BENCH_PID_TASKS_PER_WORKER", "4")))
 FIXTURE_PATH = Path(os.environ.get("FFMPEG_BENCH_AUDIO_SOURCE", "/opt/benchmark-ffmpeg/source.flac"))
 
@@ -115,6 +117,8 @@ class HostProfile:
     numa_nodes: tuple[NumaNode, ...]
     numa_binding: bool
     gpus: tuple[GpuInfo, ...]
+    physical_cpu_count: int
+    logical_cpu_count: int
 
 
 @dataclass(frozen=True)
@@ -277,6 +281,26 @@ def affinity_cpus() -> tuple[int, ...]:
         return tuple(range(os.cpu_count() or 1))
 
 
+def physical_cpu_count(cpus: tuple[int, ...]) -> int:
+    """Count cores, not SMT siblings, within the allowed CPU set.
+
+    Independent single-threaded FFmpeg workers contend on a physical core once
+    both hyperthreads are occupied. Using ``nproc``/affinity therefore
+    over-subscribes HT systems and can lower decode throughput.
+    """
+    allowed = set(cpus)
+    if not allowed:
+        return 1
+    groups: set[tuple[int, ...]] = set()
+    for cpu in cpus:
+        siblings = parse_cpu_list(
+            read_text(Path(f"/sys/devices/system/cpu/cpu{cpu}/topology/thread_siblings_list"))
+        )
+        group = tuple(sorted(cpu for cpu in siblings if cpu in allowed))
+        groups.add(group or (cpu,))
+    return max(1, len(groups))
+
+
 def cgroup_cpu_profile() -> tuple[str, float | None]:
     value = read_text(Path("/sys/fs/cgroup/cpu.max"))
     if not value:
@@ -394,12 +418,13 @@ def host_profile() -> HostProfile:
     cpus = affinity_cpus()
     cpu_max, quota = cgroup_cpu_profile()
     capacity = min(float(len(cpus)), quota) if quota is not None else float(len(cpus))
-    effective_count = max(1, min(len(cpus), math.ceil(capacity)))
+    logical = max(1, min(len(cpus), math.ceil(capacity)))
+    physical = min(physical_cpu_count(cpus), logical)
     memory_limit_gb, pids_limit = cgroup_limits()
     ram_total_gb, ram_avail_gb = ram_profile(memory_limit_gb)
     nodes = detect_numa_nodes(cpus)
     return HostProfile(
-        cpu_count=effective_count,
+        cpu_count=physical,
         affinity_cpu_count=len(cpus),
         affinity_cpus=cpus,
         cpu_quota_cores=round(quota, 3) if quota is not None else None,
@@ -416,6 +441,8 @@ def host_profile() -> HostProfile:
         numa_nodes=tuple(nodes),
         numa_binding=numa_binding_usable(nodes),
         gpus=tuple(detect_gpus()),
+        physical_cpu_count=physical,
+        logical_cpu_count=logical,
     )
 
 
@@ -466,18 +493,21 @@ def scenario_supported(
     return True, ""
 
 
-def worker_ladder(cpu_target: int, max_workers: int) -> list[int]:
-    """Postgres-style anchors: 1, V/2, V. Optional 2·V via OVERSUBSCRIPTION.
+def worker_ladder(cpu_target: int, max_workers: int, *, backend: str = "cpu") -> list[int]:
+    """Cheap anchors, then optional adaptive points in ``run_scenario``.
 
-    Independent FFmpeg processes are CPU-bound at ``threads=1``, so doubling
-    past the effective CPU count usually just contends for the same cores.
+    CPU: 1, P/2, P physical cores. GPU: 1 and one session per GPU. Doubling
+    past those anchors happens only while aggregate rate is still rising.
     """
     override = os.environ.get("FFMPEG_BENCH_WORKERS")
     if override:
         requested = [int(value) for value in override.split(",") if int(value) > 0]
         return sorted(set(min(value, max_workers) for value in requested))
     cpu_target = max(1, min(cpu_target, max_workers))
-    values = {1, max(1, cpu_target // 2), cpu_target}
+    if backend == "gpu":
+        values = {1, cpu_target}
+    else:
+        values = {1, max(1, cpu_target // 2), cpu_target}
     if OVERSUBSCRIPTION > 1:
         values.add(
             min(max_workers, max(cpu_target, math.ceil(cpu_target * OVERSUBSCRIPTION)))
@@ -492,11 +522,15 @@ def max_workers_for_host(host: HostProfile, spec: ScenarioSpec, gpu_count: int) 
             if spec.operation == "decode"
             else GPU_ENCODE_SESSIONS_PER_GPU
         )
-        target = max(1, gpu_count * per_gpu)
-        desired = max(target, math.ceil(target * OVERSUBSCRIPTION))
+        target = max(1, gpu_count)
+        desired = max(target, gpu_count * per_gpu)
     else:
         target = host.cpu_count
-        desired = max(target, math.ceil(target * OVERSUBSCRIPTION))
+        desired = max(
+            target,
+            host.logical_cpu_count if host.logical_cpu_count else target,
+            math.ceil(target * OVERSUBSCRIPTION),
+        )
     memory_mb = MEMORY_PER_CPU_AUDIO_WORKER_MB if spec.media_type == "audio" else MEMORY_PER_VIDEO_WORKER_MB
     ram_cap = max(1, int(host.ram_avail_gb * 1024 // memory_mb)) if host.ram_avail_gb > 0 else desired
     pid_cap = (
@@ -976,6 +1010,51 @@ def skipped_result(spec: ScenarioSpec, reason: str) -> ScenarioResult:
     )
 
 
+def step_median_rate(spec: ScenarioSpec, step: ScalingStep) -> float:
+    rates = step_rates(spec, step)
+    return float(median(rates)) if rates else 0.0
+
+
+def maybe_next_workers(
+    spec: ScenarioSpec,
+    steps: list[ScalingStep],
+    *,
+    maximum: int,
+    anchor: int,
+) -> int | None:
+    """Grow the pool only while aggregate throughput is still rising.
+
+    GPU: double from the last successful point (1 → G → 2G → 4G …).
+    CPU: after the physical-core anchor, try SMT (2·P) once if P still beat P/2.
+    """
+    if os.environ.get("FFMPEG_BENCH_WORKERS"):
+        return None
+    if not steps or steps[-1].failed_workers or maximum <= 1:
+        return None
+    last = steps[-1]
+    last_rate = step_median_rate(spec, last)
+    if last_rate <= 0:
+        return None
+    if spec.backend == "gpu":
+        nxt = last.workers * 2
+        if nxt > maximum or nxt == last.workers:
+            return None
+        if len(steps) >= 2:
+            prev_rate = step_median_rate(spec, steps[-2])
+            if prev_rate > 0 and last_rate < prev_rate:
+                return None
+        return nxt
+    if last.workers != anchor:
+        return None
+    if len(steps) < 2:
+        return None
+    prev_rate = step_median_rate(spec, steps[-2])
+    if prev_rate <= 0 or last_rate < prev_rate * SCALE_CONTINUE_RATIO:
+        return None
+    nxt = min(maximum, last.workers * 2)
+    return nxt if nxt > last.workers else None
+
+
 def run_scenario(
     spec: ScenarioSpec,
     input_paths: list[Path],
@@ -984,7 +1063,9 @@ def run_scenario(
     deadline_monotonic: float,
 ) -> ScenarioResult:
     target, maximum = max_workers_for_host(host, spec, len(gpus))
-    ladder = worker_ladder(target, maximum)
+    ladder = worker_ladder(target, maximum, backend=spec.backend)
+    pending = list(ladder)
+    seen: set[int] = set()
     base_duration = (
         AUDIO_CALIBRATION_DURATION_SEC
         if spec.media_type == "audio"
@@ -1005,7 +1086,11 @@ def run_scenario(
         ladder,
     )
     steps: list[ScalingStep] = []
-    for workers in ladder:
+    while pending:
+        workers = pending.pop(0)
+        if workers in seen:
+            continue
+        seen.add(workers)
         if time.monotonic() >= deadline_monotonic:
             logger.warning("overall timeout reached during %s", spec.name)
             break
@@ -1067,6 +1152,11 @@ def run_scenario(
             candidate_duration = clamp_media_duration(
                 median(media_rates) / workers * TARGET_REPETITION_SEC
             )
+        if not pending:
+            nxt = maybe_next_workers(spec, steps, maximum=maximum, anchor=target)
+            if nxt is not None and nxt not in seen:
+                pending.append(nxt)
+                logger.info("scenario=%s probing workers=%d", spec.name, nxt)
     return ScenarioResult(
         name=spec.name,
         backend=spec.backend,
@@ -1102,6 +1192,7 @@ def scenario_to_dict(result: ScenarioResult) -> dict[str, Any]:
 def host_to_dict(host: HostProfile, cpu_stat_after: dict[str, int]) -> dict[str, Any]:
     return {
         "cpu_count": host.cpu_count,
+        "physical_cpu_count": host.physical_cpu_count,
         "affinity_cpu_count": host.affinity_cpu_count,
         "affinity_cpus": host.affinity_cpus,
         "cpu_quota_cores": host.cpu_quota_cores,
@@ -1116,6 +1207,7 @@ def host_to_dict(host: HostProfile, cpu_stat_after: dict[str, int]) -> dict[str,
         "cgroup_cpuset_effective": host.cgroup_cpuset_effective,
         "cgroup_cpu_stat_before": host.cgroup_cpu_stat_before,
         "cgroup_cpu_stat_after": cpu_stat_after,
+        "logical_cpu_count": host.logical_cpu_count,
         "numa_binding": host.numa_binding,
         "numa_nodes": [asdict(node) for node in host.numa_nodes],
         "gpus": [asdict(gpu) for gpu in host.gpus],
@@ -1208,7 +1300,7 @@ def run_benchmark() -> dict[str, Any]:
             "repetitions": REPETITIONS,
             "max_repetitions": MAX_REPETITIONS,
             "cv_threshold": CV_THRESHOLD,
-            "worker_sweep": "postgres_style_1_half_full_vcpu",
+            "worker_sweep": "physical_cores_then_adaptive_doubling",
             "duration_scaling": "per_worker_count_pilot_to_target_wall_time",
             "output_muxer": "null",
             "audio_profiles": [

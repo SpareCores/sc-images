@@ -65,9 +65,9 @@ expanded fixture.
 | `gpu_h264_decode` | NVIDIA | decode | `h264_cuvid` |
 
 GPU workers are distributed round-robin over all GPUs reported by
-`nvidia-smi`; the default full-load point is eight NVENC sessions per GPU and
-four NVDEC sessions per GPU. A runtime probe still decides whether each
-scenario is actually usable.
+`nvidia-smi`. The search starts at one session per GPU and doubles until
+aggregate throughput drops; eight sessions per GPU is only a ceiling. A runtime
+probe still decides whether each scenario is actually usable.
 
 Vorbis and FLAC are CPU-only. FFmpeg exposes no NVENC/NVDEC, VAAPI, QSV, AMF,
 or other hardware encoder for these audio codecs. GPUs therefore do not change
@@ -107,15 +107,24 @@ for every repetition and can aggregate those measurements as needed.
 
 ## Scaling on large instances
 
-The worker ladder matches the Postgres read-only profile: **1, V/2, and V**,
-where V is the effective CPU count for CPU scenarios and eight concurrent
-encodes per GPU for NVENC. That is enough to get a single-stream baseline, a
-half-machine point, and a fully loaded machine without spending an hour on
-midpoints. Independent FFmpeg processes are already single-threaded, so a 2·V
-oversubscription point is off by default (`FFMPEG_BENCH_OVERSUBSCRIPTION=2`
-turns it back on). There is no midpoint-refinement pass.
+The worker ladder is built from **physical cores** (SMT siblings collapsed via
+`thread_siblings_list`), not `nproc`. On this class of instance that is 48
+cores rather than 96 hyperthreads. CPU scenarios measure **1, P/2, and P**. If
+aggregate throughput at P is still at least 8% above P/2, one SMT probe at
+`min(2P, logical)` is added. Memory-bound work (H.264 decode) typically peaks
+at P/2 and skips the HT point; compute-bound encode may keep the extra sample.
 
-It always attempts V unless an earlier worker count cannot run.
+GPU scenarios measure **1 and G** (one session per GPU), then **double** (2G,
+4G, …) until throughput falls or a session ceiling is hit. That finds the
+NVENC/NVDEC sweet spot without assuming 8 sessions per GPU. Failed worker
+counts stop the search immediately.
+
+Independent FFmpeg processes are already single-threaded.
+`FFMPEG_BENCH_OVERSUBSCRIPTION=2` still forces a 2·P CPU point.
+`FFMPEG_BENCH_WORKERS` disables adaptive search and uses an explicit list.
+
+It always attempts the physical-core (CPU) or one-per-GPU (GPU) anchor unless
+an earlier worker count cannot run.
 
 Available capacity is the minimum of scheduler affinity and cgroup v2
 `cpu.max`; RAM, `pids.max`, and an optional explicit cap limit process count.
@@ -148,8 +157,9 @@ the same measurement interval.
 | `FFMPEG_BENCH_OVERSUBSCRIPTION` | `1` | Set to `2` to add a 2·V worker count |
 | `FFMPEG_BENCH_PID_TASKS_PER_WORKER` | `4` | Conservative cgroup PID budget per worker |
 | `FFMPEG_BENCH_MAX_WORKERS` | automatic | Hard worker cap |
-| `FFMPEG_BENCH_GPU_ENCODE_SESSIONS_PER_GPU` | `8` | NVENC ladder full-load point |
-| `FFMPEG_BENCH_GPU_DECODE_SESSIONS_PER_GPU` | `4` | NVDEC ladder full-load point |
+| `FFMPEG_BENCH_GPU_ENCODE_SESSIONS_PER_GPU` | `8` | NVENC search ceiling per GPU |
+| `FFMPEG_BENCH_GPU_DECODE_SESSIONS_PER_GPU` | `8` | NVDEC search ceiling per GPU |
+| `FFMPEG_BENCH_SCALE_CONTINUE_RATIO` | `1.08` | Min gain vs previous point to keep doubling / try SMT |
 | `FFMPEG_BENCH_WORKERS` | automatic | Explicit comma-separated ladder |
 | `FFMPEG_BENCH_TIMEOUT_SECONDS` | `7200` | Whole benchmark deadline |
 | `FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` | `max(30, target×6)` | Pilot/repetition deadline |
