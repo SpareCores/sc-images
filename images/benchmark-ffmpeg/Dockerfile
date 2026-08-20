@@ -15,6 +15,8 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
       ca-certificates \
       curl \
       git \
+      libmp3lame-dev \
+      libopus-dev \
       libvorbis-dev \
       libx264-dev \
       libx265-dev \
@@ -46,6 +48,8 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
+      libmp3lame0 \
+      libopus0 \
       libvorbis0a \
       libvorbisenc2 \
       libx264-164 \

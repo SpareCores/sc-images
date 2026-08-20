@@ -39,7 +39,7 @@ basicConfig(
 logger = getLogger("benchmark-ffmpeg")
 
 BENCHMARK_NAME = "ffmpeg_transcoding"
-BENCHMARK_VERSION = "3.1.0"
+BENCHMARK_VERSION = "3.2.0"
 
 VIDEO_CALIBRATION_DURATION_SEC = float(
     os.environ.get("FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS", "1")
@@ -196,22 +196,47 @@ VIDEO_SCENARIOS: tuple[ScenarioSpec, ...] = (
     ),
 )
 
-AUDIO_SCENARIOS: tuple[ScenarioSpec, ...] = tuple(
+AUDIO_SCENARIOS: tuple[ScenarioSpec, ...] = (
     ScenarioSpec(
-        f"ogg_vorbis_{bitrate}k",
+        "ogg_vorbis_160k",
         "cpu",
         "encode",
         "audio",
         "libvorbis",
         requires_encoder="libvorbis",
-        encode_args=("-b:a", f"{bitrate}k"),
-        bitrate_kbps=bitrate,
-        # libvorbis rejects 24 kbps stereo at 44.1 kHz. A 16 kHz low-bandwidth
-        # profile is the lowest exact managed-bitrate profile it supports.
-        sample_rate_hz=16_000 if bitrate == 24 else AUDIO_SAMPLE_RATE,
-    )
-    for bitrate in (24, 96, 160, 320)
-) + (
+        encode_args=("-b:a", "160k"),
+        bitrate_kbps=160,
+    ),
+    ScenarioSpec(
+        "opus_128k",
+        "cpu",
+        "encode",
+        "audio",
+        "libopus",
+        requires_encoder="libopus",
+        encode_args=("-b:a", "128k"),
+        bitrate_kbps=128,
+    ),
+    ScenarioSpec(
+        "aac_128k",
+        "cpu",
+        "encode",
+        "audio",
+        "aac",
+        requires_encoder="aac",
+        encode_args=("-b:a", "128k"),
+        bitrate_kbps=128,
+    ),
+    ScenarioSpec(
+        "mp3_192k",
+        "cpu",
+        "encode",
+        "audio",
+        "libmp3lame",
+        requires_encoder="libmp3lame",
+        encode_args=("-b:a", "192k"),
+        bitrate_kbps=192,
+    ),
     ScenarioSpec(
         "flac_lossless",
         "cpu",
@@ -1471,7 +1496,10 @@ def run_benchmark() -> dict[str, Any]:
             "encoders_available": sorted(encoders),
             "decoders_available": sorted(decoders),
             "audio_gpu_acceleration": False,
-            "audio_gpu_reason": "No FFmpeg hardware encoder exists for Vorbis or FLAC",
+            "audio_gpu_reason": (
+                "FFmpeg NVENC/CUVID/QSV/VAAPI/AMF cover video only; "
+                "no NVIDIA hardware audio encoder exists for Vorbis/Opus/AAC/MP3/FLAC"
+            ),
         },
         "sources": {
             "video": video_source,
@@ -1501,10 +1529,17 @@ def run_benchmark() -> dict[str, Any]:
             "duration_scaling": "per_worker_count_pilot_to_target_wall_time",
             "output_muxer": "null",
             "audio_profiles": [
-                "Ogg Vorbis 24/96/160/320 kbps",
+                "Ogg Vorbis 160 kbps",
+                "Opus 128 kbps",
+                "AAC 128 kbps",
+                "MP3 192 kbps",
                 "FLAC lossless compression level 5",
             ],
             "audio_gpu_acceleration": "not_available",
+            "audio_gpu_reason": (
+                "FFmpeg NVENC/CUVID/QSV/VAAPI/AMF cover video only; "
+                "no NVIDIA hardware audio encoder exists for Vorbis/Opus/AAC/MP3/FLAC"
+            ),
             "metrics": [
                 "wall_time_sec",
                 "processed_frames",

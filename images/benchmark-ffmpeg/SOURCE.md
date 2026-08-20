@@ -41,9 +41,10 @@ distro package. Build metadata is pinned in `BUILD_ARGS`:
 
 The build script `build-ffmpeg.sh` enables only what the benchmark needs:
 
-- CPU: `libx264`, `libx265`, `libvorbis`, native FLAC
+- CPU: `libx264`, `libx265`, `libvorbis`, `libopus`, `libmp3lame`, native AAC,
+  native FLAC
 - NVIDIA (amd64 + arm64): `ffnvcodec`, `cuvid`, `nvenc` (dynamically loaded
   against the host driver at runtime; no CUDA toolkit in the runtime image) —
   covers `h264_nvenc` / `hevc_nvenc` / `h264_cuvid` / `hevc_cuvid`. Targets
   datacenter GPUs (T4/L4/… and arm64 T4G on AWS g5g). Jetson/`nvmpi` is not
-  supported.
+  supported. NVENC/CUVID have no audio codecs.

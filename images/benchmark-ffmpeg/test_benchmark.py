@@ -43,6 +43,9 @@ def host(*, gpus: tuple[object, ...] = ()) -> object:
 
 
 class ScenarioTests(unittest.TestCase):
+    def _audio(self, name: str):
+        return next(item for item in bench.AUDIO_SCENARIOS if item.name == name)
+
     def test_audio_profiles_are_exact(self) -> None:
         profiles = {
             item.name: (
@@ -56,10 +59,10 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(
             profiles,
             {
-                "ogg_vorbis_24k": ("libvorbis", 24, None, 16_000),
-                "ogg_vorbis_96k": ("libvorbis", 96, None, 44_100),
                 "ogg_vorbis_160k": ("libvorbis", 160, None, 44_100),
-                "ogg_vorbis_320k": ("libvorbis", 320, None, 44_100),
+                "opus_128k": ("libopus", 128, None, 44_100),
+                "aac_128k": ("aac", 128, None, 44_100),
+                "mp3_192k": ("libmp3lame", 192, None, 44_100),
                 "flac_lossless": ("flac", None, 5, 44_100),
             },
         )
@@ -89,7 +92,7 @@ class ScenarioTests(unittest.TestCase):
 
     def test_audio_command_is_fully_specified_and_cpu_only(self) -> None:
         command = bench.build_worker_command(
-            bench.AUDIO_SCENARIOS[2],
+            self._audio("ogg_vorbis_160k"),
             Path("/source.flac"),
             123.5,
             gpu_index=None,
@@ -103,16 +106,18 @@ class ScenarioTests(unittest.TestCase):
         self.assertIn("-f null -", joined)
         self.assertNotIn("cuda", joined)
 
-    def test_24k_profile_uses_supported_low_bandwidth_sample_rate(self) -> None:
-        command = bench.build_worker_command(
-            bench.AUDIO_SCENARIOS[0],
-            Path("/source.flac"),
-            30.0,
-            gpu_index=None,
-        )
-        joined = " ".join(command)
-        self.assertIn("-ar 16000 -ac 2", joined)
-        self.assertIn("-c:a libvorbis -b:a 24k", joined)
+    def test_new_lossy_audio_encoders_in_command(self) -> None:
+        for name, codec, bitrate in (
+            ("opus_128k", "libopus", "128k"),
+            ("aac_128k", "aac", "128k"),
+            ("mp3_192k", "libmp3lame", "192k"),
+        ):
+            command = bench.build_worker_command(
+                self._audio(name), Path("/source.flac"), 10.0, gpu_index=None
+            )
+            joined = " ".join(command)
+            self.assertIn(f"-c:a {codec} -b:a {bitrate}", joined)
+            self.assertNotIn("cuda", joined)
 
     def test_video_decode_codec_is_an_input_option(self) -> None:
         command = bench.build_worker_command(
@@ -224,9 +229,10 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(sum(node.index == 1 for node in plan), 2)
 
     def test_audio_codecs_have_no_gpu_requirement(self) -> None:
+        encoders = {"libvorbis", "libopus", "aac", "libmp3lame", "flac"}
         for scenario in bench.AUDIO_SCENARIOS:
             self.assertEqual(scenario.backend, "cpu")
-            self.assertTrue(bench.scenario_supported(scenario, {"libvorbis", "flac"}, set(), [])[0])
+            self.assertTrue(bench.scenario_supported(scenario, encoders, set(), [])[0])
 
 
 class CapacityTests(unittest.TestCase):

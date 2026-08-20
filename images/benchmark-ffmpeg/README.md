@@ -1,8 +1,8 @@
 # benchmark-ffmpeg
 
 Aggregate FFmpeg transcoding-capacity benchmark for x86_64 and arm64. It
-measures Ogg Vorbis and FLAC audio transcoding alongside the existing
-H.264/H.265 CPU and NVIDIA video scenarios.
+measures Vorbis, Opus, AAC, MP3, and FLAC audio encoding alongside H.264/H.265
+CPU and NVIDIA video scenarios.
 
 Published as `ghcr.io/sparecores/benchmark-ffmpeg:main`.
 
@@ -98,18 +98,25 @@ copy or download the FLAC, then `./upload-fixtures.sh` (AWS profile `sc`, bucket
 ## Audio profiles
 
 Every audio job decodes the same lossless music source and explicitly produces
-stereo audio. The 96–320 kbps and lossless profiles use 44.1 kHz. The 24 kbps
-profile uses 16 kHz because `libvorbis` rejects an exact managed 24 kbps stereo
-profile at 44.1 or 22.05 kHz. Encoded packets go to FFmpeg's null muxer so the
-score measures codec capacity rather than storage.
+stereo 44.1 kHz audio. Encoded packets go to FFmpeg's null muxer so the score
+measures codec capacity rather than storage.
+
+Multiple Vorbis bitrates were dropped: on real hosts 96/160/320 kbps scored
+within ~±15%, so they did not separate instances. The suite now covers distinct
+lossy codecs professionals actually choose, plus FLAC.
 
 | Scenario | Encoder | Output profile |
 |---|---|---|
-| `ogg_vorbis_24k` | `libvorbis` | Ogg Vorbis, 24 kbps, 16 kHz |
-| `ogg_vorbis_96k` | `libvorbis` | Ogg Vorbis, 96 kbps |
 | `ogg_vorbis_160k` | `libvorbis` | Ogg Vorbis, 160 kbps |
-| `ogg_vorbis_320k` | `libvorbis` | Ogg Vorbis, 320 kbps |
+| `opus_128k` | `libopus` | Opus, 128 kbps |
+| `aac_128k` | `aac` (native) | AAC-LC, 128 kbps |
+| `mp3_192k` | `libmp3lame` | MP3, 192 kbps |
 | `flac_lossless` | `flac` | FLAC, compression level 5 |
+
+None of these have NVIDIA GPU acceleration. Upstream FFmpeg NVENC only registers
+`h264_nvenc` / `hevc_nvenc` / `av1_nvenc`; CUVID/QSV/VAAPI/AMF are likewise
+video-only. Platform HW audio (AudioToolbox, MediaFoundation, MediaCodec)
+exists but not for Linux datacenter GPUs, so audio scenarios stay CPU-only.
 
 Every audio job uses the pinned CC0 FLAC fixture described under
 [Fixtures](#fixtures).
@@ -140,15 +147,16 @@ arm64 images build FFmpeg with NVENC/NVDEC (`h264_nvenc` / `hevc_nvenc` /
 Jetson/`nvmpi` is not supported; scenarios are skipped when codecs or GPUs are
 missing at runtime.
 
-Vorbis and FLAC are CPU-only. FFmpeg exposes no NVENC/NVDEC, VAAPI, QSV, AMF,
-or other hardware encoder for these audio codecs. GPUs therefore do not change
-the audio scores. NVIDIA's documented hardware codecs are H.264, HEVC,
-and AV1; see the [NVIDIA FFmpeg guide](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html).
+Vorbis, Opus, AAC, MP3, and FLAC are CPU-only. FFmpeg's NVENC/NVDEC, VAAPI, QSV,
+and AMF backends expose video codecs only (H.264/HEVC/AV1, etc.); there is no
+NVIDIA hardware encoder for these audio codecs. GPUs therefore do not change
+the audio scores. See the [NVIDIA FFmpeg guide](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html).
 
 ## Correct aggregate timing
 
 Audio encoding does not scale one stream across many cores: neither
-`libvorbis` nor FFmpeg's FLAC encoder advertises frame or slice threading.
+`libvorbis`, `libopus`, `libmp3lame`, native AAC, nor FFmpeg's FLAC encoder
+advertises frame or slice threading useful for this workload.
 The benchmark therefore runs independent FFmpeg processes with one codec
 thread each, matching a batch transcoding service.
 
@@ -262,7 +270,7 @@ describes the [null muxer as intended for testing and benchmarking](https://ffmp
 ## Output
 
 One compact JSON document is written to stdout
-(`benchmark=ffmpeg_transcoding`, `version=3.1.0`); logs go to stderr.
+(`benchmark=ffmpeg_transcoding`, `version=3.2.0`); logs go to stderr.
 Version 3 intentionally removes all derived rollups. Each repetition contains
 `wall_time_sec`, worker outcomes, and either:
 
