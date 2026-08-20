@@ -69,7 +69,7 @@ ldconfig
 
 export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH:-}"
 ffmpeg -hide_banner -version | head -1
-ffmpeg -hide_banner -encoders 2>/dev/null | grep -E 'libx264|libx265|libvorbis|h264_nvenc' || true
+ffmpeg -hide_banner -encoders 2>/dev/null | grep -E 'libx264|libx265|libvorbis|h264_nvenc|hevc_nvenc' || true
 if [ "$TARGETARCH" = "amd64" ]; then
-    ffmpeg -hide_banner -decoders 2>/dev/null | grep -E 'h264_cuvid|h264 ' || true
+    ffmpeg -hide_banner -decoders 2>/dev/null | grep -E 'h264_cuvid|hevc_cuvid|h264 |hevc ' || true
 fi

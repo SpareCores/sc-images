@@ -39,7 +39,7 @@ basicConfig(
 logger = getLogger("benchmark-ffmpeg")
 
 BENCHMARK_NAME = "ffmpeg_transcoding"
-BENCHMARK_VERSION = "3.0.0"
+BENCHMARK_VERSION = "3.1.0"
 
 VIDEO_CALIBRATION_DURATION_SEC = float(
     os.environ.get("FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS", "1")
@@ -81,9 +81,18 @@ FIXTURE_PATH = Path(os.environ.get("FFMPEG_BENCH_AUDIO_SOURCE", "/opt/benchmark-
 FIXTURE_VIDEO_PATH = Path(
     os.environ.get("FFMPEG_BENCH_VIDEO_SOURCE", "/opt/benchmark-ffmpeg/source.mp4")
 )
+FIXTURE_VIDEO_HEVC_PATH = Path(
+    os.environ.get(
+        "FFMPEG_BENCH_VIDEO_HEVC_SOURCE", "/opt/benchmark-ffmpeg/source-hevc.mp4"
+    )
+)
 FIXTURE_VIDEO_SHA256 = os.environ.get(
     "FFMPEG_BENCH_VIDEO_SHA256",
     "a49fe8b82c96bafcc344d374facb716f481e3fa9c6753d56f6d1e0ed509a14e7",
+)
+FIXTURE_VIDEO_HEVC_SHA256 = os.environ.get(
+    "FFMPEG_BENCH_VIDEO_HEVC_SHA256",
+    "79a70a6aa81e745d650621768dee5cd3fc1da7d2c15d39871125737064f6cde7",
 )
 CDN_FIXTURE_BASE = os.environ.get(
     "FFMPEG_BENCH_CDN_BASE_URL",
@@ -139,6 +148,9 @@ class ScenarioSpec:
     codec: str
     requires_encoder: str | None = None
     requires_decoder: str | None = None
+    # Which pinned video fixture to feed: "h264" (source.mp4) or "hevc" (source-hevc.mp4).
+    # Encode scenarios always start from the H.264 excerpt; H.265 decode needs HEVC bits.
+    source_codec: str = "h264"
     vbench_scenario: str | None = None
     encode_args: tuple[str, ...] = ()
     bitrate_kbps: int | None = None
@@ -163,12 +175,24 @@ VIDEO_SCENARIOS: tuple[ScenarioSpec, ...] = (
         requires_decoder="h264",
     ),
     ScenarioSpec(
+        "cpu_h265_decode", "cpu", "decode", "video", "hevc",
+        requires_decoder="hevc", source_codec="hevc",
+    ),
+    ScenarioSpec(
         "gpu_h264_encode", "gpu", "encode", "video", "h264_nvenc",
         requires_encoder="h264_nvenc",
     ),
     ScenarioSpec(
         "gpu_h264_decode", "gpu", "decode", "video", "h264_cuvid",
         requires_decoder="h264_cuvid",
+    ),
+    ScenarioSpec(
+        "gpu_h265_encode", "gpu", "encode", "video", "hevc_nvenc",
+        requires_encoder="hevc_nvenc",
+    ),
+    ScenarioSpec(
+        "gpu_h265_decode", "gpu", "decode", "video", "hevc_cuvid",
+        requires_decoder="hevc_cuvid", source_codec="hevc",
     ),
 )
 
@@ -594,11 +618,15 @@ def verify_sha256(path: Path, expected: str) -> None:
         raise RuntimeError(f"fixture checksum mismatch for {path}")
 
 
-def load_video_fixture(path: Path = FIXTURE_VIDEO_PATH) -> VideoFixture:
+def load_video_fixture(
+    path: Path = FIXTURE_VIDEO_PATH,
+    *,
+    expected_sha256: str = FIXTURE_VIDEO_SHA256,
+) -> VideoFixture:
     if not path.is_file():
         raise FileNotFoundError(f"video fixture not found: {path}")
-    if FIXTURE_VIDEO_SHA256:
-        verify_sha256(path, FIXTURE_VIDEO_SHA256)
+    if expected_sha256:
+        verify_sha256(path, expected_sha256)
     probe = probe_source(path, "v:0")
     stream = (probe.get("streams") or [{}])[0]
     fmt = probe.get("format") or {}
@@ -620,8 +648,23 @@ def load_video_fixture(path: Path = FIXTURE_VIDEO_PATH) -> VideoFixture:
         codec=codec,
         title="Tears of Steel",
         license_url="https://mango.blender.org/sharing/",
-        sha256=FIXTURE_VIDEO_SHA256,
+        sha256=expected_sha256,
     )
+
+
+def video_fixture_for(spec: ScenarioSpec, fixtures: dict[str, VideoFixture]) -> VideoFixture:
+    key = spec.source_codec if spec.media_type == "video" else "h264"
+    try:
+        return fixtures[key]
+    except KeyError as exc:
+        raise KeyError(f"no video fixture for source_codec={key!r}") from exc
+
+
+def input_decoder_for(spec: ScenarioSpec) -> str:
+    """Forced -c:v before -i so stream_loop decode stays on the intended codec."""
+    if spec.backend == "gpu":
+        return "hevc_cuvid" if spec.source_codec == "hevc" else "h264_cuvid"
+    return "hevc" if spec.source_codec == "hevc" else "h264"
 
 
 def stage_video_source(source: Path, work_dir: Path) -> Path:
@@ -744,16 +787,19 @@ def build_worker_command(
             "-hwaccel_output_format", "cuda",
         ]
     cmd += ["-stream_loop", "-1"]
-    if spec.backend == "gpu":
+    if spec.media_type == "video":
         # Full GPU decode before NVENC; avoids auto_scale/null failures when
-        # stream_loop runs past the end of the source clip.
-        cmd += ["-c:v", "h264_cuvid"]
-    elif spec.backend == "cpu":
-        cmd += ["-threads:v", "1", "-c:v", "h264"]
+        # stream_loop runs past the end of the source clip. CPU decode/encode
+        # pin a single-threaded software decoder for the selected fixture.
+        decoder = input_decoder_for(spec)
+        if spec.backend == "cpu":
+            cmd += ["-threads:v", "1", "-c:v", decoder]
+        else:
+            cmd += ["-c:v", decoder]
     cmd += ["-i", str(input_path), "-an", "-t", f"{media_duration_sec:.6f}"]
     if spec.operation == "encode":
         if spec.backend == "gpu":
-            cmd += ["-c:v", "h264_nvenc", "-preset", "p4", "-gpu", str(gpu_index)]
+            cmd += ["-c:v", spec.codec, "-preset", "p4", "-gpu", str(gpu_index)]
         else:
             encode_args = list(spec.encode_args)
             if spec.codec == "libx265":
@@ -1344,48 +1390,72 @@ def run_benchmark() -> dict[str, Any]:
     host = host_profile()
     gpus = list(host.gpus)
     encoders, decoders = ffmpeg_inventory()
-    video_fixture = load_video_fixture()
+    video_fixtures = {
+        "h264": load_video_fixture(FIXTURE_VIDEO_PATH, expected_sha256=FIXTURE_VIDEO_SHA256),
+        "hevc": load_video_fixture(
+            FIXTURE_VIDEO_HEVC_PATH, expected_sha256=FIXTURE_VIDEO_HEVC_SHA256
+        ),
+    }
+    video_h264 = video_fixtures["h264"]
+    video_hevc = video_fixtures["hevc"]
     deadline_monotonic = started_monotonic + OVERALL_TIMEOUT_SEC
 
     with make_work_dir() as tmp:
         work_dir = Path(tmp)
-        video_path = stage_video_source(video_fixture.path, work_dir)
-        video_probe = probe_source(video_path, "v:0")
+        staged_paths = {
+            key: stage_video_source(fixture.path, work_dir)
+            for key, fixture in video_fixtures.items()
+        }
+        video_probe = {
+            key: probe_source(path, "v:0") for key, path in staged_paths.items()
+        }
         audio_paths = stage_audio_sources(FIXTURE_PATH, work_dir, host)
         audio_probe = probe_source(audio_paths[0], "a:0")
         scenario_results: list[ScenarioResult] = []
         for spec in SCENARIOS:
+            video = (
+                video_fixture_for(spec, video_fixtures)
+                if spec.media_type == "video"
+                else video_h264
+            )
             if time.monotonic() >= deadline_monotonic:
                 scenario_results.append(
-                    skipped_result(spec, "overall_timeout", video=video_fixture)
+                    skipped_result(spec, "overall_timeout", video=video)
                 )
                 continue
             supported, reason = scenario_supported(spec, encoders, decoders, gpus)
             if not supported:
                 logger.info("skipping %s: %s", spec.name, reason)
-                scenario_results.append(skipped_result(spec, reason, video=video_fixture))
+                scenario_results.append(skipped_result(spec, reason, video=video))
                 continue
-            inputs = audio_paths if spec.media_type == "audio" else [video_path]
+            if spec.media_type == "audio":
+                inputs = audio_paths
+            else:
+                inputs = [staged_paths[spec.source_codec]]
             scenario_results.append(
                 run_scenario(
-                    spec, inputs, host, gpus, deadline_monotonic, video=video_fixture,
+                    spec, inputs, host, gpus, deadline_monotonic, video=video,
                 )
             )
 
     finished = time.time()
     video_source = {
         "path": "Tears of Steel excerpt",
-        "title": video_fixture.title,
+        "title": video_h264.title,
         "license": "Creative Commons Attribution 3.0",
-        "license_url": video_fixture.license_url,
+        "license_url": video_h264.license_url,
         "source_url": f"{CDN_FIXTURE_BASE}/source.mp4",
+        "hevc_source_url": f"{CDN_FIXTURE_BASE}/source-hevc.mp4",
         "upstream_url": "http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_1080p.mov",
-        "sha256": video_fixture.sha256,
-        "resolution": f"{video_fixture.width}x{video_fixture.height}",
-        "fps": video_fixture.fps,
-        "duration_sec": video_fixture.duration_sec,
-        "codec": video_fixture.codec,
-        "probe": video_probe,
+        "sha256": video_h264.sha256,
+        "hevc_sha256": video_hevc.sha256,
+        "resolution": f"{video_h264.width}x{video_h264.height}",
+        "fps": video_h264.fps,
+        "duration_sec": video_h264.duration_sec,
+        "codec": video_h264.codec,
+        "hevc_codec": video_hevc.codec,
+        "probe": video_probe["h264"],
+        "hevc_probe": video_probe["hevc"],
     }
     return {
         "benchmark": BENCHMARK_NAME,

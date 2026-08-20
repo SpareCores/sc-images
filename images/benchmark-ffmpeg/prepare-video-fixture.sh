@@ -40,4 +40,4 @@ fi
 
 echo "${VIDEO_FIXTURE_SHA256}  ${OUTPUT}" | sha256sum --check --strict
 echo "wrote ${OUTPUT}"
-echo "Upload with: ${ROOT}/upload-fixtures.sh (requires source.flac and source.mp4 in this directory)"
+echo "Next: ./prepare-hevc-fixture.sh then ./upload-fixtures.sh (requires source.flac, source.mp4, source-hevc.mp4)"

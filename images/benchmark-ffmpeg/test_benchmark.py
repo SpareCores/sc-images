@@ -76,10 +76,16 @@ class ScenarioTests(unittest.TestCase):
                 "cpu_h264_encode",
                 "cpu_h265_encode",
                 "cpu_h264_decode",
+                "cpu_h265_decode",
                 "gpu_h264_encode",
                 "gpu_h264_decode",
+                "gpu_h265_encode",
+                "gpu_h265_decode",
             ],
         )
+
+    def _video(self, name: str):
+        return next(item for item in bench.VIDEO_SCENARIOS if item.name == name)
 
     def test_audio_command_is_fully_specified_and_cpu_only(self) -> None:
         command = bench.build_worker_command(
@@ -110,7 +116,7 @@ class ScenarioTests(unittest.TestCase):
 
     def test_video_decode_codec_is_an_input_option(self) -> None:
         command = bench.build_worker_command(
-            bench.VIDEO_SCENARIOS[2],
+            self._video("cpu_h264_decode"),
             Path("/source.mp4"),
             12.0,
             gpu_index=None,
@@ -122,8 +128,24 @@ class ScenarioTests(unittest.TestCase):
         self.assertIn("-threads:v 1", joined)
         self.assertEqual(joined.count("-threads:v 1"), 1)
 
+    def test_hevc_decode_uses_hevc_fixture_decoder(self) -> None:
+        cpu = bench.build_worker_command(
+            self._video("cpu_h265_decode"),
+            Path("/source-hevc.mp4"),
+            12.0,
+            gpu_index=None,
+        )
+        self.assertEqual(cpu[cpu.index("-c:v") + 1], "hevc")
+        gpu = bench.build_worker_command(
+            self._video("gpu_h265_decode"),
+            Path("/source-hevc.mp4"),
+            12.0,
+            gpu_index=0,
+        )
+        self.assertEqual(gpu[gpu.index("-c:v") + 1], "hevc_cuvid")
+
     def test_cpu_video_encode_uses_one_thread(self) -> None:
-        for scenario in (bench.VIDEO_SCENARIOS[0], bench.VIDEO_SCENARIOS[1]):
+        for scenario in (self._video("cpu_h264_encode"), self._video("cpu_h265_encode")):
             command = bench.build_worker_command(
                 scenario, Path("/source.mp4"), 12.0, gpu_index=None
             )
@@ -135,16 +157,24 @@ class ScenarioTests(unittest.TestCase):
                 self.assertIn("frame-threads=1:pools=none", joined)
 
     def test_gpu_video_uses_cuvid_for_encode_and_decode(self) -> None:
-        for scenario in (bench.VIDEO_SCENARIOS[3], bench.VIDEO_SCENARIOS[4]):
+        for name, decoder, encoder in (
+            ("gpu_h264_encode", "h264_cuvid", "h264_nvenc"),
+            ("gpu_h264_decode", "h264_cuvid", None),
+            ("gpu_h265_encode", "h264_cuvid", "hevc_nvenc"),
+            ("gpu_h265_decode", "hevc_cuvid", None),
+        ):
             command = bench.build_worker_command(
-                scenario,
+                self._video(name),
                 Path("/source.mp4"),
                 12.0,
                 gpu_index=1,
             )
             self.assertLess(command.index("-c:v"), command.index("-i"))
-            self.assertEqual(command[command.index("-c:v") + 1], "h264_cuvid")
-            self.assertIn("-hwaccel_output_format cuda", " ".join(command))
+            self.assertEqual(command[command.index("-c:v") + 1], decoder)
+            joined = " ".join(command)
+            self.assertIn("-hwaccel_output_format cuda", joined)
+            if encoder:
+                self.assertIn(f"-c:v {encoder}", joined)
 
     def test_gpu_search_anchor_is_one_session_per_gpu(self) -> None:
         host = bench.HostProfile(
@@ -169,10 +199,10 @@ class ScenarioTests(unittest.TestCase):
             logical_cpu_count=96,
         )
         encode_target, encode_max = bench.max_workers_for_host(
-            host, bench.VIDEO_SCENARIOS[3], 4
+            host, self._video("gpu_h264_encode"), 4
         )
         decode_target, decode_max = bench.max_workers_for_host(
-            host, bench.VIDEO_SCENARIOS[4], 4
+            host, self._video("gpu_h264_decode"), 4
         )
         self.assertEqual(encode_target, 4)
         self.assertEqual(decode_target, 4)
@@ -223,7 +253,7 @@ class CapacityTests(unittest.TestCase):
             self.assertEqual(bench.worker_ladder(1, 8, backend="gpu"), [1])
 
     def test_gpu_doubles_until_throughput_drops(self) -> None:
-        spec = bench.VIDEO_SCENARIOS[3]
+        spec = next(s for s in bench.VIDEO_SCENARIOS if s.name == "gpu_h264_encode")
         improving = [
             bench.ScalingStep(1, 1.0, 0, [
                 bench.RepetitionResult(1, 1.0, 187, 187.0, None, None, 0.0, 1, 0, 0),
@@ -246,7 +276,7 @@ class CapacityTests(unittest.TestCase):
         self.assertIsNone(bench.maybe_next_workers(spec, dropped, maximum=32, anchor=4))
 
     def test_cpu_ht_probe_only_when_physical_cores_still_scale(self) -> None:
-        spec = bench.VIDEO_SCENARIOS[0]
+        spec = next(s for s in bench.VIDEO_SCENARIOS if s.name == "cpu_h264_encode")
         scaled = [
             bench.ScalingStep(24, 1.0, 0, [
                 bench.RepetitionResult(1, 1.0, 480, 480.0, None, None, 0.0, 24, 0, 0),
@@ -321,7 +351,7 @@ class MeasurementTests(unittest.TestCase):
 
     def test_video_reports_frame_count_and_fps(self) -> None:
         result = bench.summarize_repetition(
-            bench.VIDEO_SCENARIOS[0],
+            next(s for s in bench.VIDEO_SCENARIOS if s.name == "cpu_h264_encode"),
             workers=2,
             media_duration_sec=10.0,
             repetition=1,

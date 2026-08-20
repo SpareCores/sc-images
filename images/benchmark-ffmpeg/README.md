@@ -44,6 +44,7 @@ See also [`SOURCE.md`](SOURCE.md) for regeneration and upload steps.
 |---|---|---|
 | `source.flac` | https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg/source.flac | `4445399abe62c9d7c546711a853fccfab8ab274226d2e80aa0e5ad948589e516` |
 | `source.mp4` | https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg/source.mp4 | `a49fe8b82c96bafcc344d374facb716f481e3fa9c6753d56f6d1e0ed509a14e7` |
+| `source-hevc.mp4` | https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg/source-hevc.mp4 | `79a70a6aa81e745d650621768dee5cd3fc1da7d2c15d39871125737064f6cde7` |
 
 ### Audio — original source
 
@@ -63,10 +64,34 @@ See also [`SOURCE.md`](SOURCE.md) for regeneration and upload steps.
 | Upstream release | [HD 1080p MOV](https://mango.blender.org/download/) (~557 MB, 1920×800, 24 fps, H.264) |
 | Mirror used by `prepare-video-fixture.sh` | http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_1080p.mov (zip-wrapped MOV) |
 | Alternate upstream | https://download.blender.org/demo/movies/ToS/tears_of_steel_1080p.mov.zip |
-| Bundled excerpt | 30 s cut at 60–90 s with `-c:v copy` → `source.mp4` (~20 MB) |
+| Bundled H.264 excerpt | 30 s cut at 60–90 s with `-c:v copy` → `source.mp4` (~20 MB) |
+| Bundled HEVC excerpt | Transcode of `source.mp4` → `source-hevc.mp4` (~11 MB); see below |
 | License | [CC BY 3.0](https://mango.blender.org/sharing/) |
 
-To refresh fixtures: `./prepare-video-fixture.sh` (video excerpt from upstream),
+### Why / how the HEVC fixture exists
+
+Encode scenarios and H.264 decode all feed the same H.264 excerpt (`source.mp4`).
+H.265 decode cannot reuse that file: the decoder under test must consume an
+**HEVC bitstream**. Rather than pull a second upstream movie, we transcode the
+pinned H.264 excerpt locally so geometry, fps, duration, and scene content stay
+aligned with the H.264 path:
+
+```bash
+./prepare-video-fixture.sh   # optional if source.mp4 is already present
+./prepare-hevc-fixture.sh    # libx265 -crf 18 -preset medium → source-hevc.mp4
+./upload-fixtures.sh         # AWS profile sc → s3://sc-cdn-cae3awai/...
+```
+
+`prepare-hevc-fixture.sh` runs:
+
+`ffmpeg -i source.mp4 -an -c:v libx265 -crf 18 -preset medium -pix_fmt yuv420p -tag:v hvc1 -movflags +faststart source-hevc.mp4`
+
+CRF 18 matches the CPU encode scenarios’ quality target so decode complexity is
+in the same ballpark as a typical “upload / mezzanine” HEVC stream rather than
+an ultrafast throwaway encode. The SHA-256 is pinned in `BUILD_ARGS` /
+`Dockerfile` the same way as the H.264 and FLAC fixtures.
+
+To refresh all fixtures: `./prepare-video-fixture.sh`, `./prepare-hevc-fixture.sh`,
 copy or download the FLAC, then `./upload-fixtures.sh` (AWS profile `sc`, bucket
 `sc-cdn-cae3awai`, prefix `sc-inspector/benchmark-ffmpeg/`).
 
@@ -91,21 +116,27 @@ Every audio job uses the pinned CC0 FLAC fixture described under
 
 ## Video profiles
 
-Every video job loops the pinned Tears of Steel H.264 excerpt (1920×800, 24 fps,
-30 seconds) described under [Fixtures](#fixtures).
+Encode and H.264 decode loop the pinned Tears of Steel **H.264** excerpt
+(`source.mp4`, 1920×800, 24 fps, 30 s). H.265 decode loops the matching **HEVC**
+transcode (`source-hevc.mp4`). See [Fixtures](#fixtures).
 
-| Scenario | Backend | Operation | Codec |
-|---|---|---|---|
-| `cpu_h264_encode` | CPU | encode | `libx264 -crf 18` |
-| `cpu_h265_encode` | CPU | encode | `libx265 -crf 18` |
-| `cpu_h264_decode` | CPU | decode | H.264 |
-| `gpu_h264_encode` | NVIDIA | encode | `h264_nvenc` |
-| `gpu_h264_decode` | NVIDIA | decode | `h264_cuvid` |
+| Scenario | Backend | Operation | Input | Codec |
+|---|---|---|---|---|
+| `cpu_h264_encode` | CPU | encode | H.264 | `libx264 -crf 18` |
+| `cpu_h265_encode` | CPU | encode | H.264 | `libx265 -crf 18` |
+| `cpu_h264_decode` | CPU | decode | H.264 | H.264 |
+| `cpu_h265_decode` | CPU | decode | HEVC | HEVC |
+| `gpu_h264_encode` | NVIDIA | encode | H.264 | `h264_nvenc` |
+| `gpu_h264_decode` | NVIDIA | decode | H.264 | `h264_cuvid` |
+| `gpu_h265_encode` | NVIDIA | encode | H.264 | `hevc_nvenc` |
+| `gpu_h265_decode` | NVIDIA | decode | HEVC | `hevc_cuvid` |
 
 GPU workers are distributed round-robin over all GPUs reported by
 `nvidia-smi`. The search starts at one session per GPU and doubles until
 aggregate throughput drops; eight sessions per GPU is only a ceiling. A runtime
-probe still decides whether each scenario is actually usable.
+probe still decides whether each scenario is actually usable. amd64 images
+build FFmpeg with NVENC/NVDEC (`h264_nvenc` / `hevc_nvenc` / `h264_cuvid` /
+`hevc_cuvid`); arm64 images are CPU-only and skip GPU scenarios.
 
 Vorbis and FLAC are CPU-only. FFmpeg exposes no NVENC/NVDEC, VAAPI, QSV, AMF,
 or other hardware encoder for these audio codecs. GPUs therefore do not change
@@ -229,7 +260,7 @@ describes the [null muxer as intended for testing and benchmarking](https://ffmp
 ## Output
 
 One compact JSON document is written to stdout
-(`benchmark=ffmpeg_transcoding`, `version=3.0.0`); logs go to stderr.
+(`benchmark=ffmpeg_transcoding`, `version=3.1.0`); logs go to stderr.
 Version 3 intentionally removes all derived rollups. Each repetition contains
 `wall_time_sec`, worker outcomes, and either:
 
