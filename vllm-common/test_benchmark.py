@@ -191,7 +191,11 @@ class CpuScalingTest(unittest.TestCase):
                 self.assertEqual(ranks, dp)
                 tuning = b.compute_tuning("cpu", SMOL, chat_budget(), max_model_len=2048)
                 reserved_gb = tuning.kv_memory_util * ranks * 266.0
-                self.assertLessEqual(reserved_gb, 262.8, f"dp={dp} over-reserves RAM")
+                self.assertLessEqual(
+                    reserved_gb,
+                    262.8 * b.CPU_NODE_MEMORY_BUDGET,
+                    f"dp={dp} over-reserves RAM",
+                )
                 self.assertTrue(
                     b.workload_kv_fits(SMOL, "cpu", 2048, tuning.kv_memory_util),
                     f"dp={dp} left no usable KV cache",
@@ -244,7 +248,6 @@ class CpuScalingTest(unittest.TestCase):
             mock.patch.object(b, "model_metadata", lambda _spec: metadata),
             mock.patch.object(b, "current_ram_gb", lambda: (3000.0, 2940.0)),
         ):
-            b.host_memory_by_numa_gb.cache_clear()
             explicit = b.cpu_layout_memory_plan(
                 LLAMA8, tp=1, dp=24, max_model_len=2048
             )
@@ -322,7 +325,6 @@ class CpuScalingTest(unittest.TestCase):
             mock.patch.object(b, "model_metadata", lambda _spec: metadata),
             mock.patch.object(b, "current_ram_gb", lambda: (64.0, 60.0)),
         ):
-            b.host_memory_by_numa_gb.cache_clear()
             cap = b.max_sequences_for_layout(
                 LLAMA8,
                 mode="cpu",
@@ -336,6 +338,49 @@ class CpuScalingTest(unittest.TestCase):
             # computed from the exact 128 KiB/token config footprint.
             self.assertGreater(cap, 1)
             self.assertLess(cap, 128)
+
+    def test_c8i_style_colocated_ranks_leave_kv_headroom(self) -> None:
+        """c8i.96xlarge: 384 vCPU / 6 NUMA — DP packs 4 ranks/node; util must not OOM.
+
+        Regression: budget 0.85 sized util so 4×(util×MemTotal) matched free RAM
+        exactly; sequential KV alloc on the last rank failed with
+        "Available memory on node … less than requested memory for kv".
+        """
+        self._host(384, 6, ram_gb=744.0)
+        with mock.patch.object(b, "virtual_memory", lambda: FakeMemory(744.0, 720.0)):
+            b.reset_autoconfig_state()
+            b._HOST = b.HostProfile(vcpus=384, ram_total_gb=744.0, ram_avail_gb=720.0)
+            dp = b.cpu_data_parallel_size(SMOL)
+            ranks = b.cpu_ranks_per_memory_node(SMOL)
+            self.assertEqual(dp, 24)
+            self.assertEqual(ranks, 4)
+            tuning = b.compute_tuning("cpu", SMOL, chat_budget(), max_model_len=4096)
+            node_total = 744.0 / 6.0
+            node_avail = 720.0 / 6.0
+            reserved = tuning.kv_memory_util * ranks * node_total
+            # After (ranks-1) full reservations, one more util×total chunk must fit.
+            leftover = node_avail - reserved * (ranks - 1) / ranks
+            self.assertGreaterEqual(
+                leftover,
+                tuning.kv_memory_util * node_total,
+                "last colocated rank would KV-OOM",
+            )
+            self.assertLessEqual(
+                reserved,
+                node_avail * b.CPU_NODE_MEMORY_BUDGET,
+            )
+
+    def test_guidellm_profile_spec_is_v07_shape(self) -> None:
+        self._host(32, 1)
+        tuning = b.compute_tuning("cpu", SMOL, chat_budget(), max_model_len=2048)
+        sweep = b.guidellm_profile_spec("sweep", str(tuning.sweep_size), tuning)
+        self.assertIn("kind=sweep", sweep)
+        self.assertIn(f"sweep_size={tuning.sweep_size}", sweep)
+        self.assertIn(f"max_concurrency={tuning.max_concurrency}", sweep)
+        self.assertIn(f"warmup={tuning.warmup}", sweep)
+        throughput = b.guidellm_profile_spec("throughput", "8", tuning)
+        self.assertIn("kind=throughput", throughput)
+        self.assertIn("max_concurrency=8", throughput)
 
     def test_quantized_70b_preflight_matches_pipeline_parallel_server(self) -> None:
         metadata = b.ModelMetadata(

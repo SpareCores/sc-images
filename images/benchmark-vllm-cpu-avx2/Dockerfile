@@ -1,6 +1,6 @@
 ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
 ARG VLLM_CPU_BASE_AMD64=ghcr.io/sparecores/vllm-cpu-base-avx2:main-amd64
-ARG GUIDELLM_VERSION=0.6.0
+ARG GUIDELLM_VERSION=0.7.3
 FROM ${RESOURCE_TRACKER_IMAGE} AS resource_tracker
 
 FROM ${VLLM_CPU_BASE_AMD64} AS vllm_base

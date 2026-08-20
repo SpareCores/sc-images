@@ -82,7 +82,7 @@ CI auto-discovers every folder under `images/` (any dir with a `Dockerfile` or `
 | `CONTEXT` | build context, repo-relative | `images/<folder>` |
 | `DOCKERFILE` | Dockerfile path, repo-relative | `images/<folder>/Dockerfile` |
 | `TARGET` | build target stage | none |
-| `BUILD_ARGS` | `KEY=VALUE` lines; tokens `${ARCH}`, `${VLLM_VERSION}`, `${HAMMERDB_VERSION}`, `${BENCHBASE_VERSION}`, `${BENCHBASE_IMAGE_DIGEST}`, `${RESOURCE_TRACKER_VERSION}` | none |
+| `BUILD_ARGS` | `KEY=VALUE` lines; tokens `${ARCH}`, `${VLLM_VERSION}`, `${GUIDELLM_VERSION}`, `${HAMMERDB_VERSION}`, `${BENCHBASE_VERSION}`, `${BENCHBASE_IMAGE_DIGEST}`, `${RESOURCE_TRACKER_VERSION}` | none |
 | `ZRAM` | enable compressed swap on the builder (`true`/`1`/`yes`, or a PERCENT e.g. `125`) | off |
 | `SCCACHE` | enable sccache S3 compile cache for source builds (`true`/`1`/`yes`) | off |
 | `prepare.sh` | pre-build hook (clone sources, patch Dockerfile, emit BuildKit secret + parallelism) | none |

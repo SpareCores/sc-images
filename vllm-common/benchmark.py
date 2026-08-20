@@ -45,7 +45,7 @@ SERVER_START_TIMEOUT_CPU_SEC = 10 * 60
 SERVER_START_TIMEOUT_PROBE_GPU_SEC = 8 * 60
 SERVER_START_TIMEOUT_PROBE_CPU_SEC = 15 * 60
 MIN_OUTPUT_TOKENS_PER_SEC = 1.0
-TUNING_VERSION = 7
+TUNING_VERSION = 8
 BUDGET_RESERVE_STARTUP_SEC = 600
 BUDGET_MIN_PER_RUN_SEC = 45
 BUDGET_MAX_PER_RUN_SEC = 240
@@ -64,8 +64,12 @@ CPU_THREADS_PER_RANK_TINY = 16
 CPU_THREADS_PER_RANK_SMALL = 32
 CPU_THREADS_PER_RANK_MEDIUM = 64
 CPU_THREADS_PER_RANK_LARGE = 128
-# Share of a NUMA node's RAM all of its vLLM ranks may reserve together.
-CPU_NODE_MEMORY_BUDGET = 0.85
+# Share of a NUMA node's *currently* free RAM all colocated vLLM ranks may reserve.
+# Must stay well under 1.0: workers allocate KV sequentially, so the last rank needs
+# a full util×MemTotal chunk still free (c8i.96xlarge DP=24 / 4 ranks/node OOMed at 0.85).
+CPU_NODE_MEMORY_BUDGET = 0.70
+# Extra derate when multiple ranks share a node (warmup RSS + reclaim lag).
+CPU_NODE_MULTI_RANK_UTIL_FACTOR = 0.90
 
 cli_parser = ArgumentParser(description="Benchmark vLLM LLM serving with GuideLLM")
 cli_parser.add_argument("--version", action="store_true", help="Print versions and exit")
@@ -327,7 +331,7 @@ def get_vllm_runtime_version() -> str:
 
 def guidellm_runtime_version() -> str:
     result = run(
-        ["guidellm", "benchmark", "run", "--help"],
+        ["guidellm", "run", "--help"],
         capture_output=True,
         text=True,
         check=False,
@@ -479,7 +483,6 @@ def reset_autoconfig_state() -> None:
     _TUNING = None
     host_numa_count.cache_clear()
     host_cpus_by_numa.cache_clear()
-    host_memory_by_numa_gb.cache_clear()
     get_cpu_flags.cache_clear()
     gpu_info.cache_clear()
 
@@ -728,9 +731,12 @@ def cpu_rank_counts_by_memory_node(
     return dict(counts) or {0: world}
 
 
-@cache
 def host_memory_by_numa_gb() -> tuple[tuple[float, float], ...]:
-    """(total, available) GiB for each visible NUMA node."""
+    """(total, available) GiB for each visible NUMA node.
+
+    Available is read live (not cached): per-workload server restarts must see
+    reclaim after the previous vLLM exit, matching vLLM's own node meminfo math.
+    """
     if environ.get("BENCHMARK_VLLM_CPU_TOPOLOGY", "").strip():
         total, available = current_ram_gb()
         count = max(1, host_numa_count())
@@ -745,6 +751,7 @@ def host_memory_by_numa_gb() -> tuple[tuple[float, float], ...]:
                 if match:
                     values[match.group(1)] = int(match.group(2)) / (1024**2)
             total = values.get("MemTotal", 0.0)
+            # Same reclaimable sum vLLM uses in get_memory_node_info().
             available = (
                 values.get("MemFree", 0.0)
                 + values.get("SReclaimable", 0.0)
@@ -1260,8 +1267,10 @@ def cpu_kv_memory_util(
 
     The fraction is applied by every worker against the total RAM of its own
     NUMA node, so it is divided by the number of ranks sharing that node and
-    capped so their sum stays inside the node.
+    capped so their sum stays inside the node's free RAM with sequential-alloc
+    headroom (vLLM loads weights then reserves util×MemTotal − RSS for KV).
     """
+    del hp  # reserved for future host-wide caps
     override = environ.get("VLLM_CPU_GPU_MEMORY_UTILIZATION")
     if override:
         return float(override)
@@ -1278,11 +1287,13 @@ def cpu_kv_memory_util(
         total = float(node["total_gib"])
         ranks = max(1, int(node["ranks"]))
         if total > 0:
+            multi = CPU_NODE_MULTI_RANK_UTIL_FACTOR if ranks > 1 else 1.0
             ceilings.append(
                 min(
                     0.50,
                     float(node["available_gib"])
                     * CPU_NODE_MEMORY_BUDGET
+                    * multi
                     / (ranks * total),
                 )
             )
@@ -1952,7 +1963,7 @@ def guidellm_sweep_profile(mode: str, tuning: BenchmarkTuning) -> str:
 
 
 def guidellm_throughput_rate(mode: str) -> str:
-    """Concurrent streams for standalone throughput profile (legacy plan only; GuideLLM 0.6+)."""
+    """max_concurrency for standalone throughput profile (legacy plan only)."""
     default = "8" if mode == "cpu" else "16"
     return environ.get("GUIDELLM_THROUGHPUT_RATE", default)
 
@@ -1964,14 +1975,10 @@ def _guidellm_profile_override(mode: str) -> str:
     )
 
 
-def _is_sweep_profile(profile: str) -> bool:
-    return profile == "sweep" or profile.startswith("sweep,")
-
-
 def guidellm_plan(mode: str, tuning: BenchmarkTuning) -> list[tuple[str, str | None]]:
-    """(profile, sweep_size_for_rate) runs per model/workload.
+    """(profile kind, rate-or-sweep-size) runs per model/workload.
 
-    GuideLLM 0.6+ maps ``--rate`` to ``sweep_size`` when ``--profile sweep``.
+    GuideLLM 0.7+ puts sweep size / concurrency on ``--profile kind=...,...``.
     """
     override = _guidellm_profile_override(mode)
     if override in ("legacy", "sync-throughput", "sync"):
@@ -1981,22 +1988,31 @@ def guidellm_plan(mode: str, tuning: BenchmarkTuning) -> list[tuple[str, str | N
     return [("sweep", guidellm_sweep_size(mode))]
 
 
-def guidellm_cli_load_args(
+def guidellm_profile_spec(
     profile: str,
     rate: str | None,
     tuning: BenchmarkTuning,
-) -> list[str]:
-    """Extra GuideLLM CLI args for load shaping (sweep size + rampup)."""
-    extras: list[str] = []
-    if rate is not None:
-        extras.extend(["--rate", rate])
-    if (
-        tuning.autoconfig
-        and tuning.rampup_duration > 0
-        and _is_sweep_profile(profile)
-    ):
-        extras.extend(["--rampup", str(tuning.rampup_duration)])
-    return extras
+) -> str:
+    """Build a GuideLLM 0.7+ ``--profile kind=...,key=value`` string."""
+    parts = [f"kind={profile}"]
+    if profile == "sweep":
+        size = rate if rate is not None else str(tuning.sweep_size)
+        parts.append(f"sweep_size={size}")
+        if tuning.autoconfig:
+            parts.append(f"max_concurrency={tuning.max_concurrency}")
+            if tuning.rampup_duration > 0:
+                parts.append(f"rampup_duration={tuning.rampup_duration}")
+    elif profile == "throughput":
+        conc = rate if rate is not None else str(tuning.max_concurrency)
+        parts.append(f"max_concurrency={conc}")
+        if tuning.autoconfig and tuning.rampup_duration > 0:
+            parts.append(f"rampup_duration={tuning.rampup_duration}")
+    elif rate is not None and profile in ("concurrent", "constant", "async", "poisson"):
+        key = "streams" if profile == "concurrent" else "rate"
+        parts.append(f"{key}={rate}")
+    if tuning.warmup:
+        parts.append(f"warmup={tuning.warmup}")
+    return ",".join(parts)
 
 
 def guidellm_max_seconds(mode: str, spec: ModelSpec, tuning: BenchmarkTuning) -> int:
@@ -2348,39 +2364,35 @@ def run_guidellm(
 ) -> Path | None:
     out_dir.mkdir(parents=True, exist_ok=True)
     max_seconds = guidellm_max_seconds(mode, spec, tuning)
+    report_path = out_dir / "benchmarks.json"
     cmd = [
         "guidellm",
-        "benchmark",
         "run",
-        "--target",
-        TARGET_URL,
-        "--model",
-        spec.model_id,
         "--backend",
-        "openai_http",
-        "--request-format",
-        "/v1/completions",
+        (
+            f"kind=openai_http,target={TARGET_URL},model={spec.model_id},"
+            "request_format=/v1/completions"
+        ),
         "--data",
-        f"prompt_tokens={workload.prompt_tokens},output_tokens={workload.output_tokens}",
+        (
+            "kind=synthetic_text,"
+            f"prompt_tokens={workload.prompt_tokens},"
+            f"output_tokens={workload.output_tokens}"
+        ),
         "--profile",
-        profile,
-        "--random-seed",
-        "42",
-        "--max-seconds",
-        str(max_seconds),
-        "--warmup",
-        tuning.warmup,
-        "--output-dir",
-        str(out_dir),
-        "--outputs",
-        "json",
+        guidellm_profile_spec(profile, rate, tuning),
+        "--seed",
+        "kind=static,value=42",
+        "--constraint",
+        f"kind=max_duration,seconds={max_seconds}",
+        "--output",
+        f"kind=json,path={report_path}",
+        "--metrics",
+        "kind=generative,sample_size=10",
         "--disable-console",
-        "--sample-requests",
-        "10",
     ]
     if (max_req := guidellm_max_requests(mode, tuning)) is not None:
-        cmd.extend(["--max-requests", str(max_req)])
-    cmd.extend(guidellm_cli_load_args(profile, rate, tuning))
+        cmd.extend(["--constraint", f"kind=max_requests,count={max_req}"])
 
     logger.info("GuideLLM: %s", " ".join(cmd))
     subprocess_timeout = guidellm_subprocess_timeout(tuning)

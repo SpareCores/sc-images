@@ -4,9 +4,9 @@ Not a published image — shared sources for the `benchmark-vllm-*` images under
 
 | File | Purpose |
 |------|---------|
-| `VLLM_VERSION` | Pinned upstream vLLM tag (e.g. `0.22.1` → `v0.22.1`) |
+| `VLLM_VERSION` | Pinned upstream vLLM tag (e.g. `0.27.1` → `v0.27.1`) |
 | `GUIDELLM_VERSION` | Pinned [GuideLLM](https://github.com/vllm-project/guidellm) for serving load tests |
-| `benchmark.py` | Start `vllm serve`, run `guidellm benchmark run`, emit JSONL |
+| `benchmark.py` | Start `vllm serve`, run `guidellm run`, emit JSONL |
 
 ## Harness
 
@@ -48,11 +48,12 @@ Example CPU load at different sizes (8 model×workload runs, 2h budget, SmolLM2-
 
 ### GuideLLM sweep limits
 
-Autoconfig runs `guidellm benchmark run --profile sweep` with **`--max-seconds` only**
-(no `--max-requests`). Each stage stops when its time budget is exhausted.
-Load scales via **`max_concurrency`** (env `GUIDELLM__MAX_CONCURRENCY`, sub-linear in vCPU).
-Pass sweep step count as **`--rate`** (GuideLLM 0.6+ alias for `sweep_size`) and
-**`--rampup`** for throughput-stage ramp-up within the sweep.
+Autoconfig runs `guidellm run --profile kind=sweep,...` with a
+`--constraint kind=max_duration` (no max-requests by default). Each stage stops
+when its time budget is exhausted. Load scales via **`max_concurrency`** on the
+profile (and env `GUIDELLM__MAX_CONCURRENCY`, sub-linear in vCPU). Sweep step
+count and throughput ramp-up are profile attributes (`sweep_size`,
+`rampup_duration`) — GuideLLM 0.7+ CLI shape.
 
 **Sweep stages** (see [GuideLLM sweep profile](https://github.com/vllm-project/guidellm/blob/main/docs/getting-started/benchmark.md)):
 
@@ -68,8 +69,8 @@ floor for rag @ 4096 ctx. Subprocess wall time adds warmup, rampup, one extra st
 for in-flight drain, and margin so heavy rag sweeps are not killed early.
 
 Optional override: set `GUIDELLM_MAX_REQUESTS` or `GUIDELLM_MAX_REQUESTS_CPU` to pass
-`--max-requests` (legacy path and manual experiments). Legacy autoconfig-off mode still
-uses fixed request caps (CPU 25 / GPU 120).
+a `--constraint kind=max_requests` (legacy path and manual experiments). Legacy
+autoconfig-off mode still uses fixed request caps (CPU 25 / GPU 120).
 
 Per workload (chat / rag / long), autoconfig restarts `vllm serve` with that workload's `max_model_len` (2048 / 4096 / 8192) so small-RAM hosts do not reserve KV for unused long-context headroom. Before starting a workload, `workload_kv_fits()` skips combos that would KV-OOM on CPU (weights-only `model_fits` is not enough for long ctx). Budget planning includes the extra startup time.
 
@@ -112,7 +113,8 @@ Autoconfig then:
    every worker reserves it independently, so an undivided 0.50 with DP=2 asks
    for 100% of the node and kills a rank with `Available memory on node 0 … is
    less than requested memory for kv`. Their sum stays under
-   `CPU_NODE_MEMORY_BUDGET`; if that leaves too little KV cache the workload is
+   `CPU_NODE_MEMORY_BUDGET` (with an extra multi-rank derate) so sequential KV
+   allocation still fits; if that leaves too little KV cache the workload is
    skipped by `workload_kv_fits()` rather than crashed.
 
 Resource sizing no longer relies on parameter-count rules of thumb when the
