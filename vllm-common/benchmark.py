@@ -480,6 +480,8 @@ def reset_autoconfig_state() -> None:
     host_numa_count.cache_clear()
     host_cpus_by_numa.cache_clear()
     host_memory_by_numa_gb.cache_clear()
+    get_cpu_flags.cache_clear()
+    gpu_info.cache_clear()
 
 
 def host_profile() -> HostProfile:
@@ -1140,18 +1142,27 @@ def detect_mode() -> str:
 
 @cache
 def get_cpu_flags() -> frozenset[str]:
+    """CPU feature flags from /proc/cpuinfo (x86 ``flags`` or ARM ``Features``)."""
+    flags: set[str] = set()
     try:
         with open("/proc/cpuinfo", encoding="utf-8", errors="replace") as fp:
             for line in fp:
-                if line.startswith("flags"):
-                    return frozenset(line.split(":", 1)[1].strip().split())
+                key = line.split(":", 1)[0].strip().lower()
+                if key in ("flags", "features"):
+                    flags.update(line.split(":", 1)[1].strip().lower().split())
     except OSError:
         pass
-    return frozenset()
+    return frozenset(flags)
 
 
 def cpu_has_avx512() -> bool:
     return "avx512f" in get_cpu_flags()
+
+
+def cpu_has_bf16() -> bool:
+    """True when the CPU can run bfloat16 matmuls (ARM ``bf16`` or x86 ``avx512_bf16``)."""
+    flags = get_cpu_flags()
+    return "bf16" in flags or "avx512_bf16" in flags
 
 
 def host_arch() -> str:
@@ -1168,14 +1179,20 @@ def log_cpu_details() -> None:
     try:
         with open("/proc/cpuinfo", encoding="utf-8", errors="replace") as fp:
             model = next(
-                (line.split(":", 1)[1].strip() for line in fp if line.startswith("model name")),
+                (
+                    line.split(":", 1)[1].strip()
+                    for line in fp
+                    if line.lower().startswith("model name")
+                    or line.lower().startswith("cpu part")
+                ),
                 "unknown",
             )
         logger.info("cpu_model=%s", model)
         flags = get_cpu_flags()
-        for flag in ("avx512f", "avx2", "asimd"):
+        for flag in ("avx512f", "avx512_bf16", "avx2", "asimd", "bf16"):
             if flag in flags:
                 logger.info("cpu_flag_%s=yes", flag)
+        logger.info("cpu_bf16=%s", cpu_has_bf16())
     except OSError as e:
         logger.debug("cpuinfo: %s", e)
     mem = virtual_memory()
@@ -1276,13 +1293,15 @@ def cpu_kv_memory_util(
 
 
 def cpu_serve_dtype(spec: ModelSpec | None = None) -> str:
+    """Pick a CPU dtype the host ISA can actually execute.
+
+    Graviton2 (Neoverse-N1) and older ARM lack ``bf16``; forcing bfloat16 there
+    makes oneDNN fail and the API server never binds :8000.
+    """
+    del spec  # reserved for model-specific overrides later
     if override := environ.get("VLLM_CPU_DTYPE", "").strip():
         return override
-    if spec is not None and spec.short_name == "gemma-2b":
-        return "bfloat16"
-    if host_arch() == "arm64":
-        return "bfloat16"
-    if host_arch() == "amd64" and cpu_has_avx512():
+    if cpu_has_bf16():
         return "bfloat16"
     return "float16"
 
@@ -1310,6 +1329,10 @@ def log_docker_cpu_hints() -> None:
         pass
 
 
+# Current vllm/vllm-openai CUDA wheels ship Ampere+ kernels (sm_80+).
+VLLM_MIN_GPU_COMPUTE_CAP: tuple[int, int] = (8, 0)
+
+
 @cache
 def gpu_info() -> dict[str, Any]:
     info: dict[str, Any] = {
@@ -1319,6 +1342,8 @@ def gpu_info() -> dict[str, Any]:
         "total_vram_gb": 0.0,
         "vram_per_device_gb": [],
         "available_vram_per_device_gb": [],
+        "compute_capability": None,
+        "compute_capabilities": [],
     }
     try:
         import torch
@@ -1331,6 +1356,7 @@ def gpu_info() -> dict[str, Any]:
             total = 0.0
             per_device: list[float] = []
             available_per_device: list[float] = []
+            caps: list[tuple[int, int]] = []
             for i in range(count):
                 props = torch.cuda.get_device_properties(i)
                 total += props.total_memory
@@ -1340,15 +1366,44 @@ def gpu_info() -> dict[str, Any]:
                     available_per_device.append(free / (1024**3))
                 except Exception:
                     available_per_device.append(props.total_memory / (1024**3))
+                caps.append((int(props.major), int(props.minor)))
                 if i == 0:
                     info["gpu_model"] = props.name
+                    info["compute_capability"] = caps[0]
             info["total_vram_gb"] = total / (1024**3)
             info["vram_gb"] = min(per_device)
             info["vram_per_device_gb"] = per_device
             info["available_vram_per_device_gb"] = available_per_device
+            info["compute_capabilities"] = caps
     except Exception as e:
         logger.debug("gpu_info: %s", e)
     return info
+
+
+def gpu_supports_current_image(info: dict[str, Any] | None = None) -> bool:
+    """False when every visible GPU is below the image's minimum CUDA arch."""
+    caps = list((info or gpu_info()).get("compute_capabilities") or [])
+    if not caps:
+        return True
+    return min(caps) >= VLLM_MIN_GPU_COMPUTE_CAP
+
+
+def check_gpu_compat(mode: str) -> None:
+    if mode != "gpu":
+        return
+    info = gpu_info()
+    if gpu_supports_current_image(info):
+        return
+    caps = info.get("compute_capabilities") or []
+    logger.error(
+        "GPU compute capability %s is below %s.%s required by benchmark-vllm-gpu "
+        "(T4/T4G sm_75 and older are unsupported). Use an Ampere+ instance "
+        "(g5/g6/p4/…) or the CPU image.",
+        caps[0] if caps else "unknown",
+        VLLM_MIN_GPU_COMPUTE_CAP[0],
+        VLLM_MIN_GPU_COMPUTE_CAP[1],
+    )
+    sys_exit(1)
 
 
 def _metadata_cache_path(spec: ModelSpec) -> Path:
@@ -2674,6 +2729,7 @@ def probe_health_timeout_sec(mode: str) -> float:
 def run_probe_only(mode: str) -> None:
     log_cpu_details()
     check_cpu_isa_compat(mode)
+    check_gpu_compat(mode)
     if mode == "cpu":
         log_docker_cpu_hints()
     spec = probe_model_spec()
@@ -2740,6 +2796,7 @@ def main() -> None:
         return
 
     check_cpu_isa_compat(mode)
+    check_gpu_compat(mode)
     if mode == "cpu":
         log_docker_cpu_hints()
     logger.info(
