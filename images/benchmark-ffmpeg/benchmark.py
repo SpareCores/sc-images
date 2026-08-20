@@ -39,7 +39,7 @@ basicConfig(
 logger = getLogger("benchmark-ffmpeg")
 
 BENCHMARK_NAME = "ffmpeg_transcoding"
-BENCHMARK_VERSION = "3.2.0"
+BENCHMARK_VERSION = "3.2.1"
 
 VIDEO_CALIBRATION_DURATION_SEC = float(
     os.environ.get("FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS", "1")
@@ -216,6 +216,8 @@ AUDIO_SCENARIOS: tuple[ScenarioSpec, ...] = (
         requires_encoder="libopus",
         encode_args=("-b:a", "128k"),
         bitrate_kbps=128,
+        # libopus only accepts 8/12/16/24/48 kHz (not the fixture's 44.1 kHz).
+        sample_rate_hz=48_000,
     ),
     ScenarioSpec(
         "aac_128k",
@@ -1530,7 +1532,7 @@ def run_benchmark() -> dict[str, Any]:
             "output_muxer": "null",
             "audio_profiles": [
                 "Ogg Vorbis 160 kbps",
-                "Opus 128 kbps",
+                "Opus 128 kbps (48 kHz)",
                 "AAC 128 kbps",
                 "MP3 192 kbps",
                 "FLAC lossless compression level 5",

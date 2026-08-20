@@ -60,7 +60,7 @@ class ScenarioTests(unittest.TestCase):
             profiles,
             {
                 "ogg_vorbis_160k": ("libvorbis", 160, None, 44_100),
-                "opus_128k": ("libopus", 128, None, 44_100),
+                "opus_128k": ("libopus", 128, None, 48_000),
                 "aac_128k": ("aac", 128, None, 44_100),
                 "mp3_192k": ("libmp3lame", 192, None, 44_100),
                 "flac_lossless": ("flac", None, 5, 44_100),
@@ -118,6 +118,12 @@ class ScenarioTests(unittest.TestCase):
             joined = " ".join(command)
             self.assertIn(f"-c:a {codec} -b:a {bitrate}", joined)
             self.assertNotIn("cuda", joined)
+        opus = " ".join(
+            bench.build_worker_command(
+                self._audio("opus_128k"), Path("/source.flac"), 10.0, gpu_index=None
+            )
+        )
+        self.assertIn("-ar 48000 -ac 2", opus)
 
     def test_video_decode_codec_is_an_input_option(self) -> None:
         command = bench.build_worker_command(

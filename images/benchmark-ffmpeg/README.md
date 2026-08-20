@@ -98,7 +98,8 @@ copy or download the FLAC, then `./upload-fixtures.sh` (AWS profile `sc`, bucket
 ## Audio profiles
 
 Every audio job decodes the same lossless music source and explicitly produces
-stereo 44.1 kHz audio. Encoded packets go to FFmpeg's null muxer so the score
+stereo audio. Most profiles use 44.1 kHz; Opus uses 48 kHz because `libopus`
+rejects 44.1 kHz. Encoded packets go to FFmpeg's null muxer so the score
 measures codec capacity rather than storage.
 
 Multiple Vorbis bitrates were dropped: on real hosts 96/160/320 kbps scored
@@ -108,7 +109,7 @@ lossy codecs professionals actually choose, plus FLAC.
 | Scenario | Encoder | Output profile |
 |---|---|---|
 | `ogg_vorbis_160k` | `libvorbis` | Ogg Vorbis, 160 kbps |
-| `opus_128k` | `libopus` | Opus, 128 kbps |
+| `opus_128k` | `libopus` | Opus, 128 kbps, 48 kHz |
 | `aac_128k` | `aac` (native) | AAC-LC, 128 kbps |
 | `mp3_192k` | `libmp3lame` | MP3, 192 kbps |
 | `flac_lossless` | `flac` | FLAC, compression level 5 |
@@ -270,7 +271,7 @@ describes the [null muxer as intended for testing and benchmarking](https://ffmp
 ## Output
 
 One compact JSON document is written to stdout
-(`benchmark=ffmpeg_transcoding`, `version=3.2.0`); logs go to stderr.
+(`benchmark=ffmpeg_transcoding`, `version=3.2.1`); logs go to stderr.
 Version 3 intentionally removes all derived rollups. Each repetition contains
 `wall_time_sec`, worker outcomes, and either:
 
