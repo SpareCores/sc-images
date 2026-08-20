@@ -7,9 +7,11 @@ import json
 import math
 import os
 import platform
+import re
 import shutil
 import signal
 import tempfile
+from collections import Counter
 from argparse import ArgumentParser
 from dataclasses import dataclass
 from functools import cache
@@ -43,12 +45,27 @@ SERVER_START_TIMEOUT_CPU_SEC = 10 * 60
 SERVER_START_TIMEOUT_PROBE_GPU_SEC = 8 * 60
 SERVER_START_TIMEOUT_PROBE_CPU_SEC = 15 * 60
 MIN_OUTPUT_TOKENS_PER_SEC = 1.0
-TUNING_VERSION = 5
+TUNING_VERSION = 7
 BUDGET_RESERVE_STARTUP_SEC = 600
 BUDGET_MIN_PER_RUN_SEC = 45
 BUDGET_MAX_PER_RUN_SEC = 240
 BUDGET_MODEL_START_CPU_SEC = 120
 BUDGET_MODEL_START_GPU_SEC = 60
+# Cap CPU data-parallel replicas so vLLM startup stays inside the per-model reserve.
+MAX_CPU_DP = 32
+# Throughput-stage ramp must stay a small fraction of --max-seconds (GuideLLM counts
+# rampup inside the stage budget). Growing rampup with vCPU was the ~96-core cliff.
+RAMPUP_MAX_SEC = 8.0
+RAMPUP_MIN_SEC = 2.0
+RAMPUP_FRACTION = 0.15
+MIN_THROUGHPUT_MEASURE_SEC = 25
+# Small dense models stop scaling OpenMP threads well past this; add DP replicas instead.
+CPU_THREADS_PER_RANK_TINY = 16
+CPU_THREADS_PER_RANK_SMALL = 32
+CPU_THREADS_PER_RANK_MEDIUM = 64
+CPU_THREADS_PER_RANK_LARGE = 128
+# Share of a NUMA node's RAM all of its vLLM ranks may reserve together.
+CPU_NODE_MEMORY_BUDGET = 0.85
 
 cli_parser = ArgumentParser(description="Benchmark vLLM LLM serving with GuideLLM")
 cli_parser.add_argument("--version", action="store_true", help="Print versions and exit")
@@ -75,7 +92,13 @@ cli_parser.add_argument(
     action="store_true",
     help="Start smallest model, wait for /health, exit (no GuideLLM).",
 )
-cli_args = cli_parser.parse_args()
+cli_parser.add_argument(
+    "--plan-only",
+    action="store_true",
+    help="Resolve model metadata and print host-fit JSON without starting vLLM.",
+)
+# Importable from unit tests (pytest/unittest pass extra argv).
+cli_args = cli_parser.parse_args(None if __name__ == "__main__" else [])
 
 
 @dataclass(frozen=True)
@@ -104,6 +127,33 @@ class ModelSpec:
     serve_extra_args: tuple[str, ...] = ()
     gpu_only: bool = False
     cpu_only: bool = False
+
+
+@dataclass(frozen=True)
+class ModelMetadata:
+    """Authoritative model footprint inputs resolved from the Hugging Face repo."""
+
+    weight_bytes: int
+    num_hidden_layers: int | None
+    num_attention_heads: int | None
+    num_key_value_heads: int | None
+    hidden_size: int | None
+    torch_dtype: str | None
+    source: str
+    head_dim: int | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "weight_bytes": self.weight_bytes,
+            "weight_gib": self.weight_bytes / (1024**3),
+            "num_hidden_layers": self.num_hidden_layers,
+            "num_attention_heads": self.num_attention_heads,
+            "num_key_value_heads": self.num_key_value_heads,
+            "hidden_size": self.hidden_size,
+            "torch_dtype": self.torch_dtype,
+            "head_dim": self.head_dim,
+            "source": self.source,
+        }
 
 
 DEFAULT_MODELS: list[ModelSpec] = [
@@ -232,6 +282,7 @@ _HOST: HostProfile | None = None
 _BUDGET: BudgetPlan | None = None
 _TUNING: BenchmarkTuning | None = None
 _SERVER_STDERR_PATH: Path | None = None
+_EMITTED_ROWS = 0
 
 
 @cache
@@ -319,7 +370,48 @@ def per_workload_server_enabled() -> bool:
     )
 
 
+def parse_cpu_id_list(raw: str) -> list[int]:
+    """Parse ``0-3,8`` / ``0-31`` strings into CPU ids (vLLM bind format)."""
+    ids: list[int] = []
+    for part in raw.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start_s, end_s = part.split("-", 1)
+            start, end = int(start_s), int(end_s)
+            ids.extend(range(start, end + 1))
+        else:
+            ids.append(int(part))
+    return sorted(set(ids))
+
+
+def compact_cpu_ids(ids: list[int]) -> str:
+    """Compress CPU ids to vLLM bind fragments (``0-3,8``)."""
+    if not ids:
+        return ""
+    ordered = sorted(set(ids))
+    ranges: list[str] = []
+    start = prev = ordered[0]
+    for cpu_id in ordered[1:]:
+        if cpu_id == prev + 1:
+            prev = cpu_id
+            continue
+        ranges.append(f"{start}-{prev}" if start != prev else str(start))
+        start = prev = cpu_id
+    ranges.append(f"{start}-{prev}" if start != prev else str(start))
+    return ",".join(ranges)
+
+
 def host_vcpus() -> int:
+    override = environ.get("BENCHMARK_VLLM_VCPUS", "").strip()
+    if override:
+        return max(1, int(override))
+    topo = environ.get("BENCHMARK_VLLM_CPU_TOPOLOGY", "").strip()
+    if topo:
+        n = sum(len(parse_cpu_id_list(part)) for part in topo.split("|") if part.strip())
+        if n:
+            return n
     try:
         return max(1, len(os.sched_getaffinity(0)))
     except AttributeError:
@@ -332,12 +424,62 @@ def host_numa_count() -> int:
     override = environ.get("BENCHMARK_VLLM_NUMA_NODES", "").strip()
     if override:
         return max(1, int(override))
+    topo = environ.get("BENCHMARK_VLLM_CPU_TOPOLOGY", "").strip()
+    if topo:
+        return max(1, len([p for p in topo.split("|") if p.strip()]))
     base = Path("/sys/devices/system/node")
     if base.is_dir():
         nodes = [p for p in base.glob("node[0-9]*") if p.is_dir()]
         if nodes:
             return max(1, len(nodes))
     return 1
+
+
+@cache
+def host_cpus_by_numa() -> tuple[tuple[int, ...], ...]:
+    """Allowed CPU ids grouped by NUMA node (logical CPUs, including SMT)."""
+    topo = environ.get("BENCHMARK_VLLM_CPU_TOPOLOGY", "").strip()
+    if topo:
+        nodes = []
+        for part in topo.split("|"):
+            ids = parse_cpu_id_list(part)
+            if ids:
+                nodes.append(tuple(ids))
+        if nodes:
+            return tuple(nodes)
+    affinity: set[int]
+    try:
+        affinity = set(os.sched_getaffinity(0))
+    except AttributeError:
+        affinity = set(range(max(1, os.cpu_count() or 1)))
+    base = Path("/sys/devices/system/node")
+    nodes: list[tuple[int, ...]] = []
+    if base.is_dir():
+        for node_dir in sorted(base.glob("node[0-9]*"), key=lambda p: int(p.name[4:])):
+            cpulist = node_dir / "cpulist"
+            if not cpulist.is_file():
+                continue
+            try:
+                raw = cpulist.read_text(encoding="utf-8").strip()
+            except OSError:
+                continue
+            ids = [cpu_id for cpu_id in parse_cpu_id_list(raw) if cpu_id in affinity]
+            if ids:
+                nodes.append(tuple(ids))
+    if nodes:
+        return tuple(nodes)
+    return (tuple(sorted(affinity)),)
+
+
+def reset_autoconfig_state() -> None:
+    """Clear cached host/budget/tuning (for tests and env-var overrides)."""
+    global _HOST, _BUDGET, _TUNING
+    _HOST = None
+    _BUDGET = None
+    _TUNING = None
+    host_numa_count.cache_clear()
+    host_cpus_by_numa.cache_clear()
+    host_memory_by_numa_gb.cache_clear()
 
 
 def host_profile() -> HostProfile:
@@ -356,14 +498,87 @@ def sublinear_scale(vcpus: int, base: float, exp: float, floor: int) -> int:
     return max(floor, int(base * max(vcpus, 1) ** exp))
 
 
+def _split_even(items: list[int], parts: int) -> list[list[int]]:
+    """Contiguous nearly-equal chunks; empty only when ``len(items) < parts``."""
+    n = max(1, parts)
+    if not items:
+        return [[] for _ in range(n)]
+    base, extra = divmod(len(items), n)
+    out: list[list[int]] = []
+    idx = 0
+    for i in range(n):
+        take = base + (1 if i < extra else 0)
+        out.append(items[idx : idx + take])
+        idx += take
+    return out
+
+
+def _ensure_rank_cpus(groups: list[list[int]]) -> list[list[int]]:
+    """Give empty ranks a CPU stolen from a rank with at least two."""
+    for i, group in enumerate(groups):
+        if group:
+            continue
+        donor = max(range(len(groups)), key=lambda j: len(groups[j]))
+        if len(groups[donor]) >= 2:
+            groups[i].append(groups[donor].pop())
+    return groups
+
+
+def partition_cpus_for_ranks(
+    cpus_by_numa: list[list[int]],
+    tp: int,
+    dp: int,
+    *,
+    reserve: int = 0,
+) -> list[list[int]]:
+    """Split logical CPUs into ``tp * dp`` NUMA-local groups (DP-major, then TP).
+
+    vLLM parses ``VLLM_CPU_OMP_THREADS_BIND`` as ``|``-separated lists and slices
+    ``local_world_size`` (TP) entries per local DP rank. Keep every logical CPU
+    (including SMT siblings) — unlike ``auto``, which drops SMT on x86.
+    """
+    tp = max(1, tp)
+    dp = max(1, dp)
+    world = tp * dp
+    nodes = [list(node) for node in cpus_by_numa if node]
+    if not nodes:
+        return [[] for _ in range(world)]
+    all_cpus = [cpu_id for node in nodes for cpu_id in node]
+    if reserve and len(all_cpus) - reserve >= world:
+        reserved = set(all_cpus[-reserve:])
+        nodes = [[cpu_id for cpu_id in node if cpu_id not in reserved] for node in nodes]
+        nodes = [node for node in nodes if node]
+    groups: list[list[int]] = [[] for _ in range(world)]
+    if not nodes:
+        return groups
+    if tp == 1:
+        nonempty = [node for node in nodes if node]
+        if dp <= len(nonempty):
+            node_chunks = _split_even(list(range(len(nonempty))), dp)
+            for dp_rank, node_idxs in enumerate(node_chunks):
+                groups[dp_rank] = [cpu_id for i in node_idxs for cpu_id in nonempty[i]]
+        else:
+            rank_chunks = _split_even(list(range(dp)), len(nonempty))
+            for node_idx, rank_ids in enumerate(rank_chunks):
+                slices = _split_even(nonempty[node_idx], len(rank_ids))
+                for rank_id, slice_cpus in zip(rank_ids, slices, strict=True):
+                    groups[rank_id] = slice_cpus
+    else:
+        numa = len(nodes)
+        for tp_rank in range(tp):
+            home = [nodes[i] for i in range(numa) if i % tp == tp_rank]
+            pool = [cpu_id for node in home for cpu_id in node]
+            for dp_rank, slice_cpus in enumerate(_split_even(pool, dp)):
+                groups[dp_rank * tp + tp_rank] = slice_cpus
+    return _ensure_rank_cpus(groups)
+
+
 def cpu_tensor_parallel_size(spec: ModelSpec) -> int:
     """TP across NUMA nodes when attention heads divide evenly by NUMA count.
 
     Official CPU guidance: set tensor-parallel-size to the NUMA node count so
-    ``VLLM_CPU_OMP_THREADS_BIND=auto`` places one rank per socket. If heads are
-    not divisible by NUMA count, keep TP=1 and use data-parallel instead
-    (see ``cpu_data_parallel_size``) — partial TP (e.g. 3 of 4 nodes) leaves a
-    socket idle, and cross-NUMA single-rank binds hurt throughput.
+    each rank stays NUMA-local. If heads are not divisible by NUMA count, keep
+    TP=1 and replicate with data-parallel instead (see ``cpu_data_parallel_size``).
     """
     override = _env_int("BENCHMARK_VLLM_CPU_TP", "VLLM_CPU_TENSOR_PARALLEL_SIZE")
     if override is not None:
@@ -371,36 +586,233 @@ def cpu_tensor_parallel_size(spec: ModelSpec) -> int:
     numa = host_numa_count()
     if numa <= 1:
         return 1
-    heads = spec.num_attention_heads
+    heads = model_metadata(spec).num_attention_heads or spec.num_attention_heads
     if heads and heads % numa == 0:
         return numa
     return 1
 
 
-def cpu_data_parallel_size(spec: ModelSpec) -> int:
-    """DP across NUMA nodes when TP cannot span every socket.
+def cpu_target_threads_per_rank(spec: ModelSpec) -> int:
+    """OpenMP threads per CPU rank; small models need fatter DP, not fatter OMP."""
+    if spec.params_b <= 0.5:
+        return CPU_THREADS_PER_RANK_TINY
+    if spec.params_b <= 2.0:
+        return CPU_THREADS_PER_RANK_SMALL
+    if spec.params_b <= 8.0:
+        return CPU_THREADS_PER_RANK_MEDIUM
+    return CPU_THREADS_PER_RANK_LARGE
 
-    Dense-model DP ranks are independent replicas; vLLM assigns each local DP
-    rank its own NUMA node via ``CPU_VISIBLE_MEMORY_NODES``. Use DP when TP
-    stays 1 on a multi-NUMA host so all sockets serve traffic.
+
+def cpu_data_parallel_size(spec: ModelSpec) -> int:
+    """DP replicas: at least one per unused NUMA node, more for small models.
+
+    A single CPU rank does not scale to hundreds of OpenMP threads (especially
+    135M/0.5B). Extra DP ranks split the machine into NUMA-local replicas so
+    throughput can grow from 1 to 896 vCPUs. Each replica loads a full copy of
+    the weights, so DP is also capped by available RAM.
     """
     override = _env_int("BENCHMARK_VLLM_CPU_DP", "VLLM_CPU_DATA_PARALLEL_SIZE")
     if override is not None:
         return max(1, override)
+    v = host_profile().vcpus
     numa = host_numa_count()
-    if numa <= 1:
-        return 1
-    if cpu_tensor_parallel_size(spec) >= numa:
-        return 1
-    return numa
+    tp = cpu_tensor_parallel_size(spec)
+    # Cover every socket when TP cannot span them.
+    base_dp = numa if tp < numa else 1
+    target_threads = max(1, cpu_target_threads_per_rank(spec))
+    desired = max(base_dp, v // (tp * target_threads) or 1)
+    dp = max(1, min(desired, max(1, v // tp), MAX_CPU_DP))
+    # Exact repository weight bytes + config-derived minimum KV, checked on the
+    # NUMA node where every worker will actually allocate.
+    while dp > 1 and not cpu_layout_memory_plan(
+        spec,
+        tp=tp,
+        dp=dp,
+        max_model_len=min(w.max_model_len for w in workloads_for_mode("cpu")),
+    )["fits"]:
+        dp -= 1
+    return max(1, dp)
 
 
-def cpu_omp_threads_bind(spec: ModelSpec, tp: int) -> str:
-    """Always prefer auto: one NUMA node per TP/PP rank (NUMA-local)."""
+def cpu_omp_threads_bind(spec: ModelSpec, tp: int | None = None, dp: int | None = None) -> str:
+    """Explicit CPU lists for every TP×DP rank (all logical CPUs, NUMA-local).
+
+    ``VLLM_CPU_OMP_THREADS_BIND=auto`` on x86 keeps one thread per physical core
+    (drops SMT) and, with world_size=1, binds rank 0 to NUMA node 0 only. Cloud
+    vCPU counts include SMT, so auto silently uses ~half the advertised cores
+    and leaves extra sockets idle unless TP/DP already span NUMA. Explicit lists
+    keep SMT and partition every allowed CPU across ranks. ``auto`` / empty
+    env means "let the harness decide"; any other value is passed through.
+    """
     override = environ.get("VLLM_CPU_OMP_THREADS_BIND", "").strip()
-    if override and override != "auto":
+    if override and override.lower() not in ("auto",):
         return override
-    return "auto"
+    tp_size = tp if tp is not None else cpu_tensor_parallel_size(spec)
+    dp_size = dp if dp is not None else cpu_data_parallel_size(spec)
+    nodes = [list(node) for node in host_cpus_by_numa()]
+    reserve = 1 if host_profile().vcpus >= 2 else 0
+    groups = partition_cpus_for_ranks(nodes, tp_size, dp_size, reserve=reserve)
+    if any(not group for group in groups):
+        groups = partition_cpus_for_ranks(nodes, tp_size, dp_size, reserve=0)
+    parts = [compact_cpu_ids(group) for group in groups]
+    if not parts or any(not part for part in parts):
+        return "auto"
+    return "|".join(parts)
+
+
+def cpu_ranks_per_memory_node(
+    spec: ModelSpec,
+    tp: int | None = None,
+    dp: int | None = None,
+) -> int:
+    """Largest number of vLLM CPU workers that share one NUMA memory node.
+
+    ``CPUWorker`` binds each rank to the NUMA node of its *first* allowed CPU and
+    reserves ``--gpu-memory-utilization × that node's total RAM`` per rank, so
+    co-located ranks must split the fraction or every rank after the first dies
+    with "Available memory ... is less than desired CPU memory utilization".
+    """
+    tp_size = max(1, tp if tp is not None else cpu_tensor_parallel_size(spec))
+    dp_size = max(1, dp if dp is not None else cpu_data_parallel_size(spec))
+    world = tp_size * dp_size
+    bind = cpu_omp_threads_bind(spec, tp_size, dp_size).strip().lower()
+    if bind in ("", "auto"):
+        # vLLM's own `auto` spreads ranks over the NUMA nodes it can see.
+        return max(1, math.ceil(world / max(1, host_numa_count())))
+    if bind == "nobind":
+        # Every rank inherits the full affinity mask, hence the same first CPU.
+        return world
+    node_of_cpu = {
+        cpu_id: index
+        for index, node in enumerate(host_cpus_by_numa())
+        for cpu_id in node
+    }
+    per_node: dict[int, int] = {}
+    for part in bind.split("|"):
+        ids = parse_cpu_id_list(part)
+        if not ids:
+            continue
+        node = node_of_cpu.get(ids[0], 0)
+        per_node[node] = per_node.get(node, 0) + 1
+    return max(per_node.values(), default=1)
+
+
+def cpu_rank_counts_by_memory_node(
+    spec: ModelSpec,
+    tp: int | None = None,
+    dp: int | None = None,
+) -> dict[int, int]:
+    """Worker count by NUMA memory node for the effective binding."""
+    tp_size = max(1, tp if tp is not None else cpu_tensor_parallel_size(spec))
+    dp_size = max(1, dp if dp is not None else cpu_data_parallel_size(spec))
+    world = tp_size * dp_size
+    nodes = host_cpus_by_numa()
+    node_of_cpu = {
+        cpu_id: index
+        for index, node in enumerate(nodes)
+        for cpu_id in node
+    }
+    bind = cpu_omp_threads_bind(spec, tp_size, dp_size).strip().lower()
+    if bind == "nobind":
+        first_cpu = min((cpu for node in nodes for cpu in node), default=0)
+        return {node_of_cpu.get(first_cpu, 0): world}
+    if bind in ("", "auto"):
+        return dict(Counter(rank % max(1, len(nodes)) for rank in range(world)))
+    counts: Counter[int] = Counter()
+    for part in bind.split("|"):
+        ids = parse_cpu_id_list(part)
+        if ids:
+            counts[node_of_cpu.get(ids[0], 0)] += 1
+    return dict(counts) or {0: world}
+
+
+@cache
+def host_memory_by_numa_gb() -> tuple[tuple[float, float], ...]:
+    """(total, available) GiB for each visible NUMA node."""
+    if environ.get("BENCHMARK_VLLM_CPU_TOPOLOGY", "").strip():
+        total, available = current_ram_gb()
+        count = max(1, host_numa_count())
+        return tuple((total / count, available / count) for _ in range(count))
+    out: list[tuple[float, float]] = []
+    for index, _cpus in enumerate(host_cpus_by_numa()):
+        path = Path(f"/sys/devices/system/node/node{index}/meminfo")
+        try:
+            values: dict[str, float] = {}
+            for line in path.read_text(encoding="utf-8").splitlines():
+                match = re.search(r"Node\s+\d+\s+(\S+):\s+(\d+)\s+kB", line)
+                if match:
+                    values[match.group(1)] = int(match.group(2)) / (1024**2)
+            total = values.get("MemTotal", 0.0)
+            available = (
+                values.get("MemFree", 0.0)
+                + values.get("SReclaimable", 0.0)
+                + values.get("Active(file)", 0.0)
+                + values.get("Inactive(file)", 0.0)
+            )
+            if total > 0:
+                out.append((total, max(0.0, min(total, available))))
+        except OSError:
+            pass
+    if out:
+        return tuple(out)
+    total, available = current_ram_gb()
+    count = max(1, host_numa_count())
+    return tuple((total / count, available / count) for _ in range(count))
+
+
+def cpu_layout_memory_plan(
+    spec: ModelSpec,
+    *,
+    tp: int,
+    dp: int,
+    max_model_len: int,
+    min_sequences: int = 1,
+) -> dict[str, Any]:
+    """Check weight+KV footprint against every NUMA node used by the layout."""
+    rank_counts = cpu_rank_counts_by_memory_node(spec, tp, dp)
+    memories = host_memory_by_numa_gb()
+    per_worker = model_worker_memory_gb(
+        spec,
+        tp=tp,
+        max_model_len=max_model_len,
+        min_sequences=min_sequences,
+        block_size=128,
+    )
+    nodes: list[dict[str, Any]] = []
+    fits = True
+    limiting_fraction = 0.0
+    for node, ranks in sorted(rank_counts.items()):
+        total, available = memories[min(node, len(memories) - 1)]
+        required = ranks * per_worker
+        budget = available * CPU_NODE_MEMORY_BUDGET
+        node_fits = required <= budget
+        fits = fits and node_fits
+        limiting_fraction = max(
+            limiting_fraction,
+            per_worker / total if total > 0 else 1.0,
+        )
+        nodes.append(
+            {
+                "node": node,
+                "ranks": ranks,
+                "total_gib": total,
+                "available_gib": available,
+                "required_gib": required,
+                "budget_gib": budget,
+                "fits": node_fits,
+            }
+        )
+    return {
+        "fits": fits,
+        "tp": tp,
+        "dp": dp,
+        "world_size": tp * dp,
+        "binding": cpu_omp_threads_bind(spec, tp, dp),
+        "per_worker_gib": per_worker,
+        "memory_fraction": limiting_fraction,
+        "nodes": nodes,
+        "model": model_metadata(spec).as_dict(),
+    }
 
 
 def runnable_models(mode: str) -> list[ModelSpec]:
@@ -484,17 +896,22 @@ def compute_tuning(
     if max_model_len is None:
         max_model_len = max(w.max_model_len for w in workloads_for_mode(mode))
 
+    tp = cpu_tensor_parallel_size(spec) if mode == "cpu" else 1
+    dp = cpu_data_parallel_size(spec) if mode == "cpu" else 1
+    replicas = max(1, tp * dp)
+
     if mode == "cpu":
-        # Floor concurrency/seqs with v so 1–2 vCPU hosts are not oversubscribed.
-        conc_floor = max(1, min(32, v * 4))
+        # Floor concurrency with v so 1–2 vCPU hosts are not oversubscribed, and
+        # with replica count so extra DP ranks are not starved of in-flight load.
+        conc_floor = max(1, min(32, v * 4), replicas * 4)
         max_conc = sublinear_scale(v, 6.0, 0.65, conc_floor)
-        max_workers = min(sublinear_scale(v, 2.0, 0.45, max(1, min(4, v))), max(1, v // 2 or 1))
-        rampup = min(30.0, max(5.0, v / 4.0))
+        # GuideLLM workers are async; a handful can drive high concurrency. Cap
+        # so the client does not steal the server's CPUs on the same box.
+        max_workers = max(1, min(32, v, max(1, max_conc // 8)))
         warmup = "10"
     else:
         max_conc = sublinear_scale(v, 8.0, 0.60, 64)
         max_workers = min(sublinear_scale(v, 3.0, 0.50, 8), max(4, v))
-        rampup = 10.0
         warmup = "0.05"
 
     max_requests: int | None = None
@@ -502,15 +919,21 @@ def compute_tuning(
     ctx_factor = workload_time_factor(max_model_len)
     min_sec_per_strategy = min(
         BUDGET_MAX_PER_RUN_SEC,
-        int((BUDGET_MIN_PER_RUN_SEC // 2) * ctx_factor),
+        max(MIN_THROUGHPUT_MEASURE_SEC, int((BUDGET_MIN_PER_RUN_SEC // 2) * ctx_factor)),
     )
-    desired_sweep = max(
-        2,
-        min(
-            3 + int(math.log2(max(v, 2)) // 2),
-            6 + int(math.log2(max(v, 2)) // 3),
-        ),
-    )
+    # Keep sweep shallow on CPU so each stage stays long enough to measure peak
+    # throughput. Growing sweep with log(vCPU) used to shrink --max-seconds just
+    # as --rampup grew, which is what flattened the curve after ~96 cores.
+    if mode == "cpu":
+        desired_sweep = max(2, min(4, 2 + int(math.log2(max(v, 2)) // 3)))
+    else:
+        desired_sweep = max(
+            2,
+            min(
+                3 + int(math.log2(max(v, 2)) // 2),
+                6 + int(math.log2(max(v, 2)) // 3),
+            ),
+        )
     sweep, max_seconds = _fit_sweep_to_budget(
         desired_sweep,
         budget.per_run_sec,
@@ -535,13 +958,27 @@ def compute_tuning(
     if workers_env := _env_int("GUIDELLM__MAX_WORKER_PROCESSES"):
         max_workers = workers_env
 
+    if rampup_env := environ.get("BENCHMARK_VLLM_RAMPUP", "").strip():
+        rampup = max(0.0, float(rampup_env))
+    elif mode == "cpu":
+        # Rampup is inside GuideLLM's per-stage --max-seconds (first N concurrent
+        # requests are staggered). Keep it a small fraction so the throughput stage
+        # still measures peak load on large machines.
+        measure_budget = max(0.0, float(max_seconds) - MIN_THROUGHPUT_MEASURE_SEC)
+        rampup = min(
+            RAMPUP_MAX_SEC,
+            max(RAMPUP_MIN_SEC, RAMPUP_FRACTION * float(max_seconds)),
+            measure_budget if measure_budget > 0 else RAMPUP_FRACTION * float(max_seconds),
+        )
+        rampup = max(0.0, min(rampup, max(0.0, float(max_seconds) - 1.0)))
+    else:
+        rampup = min(10.0, max(2.0, 0.15 * float(max_seconds)))
+
     seq_scale = min(1.0, 2048 / max(max_model_len, 512))
     if mode == "cpu":
         seqs_floor = max(1, min(16, v * 2))
         # Cap batching per DP/TP worker: --max-num-seqs is per DP rank.
-        tp = cpu_tensor_parallel_size(spec)
-        dp = cpu_data_parallel_size(spec)
-        cores_per_worker = max(1, v // max(1, tp * dp))
+        cores_per_worker = max(1, v // replicas)
         seq_cap = max(seqs_floor, cores_per_worker)
         max_num_seqs = max(
             seqs_floor,
@@ -553,11 +990,32 @@ def compute_tuning(
             int(min(max_conc, sublinear_scale(v, 4.0, 0.55, 16)) * seq_scale),
         )
     max_batched = min(max_model_len, max(2048, sublinear_scale(v, 64.0, 0.50, 2048)))
+    if seqs_env := _env_int("BENCHMARK_VLLM_MAX_NUM_SEQS"):
+        max_num_seqs = max(1, seqs_env)
+    if batched_env := _env_int("BENCHMARK_VLLM_MAX_NUM_BATCHED_TOKENS"):
+        max_batched = max(1, batched_env)
 
     dtype = cpu_serve_dtype(spec)
-    kv_util = cpu_kv_memory_util(spec, hp, max_model_len=max_model_len)
+    ranks_per_node = cpu_ranks_per_memory_node(spec, tp, dp) if mode == "cpu" else 1
+    kv_util = cpu_kv_memory_util(
+        spec,
+        hp,
+        max_model_len=max_model_len,
+        ranks_per_node=ranks_per_node,
+    )
     gpu_util = gpu_memory_utilization(spec)
     kv_gib = cpu_kv_cache_gib(spec, hp)
+    if not _env_int("BENCHMARK_VLLM_MAX_NUM_SEQS"):
+        memory_seq_cap = max_sequences_for_layout(
+            spec,
+            mode=mode,
+            tp=tp,
+            dp=dp,
+            max_model_len=max_model_len,
+            cpu_memory_util=kv_util,
+            gpu_memory_util_value=gpu_util,
+        )
+        max_num_seqs = max(1, min(max_num_seqs, memory_seq_cap))
 
     return BenchmarkTuning(
         tuning_version=TUNING_VERSION,
@@ -633,7 +1091,7 @@ def init_benchmark_tuning(
     _TUNING = compute_tuning(mode, spec, _BUDGET, max_model_len=max_model_len)
     logger.info(
         "autoconfig vcpus=%s numa=%s cpu_tp=%s cpu_dp=%s budget_per_run=%ss sweep=%s max_conc=%s max_req=%s "
-        "workers=%s max_sec/strategy=%s max_model_len=%s max_num_seqs=%s per_workload_server=%s",
+        "workers=%s rampup=%ss max_sec/strategy=%s max_model_len=%s max_num_seqs=%s per_workload_server=%s",
         host_profile().vcpus,
         host_numa_count() if mode == "cpu" else 1,
         cpu_tensor_parallel_size(spec) if mode == "cpu" else 1,
@@ -643,6 +1101,7 @@ def init_benchmark_tuning(
         _TUNING.max_concurrency,
         _TUNING.max_requests if _TUNING.max_requests is not None else "time-only",
         _TUNING.max_workers,
+        _TUNING.rampup_duration,
         _TUNING.max_seconds_per_strategy,
         _TUNING.max_model_len,
         _TUNING.max_num_seqs,
@@ -746,8 +1205,10 @@ def cpu_server_env(
     spec: ModelSpec | None = None,
 ) -> dict[str, str]:
     env = dict(base)
-    tp = cpu_tensor_parallel_size(spec) if spec is not None else 1
-    env["VLLM_CPU_OMP_THREADS_BIND"] = cpu_omp_threads_bind(spec or DEFAULT_MODELS[0], tp)
+    spec = spec or DEFAULT_MODELS[0]
+    tp = cpu_tensor_parallel_size(spec)
+    dp = cpu_data_parallel_size(spec)
+    env["VLLM_CPU_OMP_THREADS_BIND"] = cpu_omp_threads_bind(spec, tp, dp)
     if environ.get("VLLM_CPU_KVCACHE_SPACE"):
         env.setdefault("VLLM_CPU_KVCACHE_SPACE", environ["VLLM_CPU_KVCACHE_SPACE"])
     elif tuning and tuning.kv_cache_gib is not None:
@@ -766,23 +1227,52 @@ def cpu_gpu_memory_utilization() -> float:
     return max(0.12, min(0.45, util))
 
 
+def cpu_min_kv_gb(spec: ModelSpec, max_model_len: int) -> float:
+    """Smallest KV cache worth serving with, per rank."""
+    ctx_scale = max_model_len / 2048.0
+    return 0.4 * ctx_scale * max(1.0, spec.params_b / 2.0)
+
+
 def cpu_kv_memory_util(
     spec: ModelSpec,
     hp: HostProfile,
     max_model_len: int = 2048,
+    ranks_per_node: int = 1,
 ) -> float:
+    """Per-rank ``--gpu-memory-utilization`` for the CPU backend.
+
+    The fraction is applied by every worker against the total RAM of its own
+    NUMA node, so it is divided by the number of ranks sharing that node and
+    capped so their sum stays inside the node.
+    """
     override = environ.get("VLLM_CPU_GPU_MEMORY_UTILIZATION")
     if override:
         return float(override)
-    ram_total_gb, ram_avail_gb = current_ram_gb()
-    if ram_total_gb <= 0:
-        return cpu_gpu_memory_utilization()
-    remaining = ram_avail_gb - model_memory_gb(spec) * 1.3
-    if remaining <= 0:
-        return cpu_gpu_memory_utilization()
-    ctx_factor = min(1.0, 2048 / max(max_model_len, 512))
-    fraction = (remaining / ram_total_gb) * 0.80 * ctx_factor
-    return max(0.12, min(0.50, fraction))
+    tp = cpu_tensor_parallel_size(spec)
+    dp = cpu_data_parallel_size(spec)
+    plan = cpu_layout_memory_plan(
+        spec,
+        tp=tp,
+        dp=dp,
+        max_model_len=max_model_len,
+    )
+    ceilings: list[float] = []
+    for node in plan["nodes"]:
+        total = float(node["total_gib"])
+        ranks = max(1, int(node["ranks"]))
+        if total > 0:
+            ceilings.append(
+                min(
+                    0.50,
+                    float(node["available_gib"])
+                    * CPU_NODE_MEMORY_BUDGET
+                    / (ranks * total),
+                )
+            )
+    return min(
+        ceilings,
+        default=min(0.50, CPU_NODE_MEMORY_BUDGET / max(1, ranks_per_node)),
+    )
 
 
 def cpu_serve_dtype(spec: ModelSpec | None = None) -> str:
@@ -801,12 +1291,9 @@ def gpu_memory_utilization(spec: ModelSpec) -> float:
     override = environ.get("VLLM_GPU_MEMORY_UTILIZATION")
     if override:
         return float(override)
-    vram = float(gpu_info()["total_vram_gb"])
-    if vram <= 0:
-        return 0.9
-    if model_memory_gb(spec) > 0.7 * vram:
-        return 0.95
-    return 0.90
+    # Match vLLM 0.22's default. Higher/lower values belong in the experiment
+    # sweep; preflight should not silently change the server's memory contract.
+    return 0.92
 
 
 def log_docker_cpu_hints() -> None:
@@ -830,6 +1317,8 @@ def gpu_info() -> dict[str, Any]:
         "gpu_model": None,
         "vram_gb": 0.0,
         "total_vram_gb": 0.0,
+        "vram_per_device_gb": [],
+        "available_vram_per_device_gb": [],
     }
     try:
         import torch
@@ -840,22 +1329,243 @@ def gpu_info() -> dict[str, Any]:
         info["gpu_count"] = count
         if count:
             total = 0.0
+            per_device: list[float] = []
+            available_per_device: list[float] = []
             for i in range(count):
                 props = torch.cuda.get_device_properties(i)
                 total += props.total_memory
+                per_device.append(props.total_memory / (1024**3))
+                try:
+                    free, _device_total = torch.cuda.mem_get_info(i)
+                    available_per_device.append(free / (1024**3))
+                except Exception:
+                    available_per_device.append(props.total_memory / (1024**3))
                 if i == 0:
                     info["gpu_model"] = props.name
-            info["total_vram_gb"] = total / 1e9
-            info["vram_gb"] = total / 1e9
+            info["total_vram_gb"] = total / (1024**3)
+            info["vram_gb"] = min(per_device)
+            info["vram_per_device_gb"] = per_device
+            info["available_vram_per_device_gb"] = available_per_device
     except Exception as e:
         logger.debug("gpu_info: %s", e)
     return info
 
 
-def model_memory_gb(spec: ModelSpec) -> float:
+def _metadata_cache_path(spec: ModelSpec) -> Path:
+    safe = re.sub(r"[^A-Za-z0-9_.-]+", "--", spec.model_id)
+    return Path(cli_args.models_dir) / ".vllm-footprints" / f"{safe}.json"
+
+
+def _weight_files_from_repo(model_id: str) -> tuple[list[tuple[str, int]], dict[str, Any]]:
+    """Return the exact deployed weight-format files and config from HF metadata.
+
+    File sizes come from the Hub API (no weight download). Prefer safetensors;
+    use an index's weight_map when present so repos carrying duplicate formats
+    are never double-counted.
+    """
+    from huggingface_hub import HfApi, hf_hub_download
+
+    token = environ.get("HF_TOKEN") or None
+    api = HfApi(token=token)
+    info = api.model_info(model_id, files_metadata=True)
+    sizes = {
+        sibling.rfilename: int(sibling.size or 0)
+        for sibling in info.siblings or []
+        if sibling.rfilename
+    }
+    config_path = hf_hub_download(
+        repo_id=model_id,
+        filename="config.json",
+        cache_dir=cli_args.models_dir,
+        token=token,
+    )
+    config = json.loads(Path(config_path).read_text(encoding="utf-8"))
+
+    def indexed(index_name: str) -> list[tuple[str, int]]:
+        if index_name not in sizes:
+            return []
+        path = hf_hub_download(
+            repo_id=model_id,
+            filename=index_name,
+            cache_dir=cli_args.models_dir,
+            token=token,
+        )
+        index = json.loads(Path(path).read_text(encoding="utf-8"))
+        names = sorted(set((index.get("weight_map") or {}).values()))
+        return [(name, sizes[name]) for name in names if sizes.get(name, 0) > 0]
+
+    files = indexed("model.safetensors.index.json")
+    if not files:
+        files = [
+            (name, size)
+            for name, size in sizes.items()
+            if size > 0
+            and name.endswith(".safetensors")
+            and not name.startswith(("adapter_", "optimizer"))
+        ]
+    if not files:
+        files = indexed("pytorch_model.bin.index.json")
+    if not files:
+        files = [
+            (name, size)
+            for name, size in sizes.items()
+            if size > 0 and re.search(r"(?:^|/)pytorch_model.*\.bin$", name)
+        ]
+    if not files:
+        raise RuntimeError(f"No weight files with size metadata in {model_id}")
+    return files, config
+
+
+@cache
+def model_metadata(spec: ModelSpec) -> ModelMetadata:
+    """Resolve and persist model config + exact repository weight bytes."""
+    cache_path = _metadata_cache_path(spec)
+    try:
+        cached = json.loads(cache_path.read_text(encoding="utf-8"))
+        return ModelMetadata(**cached)
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        pass
+
+    if __name__ != "__main__" and not environ.get("BENCHMARK_VLLM_TEST_HF_METADATA"):
+        return ModelMetadata(
+            weight_bytes=int(model_memory_gb_fallback(spec) * 1024**3),
+            num_hidden_layers=None,
+            num_attention_heads=spec.num_attention_heads,
+            num_key_value_heads=spec.num_attention_heads,
+            hidden_size=None,
+            torch_dtype=None,
+            source="declared-test-fallback",
+        )
+
+    try:
+        files, config = _weight_files_from_repo(spec.model_id)
+        architecture = config.get("text_config") or config
+        metadata = ModelMetadata(
+            weight_bytes=sum(size for _name, size in files),
+            num_hidden_layers=int(architecture["num_hidden_layers"])
+            if architecture.get("num_hidden_layers") is not None
+            else None,
+            num_attention_heads=int(architecture["num_attention_heads"])
+            if architecture.get("num_attention_heads") is not None
+            else spec.num_attention_heads,
+            num_key_value_heads=int(
+                architecture.get("num_key_value_heads")
+                or architecture.get("num_attention_heads")
+            )
+            if (
+                architecture.get("num_key_value_heads")
+                or architecture.get("num_attention_heads")
+            )
+            is not None
+            else None,
+            hidden_size=int(architecture["hidden_size"])
+            if architecture.get("hidden_size") is not None
+            else None,
+            torch_dtype=str(
+                architecture.get("torch_dtype") or config.get("torch_dtype")
+            )
+            if (architecture.get("torch_dtype") or config.get("torch_dtype"))
+            is not None
+            else None,
+            source="huggingface:file-metadata+config",
+            head_dim=int(architecture["head_dim"])
+            if architecture.get("head_dim") is not None
+            else None,
+        )
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        raw = {
+            key: value
+            for key, value in metadata.as_dict().items()
+            if key != "weight_gib"
+        }
+        cache_path.write_text(json.dumps(raw, indent=2), encoding="utf-8")
+        return metadata
+    except Exception as exc:
+        logger.warning("metadata lookup failed for %s: %s; using declared fallback", spec.model_id, exc)
+        return ModelMetadata(
+            weight_bytes=int(model_memory_gb_fallback(spec) * 1024**3),
+            num_hidden_layers=None,
+            num_attention_heads=spec.num_attention_heads,
+            num_key_value_heads=spec.num_attention_heads,
+            hidden_size=None,
+            torch_dtype=None,
+            source="declared-fallback",
+        )
+
+
+def model_memory_gb_fallback(spec: ModelSpec) -> float:
     if spec.memory_gb is not None:
         return spec.memory_gb
     return spec.params_b * 2.0 * 1.2
+
+
+def model_memory_gb(spec: ModelSpec) -> float:
+    return model_metadata(spec).weight_bytes / (1024**3)
+
+
+def dtype_bytes(dtype: str | None) -> int:
+    value = (dtype or "").lower()
+    if any(name in value for name in ("float32", "fp32")):
+        return 4
+    if any(name in value for name in ("float8", "fp8", "int8", "uint8")):
+        return 1
+    return 2
+
+
+def kv_bytes_per_token(
+    spec: ModelSpec,
+    tp: int = 1,
+    dtype: str | None = None,
+) -> int | None:
+    """KV bytes per cached token and worker from model config.
+
+    Formula: K+V × layers × KV heads assigned to the TP rank × head_dim × dtype.
+    """
+    meta = model_metadata(spec)
+    if not (
+        meta.num_hidden_layers
+        and meta.num_attention_heads
+        and meta.num_key_value_heads
+        and meta.hidden_size
+    ):
+        return None
+    head_dim = meta.head_dim or math.ceil(meta.hidden_size / meta.num_attention_heads)
+    kv_heads_per_rank = math.ceil(meta.num_key_value_heads / max(1, tp))
+    return (
+        2
+        * meta.num_hidden_layers
+        * kv_heads_per_rank
+        * head_dim
+        * dtype_bytes(dtype or meta.torch_dtype or cpu_serve_dtype(spec))
+    )
+
+
+def model_worker_memory_gb(
+    spec: ModelSpec,
+    *,
+    tp: int,
+    max_model_len: int,
+    min_sequences: int = 1,
+    dtype: str | None = None,
+    pp: int = 1,
+    block_size: int = 16,
+) -> float:
+    """Conservative per-worker startup footprint: TP weight shard + KV + runtime."""
+    parallel_shards = max(1, tp * pp)
+    weights = model_memory_gb(spec) * 1.10 / parallel_shards
+    per_token = kv_bytes_per_token(spec, tp, dtype=dtype)
+    if per_token is None:
+        kv = cpu_min_kv_gb(spec, max_model_len)
+    else:
+        block_tokens = math.ceil(max_model_len / max(1, block_size)) * max(1, block_size)
+        kv = (
+            per_token
+            * block_tokens
+            * max(1, min_sequences)
+            / max(1, pp)
+            / (1024**3)
+        )
+    return weights + kv + 0.5
 
 
 def available_memory_gb(mode: str) -> float:
@@ -866,16 +1576,208 @@ def available_memory_gb(mode: str) -> float:
     return virtual_memory().available / 1e9 * 0.85
 
 
+def max_sequences_for_layout(
+    spec: ModelSpec,
+    *,
+    mode: str,
+    tp: int,
+    dp: int,
+    max_model_len: int,
+    cpu_memory_util: float,
+    gpu_memory_util_value: float,
+) -> int:
+    """Full-context sequences that fit in one worker's planned KV budget."""
+    per_token = kv_bytes_per_token(spec, tp)
+    if not per_token:
+        return 1
+    pp = (
+        max(1, int(gpu_info().get("gpu_count") or 1))
+        if mode == "gpu" and model_requires_gpu(spec)
+        else 1
+    )
+    weights_and_runtime = model_memory_gb(spec) * 1.10 / max(1, tp * pp) + 0.5
+    if mode == "cpu":
+        counts = cpu_rank_counts_by_memory_node(spec, tp, dp)
+        memories = host_memory_by_numa_gb()
+        budgets = [
+            memories[min(node, len(memories) - 1)][0] * cpu_memory_util
+            for node in counts
+        ]
+    else:
+        gpu = gpu_info()
+        totals = list(gpu.get("vram_per_device_gb") or [])
+        available = list(gpu.get("available_vram_per_device_gb") or totals)
+        budgets = [
+            min(total * gpu_memory_util_value, available[index] * 0.95)
+            for index, total in enumerate(totals[: max(1, tp * dp)])
+        ]
+    if not budgets:
+        return 1
+    kv_gib = min(budgets) - weights_and_runtime
+    block_size = 128 if mode == "cpu" else 16
+    block_tokens = math.ceil(max_model_len / block_size) * block_size
+    bytes_per_sequence = per_token * block_tokens / pp
+    if kv_gib <= 0 or bytes_per_sequence <= 0:
+        return 1
+    return max(1, int(kv_gib * (1024**3) / bytes_per_sequence))
+
+
+def gpu_layout_memory_plan(
+    spec: ModelSpec,
+    *,
+    tp: int,
+    dp: int,
+    max_model_len: int,
+    min_sequences: int = 1,
+    pp: int = 1,
+) -> dict[str, Any]:
+    gpu = gpu_info()
+    per_device = list(gpu.get("vram_per_device_gb") or [])
+    available_per_device = list(gpu.get("available_vram_per_device_gb") or per_device)
+    if not per_device and gpu.get("gpu_count"):
+        per_device = [float(gpu.get("vram_gb") or 0)] * int(gpu["gpu_count"])
+        available_per_device = list(per_device)
+    workers = max(1, tp * dp)
+    required = model_worker_memory_gb(
+        spec,
+        tp=tp,
+        max_model_len=max_model_len,
+        min_sequences=min_sequences,
+        pp=pp,
+        block_size=16,
+    )
+    workers = max(workers, pp)
+    used = per_device[:workers]
+    fits = (
+        workers <= len(per_device)
+        and bool(used)
+        and all(
+            required
+            <= min(
+                memory * gpu_memory_utilization(spec),
+                available_per_device[index] * 0.95,
+            )
+            for index, memory in enumerate(used)
+        )
+    )
+    return {
+        "fits": fits,
+        "tp": tp,
+        "dp": dp,
+        "pp": pp,
+        "world_size": workers,
+        "per_worker_gib": required,
+        "vram_per_device_gib": used,
+        "available_vram_per_device_gib": available_per_device[:workers],
+        "gpu_memory_utilization": gpu_memory_utilization(spec),
+        "model": model_metadata(spec).as_dict(),
+    }
+
+
+def model_host_plan(spec: ModelSpec, mode: str) -> dict[str, Any]:
+    """Whether at least one valid layout can host the model for chat."""
+    supported = model_supported_on_mode(spec, mode)
+    if not supported:
+        return {
+            "model": spec.short_name,
+            "model_id": spec.model_id,
+            "mode": mode,
+            "runnable": False,
+            "reason": "unsupported serve configuration for mode",
+            "metadata": None,
+        }
+    metadata = model_metadata(spec)
+    if metadata.source in {"declared-fallback"} and not environ.get(
+        "BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA"
+    ):
+        return {
+            "model": spec.short_name,
+            "model_id": spec.model_id,
+            "mode": mode,
+            "runnable": False,
+            "reason": "authoritative Hugging Face weight/config metadata unavailable",
+            "metadata": metadata.as_dict(),
+        }
+    max_len = min(w.max_model_len for w in workloads_for_mode(mode))
+    candidates: list[dict[str, Any]] = []
+    if mode == "cpu":
+        heads = metadata.num_attention_heads or spec.num_attention_heads
+        for tp in range(1, max(1, host_numa_count()) + 1):
+            if heads and heads % tp:
+                continue
+            for dp in range(
+                1,
+                min(MAX_CPU_DP, max(1, host_profile().vcpus // tp)) + 1,
+            ):
+                candidates.append(
+                    cpu_layout_memory_plan(
+                        spec,
+                        tp=tp,
+                        dp=dp,
+                        max_model_len=max_len,
+                    )
+                )
+    else:
+        gpus = max(1, int(gpu_info().get("gpu_count") or 1))
+        heads = metadata.num_attention_heads or spec.num_attention_heads
+        if model_requires_gpu(spec) and gpus > 1:
+            candidates.append(
+                gpu_layout_memory_plan(
+                    spec,
+                    tp=1,
+                    dp=1,
+                    pp=gpus,
+                    max_model_len=max_len,
+                )
+            )
+        else:
+            for tp in range(1, gpus + 1):
+                if heads and heads % tp:
+                    continue
+                for dp in range(1, gpus // tp + 1):
+                    candidates.append(
+                        gpu_layout_memory_plan(
+                            spec,
+                            tp=tp,
+                            dp=dp,
+                            max_model_len=max_len,
+                        )
+                    )
+    runnable = any(candidate["fits"] for candidate in candidates)
+    feasible = [
+        {
+            "tp": candidate["tp"],
+            "dp": candidate["dp"],
+            "pp": candidate.get("pp", 1),
+        }
+        for candidate in candidates
+        if candidate["fits"]
+    ]
+    return {
+        "model": spec.short_name,
+        "model_id": spec.model_id,
+        "mode": mode,
+        "runnable": runnable,
+        "reason": None if runnable else "weight+minimum-KV footprint exceeds host resources",
+        "metadata": metadata.as_dict(),
+        "feasible_layouts": feasible,
+        "candidate_layouts": candidates,
+    }
+
+
 def model_fits(spec: ModelSpec, mode: str) -> bool:
+    plan = model_host_plan(spec, mode)
     need = model_memory_gb(spec)
     have = available_memory_gb(mode)
     logger.info(
-        "memory check %s: need~%.1f GiB have~%.1f GiB",
+        "memory check %s: weights=%.1f GB aggregate_available=%.1f GB runnable=%s source=%s",
         spec.short_name,
         need,
         have,
+        plan["runnable"],
+        plan["metadata"]["source"],
     )
-    return need <= have
+    return bool(plan["runnable"])
 
 
 def workload_kv_fits(
@@ -885,29 +1787,45 @@ def workload_kv_fits(
     kv_util: float | None = None,
 ) -> bool:
     """Estimate vLLM CPU KV cache headroom after loading weights (see cpu_worker.py)."""
-    if mode != "cpu":
-        return True
-    ram_total_gb, _ram_avail_gb = current_ram_gb()
-    if ram_total_gb <= 0:
-        return True
-    util = (
-        kv_util
-        if kv_util is not None
-        else cpu_kv_memory_util(spec, host_profile(), max_model_len=max_model_len)
+    if mode == "gpu":
+        pp = (
+            max(1, int(gpu_info().get("gpu_count") or 1))
+            if model_requires_gpu(spec)
+            else 1
+        )
+        plan = gpu_layout_memory_plan(
+            spec,
+            tp=tensor_parallel_size(mode, spec),
+            dp=gpu_data_parallel_size(spec),
+            pp=pp,
+            max_model_len=max_model_len,
+        )
+        if not plan["fits"]:
+            logger.info(
+                "GPU resource plan rejected %s max_model_len=%s plan=%s",
+                spec.short_name,
+                max_model_len,
+                plan,
+            )
+        return bool(plan["fits"])
+    tp = cpu_tensor_parallel_size(spec)
+    dp = cpu_data_parallel_size(spec)
+    plan = cpu_layout_memory_plan(
+        spec,
+        tp=tp,
+        dp=dp,
+        max_model_len=max_model_len,
     )
-    weights_gb = model_memory_gb(spec) * 1.3
-    kv_budget_gb = ram_total_gb * util - weights_gb
-    ctx_scale = max_model_len / 2048.0
-    min_kv_gb = 0.4 * ctx_scale * max(1.0, spec.params_b / 2.0)
-    if kv_budget_gb >= min_kv_gb:
+    if plan["fits"]:
         return True
     logger.info(
-        "KV check %s max_model_len=%s: budget~%.1f GiB need~%.1f GiB (util=%.2f)",
+        "resource plan rejected %s max_model_len=%s tp=%s dp=%s bind=%s nodes=%s",
         spec.short_name,
         max_model_len,
-        kv_budget_gb,
-        min_kv_gb,
-        util,
+        tp,
+        dp,
+        plan["binding"],
+        plan["nodes"],
     )
     return False
 
@@ -953,7 +1871,16 @@ def models_to_run(mode: str) -> list[ModelSpec]:
 
 
 def workloads_for_mode(mode: str) -> list[WorkloadSpec]:
-    return [w for w in WORKLOADS if not w.gpu_only or mode == "gpu"]
+    out = [w for w in WORKLOADS if not w.gpu_only or mode == "gpu"]
+    raw = environ.get("BENCHMARK_VLLM_WORKLOADS", "").strip()
+    if not raw:
+        return out
+    names = {n.strip() for n in raw.split(",") if n.strip()}
+    filtered = [w for w in out if w.name in names]
+    if not filtered:
+        logger.warning("BENCHMARK_VLLM_WORKLOADS=%r matched nothing; using %s", raw, [w.name for w in out])
+        return out
+    return filtered
 
 
 def guidellm_sweep_size(mode: str) -> str:
@@ -1084,6 +2011,82 @@ def _server_stderr_tail(max_chars: int = 4000, max_lines: int = 8) -> list[str]:
     return lines[-max_lines:]
 
 
+def _server_memory_observed() -> dict[str, Any]:
+    """Extract vLLM's profiled memory results; runtime init is authoritative."""
+    path = _SERVER_STDERR_PATH
+    if path is None or not path.is_file():
+        return {}
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return {}
+    observed: dict[str, Any] = {}
+    gib_values = [
+        float(value)
+        for value in re.findall(
+            r"(?:Available KV cache memory|KV cache memory)[^:\n]*:\s*"
+            r"([0-9.]+)\s*GiB",
+            text,
+            flags=re.IGNORECASE,
+        )
+    ]
+    if gib_values:
+        observed["kv_cache_gib_per_worker"] = gib_values
+    token_values = [
+        int(value.replace(",", ""))
+        for value in re.findall(
+            r"(?:GPU|CPU) KV cache size:\s*([0-9,]+)\s*tokens",
+            text,
+            flags=re.IGNORECASE,
+        )
+    ]
+    if token_values:
+        observed["kv_cache_tokens_per_worker"] = token_values
+    byte_values = [
+        int(value.replace(",", ""))
+        for value in re.findall(
+            r"--kv-cache-memory(?:-bytes)?[=\s]+([0-9,]+)",
+            text,
+            flags=re.IGNORECASE,
+        )
+    ]
+    if byte_values:
+        observed["suggested_kv_cache_memory_bytes"] = byte_values
+    return observed
+
+
+_SERVER_CAUSE_RE = re.compile(
+    r"(ValueError|RuntimeError|MemoryError|AssertionError|ImportError|OSError|"
+    r"NotImplementedError|OutOfMemoryError|CUDA error|Available memory|"
+    r"Illegal instruction|Killed)"
+)
+
+
+def _server_stderr_causes(max_chars: int = 400_000, max_lines: int = 6) -> list[str]:
+    """First error lines in the server log, not just its last words.
+
+    vLLM reports worker failures through a wrapper ("Engine core initialization
+    failed. See root cause above."), so the tail alone hides why a rank died.
+    """
+    path = _SERVER_STDERR_PATH
+    if path is None or not path.is_file():
+        return []
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")[-max_chars:]
+    except OSError:
+        return []
+    causes: list[str] = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or "resource_tracker" in line:
+            continue
+        if _SERVER_CAUSE_RE.search(line):
+            causes.append(line)
+        if len(causes) >= max_lines:
+            break
+    return causes
+
+
 def _classify_server_failure(tail: list[str]) -> str | None:
     blob = "\n".join(tail).lower()
     if "kv cache" in blob and "less than requested" in blob:
@@ -1103,8 +2106,9 @@ def log_server_start_failure(
     workload: WorkloadSpec | None = None,
     server: Optional[Popen[Any]] = None,
 ) -> None:
+    causes = _server_stderr_causes()
     tail = _server_stderr_tail()
-    kind = _classify_server_failure(tail)
+    kind = _classify_server_failure(causes + tail)
     label = spec.short_name if spec else "model"
     ctx = f" workload={workload.name}" if workload else ""
     if kind:
@@ -1118,19 +2122,35 @@ def log_server_start_failure(
         hints.append("Try --privileged --shm-size=4g")
         if host_arch() == "amd64" and not cpu_has_avx512():
             hints.append("BENCHMARK_VLLM_ALLOW_AVX2_ONLY on AVX2-only amd64")
-    for line in tail:
+    for line in dict.fromkeys(causes + tail):
         hints.append(f"stderr: {line[:240]}")
     logger.error(" | ".join(hints))
+
+
+def gpu_data_parallel_size(spec: ModelSpec) -> int:
+    """GPU DP replicas. Default 1 (current fleet); override with BENCHMARK_VLLM_GPU_DP.
+
+    vLLM applies ``--max-num-seqs`` per DP rank. Independent replicas are the
+    way to use leftover GPUs when attention heads are not divisible by GPU count
+    (e.g. SmolLM2's 9 heads on 2 GPUs).
+    """
+    override = _env_int("BENCHMARK_VLLM_GPU_DP", "VLLM_GPU_DATA_PARALLEL_SIZE")
+    if override is not None:
+        return max(1, override)
+    return 1
 
 
 def tensor_parallel_size(mode: str, spec: ModelSpec) -> int:
     """Largest TP for the active backend (GPU count or CPU NUMA nodes)."""
     if mode == "cpu":
         return cpu_tensor_parallel_size(spec)
+    override = _env_int("BENCHMARK_VLLM_GPU_TP", "VLLM_GPU_TENSOR_PARALLEL_SIZE")
+    if override is not None:
+        return max(1, override)
     gpus = max(1, int(gpu_info()["gpu_count"] or 1))
     if gpus <= 1:
         return 1
-    heads = spec.num_attention_heads
+    heads = model_metadata(spec).num_attention_heads or spec.num_attention_heads
     if not heads:
         return 1
     for tp in range(min(gpus, heads), 0, -1):
@@ -1173,6 +2193,13 @@ def start_server(model_id: str, mode: str, max_model_len: int, spec: ModelSpec) 
                     f"{tuning.gpu_memory_util:.2f}",
                 ]
             )
+            dp = gpu_data_parallel_size(spec)
+            if dp > 1:
+                cmd.extend(["--data-parallel-size", str(dp)])
+            if seqs_env := _env_int("BENCHMARK_VLLM_MAX_NUM_SEQS"):
+                cmd.extend(["--max-num-seqs", str(max(1, seqs_env))])
+            if batched_env := _env_int("BENCHMARK_VLLM_MAX_NUM_BATCHED_TOKENS"):
+                cmd.extend(["--max-num-batched-tokens", str(max(1, batched_env))])
     else:
         mem_util = tuning.kv_memory_util if tuning.autoconfig else cpu_gpu_memory_utilization()
         cmd.extend(
@@ -1208,11 +2235,21 @@ def start_server(model_id: str, mode: str, max_model_len: int, spec: ModelSpec) 
     logger.info("Starting server: %s", " ".join(cmd))
     if mode == "cpu":
         logger.info(
-            "cpu parallel: numa=%s tp=%s dp=%s omp_bind=%s",
+            "cpu parallel: numa=%s tp=%s dp=%s ranks/node=%s mem_util=%s omp_bind=%s",
             host_numa_count(),
             tensor_parallel_size(mode, spec),
             cpu_data_parallel_size(spec),
+            cpu_ranks_per_memory_node(spec),
+            f"{tuning.kv_memory_util:.2f}",
             env.get("VLLM_CPU_OMP_THREADS_BIND", ""),
+        )
+    else:
+        logger.info(
+            "gpu parallel: gpus=%s tp=%s dp=%s mem_util=%s",
+            gpus,
+            tensor_parallel_size(mode, spec),
+            gpu_data_parallel_size(spec),
+            f"{tuning.gpu_memory_util:.2f}",
         )
     return Popen(
         cmd,
@@ -1395,6 +2432,7 @@ def report_to_jsonl(
         report = json.load(fp)
 
     gi = gpu_info()
+    metadata = model_metadata(spec)
     base: dict[str, Any] = {
         "benchmark": "vllm_serving",
         "model": spec.short_name,
@@ -1408,13 +2446,31 @@ def report_to_jsonl(
         "max_model_len": tuning.max_model_len,
         "tuning_version": tuning.tuning_version,
         "tuning": tuning.as_dict(),
+        "model_weight_gib": round(metadata.weight_bytes / (1024**3), 4),
+        "model_metadata_source": metadata.source,
+        "kv_bytes_per_token_per_tp_rank": kv_bytes_per_token(
+            spec,
+            tensor_parallel_size(mode, spec),
+            dtype=tuning.dtype if mode == "cpu" else None,
+        ),
+        "runtime_memory": _server_memory_observed(),
         "avx512": cpu_has_avx512() if host_arch() == "amd64" else None,
         "avx2_only_image": environ.get("BENCHMARK_VLLM_ALLOW_AVX2_ONLY", "").lower()
         in ("1", "true", "yes"),
         "vllm_version": read_vllm_version(),
         "guidellm_version": read_guidellm_version(),
         "tensor_parallel": tensor_parallel_size(mode, spec),
-        "data_parallel": cpu_data_parallel_size(spec) if mode == "cpu" else 1,
+        "pipeline_parallel": (
+            max(1, int(gi["gpu_count"] or 1))
+            if mode == "gpu" and model_requires_gpu(spec)
+            else 1
+        ),
+        "data_parallel": (
+            cpu_data_parallel_size(spec) if mode == "cpu" else gpu_data_parallel_size(spec)
+        ),
+        "omp_threads_bind": (
+            cpu_omp_threads_bind(spec) if mode == "cpu" else None
+        ),
         "gpu_count": gi["gpu_count"],
         "gpu_model": gi["gpu_model"],
         "total_vram_gb": round(float(gi["total_vram_gb"]), 2),
@@ -1491,6 +2547,7 @@ def _run_guidellm_sweeps(
     tuning: BenchmarkTuning,
     start_time: float,
 ) -> float:
+    global _EMITTED_ROWS
     peak_output_tps = 0.0
     for profile, rate in guidellm_plan(mode, tuning):
         if monotonic() - start_time > OVERALL_TIMEOUT_SEC:
@@ -1508,6 +2565,7 @@ def _run_guidellm_sweeps(
             if not report:
                 continue
             n = report_to_jsonl(report, spec, workload, profile, mode, tuning)
+            _EMITTED_ROWS += n
             logger.info(
                 "GuideLLM emitted %s rows model=%s workload=%s profile=%s",
                 n,
@@ -1635,6 +2693,26 @@ def run_probe_only(mode: str) -> None:
         stop_server(server)
 
 
+def run_plan_only(mode: str) -> None:
+    plans = [model_host_plan(spec, mode) for spec in models_to_run(mode)]
+    print(
+        json.dumps(
+            {
+                "mode": mode,
+                "host": {
+                    "vcpus": host_profile().vcpus,
+                    "ram_total_gb": host_profile().ram_total_gb,
+                    "ram_available_gb": host_profile().ram_avail_gb,
+                    "numa": host_numa_count(),
+                    "memory_by_numa_gb": host_memory_by_numa_gb(),
+                    "gpu": gpu_info(),
+                },
+                "models": plans,
+            }
+        )
+    )
+
+
 def print_versions() -> str:
     # Pinned files match the image build; avoid vllm CLI stderr noise in meta.json.
     version = f"vllm={read_vllm_version()} guidellm={read_guidellm_version()}"
@@ -1643,16 +2721,18 @@ def print_versions() -> str:
 
 
 def main() -> None:
-    if not shutil.which("guidellm"):
-        logger.error("guidellm CLI not found in PATH")
-        sys_exit(1)
-
     if cli_args.version:
         print_versions()
         sys_exit(0)
 
     log_cpu_details()
     mode = detect_mode()
+    if cli_args.plan_only:
+        run_plan_only(mode)
+        return
+    if not shutil.which("guidellm"):
+        logger.error("guidellm CLI not found in PATH")
+        sys_exit(1)
     if cli_args.probe_only:
         if mode == "cpu":
             log_docker_cpu_hints()
@@ -1687,6 +2767,7 @@ def main() -> None:
 
     start = monotonic()
     stop_ladder = False
+    attempted = 0
     for spec in models_to_run(mode):
         if stop_ladder:
             break
@@ -1700,9 +2781,19 @@ def main() -> None:
         if not model_fits(spec, mode):
             logger.info("Skipping %s — insufficient memory", spec.short_name)
             continue
+        attempted += 1
         if not run_model(spec, mode, start):
             stop_ladder = True
 
+    if attempted == 0:
+        logger.error("No models runnable on this host (memory/mode); not recording empty success")
+        sys_exit(1)
+    if _EMITTED_ROWS == 0:
+        logger.error(
+            "Attempted %s model(s) but emitted no measurements; see server stderr above",
+            attempted,
+        )
+        sys_exit(1)
     sys_exit(0)
 
 

@@ -27,19 +27,24 @@ When `BENCHMARK_VLLM_AUTOCONFIG=1` (default), the harness derives GuideLLM load 
 
 | Knob | Scales with vCPU | Bounded by |
 |------|------------------|------------|
-| `max_concurrency` | sub-linear (~vCPU^0.55–0.65) | `GUIDELLM__MAX_CONCURRENCY` env override |
+| `max_concurrency` | sub-linear (~vCPU^0.55–0.65), floored by DP replicas | `GUIDELLM__MAX_CONCURRENCY` env override |
 | `max_seconds` per strategy | workload ctx (2048 vs 4096) + budget / sweep | rag gets ≥2× chat floor before sweep shrink; **only** per-stage limit in autoconfig |
-| `sweep_size` | log(vCPU), then **shrunk** to fit `per_run_budget` | `per_run_budget_sec` (45–240 s); fewer steps for rag/long ctx |
+| `--rampup` | **not** vCPU — 15% of `max_seconds`, cap 8s | must leave ≥25s of the throughput stage at peak concurrency |
+| `sweep_size` | log(vCPU) capped at 4 on CPU, then **shrunk** to fit `per_run_budget` | `per_run_budget_sec` (45–240 s); fewer steps for rag/long ctx |
+| CPU TP / DP | NUMA + model size (small models get more DP replicas) | `MAX_CPU_DP`, RAM for weight copies, `BENCHMARK_VLLM_CPU_TP` / `_DP` |
 | `max_num_seqs`, KV fraction | sub-linear + model RAM | available memory |
 | dtype (CPU) | model + arch | gemma / arm64 → bfloat16 |
 
-Example CPU load at different sizes (8 model×workload runs, 2h budget):
+Example CPU load at different sizes (8 model×workload runs, 2h budget, SmolLM2-135M):
 
-| vCPU | max_conc | sweep | sec/strategy (chat) | sec/strategy (rag) |
-|-----:|---------:|------:|--------------------:|-------------------:|
-| 2 | 32 | 3 | ~80 | ~80 |
-| 192 | 182 | 4–6 | ~40–48 | ~48–60 |
-| 896 | 497 | 4–7 | ~34–40 | ~48–60 |
+| vCPU (NUMA) | DP | max_conc | sweep | rampup | sec/strategy | measure window |
+|------------:|---:|---------:|------:|-------:|-------------:|---------------:|
+| 1 (1) | 1 | 6 | 2 | 8s | 120 | 112s |
+| 96 (2) | 6 | 116 | 4 | 8s | 60 | 52s |
+| 192 (4) | 12 | 182 | 4 | 8s | 60 | 52s |
+| 896 (8) | 32 | 497 | 4 | 8s | 60 | 52s |
+
+`measure window` is `--max-seconds` minus throughput-stage `--rampup`. GuideLLM counts rampup **inside** the stage budget; vCPU-scaled rampup (old `v/4`, 24s at 96 cores / 30s at ≥128 with ~40s stages) left almost no time at peak concurrency — that was the sharp drop after 96 CPUs. Extra DP keeps small models at ~16 threads/rank instead of one giant OpenMP team.
 
 ### GuideLLM sweep limits
 
@@ -56,7 +61,7 @@ Pass sweep step count as **`--rate`** (GuideLLM 0.6+ alias for `sweep_size`) and
 3. **Constant-rate** — several stages at rates interpolated between (1) and (2); count = `sweep_size − 2`
 
 **`max_concurrency`** caps parallelism in the throughput and constant-rate stages.
-A 192-vCPU metal run can schedule ~182 concurrent streams; a 2-vCPU box caps at ~32.
+A 192-vCPU metal run can schedule ~182 concurrent streams; a 1-vCPU box caps at 6.
 
 **`max_seconds` per strategy** comes from `per_run_budget / sweep_size`, with a higher
 floor for rag @ 4096 ctx. Subprocess wall time adds warmup, rampup, one extra stage
@@ -68,7 +73,13 @@ uses fixed request caps (CPU 25 / GPU 120).
 
 Per workload (chat / rag / long), autoconfig restarts `vllm serve` with that workload's `max_model_len` (2048 / 4096 / 8192) so small-RAM hosts do not reserve KV for unused long-context headroom. Before starting a workload, `workload_kv_fits()` skips combos that would KV-OOM on CPU (weights-only `model_fits` is not enough for long ctx). Budget planning includes the extra startup time.
 
-JSONL rows include `max_model_len`, `tuning_version`, and a `tuning` object (`tuning_version=5`: CPU NUMA-aware TP/DP, time-only GuideLLM stages, workload-aware sweep timing, KV pre-check, server stderr in logs). `tuning.max_requests` is `null` unless env override. Host vCPU/RAM come from the `server` table when querying the DB. Disable autoconfig for A/B against older data: `BENCHMARK_VLLM_AUTOCONFIG=0`. Disable per-workload server restarts: `BENCHMARK_VLLM_PER_WORKLOAD_SERVER=0`.
+JSONL rows include `max_model_len`, `tuning_version`, and a `tuning`
+object (`tuning_version=7`: v6 CPU/GuideLLM behavior plus authoritative
+model-footprint planning and per-node/per-GPU feasibility). `tuning.max_requests`
+is `null` unless env override. Host vCPU/RAM come from the `server` table when
+querying the DB. Disable autoconfig for A/B against older data:
+`BENCHMARK_VLLM_AUTOCONFIG=0`. Disable per-workload server restarts:
+`BENCHMARK_VLLM_PER_WORKLOAD_SERVER=0`.
 
 ## Tensor / data parallelism
 
@@ -79,18 +90,64 @@ parallelism as follows:
 model's attention head count (`tensor_parallel_size()` in `benchmark.py`).
 vLLM rejects invalid TP with e.g. `attention heads (9) must be divisible by tensor parallel size (2)`.
 
-**CPU (multi-NUMA):** with `VLLM_CPU_OMP_THREADS_BIND=auto`, each TP/PP rank
-binds to one NUMA node. Autoconfig therefore:
+**CPU (multi-NUMA):** vLLM's `VLLM_CPU_OMP_THREADS_BIND=auto` drops SMT on x86
+(one logical CPU per physical core) and, with a single rank, binds only to NUMA
+node 0. The harness therefore writes an **explicit** bind string covering every
+allowed logical CPU, partitioned NUMA-locally across TP×DP ranks (one CPU is
+reserved for the frontend when vCPU ≥ 2). Dockerfile `ENV …=auto` means "let
+the harness decide"; a non-`auto` value is passed through.
+
+Autoconfig then:
 
 1. Sets `--tensor-parallel-size = NUMA node count` when heads are divisible by
    that count (official CPU guidance).
-2. Otherwise sets `--data-parallel-size = NUMA node count` (TP=1) so every
+2. Otherwise sets `--data-parallel-size ≥ NUMA node count` (TP=1) so every
    socket serves as an independent replica — needed for models like SmolLM2
    (9 heads) on 4-node boxes.
+3. Adds extra DP replicas for small models so each rank stays around 16–64
+   OpenMP threads instead of one 896-wide OMP team. Cap: `MAX_CPU_DP` and RAM
+   (each replica loads a full copy of the weights).
+4. Divides `--gpu-memory-utilization` by the number of ranks sharing a NUMA
+   node. On CPU that flag is a fraction of the rank's **own memory node**, and
+   every worker reserves it independently, so an undivided 0.50 with DP=2 asks
+   for 100% of the node and kills a rank with `Available memory on node 0 … is
+   less than requested memory for kv`. Their sum stays under
+   `CPU_NODE_MEMORY_BUDGET`; if that leaves too little KV cache the workload is
+   skipped by `workload_kv_fits()` rather than crashed.
+
+Resource sizing no longer relies on parameter-count rules of thumb when the
+Hub is reachable. `--plan-only` resolves:
+
+- exact selected weight-file bytes from Hugging Face file metadata (using the
+  safetensors/bin index to avoid counting duplicate formats);
+- layers, attention/KV heads, hidden size, and dtype from `config.json`;
+- KV bytes/token as `2 × layers × KV-heads-per-TP-rank × head_dim × dtype_bytes`;
+- actual per-NUMA-node memory from sysfs and per-device VRAM from CUDA.
+
+Every CPU layout is checked on the node where each worker's first bound CPU
+causes vLLM to allocate. Thus `nobind` correctly places every worker on one
+node and is rejected when that node cannot hold all weight copies plus minimum
+KV cache, even if aggregate host RAM is ample. GPU checks are per device, with
+TP weight sharding and DP replication. If authoritative Hub metadata is
+unavailable, preflight skips the model unless
+`BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA=1` is explicitly set.
+
+This preflight is deliberately conservative but is not a replacement for
+vLLM initialization: GPU non-KV memory (CUDA graphs, NCCL, peak activations)
+is profiled only after the worker starts. The harness therefore also extracts
+vLLM's runtime `Available KV cache memory`, KV token capacity, and suggested
+`--kv-cache-memory-bytes` values into each JSONL row's `runtime_memory`.
+Context requirements are rounded to vLLM cache blocks (CPU 128, GPU 16), and
+the 70B bitsandbytes entry is planned with the same pipeline parallelism used
+by the server.
 
 Overrides: `BENCHMARK_VLLM_CPU_TP` / `BENCHMARK_VLLM_CPU_DP`. Docker runs need
 `--shm-size` ≥ 4g (see `VLLM_DOCKER_OPTS` in inspector) or TP/DP workers fail
 during gloo/shm init.
+
+**GPU overrides** (for A/B; default remains TP-fill, DP=1): `BENCHMARK_VLLM_GPU_TP`,
+`BENCHMARK_VLLM_GPU_DP` (leftover GPUs as replicas when heads are not divisible
+by GPU count), `VLLM_GPU_MEMORY_UTILIZATION`, `BENCHMARK_VLLM_MAX_NUM_SEQS`.
 
 On a **2-GPU** host, default ladder TP:
 
@@ -106,8 +163,9 @@ On a **2-GPU** host, default ladder TP:
 SmolLM on 2×GPU is still a real GPU run (`mode=gpu` in JSONL); `nvidia-smi pmon`
 showing ~95% SM on one GPU and idle on the other is expected for TP=1.
 
-Emitted JSONL includes `tensor_parallel`, `data_parallel` (CPU), and `gpu_count`
-so results are comparable across single- and multi-device instances.
+Emitted JSONL includes `tensor_parallel`, `data_parallel` (CPU), `omp_threads_bind`
+(CPU), and `gpu_count` so results are comparable across single- and multi-device
+instances.
 
 ## JSONL fields
 
