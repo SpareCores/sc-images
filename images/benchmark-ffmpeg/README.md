@@ -134,9 +134,11 @@ transcode (`source-hevc.mp4`). See [Fixtures](#fixtures).
 GPU workers are distributed round-robin over all GPUs reported by
 `nvidia-smi`. The search starts at one session per GPU and doubles until
 aggregate throughput drops; eight sessions per GPU is only a ceiling. A runtime
-probe still decides whether each scenario is actually usable. amd64 images
-build FFmpeg with NVENC/NVDEC (`h264_nvenc` / `hevc_nvenc` / `h264_cuvid` /
-`hevc_cuvid`); arm64 images are CPU-only and skip GPU scenarios.
+probe still decides whether each scenario is actually usable. Both amd64 and
+arm64 images build FFmpeg with NVENC/NVDEC (`h264_nvenc` / `hevc_nvenc` /
+`h264_cuvid` / `hevc_cuvid`) for datacenter GPUs (including arm64 T4G on g5g).
+Jetson/`nvmpi` is not supported; scenarios are skipped when codecs or GPUs are
+missing at runtime.
 
 Vorbis and FLAC are CPU-only. FFmpeg exposes no NVENC/NVDEC, VAAPI, QSV, AMF,
 or other hardware encoder for these audio codecs. GPUs therefore do not change

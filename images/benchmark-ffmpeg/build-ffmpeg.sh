@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Build a throughput-oriented FFmpeg for the benchmark image.
 #
-# amd64: GPL CPU codecs (x264/x265/vorbis) + dynamically loaded NVENC/NVDEC.
-# arm64: CPU codecs only (no NVIDIA in this benchmark).
+# amd64 + arm64: GPL CPU codecs (x264/x265/vorbis) + dynamically loaded
+# NVENC/NVDEC (datacenter GPUs: T4/L4/… and arm64 T4G on g5g). Jetson/nvmpi
+# is not supported.
 set -euo pipefail
 
 : "${TARGETARCH:?TARGETARCH is required}"
@@ -24,7 +25,7 @@ cd "ffmpeg-${FFMPEG_VERSION}"
 
 NVIDIA_FLAGS=()
 case "$TARGETARCH" in
-    amd64)
+    amd64|arm64)
         if [ ! -d nv-codec-headers ]; then
             git clone --depth 1 --branch "$NV_CODEC_HEADERS_TAG" \
                 https://git.videolan.org/git/ffmpeg/nv-codec-headers.git \
@@ -37,8 +38,6 @@ case "$TARGETARCH" in
             --enable-nvenc
             --enable-ffnvcodec
         )
-        ;;
-    arm64)
         ;;
     *)
         echo "unsupported TARGETARCH: $TARGETARCH" >&2
@@ -70,6 +69,4 @@ ldconfig
 export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH:-}"
 ffmpeg -hide_banner -version | head -1
 ffmpeg -hide_banner -encoders 2>/dev/null | grep -E 'libx264|libx265|libvorbis|h264_nvenc|hevc_nvenc' || true
-if [ "$TARGETARCH" = "amd64" ]; then
-    ffmpeg -hide_banner -decoders 2>/dev/null | grep -E 'h264_cuvid|hevc_cuvid|h264 |hevc ' || true
-fi
+ffmpeg -hide_banner -decoders 2>/dev/null | grep -E 'h264_cuvid|hevc_cuvid|h264 |hevc ' || true
