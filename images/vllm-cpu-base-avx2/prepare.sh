@@ -38,7 +38,10 @@ printf 'MAX_JOBS=%s\nNVCC_THREADS=%s\nCARGO_BUILD_JOBS=%s\n' \
 if [ ! -d "${SRC}/.git" ]; then
   git clone --depth 1 --branch "v${VLLM_VERSION}" https://github.com/vllm-project/vllm.git "$SRC"
 else
-  git -C "$SRC" fetch --depth 1 origin "v${VLLM_VERSION}"
+  # Shallow `git fetch origin vX.Y.Z` only updates FETCH_HEAD; map the tag into
+  # refs/tags so `checkout vX.Y.Z` works when bumping the pin.
+  git -C "$SRC" fetch --depth 1 --force \
+    origin "refs/tags/v${VLLM_VERSION}:refs/tags/v${VLLM_VERSION}"
   git -C "$SRC" checkout -f "v${VLLM_VERSION}"
 fi
 

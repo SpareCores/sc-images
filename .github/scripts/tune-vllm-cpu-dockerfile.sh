@@ -34,11 +34,21 @@ max_jobs = os.environ["DOCKER_MAX_JOBS"]
 cargo = os.environ["DOCKER_CARGO_JOBS"]
 
 if "ARG USE_SCCACHE" not in text:
-    text = text.replace(
-        "ENV MAX_JOBS=${max_jobs}\n\nARG GIT_REPO_CHECK=0",
-        f"ENV MAX_JOBS=${{max_jobs}}\n\n{vscm.SCCACHE_WHEEL_ENV_BLOCK}\n\nARG GIT_REPO_CHECK=0",
-        1,
-    )
+    # ≤0.22: MAX_JOBS sat next to GIT_REPO_CHECK in the wheel stage.
+    adjacent = "ENV MAX_JOBS=${max_jobs}\n\nARG GIT_REPO_CHECK=0"
+    if adjacent in text:
+        text = text.replace(
+            adjacent,
+            f"ENV MAX_JOBS=${{max_jobs}}\n\n{vscm.SCCACHE_WHEEL_ENV_BLOCK}\n\nARG GIT_REPO_CHECK=0",
+            1,
+        )
+    else:
+        # ≥0.27: MAX_JOBS lives in base-common; inject sccache env on vllm-build.
+        text = vscm.inject_after_stage_header(
+            text,
+            "FROM base AS vllm-build",
+            vscm.SCCACHE_WHEEL_ENV_BLOCK,
+        )
 
 if "ENV SETUPTOOLS_SCM_PRETEND_VERSION=" in text:
     text = re.sub(
@@ -63,11 +73,14 @@ text = vscm.inject_after_stage_header(
     "FROM ubuntu:22.04 AS rust-build",
     "ARG TARGETARCH\n" + vscm.SCCACHE_RUST_ENV_BLOCK,
 )
-text = vscm.inject_before_run(
-    text,
+rust_run_needles = (
     "# Build the release binary. Cache cargo registry/git and target/",
-    vscm.SCCACHE_INSTALL_RUN,
+    "# Build the release artifacts. Cache cargo registry/git, but not target/",
 )
+for needle in rust_run_needles:
+    if needle in text:
+        text = vscm.inject_before_run(text, needle, vscm.SCCACHE_INSTALL_RUN)
+        break
 wheel_run_needle = (
     "RUN --mount=type=cache,target=/root/.cache/uv \\\n"
     "    --mount=type=cache,target=/root/.cache/ccache \\\n"
@@ -148,11 +161,21 @@ def patch_run(run_block: str) -> str:
         patched = patched.replace(f"{load_cargo_env} \\\n    ", "")
         if vscm.AWS_SECRET_MOUNT not in patched:
             patched = patched.replace("RUN ", f"RUN {vscm.AWS_SECRET_MOUNT} \\\n    ", 1)
-        patched = patched.replace(
-            "VLLM_RS_TARGET_PATH=",
-            f"{vscm.SCCACHE_RUST_PREP} \\\n    VLLM_RS_TARGET_PATH=",
-            1,
-        )
+        rust_prep = f"{vscm.SCCACHE_RUST_PREP} \\\n    "
+        if rust_prep not in patched and vscm.SCCACHE_RUST_PREP not in patched:
+            # ≤0.22 threaded prep before VLLM_RS_TARGET_PATH=; ≥0.27 has no such env.
+            if "VLLM_RS_TARGET_PATH=" in patched:
+                patched = patched.replace(
+                    "VLLM_RS_TARGET_PATH=",
+                    f"{vscm.SCCACHE_RUST_PREP} \\\n    VLLM_RS_TARGET_PATH=",
+                    1,
+                )
+            else:
+                patched = patched.replace(
+                    "bash build_rust.sh",
+                    f"{vscm.SCCACHE_RUST_PREP} \\\n    bash build_rust.sh",
+                    1,
+                )
         if vscm.SCCACHE_RUST_DEBUG_SUMMARY not in patched:
             patched = patched.replace(
                 "bash build_rust.sh",
