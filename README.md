@@ -30,17 +30,16 @@ Job metadata (mirrors [sc-inspector](https://github.com/SpareCores/sc-inspector)
 
 Scripts: [`install-resource-tracker.sh`](.github/scripts/install-resource-tracker.sh), [`run-with-resource-tracker.sh`](.github/scripts/run-with-resource-tracker.sh), [`build-push-image.sh`](.github/scripts/build-push-image.sh).
 
-### arm64 CI runner
+### CI runners
 
-Set repo variable **`ARM64_RUNNER`** (Settings → Secrets and variables → Actions → Variables):
+Push builds use GitHub-hosted runners (`ubuntu-latest` for amd64, `ubuntu-24.04-arm` for arm64).
 
-| Value | `runs-on` |
-|-------|-----------|
-| `self-hosted` | `[self-hosted, sc-images-arm64]` |
-| `github` | `ubuntu-24.04-arm` |
+Manual **Run workflow** checkboxes (default off):
 
-Default (variable unset): `self-hosted`.
-Self-hosted: register with `./config.sh ... --labels sc-images-arm64` (`--no-default-labels` is OK).
+| Input | When enabled |
+|-------|----------------|
+| `self_hosted_x64` | amd64 → `[self-hosted, Linux, X64]` |
+| `self_hosted_arm64` | arm64 → `[self-hosted, Linux, ARM64]` |
 
 Images with a `ZRAM` metadata file run [`.github/scripts/setup-zram.sh`](.github/scripts/setup-zram.sh) before the build (`PERCENT=125` by default → compressed swap ≈ 1.25× RAM). Currently enabled for [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) (source-compiled CPU image). On **GitHub-hosted** Azure kernels, `zram` is in `linux-modules-extra-$(uname -r)` ([Launchpad #1762756](https://bugs.launchpad.net/ubuntu/bionic/+source/linux-azure/+bug/1762756)); the script installs that package when needed. If the extra-modules deb is missing from apt (kernel/image drift), it keeps the default `/swapfile`. Tune the default percent via workflow `env` `ZRAM_PERCENT`, or override per image with a numeric `ZRAM` value.
 

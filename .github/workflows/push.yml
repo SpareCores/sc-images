@@ -13,6 +13,14 @@ on:
         description: Rebuild resource-tracker and consumer images without registry cache
         type: boolean
         default: true
+      self_hosted_x64:
+        description: Run amd64 builds on org self-hosted runner
+        type: boolean
+        default: false
+      self_hosted_arm64:
+        description: Run arm64 builds on org self-hosted runner
+        type: boolean
+        default: false
 permissions:
   contents: read
   packages: write
@@ -27,8 +35,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Find Jobs
     outputs:
-      arm64_runner: ${{ steps.arm64.outputs.runner }}
-      x64_runner: ${{ steps.x64.outputs.runner }}
       force_rebuild: ${{ steps.force.outputs.value }}
       level0: ${{ steps.plan.outputs.level0 }}
       level1: ${{ steps.plan.outputs.level1 }}
@@ -39,23 +45,6 @@ jobs:
       folders_level2: ${{ steps.plan.outputs.folders_level2 }}
       folders_level3: ${{ steps.plan.outputs.folders_level3 }}
     steps:
-      - name: Resolve arm64 runner
-        id: arm64
-        # Repo variable ARM64_RUNNER (Settings -> Variables -> Actions):
-        #   "self-hosted" (default) -> [self-hosted, sc-images-arm64]
-        #   "github"                -> ubuntu-24.04-arm
-        run: |
-          MODE="${{ vars.ARM64_RUNNER || 'self-hosted' }}"
-          if [ "$MODE" = "github" ]; then
-            echo 'runner="ubuntu-24.04-arm"' >> "$GITHUB_OUTPUT"
-          else
-            echo 'runner=["self-hosted", "sc-images-arm64"]' >> "$GITHUB_OUTPUT"
-          fi
-          echo "ARM64_RUNNER=$MODE -> $(grep runner "$GITHUB_OUTPUT")"
-      - name: Resolve x64 runner
-        id: x64
-        # Org runner "workhorse" (labels: X64, workhorse).
-        run: echo 'runner=["X64", "workhorse"]' >> "$GITHUB_OUTPUT"
       - name: Resolve force-rebuild flag
         id: force
         run: |
@@ -76,8 +65,8 @@ jobs:
     with:
       matrix: ${{ needs.find-jobs.outputs.level0 }}
       folders: ${{ needs.find-jobs.outputs.folders_level0 }}
-      arm64_runner: ${{ needs.find-jobs.outputs.arm64_runner }}
-      x64_runner: ${{ needs.find-jobs.outputs.x64_runner }}
+      x64_self_hosted: ${{ github.event_name == 'workflow_dispatch' && inputs.self_hosted_x64 || false }}
+      arm64_self_hosted: ${{ github.event_name == 'workflow_dispatch' && inputs.self_hosted_arm64 || false }}
       force_rebuild: ${{ needs.find-jobs.outputs.force_rebuild == 'true' }}
     secrets: inherit
 
@@ -88,8 +77,8 @@ jobs:
     with:
       matrix: ${{ needs.find-jobs.outputs.level1 }}
       folders: ${{ needs.find-jobs.outputs.folders_level1 }}
-      arm64_runner: ${{ needs.find-jobs.outputs.arm64_runner }}
-      x64_runner: ${{ needs.find-jobs.outputs.x64_runner }}
+      x64_self_hosted: ${{ github.event_name == 'workflow_dispatch' && inputs.self_hosted_x64 || false }}
+      arm64_self_hosted: ${{ github.event_name == 'workflow_dispatch' && inputs.self_hosted_arm64 || false }}
       force_rebuild: ${{ needs.find-jobs.outputs.force_rebuild == 'true' }}
     secrets: inherit
 
@@ -100,8 +89,8 @@ jobs:
     with:
       matrix: ${{ needs.find-jobs.outputs.level2 }}
       folders: ${{ needs.find-jobs.outputs.folders_level2 }}
-      arm64_runner: ${{ needs.find-jobs.outputs.arm64_runner }}
-      x64_runner: ${{ needs.find-jobs.outputs.x64_runner }}
+      x64_self_hosted: ${{ github.event_name == 'workflow_dispatch' && inputs.self_hosted_x64 || false }}
+      arm64_self_hosted: ${{ github.event_name == 'workflow_dispatch' && inputs.self_hosted_arm64 || false }}
       force_rebuild: ${{ needs.find-jobs.outputs.force_rebuild == 'true' }}
     secrets: inherit
 
@@ -112,7 +101,7 @@ jobs:
     with:
       matrix: ${{ needs.find-jobs.outputs.level3 }}
       folders: ${{ needs.find-jobs.outputs.folders_level3 }}
-      arm64_runner: ${{ needs.find-jobs.outputs.arm64_runner }}
-      x64_runner: ${{ needs.find-jobs.outputs.x64_runner }}
+      x64_self_hosted: ${{ github.event_name == 'workflow_dispatch' && inputs.self_hosted_x64 || false }}
+      arm64_self_hosted: ${{ github.event_name == 'workflow_dispatch' && inputs.self_hosted_arm64 || false }}
       force_rebuild: ${{ needs.find-jobs.outputs.force_rebuild == 'true' }}
     secrets: inherit

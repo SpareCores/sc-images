@@ -13,14 +13,16 @@ on:
         description: JSON array of folder names in this level (merge matrix).
         required: true
         type: string
-      arm64_runner:
-        description: JSON runner spec for arm64 legs (string or [labels]).
-        required: true
-        type: string
-      x64_runner:
-        description: JSON runner spec for amd64/x64 legs (string or [labels]).
-        required: true
-        type: string
+      x64_self_hosted:
+        description: Run amd64 legs on org self-hosted runner ([self-hosted, Linux, X64]).
+        required: false
+        type: boolean
+        default: false
+      arm64_self_hosted:
+        description: Run arm64 legs on org self-hosted runner ([self-hosted, Linux, ARM64]).
+        required: false
+        type: boolean
+        default: false
       force_rebuild:
         description: Rebuild resource-tracker consumers without registry cache.
         required: false
@@ -45,7 +47,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(inputs.matrix) }}
-    runs-on: ${{ matrix.arch == 'arm64' && fromJson(inputs.arm64_runner) || fromJson(inputs.x64_runner) }}
+    runs-on: ${{ matrix.arch == 'arm64' && (inputs.arm64_self_hosted && fromJson('["self-hosted", "Linux", "ARM64"]') || 'ubuntu-24.04-arm') || (inputs.x64_self_hosted && fromJson('["self-hosted", "Linux", "X64"]') || 'ubuntu-latest') }}
     permissions:
       contents: read
       packages: write
@@ -105,7 +107,7 @@ jobs:
         run: bash "${{ github.workspace }}/images/${{ matrix.folder }}/prepare.sh"
       - name: Compute BuildKit parallelism (self-hosted arm64)
         id: bk
-        if: ${{ matrix.arch == 'arm64' && steps.cfg.outputs.has_prepare != 'true' && (vars.ARM64_RUNNER || 'self-hosted') != 'github' }}
+        if: ${{ matrix.arch == 'arm64' && steps.cfg.outputs.has_prepare != 'true' && inputs.arm64_self_hosted }}
         env:
           VLLM_COMPILE_GIB_PER_SLOT: "2"
         run: bash "${{ github.workspace }}/.github/scripts/compute-build-parallelism.sh" buildkit >> "$GITHUB_OUTPUT"
