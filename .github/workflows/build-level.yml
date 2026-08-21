@@ -17,6 +17,10 @@ on:
         description: JSON runner spec for arm64 legs (string or [labels]).
         required: true
         type: string
+      x64_runner:
+        description: JSON runner spec for amd64/x64 legs (string or [labels]).
+        required: true
+        type: string
       force_rebuild:
         description: Rebuild resource-tracker consumers without registry cache.
         required: false
@@ -41,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(inputs.matrix) }}
-    runs-on: ${{ matrix.arch == 'arm64' && fromJson(inputs.arm64_runner) || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.arch == 'arm64' && fromJson(inputs.arm64_runner) || fromJson(inputs.x64_runner) }}
     permissions:
       contents: read
       packages: write
