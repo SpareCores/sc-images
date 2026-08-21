@@ -1570,7 +1570,7 @@ def main() -> int:
     parser.add_argument("--version", action="store_true", help="Print versions and exit")
     args = parser.parse_args()
     if args.version:
-        print(f"benchmark-ffmpeg {BENCHMARK_VERSION} ffmpeg={ffmpeg_version()}")
+        print(f"benchmark-ffmpeg={BENCHMARK_VERSION} ffmpeg={ffmpeg_version()}")
         return 0
     if shutil.which(ffmpeg_bin()) is None:
         logger.error("ffmpeg not found in PATH")
