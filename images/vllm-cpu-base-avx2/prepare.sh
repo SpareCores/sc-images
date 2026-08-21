@@ -55,6 +55,10 @@ fi
 DOCKERFILE_SHA256="$(sha256sum "$SRC/docker/Dockerfile.cpu" | awk '{print $1}')"
 echo "dockerfile_sha256=${DOCKERFILE_SHA256}"
 
+# Last write to $SRC: from here on the tree is root-owned so that the BuildKit
+# context hash (which covers uid/gid) matches on GitHub- and self-hosted runners.
+bash "${SCRIPTS}/normalize-context-ownership.sh" "$SRC"
+
 # DEBUG: dump patched Dockerfile sections with sccache for CI visibility
 echo "::group::DEBUG patched CPU Dockerfile (sccache lines)"
 grep -n 'sccache\|SCCACHE\|RUSTC_WRAPPER\|USE_SCCACHE' "$SRC/docker/Dockerfile.cpu" || true

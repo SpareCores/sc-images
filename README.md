@@ -70,6 +70,15 @@ Coverage when enabled:
 
 Currently enabled for `vllm-cpu-base-avx2`.
 
+### Sharing the layer cache between GitHub- and self-hosted runners
+
+A slow image can be pre-warmed on a self-hosted runner and then finished quickly on a GitHub-hosted one, but only if both produce identical BuildKit cache keys. Two things break that by default, and both are handled for source-built images:
+
+- **Floating base tags and per-runner build args.** `ARG max_jobs` and `ENV CARGO_BUILD_JOBS` are baked to the 64 GiB reference values and `FROM ubuntu:22.04` is pinned by digest, so the Dockerfile is byte-identical everywhere ([`.github/scripts/tune-vllm-cpu-dockerfile.sh`](.github/scripts/tune-vllm-cpu-dockerfile.sh) prints its `sha256`). Actual parallelism is injected at build time through the `vllm_parallelism` BuildKit secret, whose *content* is excluded from the cache key.
+- **Build context ownership.** BuildKit hashes local contexts with a V1 tarsum covering name, mode, uid, gid, size and content — `mtime` is excluded, uid/gid are not. GitHub-hosted runners check out as `runner`, self-hosted ones as `ubuntu`, so identical sources would hash differently and every `COPY` (plus the entire graph below it) would miss. [`.github/scripts/normalize-context-ownership.sh`](.github/scripts/normalize-context-ownership.sh) chowns the context to a canonical `0:0` before the build; `build-level.yml` reclaims workspace ownership on persistent runners before `actions/checkout` cleans it.
+
+Changing any of the above invalidates the published `buildcache-<arch>`, so re-warm once on a self-hosted runner before relying on it from GitHub-hosted runners.
+
 ## Build framework
 
 CI auto-discovers every folder under `images/` (any dir with a `Dockerfile` or `prepare.sh`) and builds it. Per-image behaviour is declared with optional metadata files — defaults cover simple single-stage images, so most folders need none:

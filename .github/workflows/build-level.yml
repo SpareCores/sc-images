@@ -65,6 +65,15 @@ jobs:
       TRACKER_CONTAINER_IMAGE: ghcr.io/sparecores/${{ matrix.folder }}:main-${{ matrix.arch }}
       SENTINEL_API_TOKEN: ${{ secrets.SENTINEL_API_TOKEN }}
     steps:
+      # Prepare hooks hand the build context to BuildKit root-owned so its cache
+      # key matches across runner types. Persistent runners must take the tree
+      # back before actions/checkout runs `git clean -ffdx`.
+      - name: Reclaim workspace ownership
+        if: ${{ runner.environment != 'github-hosted' }}
+        run: |
+          ws='${{ github.workspace }}'
+          [ -d "$ws" ] || exit 0
+          sudo -n chown -R "$(id -u):$(id -g)" "$ws" 2>/dev/null || true
       - name: Checkout
         uses: actions/checkout@v6.0.2
       - name: Resolve image config

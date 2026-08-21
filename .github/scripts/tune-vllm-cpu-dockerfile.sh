@@ -155,10 +155,17 @@ def patch_run(run_block: str) -> str:
         return patched
     if re.search(r"bash build_rust\.sh", run_block):
         patched = run_block
-        # rust-build uses cache-stable ENV CARGO_BUILD_JOBS; runtime parallelism secret
-        # varies per CI runner and busts the layer cache key.
-        patched = patched.replace(f"{secret_mount} \\\n    ", "")
-        patched = patched.replace(f"{load_cargo_env} \\\n    ", "")
+        # ENV CARGO_BUILD_JOBS is sized for the 64 GiB reference builder; a 4-vCPU
+        # GitHub runner needs far less. Secret *content* is excluded from the layer
+        # cache key, so overriding from the mount keeps the Dockerfile cache-stable.
+        if secret_mount not in patched:
+            patched = patched.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
+        if load_cargo_env not in patched:
+            patched = patched.replace(
+                "bash build_rust.sh",
+                f"{load_cargo_env} \\\n    bash build_rust.sh",
+                1,
+            )
         if vscm.AWS_SECRET_MOUNT not in patched:
             patched = patched.replace("RUN ", f"RUN {vscm.AWS_SECRET_MOUNT} \\\n    ", 1)
         rust_prep = f"{vscm.SCCACHE_RUST_PREP} \\\n    "
@@ -183,6 +190,20 @@ def patch_run(run_block: str) -> str:
                 1,
             )
         return patched
+    if "triton-cpu.git" in run_block:
+        patched = run_block
+        # triton-cpu's ninja build honours the MAX_JOBS that base-common bakes in for
+        # the 64 GiB reference builder; unclamped it exhausts a 4-vCPU GitHub runner's
+        # RAM and takes the runner process down with it.
+        if secret_mount not in patched:
+            patched = patched.replace("RUN ", f"RUN {secret_mount} \\\n    ", 1)
+        if load_env not in patched:
+            patched = patched.replace(
+                'if [ "$TARGETARCH"',
+                f'{load_env} \\\n    if [ "$TARGETARCH"',
+                1,
+            )
+        return patched
     return run_block
 
 lines = text.splitlines(keepends=True)
@@ -203,6 +224,19 @@ required = [
 missing = [r for r in required if r not in text]
 if missing:
     raise SystemExit(f"tune-vllm-cpu-dockerfile: missing expected patches: {missing[:3]}")
+
+# Every compile-heavy RUN must read its parallelism from the secret, otherwise a
+# small runner inherits the 64 GiB reference values and gets OOM-killed.
+for label, needle, override in (
+    ("rust", "bash build_rust.sh", load_cargo_env),
+    ("triton-cpu", "triton-cpu.git", load_env),
+):
+    blocks = [b for _, _, b in iter_run_blocks(text) if needle in b]
+    if blocks and (secret_mount not in blocks[0] or override not in blocks[0]):
+        raise SystemExit(
+            f"tune-vllm-cpu-dockerfile: {label} RUN is missing the runtime "
+            "parallelism secret override"
+        )
 
 # Pin floating ubuntu:22.04 so BuildKit layer cache stays stable across runners.
 # Done after stage injects that match "FROM ubuntu:22.04 AS …".
