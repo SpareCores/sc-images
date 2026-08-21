@@ -32,8 +32,10 @@ if [ "$has_prepare" = "true" ]; then
 fi
 
 registry_ref="${registry}/sparecores/${folder}:buildcache-${arch}"
+published_ref="${registry}/sparecores/${folder}:main-${arch}"
 cache_from=(
   "type=registry,ref=${registry_ref}"
+  "type=registry,ref=${published_ref}"
   "type=gha,scope=${scope}"
 )
 cache_to=(

@@ -52,12 +52,18 @@ fi
   "$DOCKER_MAX_JOBS" \
   "$DOCKER_CARGO_JOBS" )
 
+DOCKERFILE_SHA256="$(sha256sum "$SRC/docker/Dockerfile.cpu" | awk '{print $1}')"
+echo "dockerfile_sha256=${DOCKERFILE_SHA256}"
+
 # DEBUG: dump patched Dockerfile sections with sccache for CI visibility
 echo "::group::DEBUG patched CPU Dockerfile (sccache lines)"
 grep -n 'sccache\|SCCACHE\|RUSTC_WRAPPER\|USE_SCCACHE' "$SRC/docker/Dockerfile.cpu" || true
 echo "::endgroup::"
 echo "::group::DEBUG patched CPU Dockerfile (RUN lines with sccache install)"
 grep -n -A2 'Installing sccache' "$SRC/docker/Dockerfile.cpu" || true
+echo "::endgroup::"
+echo "::group::DEBUG patched CPU Dockerfile (pinned FROM)"
+grep -n '^FROM ' "$SRC/docker/Dockerfile.cpu" || true
 echo "::endgroup::"
 
 {
@@ -84,5 +90,6 @@ if [ -n "${GITHUB_OUTPUT:-}" ]; then
   {
     echo "buildkit_max_parallelism=${BUILDKIT}"
     echo "secret_file=.cache/vllm-parallelism.env"
+    echo "dockerfile_sha256=${DOCKERFILE_SHA256}"
   } >> "$GITHUB_OUTPUT"
 fi

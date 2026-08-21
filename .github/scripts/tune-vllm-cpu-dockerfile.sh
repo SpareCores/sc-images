@@ -204,6 +204,32 @@ missing = [r for r in required if r not in text]
 if missing:
     raise SystemExit(f"tune-vllm-cpu-dockerfile: missing expected patches: {missing[:3]}")
 
+# Pin floating ubuntu:22.04 so BuildKit layer cache stays stable across runners.
+# Done after stage injects that match "FROM ubuntu:22.04 AS …".
+# amd64-only image (vllm-cpu-base-avx2). Refresh digest when bumping Ubuntu.
+# Resolved 2026-08-21: docker.io/library/ubuntu:22.04 (linux/amd64).
+UBUNTU_2204_AMD64 = (
+    "ubuntu:22.04@sha256:79676deb51ebb02885b0b9d33788e78a37cf1045ad79d1bb04c6a222c3556b3d"
+)
+text = re.sub(
+    r"^FROM ubuntu:22\.04(?!@) AS base-common\s*$",
+    f"FROM {UBUNTU_2204_AMD64} AS base-common",
+    text,
+    count=1,
+    flags=re.M,
+)
+text = re.sub(
+    r"^FROM ubuntu:22\.04(?!@) AS rust-build\s*$",
+    f"FROM {UBUNTU_2204_AMD64} AS rust-build",
+    text,
+    count=1,
+    flags=re.M,
+)
+if re.search(r"^FROM ubuntu:22\.04(?!@) ", text, flags=re.M):
+    raise SystemExit(
+        "tune-vllm-cpu-dockerfile: unpinned ubuntu:22.04 FROM line remains"
+    )
+
 df.write_text(text)
 print(re.search(r"^ENV SETUPTOOLS_SCM_PRETEND_VERSION=.*$", text, re.M).group(0))
 PY
