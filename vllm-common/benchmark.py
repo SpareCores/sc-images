@@ -45,7 +45,7 @@ SERVER_START_TIMEOUT_CPU_SEC = 10 * 60
 SERVER_START_TIMEOUT_PROBE_GPU_SEC = 8 * 60
 SERVER_START_TIMEOUT_PROBE_CPU_SEC = 15 * 60
 MIN_OUTPUT_TOKENS_PER_SEC = 1.0
-TUNING_VERSION = 8
+TUNING_VERSION = 9
 BUDGET_RESERVE_STARTUP_SEC = 600
 BUDGET_MIN_PER_RUN_SEC = 45
 BUDGET_MAX_PER_RUN_SEC = 240
@@ -70,6 +70,9 @@ CPU_THREADS_PER_RANK_LARGE = 128
 CPU_NODE_MEMORY_BUDGET = 0.70
 # Extra derate when multiple ranks share a node (warmup RSS + reclaim lag).
 CPU_NODE_MULTI_RANK_UTIL_FACTOR = 0.90
+# Leave room for API/engine processes and allocator metadata created after
+# preflight. This is material on 4 GiB nodes and negligible on large nodes.
+CPU_NODE_STARTUP_RESERVE_GIB = 0.80
 
 cli_parser = ArgumentParser(description="Benchmark vLLM LLM serving with GuideLLM")
 cli_parser.add_argument("--version", action="store_true", help="Print versions and exit")
@@ -475,6 +478,52 @@ def host_cpus_by_numa() -> tuple[tuple[int, ...], ...]:
     return (tuple(sorted(affinity)),)
 
 
+@cache
+def host_physical_cpus_by_numa() -> tuple[tuple[int, ...], ...]:
+    """One allowed logical CPU per physical core, grouped by NUMA node."""
+    topo = environ.get("BENCHMARK_VLLM_CPU_PHYSICAL_TOPOLOGY", "").strip()
+    if topo:
+        nodes = []
+        for part in topo.split("|"):
+            ids = parse_cpu_id_list(part)
+            if ids:
+                nodes.append(tuple(ids))
+        if nodes:
+            return tuple(nodes)
+    # Synthetic test/override topologies do not encode sibling relationships.
+    if environ.get("BENCHMARK_VLLM_CPU_TOPOLOGY", "").strip():
+        return host_cpus_by_numa()
+
+    physical_nodes: list[tuple[int, ...]] = []
+    for node in host_cpus_by_numa():
+        allowed = set(node)
+        seen_siblings: set[tuple[int, ...]] = set()
+        physical: list[int] = []
+        for cpu_id in node:
+            siblings_path = Path(
+                f"/sys/devices/system/cpu/cpu{cpu_id}/topology/thread_siblings_list"
+            )
+            try:
+                siblings = tuple(
+                    sorted(
+                        sibling
+                        for sibling in parse_cpu_id_list(
+                            siblings_path.read_text(encoding="utf-8").strip()
+                        )
+                        if sibling in allowed
+                    )
+                )
+            except OSError:
+                siblings = (cpu_id,)
+            key = siblings or (cpu_id,)
+            if key not in seen_siblings:
+                seen_siblings.add(key)
+                physical.append(cpu_id)
+        if physical:
+            physical_nodes.append(tuple(physical))
+    return tuple(physical_nodes) or host_cpus_by_numa()
+
+
 def reset_autoconfig_state() -> None:
     """Clear cached host/budget/tuning (for tests and env-var overrides)."""
     global _HOST, _BUDGET, _TUNING
@@ -483,6 +532,7 @@ def reset_autoconfig_state() -> None:
     _TUNING = None
     host_numa_count.cache_clear()
     host_cpus_by_numa.cache_clear()
+    host_physical_cpus_by_numa.cache_clear()
     get_cpu_flags.cache_clear()
     gpu_info.cache_clear()
 
@@ -536,11 +586,10 @@ def partition_cpus_for_ranks(
     *,
     reserve: int = 0,
 ) -> list[list[int]]:
-    """Split logical CPUs into ``tp * dp`` NUMA-local groups (DP-major, then TP).
+    """Split CPUs into ``tp * dp`` NUMA-local groups (DP-major, then TP).
 
     vLLM parses ``VLLM_CPU_OMP_THREADS_BIND`` as ``|``-separated lists and slices
-    ``local_world_size`` (TP) entries per local DP rank. Keep every logical CPU
-    (including SMT siblings) — unlike ``auto``, which drops SMT on x86.
+    ``local_world_size`` (TP) entries per local DP rank.
     """
     tp = max(1, tp)
     dp = max(1, dp)
@@ -619,7 +668,7 @@ def cpu_data_parallel_size(spec: ModelSpec) -> int:
     override = _env_int("BENCHMARK_VLLM_CPU_DP", "VLLM_CPU_DATA_PARALLEL_SIZE")
     if override is not None:
         return max(1, override)
-    v = host_profile().vcpus
+    v = sum(len(node) for node in host_physical_cpus_by_numa())
     numa = host_numa_count()
     tp = cpu_tensor_parallel_size(spec)
     # Cover every socket when TP cannot span them.
@@ -640,21 +689,22 @@ def cpu_data_parallel_size(spec: ModelSpec) -> int:
 
 
 def cpu_omp_threads_bind(spec: ModelSpec, tp: int | None = None, dp: int | None = None) -> str:
-    """Explicit CPU lists for every TP×DP rank (all logical CPUs, NUMA-local).
+    """Explicit CPU lists for every TP×DP rank (one thread/core, NUMA-local).
 
     ``VLLM_CPU_OMP_THREADS_BIND=auto`` on x86 keeps one thread per physical core
     (drops SMT) and, with world_size=1, binds rank 0 to NUMA node 0 only. Cloud
-    vCPU counts include SMT, so auto silently uses ~half the advertised cores
-    and leaves extra sockets idle unless TP/DP already span NUMA. Explicit lists
-    keep SMT and partition every allowed CPU across ranks. ``auto`` / empty
-    env means "let the harness decide"; any other value is passed through.
+    vCPU counts include SMT, so explicit physical-core lists preserve that good
+    behavior while ensuring TP/DP ranks cover every NUMA node. Assigning sibling
+    threads to separate ranks caused cross-rank contention on c8i.96xlarge.
+    ``auto`` / empty env means "let the harness decide"; any other value is
+    passed through.
     """
     override = environ.get("VLLM_CPU_OMP_THREADS_BIND", "").strip()
     if override and override.lower() not in ("auto",):
         return override
     tp_size = tp if tp is not None else cpu_tensor_parallel_size(spec)
     dp_size = dp if dp is not None else cpu_data_parallel_size(spec)
-    nodes = [list(node) for node in host_cpus_by_numa()]
+    nodes = [list(node) for node in host_physical_cpus_by_numa()]
     reserve = 1 if host_profile().vcpus >= 2 else 0
     groups = partition_cpus_for_ranks(nodes, tp_size, dp_size, reserve=reserve)
     if any(not group for group in groups):
@@ -1288,15 +1338,12 @@ def cpu_kv_memory_util(
         ranks = max(1, int(node["ranks"]))
         if total > 0:
             multi = CPU_NODE_MULTI_RANK_UTIL_FACTOR if ranks > 1 else 1.0
-            ceilings.append(
-                min(
-                    0.50,
-                    float(node["available_gib"])
-                    * CPU_NODE_MEMORY_BUDGET
-                    * multi
-                    / (ranks * total),
-                )
+            node_budget = max(
+                0.0,
+                float(node["available_gib"]) * CPU_NODE_MEMORY_BUDGET * multi
+                - CPU_NODE_STARTUP_RESERVE_GIB,
             )
+            ceilings.append(min(0.50, node_budget / (ranks * total)))
     return min(
         ceilings,
         default=min(0.50, CPU_NODE_MEMORY_BUDGET / max(1, ranks_per_node)),

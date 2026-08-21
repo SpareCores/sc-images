@@ -17,6 +17,7 @@ ENV_KEYS = (
     "BENCHMARK_VLLM_VCPUS",
     "BENCHMARK_VLLM_NUMA_NODES",
     "BENCHMARK_VLLM_CPU_TOPOLOGY",
+    "BENCHMARK_VLLM_CPU_PHYSICAL_TOPOLOGY",
     "BENCHMARK_VLLM_CPU_TP",
     "BENCHMARK_VLLM_CPU_DP",
     "BENCHMARK_VLLM_GPU_TP",
@@ -115,6 +116,20 @@ class CpuScalingTest(unittest.TestCase):
         self.assertEqual(min(ids), 0)
         self.assertEqual(set(range(96)) - set(ids), {95})
 
+    def test_smt_host_sizes_and_binds_from_physical_cores(self) -> None:
+        """c8i.96xlarge: 384 vCPUs are 192 cores; sibling ranks contend."""
+        self._host(384, 6, ram_gb=744.0)
+        os.environ["BENCHMARK_VLLM_CPU_PHYSICAL_TOPOLOGY"] = topology(6, 32)
+        b.reset_autoconfig_state()
+        b._HOST = b.HostProfile(vcpus=384, ram_total_gb=744.0, ram_avail_gb=720.0)
+
+        with mock.patch.object(b, "virtual_memory", lambda: FakeMemory(744.0, 720.0)):
+            self.assertEqual(b.cpu_data_parallel_size(SMOL), 12)
+            ids = bind_cpu_ids(b.cpu_omp_threads_bind(SMOL))
+        self.assertEqual(len(ids), 191)
+        self.assertEqual(len(set(ids)), 191)
+        self.assertLess(max(ids), 192)
+
     def test_smol_adds_dp_replicas_on_large_boxes(self) -> None:
         self._host(896, 8)
         self.assertEqual(b.cpu_tensor_parallel_size(SMOL), 1)
@@ -210,6 +225,16 @@ class CpuScalingTest(unittest.TestCase):
             self.assertEqual(b.cpu_ranks_per_memory_node(SMOL), 1)
             tuning = b.compute_tuning("cpu", SMOL, chat_budget(), max_model_len=2048)
             self.assertAlmostEqual(tuning.kv_memory_util, 0.50, places=2)
+
+    def test_small_node_reserves_vllm_startup_memory(self) -> None:
+        """A 4 GiB node needs headroom for processes created after preflight."""
+        self._host(2, 1, ram_gb=4.0)
+        with mock.patch.object(b, "virtual_memory", lambda: FakeMemory(4.0, 3.55)):
+            b.reset_autoconfig_state()
+            b._HOST = b.HostProfile(vcpus=2, ram_total_gb=4.0, ram_avail_gb=3.55)
+            tuning = b.compute_tuning("cpu", SMOL, chat_budget(), max_model_len=2048)
+            self.assertGreaterEqual(tuning.kv_memory_util, 0.39)
+            self.assertLessEqual(tuning.kv_memory_util, 0.43)
 
     def test_gpu_dp_override(self) -> None:
         os.environ["BENCHMARK_VLLM_GPU_DP"] = "4"
