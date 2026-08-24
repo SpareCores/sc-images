@@ -20,7 +20,7 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=resource_tracker /usr/local/bin/resource-tracker /usr/local/bin/resource-tracker
-COPY benchmark.py db_dataset_cache.py ro_cpu_setup.sql ro_cpu_txn.sql /benchmark/
+COPY benchmark.py db_dataset_cache.py pgtune_leopard.py ro_cpu_setup.sql ro_cpu_txn.sql /benchmark/
 
 ENV TRACKER_QUIET=true
 ENTRYPOINT ["/usr/local/bin/resource-tracker", "--", "python3", "/benchmark/benchmark.py"]

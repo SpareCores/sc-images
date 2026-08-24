@@ -130,6 +130,116 @@ def pg_env(password: str) -> dict[str, str]:
     return env
 
 
+# ---------------------------------------------------------------------------
+# Standalone mode: when SC_DB_HOST is unset, this same container starts its
+# own local Postgres server (this image is FROM postgres:18, so the server
+# binaries are already present) instead of connecting to a companion VM.
+# A separate client VM was pure waste here — pgbench barely uses any CPU
+# while it stresses the server (observed <1% CPU, ~10 MB RSS on an 8-vCPU
+# benchmark), so running both roles on one instance is strictly better.
+# ---------------------------------------------------------------------------
+
+STANDALONE_PG_LOG = Path("/tmp/pg-server.log")
+
+
+def local_mem_gib() -> float:
+    """Total system memory in GiB, read directly (no psutil dependency)."""
+    with open("/proc/meminfo") as fh:
+        for line in fh:
+            if line.startswith("MemTotal:"):
+                return int(line.split()[1]) / (1024 * 1024)
+    raise RuntimeError("MemTotal not found in /proc/meminfo")
+
+
+def max_connections_for_vcpus(vcpus: int) -> int:
+    """Postgres max_connections floor; vcpus kept for API symmetry.
+
+    Keep in sync with sc-inspector/inspector/benchmark_tiers.py:max_connections_for_vcpus.
+    """
+    _ = vcpus
+    return GEOMETRIC_CONCURRENCY_LADDER[-1] + 50
+
+
+def pg_guc_settings(
+    mem_gib: float,
+    durability: str = "durable",
+    *,
+    vcpus: int | None = None,
+    min_max_connections: int | None = None,
+) -> dict[str, str]:
+    """pgtune-derived GUCs for the local server.
+
+    Keep in sync with sc-inspector/inspector/postgres_multi.py:pg_guc_settings.
+    """
+    from pgtune_leopard import generate_for_host
+
+    cpu = max(1, int(vcpus if vcpus is not None else os.cpu_count() or 4))
+    result = generate_for_host(mem_gib=mem_gib, cpu_num=cpu)
+    settings = dict(result.settings)
+    settings["synchronous_commit"] = "off" if durability == "async" else "on"
+    need = max_connections_for_vcpus(cpu)
+    if min_max_connections is not None:
+        need = max(need, int(min_max_connections))
+    cur = int(str(settings.get("max_connections", "100")).split()[0])
+    if need > cur:
+        settings["max_connections"] = str(need)
+    return settings
+
+
+def pg_gucs(mem_gib: float, durability: str = "durable", *, vcpus: int | None = None) -> list[str]:
+    args: list[str] = []
+    for name, value in pg_guc_settings(mem_gib, durability, vcpus=vcpus).items():
+        if name == "listen_addresses":
+            continue  # set explicitly by the caller
+        args.extend(["-c", f"{name}={value}"])
+    return args
+
+
+def start_local_postgres(
+    mem_gib: float, vcpus: int, durability: str, password: str
+) -> subprocess.Popen:
+    """Launch a local Postgres server; docker-entrypoint.sh handles initdb/auth."""
+    cmd = [
+        "docker-entrypoint.sh",
+        "postgres",
+        "-c",
+        "listen_addresses=*",
+        *pg_gucs(mem_gib, durability, vcpus=vcpus),
+    ]
+    env = os.environ.copy()
+    env["POSTGRES_PASSWORD"] = password
+    env["POSTGRES_USER"] = "postgres"
+    log = open(STANDALONE_PG_LOG, "wb")  # real file, not a PIPE: avoids buffer-fill deadlock
+    return subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT)
+
+
+def wait_local_postgres_ready(password: str, timeout: float = 120) -> None:
+    deadline = time.monotonic() + timeout
+    last_err: str = "timed out"
+    while time.monotonic() < deadline:
+        try:
+            run(
+                ["psql", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres", "-d", "postgres", "-tAc", "SELECT 1"],
+                timeout=5,
+                env=pg_env(password),
+            )
+            return
+        except Exception as exc:
+            last_err = str(exc)
+            time.sleep(1)
+    raise TimeoutError(f"local postgres did not become ready: {last_err}")
+
+
+def stop_local_postgres(proc: subprocess.Popen) -> None:
+    if proc.poll() is not None:
+        return
+    try:
+        proc.terminate()
+        proc.wait(timeout=30)
+    except Exception:
+        proc.kill()
+
+
 def parse_pgbench_summary(text: str) -> dict[str, Any]:
     """Parse pgbench stdout. Score is TPM only (no TPS field)."""
     out: dict[str, Any] = {}
@@ -705,12 +815,24 @@ def main() -> int:
     if workload not in {"pgbench_ro", "pgbench_tpcb"}:
         raise RuntimeError(f"unsupported SC_WORKLOAD={workload!r}")
 
-    host = os.environ["SC_DB_HOST"]
+    host = os.environ.get("SC_DB_HOST", "").strip()
     port = env_int("SC_DB_PORT", 5432)
     user = os.environ.get("SC_DB_USER", "postgres")
     password = os.environ.get("SC_DB_PASSWORD", "postgres")
     admin_db = os.environ.get("SC_DB_NAME", "postgres")
     dbname = os.environ.get("SC_PGBENCH_DB", "pgbench")
+
+    # Standalone: no companion VM configured, run Postgres locally instead.
+    pg_proc = None
+    if not host:
+        durability = os.environ.get("SC_DURABILITY", "durable")
+        vcpus = env_int("SC_DB_VCPUS", os.cpu_count() or 2)
+        mem_gib = local_mem_gib()
+        pg_proc = start_local_postgres(mem_gib, vcpus, durability, password)
+        wait_local_postgres_ready(password)
+        host = "127.0.0.1"
+        os.environ.setdefault("SC_DB_MEM_GIB", str(mem_gib))
+        os.environ.setdefault("SC_TOPOLOGY", "single_vm")
 
     run_seconds = env_int("SC_RUN_SECONDS", 300)
     warmup_seconds = env_int("SC_WARMUP_SECONDS", 120)
@@ -827,6 +949,8 @@ def main() -> int:
         summary["peak_scalefactor"] = best_size.get("scalefactor")
         summary["scalefactor"] = best_size.get("scalefactor")
     print(json.dumps(summary, indent=2, sort_keys=True))
+    if pg_proc is not None:
+        stop_local_postgres(pg_proc)
     return 0
 
 
