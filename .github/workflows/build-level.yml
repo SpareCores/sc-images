@@ -47,7 +47,10 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(inputs.matrix) }}
-    runs-on: ${{ matrix.arch == 'arm64' && (inputs.arm64_self_hosted && fromJson('["self-hosted", "Linux", "ARM64"]') || 'ubuntu-24.04-arm') || (inputs.x64_self_hosted && fromJson('["self-hosted", "Linux", "X64"]') || 'ubuntu-latest') }}
+    # vllm-cpu-base-avx2 always runs on the org "workhorse" runner: it's the
+    # only leg in this graph too heavy for github-hosted (OOM / disk pressure
+    # / sccache flakiness after ~10-70min; self-hosted hits full cache in ~30s).
+    runs-on: ${{ matrix.folder == 'vllm-cpu-base-avx2' && fromJson('["self-hosted", "Linux", "X64", "workhorse"]') || (matrix.arch == 'arm64' && (inputs.arm64_self_hosted && fromJson('["self-hosted", "Linux", "ARM64"]') || 'ubuntu-24.04-arm') || (inputs.x64_self_hosted && fromJson('["self-hosted", "Linux", "X64"]') || 'ubuntu-latest')) }}
     permissions:
       contents: read
       packages: write
