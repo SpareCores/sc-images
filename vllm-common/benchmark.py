@@ -2706,6 +2706,7 @@ def run_model(spec: ModelSpec, mode: str, start_time: float) -> bool:
     peak_output_tps = 0.0
 
     if per_workload_server_enabled():
+        health_failed = False
         for workload in workloads:
             if monotonic() - start_time > OVERALL_TIMEOUT_SEC:
                 return False
@@ -2734,13 +2735,23 @@ def run_model(spec: ModelSpec, mode: str, start_time: float) -> bool:
                         workload.name,
                     )
                     log_server_start_failure(mode, spec, workload, server)
-                    continue
+                    # A rung that can't come up healthy is a sign this size class is
+                    # already past the host's reliable limit — trying more workloads
+                    # (or, worse, a bigger model next) only risks compounding the
+                    # damage. Stop advancing rather than push further.
+                    health_failed = True
+                    break
                 peak_output_tps = max(
                     peak_output_tps,
                     _run_guidellm_sweeps(spec, workload, mode, tuning, start_time),
                 )
             finally:
                 stop_server(server)
+        if health_failed:
+            logger.warning(
+                "Server failed to become healthy for %s; stopping ladder", spec.short_name
+            )
+            return False
     else:
         max_len = max(w.max_model_len for w in workloads)
         tuning = init_benchmark_tuning(mode, spec, max_model_len=max_len)
@@ -2753,7 +2764,9 @@ def run_model(spec: ModelSpec, mode: str, start_time: float) -> bool:
             if not wait_for_health(health_timeout, server):
                 logger.warning("Server health check failed for %s", spec.model_id)
                 log_server_start_failure(mode, spec, server=server)
-                return True
+                # Same reasoning as the per-workload branch above: a rung that
+                # fails to come up healthy means don't push on to a bigger model.
+                return False
             for workload in workloads:
                 if monotonic() - start_time > OVERALL_TIMEOUT_SEC:
                     return False
