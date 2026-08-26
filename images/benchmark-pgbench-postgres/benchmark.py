@@ -41,6 +41,13 @@ RO_SETUP_SQL = SCRIPT_DIR / "ro_cpu_setup.sql"
 RO_TXN_SQL = SCRIPT_DIR / "ro_cpu_txn.sql"
 RO_MAX_JOBS = 32
 
+BENCHMARK_IMAGE = "ghcr.io/sparecores/benchmark-pgbench-postgres:main"
+# Standalone mode uses the general instance root volume (lib.VOLUME_SIZE), not a
+# dedicated per-benchmark disk, so only its size is known here.
+STORAGE_GIB = 128
+# Keep in sync with sc-inspector/inspector/benchmark_tiers.py:PGBENCH_RO_CPU_SCHEMA_GIB.
+PGBENCH_RO_CPU_SCHEMA_GIB = 0.17
+
 # Keep in sync with sc-inspector/inspector/benchmark_tiers.py (TPC-B only).
 GEOMETRIC_CONCURRENCY_LADDER: tuple[int, ...] = (
     1,
@@ -166,8 +173,8 @@ def pg_guc_settings(
     *,
     vcpus: int | None = None,
     min_max_connections: int | None = None,
-) -> dict[str, str]:
-    """pgtune-derived GUCs for the local server.
+) -> tuple[dict[str, str], str]:
+    """Return (name→value GUCs, pgtune share URL) for the local server.
 
     Keep in sync with sc-inspector/inspector/postgres_multi.py:pg_guc_settings.
     """
@@ -183,12 +190,13 @@ def pg_guc_settings(
     cur = int(str(settings.get("max_connections", "100")).split()[0])
     if need > cur:
         settings["max_connections"] = str(need)
-    return settings
+    return settings, result.share_url
 
 
 def pg_gucs(mem_gib: float, durability: str = "durable", *, vcpus: int | None = None) -> list[str]:
     args: list[str] = []
-    for name, value in pg_guc_settings(mem_gib, durability, vcpus=vcpus).items():
+    settings, _ = pg_guc_settings(mem_gib, durability, vcpus=vcpus)
+    for name, value in settings.items():
         if name == "listen_addresses":
             continue  # set explicitly by the caller
         args.extend(["-c", f"{name}={value}"])
@@ -238,6 +246,145 @@ def stop_local_postgres(proc: subprocess.Popen) -> None:
         proc.wait(timeout=30)
     except Exception:
         proc.kill()
+
+
+def collect_postgres_repro(
+    *,
+    host: str,
+    port: int,
+    user: str,
+    password: str,
+    dbname: str,
+    requested_gucs: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Query the local Postgres for settings useful when reproducing a run.
+
+    Keep in sync with sc-inspector/inspector/pg_repro.py:collect_postgres_repro.
+    """
+    import psycopg
+
+    conn = psycopg.connect(
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        dbname=dbname,
+        connect_timeout=10,
+    )
+    try:
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute("SELECT version()")
+            version = str(cur.fetchone()[0])
+            cur.execute("SHOW server_version")
+            server_version = str(cur.fetchone()[0])
+            cur.execute("SHOW server_version_num")
+            server_version_num = int(cur.fetchone()[0])
+            cur.execute("SELECT pg_is_in_recovery()")
+            in_recovery = bool(cur.fetchone()[0])
+
+            cur.execute(
+                """
+                SELECT name, setting, unit, current_setting(name) AS pretty,
+                       category, short_desc, context, vartype,
+                       source, pending_restart
+                FROM pg_settings
+                ORDER BY name
+                """
+            )
+            settings: dict[str, str] = {}
+            nondefault: dict[str, dict[str, Any]] = {}
+            for (
+                name,
+                setting,
+                unit,
+                pretty,
+                category,
+                short_desc,
+                context,
+                vartype,
+                source,
+                pending_restart,
+            ) in cur.fetchall():
+                # Prefer SHOW-style values (e.g. 4GB) over raw unit counts
+                # (e.g. 524288 with unit 8kB) so stdout is directly reusable
+                # as postgresql.conf / -c arguments.
+                settings[name] = pretty
+                if source and source != "default":
+                    entry: dict[str, Any] = {
+                        "setting": pretty,
+                        "source": source,
+                        "context": context,
+                        "vartype": vartype,
+                        "category": category,
+                    }
+                    if unit:
+                        entry["unit"] = unit
+                        entry["setting_raw"] = setting
+                    if short_desc:
+                        entry["short_desc"] = short_desc
+                    if pending_restart:
+                        entry["pending_restart"] = True
+                    nondefault[name] = entry
+
+            cur.execute(
+                """
+                SELECT e.extname, e.extversion
+                FROM pg_extension e
+                ORDER BY e.extname
+                """
+            )
+            extensions = [
+                {"name": name, "version": ver} for name, ver in cur.fetchall()
+            ]
+
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(r.rolname, 'All'),
+                    COALESCE(d.datname, 'All'),
+                    s.setconfig
+                FROM pg_db_role_setting s
+                LEFT JOIN pg_roles r ON r.oid = s.setrole
+                LEFT JOIN pg_database d ON d.oid = s.setdatabase
+                ORDER BY 1, 2
+                """
+            )
+            role_settings = [
+                {
+                    "role": role,
+                    "database": database,
+                    "config": list(config or []),
+                }
+                for role, database, config in cur.fetchall()
+            ]
+    finally:
+        conn.close()
+
+    out: dict[str, Any] = {
+        "version": version,
+        "server_version": server_version,
+        "server_version_num": server_version_num,
+        "in_recovery": in_recovery,
+        "settings": settings,
+        "nondefault_settings": nondefault,
+        "extensions": extensions,
+        "role_settings": role_settings,
+    }
+    if requested_gucs:
+        out["requested_gucs"] = requested_gucs
+    return out
+
+
+def safe_collect_postgres_repro(**kwargs: Any) -> dict[str, Any] | None:
+    """Like :func:`collect_postgres_repro` but logs and returns None on failure."""
+    import sys
+
+    try:
+        return collect_postgres_repro(**kwargs)
+    except Exception as exc:
+        print(f"Failed to collect Postgres repro settings: {exc}", file=sys.stderr)
+        return None
 
 
 def parse_pgbench_summary(text: str) -> dict[str, Any]:
@@ -824,10 +971,13 @@ def main() -> int:
 
     # Standalone: no companion VM configured, run Postgres locally instead.
     pg_proc = None
+    requested_gucs: dict[str, str] | None = None
+    pgtune_share_url = ""
     if not host:
         durability = os.environ.get("SC_DURABILITY", "durable")
         vcpus = env_int("SC_DB_VCPUS", os.cpu_count() or 2)
         mem_gib = local_mem_gib()
+        requested_gucs, pgtune_share_url = pg_guc_settings(mem_gib, durability, vcpus=vcpus)
         pg_proc = start_local_postgres(mem_gib, vcpus, durability, password)
         wait_local_postgres_ready(password)
         host = "127.0.0.1"
@@ -944,10 +1094,34 @@ def main() -> int:
     if workload == "pgbench_ro":
         summary["cpu_scale"] = cpu_scale
         summary["peak_cpu_scale"] = best_size.get("cpu_scale")
+        summary["schema_gib"] = PGBENCH_RO_CPU_SCHEMA_GIB
     else:
         summary["scalefactors"] = scales
         summary["peak_scalefactor"] = best_size.get("scalefactor")
         summary["scalefactor"] = best_size.get("scalefactor")
+
+    summary["benchmark_image"] = BENCHMARK_IMAGE
+    summary["workload_kind"] = workload
+
+    if pg_proc is not None:
+        # Standalone: this same image provides the server, and its root volume
+        # is the only disk involved (no dedicated per-benchmark volume).
+        summary["pg_image"] = BENCHMARK_IMAGE
+        summary["storage_gib"] = STORAGE_GIB
+        if pgtune_share_url:
+            summary["pgtune_share_url"] = pgtune_share_url
+        # Snapshot GUCs before tearing down the local server.
+        postgres_repro = safe_collect_postgres_repro(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            dbname=dbname,
+            requested_gucs=requested_gucs,
+        )
+        if postgres_repro:
+            summary["postgres"] = postgres_repro
+
     print(json.dumps(summary, indent=2, sort_keys=True))
     if pg_proc is not None:
         stop_local_postgres(pg_proc)
