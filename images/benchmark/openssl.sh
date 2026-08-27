@@ -1,8 +1,10 @@
 #!/bin/sh
 
-# Our custom-built OpenSSL (see Dockerfile) lives in /usr/local/lib; not the
-# image-wide default so it doesn't shadow the system libssl python3 needs.
-export LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64"
+# Our custom-built OpenSSL (see Dockerfile) lives in /opt/openssl, not on the
+# image-wide PATH/LD_LIBRARY_PATH, so it doesn't shadow the system openssl
+# binary or the libssl python3 needs.
+export PATH="/opt/openssl/bin:${PATH}"
+export LD_LIBRARY_PATH="/opt/openssl/lib:/opt/openssl/lib64"
 
 CMD="nice -n -20 openssl speed -mr -mlock -elapsed -multi $(nproc)"
 

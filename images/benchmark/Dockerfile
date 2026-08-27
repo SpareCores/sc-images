@@ -5,14 +5,12 @@ FROM ubuntu:24.04 as base
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH=/venv/bin:/usr/local/bin:${PATH}
 ENV VIRTUAL_ENV="/venv"
-# Deliberately NOT LD_LIBRARY_PATH here: our own /usr/local/lib OpenSSL below is
-# built with several algorithms disabled (no-dh, no-dsa, ...) for the openssl
-# speed benchmark's needs. Setting this globally makes every dynamically-linked
-# program in the image - notably python3's _ssl extension, which is linked
-# against Ubuntu's full system libssl - prefer the trimmed build instead and
-# fail with "undefined symbol" for whatever it disabled (e.g. PEM_read_DHparams).
-# Scripts that actually need our custom OpenSSL set LD_LIBRARY_PATH themselves,
-# scoped to just that invocation (see openssl.sh, geekbench.sh).
+# Our custom OpenSSL (see below) is built with several algorithms disabled
+# (no-dh, no-dsa, ...) for the openssl speed benchmark's needs, and installs
+# to /opt/openssl rather than /usr/local so it never shadows the system
+# openssl on PATH or python3's _ssl extension (both need the full,
+# untrimmed Ubuntu libssl). Scripts that actually need the custom build
+# reference /opt/openssl explicitly (see openssl.sh, geekbench.sh).
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
@@ -33,7 +31,8 @@ FROM build_base as openssl
 RUN --mount=type=tmpfs,target=/tmp,rw \
     cd /usr/src/openssl && \
       # leave out unnecessary stuff to make it compile faster
-      ./Configure no-afalgeng no-async no-autoerrinit no-capieng no-cmp no-cms no-comp no-ct no-dgram no-docs no-fips-securitychecks \
+      ./Configure --prefix=/opt/openssl --openssldir=/opt/openssl/ssl \
+        no-afalgeng no-async no-autoerrinit no-capieng no-cmp no-cms no-comp no-ct no-dgram no-docs no-fips-securitychecks \
         no-gost no-http no-multiblock no-nextprotoneg no-ocsp no-rfc3779 no-sock no-srp no-srtp no-ssl-trace no-tests no-quic no-ts no-ui-console \
         no-uplink no-tls no-dtls no-bf no-cast no-chacha no-cmac no-des no-dh no-dsa no-ecdh no-ecdsa no-idea no-md4 no-mdc2 no-ocb no-poly1305 \
         no-rc2 no-rc4 no-rmd160 no-scrypt no-seed no-siphash no-siv no-sm2 no-sm3 no-whirlpool && \
@@ -75,7 +74,7 @@ ADD compress.py /usr/local/bin/compress.py
 ADD secrets.enc /secrets.enc
 COPY --from=geekbench /usr/local/geekbench-x86_64 /usr/local/geekbench-x86_64
 COPY --from=geekbench /usr/local/geekbench-aarch64 /usr/local/geekbench-aarch64
-COPY --from=openssl /usr/local /usr/local
+COPY --from=openssl /opt/openssl /opt/openssl
 COPY --from=lmbench /bw_mem /usr/local/bin/bw_mem
 COPY --from=python /venv /venv
 COPY --from=python /usr/local/silesia /usr/local/silesia

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # decrypt secrets
-LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64 openssl aes-256-cbc -d -pass env:BENCHMARK_SECRETS_PASSPHRASE \
+LD_LIBRARY_PATH=/opt/openssl/lib:/opt/openssl/lib64 /opt/openssl/bin/openssl aes-256-cbc -d -pass env:BENCHMARK_SECRETS_PASSPHRASE \
   -pbkdf2 -iter 100000 -in /secrets.enc -out - | tar zxpf - -C /
 
 arch="$(uname -m)"
