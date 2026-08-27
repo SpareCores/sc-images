@@ -5,7 +5,14 @@ FROM ubuntu:24.04 as base
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH=/venv/bin:/usr/local/bin:${PATH}
 ENV VIRTUAL_ENV="/venv"
-ENV LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64"
+# Deliberately NOT LD_LIBRARY_PATH here: our own /usr/local/lib OpenSSL below is
+# built with several algorithms disabled (no-dh, no-dsa, ...) for the openssl
+# speed benchmark's needs. Setting this globally makes every dynamically-linked
+# program in the image - notably python3's _ssl extension, which is linked
+# against Ubuntu's full system libssl - prefer the trimmed build instead and
+# fail with "undefined symbol" for whatever it disabled (e.g. PEM_read_DHparams).
+# Scripts that actually need our custom OpenSSL set LD_LIBRARY_PATH themselves,
+# scoped to just that invocation (see openssl.sh, geekbench.sh).
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \

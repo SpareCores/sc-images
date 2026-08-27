@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Our custom-built OpenSSL (see Dockerfile) lives in /usr/local/lib; not the
+# image-wide default so it doesn't shadow the system libssl python3 needs.
+export LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64"
+
 CMD="nice -n -20 openssl speed -mr -mlock -elapsed -multi $(nproc)"
 
 # run each algos in a separate run, so we can parse the output easier, by matching +DT/+DTP and +F
