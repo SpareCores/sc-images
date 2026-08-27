@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import ssl
 import subprocess
@@ -71,11 +72,16 @@ def ensure_cert() -> tuple[Path, Path]:
     key = CERT_DIR / "server.key"
     crt = CERT_DIR / "server.crt"
     ca_link = Path(f"/usr/local/share/ca-certificates/{HOSTNAME}.crt")
+    # update-ca-certificates shells out to "openssl" internally too, so strip
+    # /usr/local/bin (our custom, LD_LIBRARY_PATH-dependent build) from PATH
+    # for these calls, leaving the system openssl at /usr/bin first.
+    env = os.environ.copy()
+    env["PATH"] = ":".join(p for p in env.get("PATH", "").split(":") if p != "/usr/local/bin")
     if not key.exists() or not crt.exists():
         CERT_DIR.mkdir(parents=True, exist_ok=True)
         subprocess.run(
             [
-                "openssl",
+                "/usr/bin/openssl",
                 "req",
                 "-x509",
                 "-newkey",
@@ -91,10 +97,11 @@ def ensure_cert() -> tuple[Path, Path]:
                 f"/CN={HOSTNAME}",
             ],
             check=True,
+            env=env,
         )
     if not ca_link.exists() or ca_link.read_bytes() != crt.read_bytes():
         subprocess.run(["cp", str(crt), str(ca_link)], check=True)
-        subprocess.run(["update-ca-certificates"], check=True)
+        subprocess.run(["update-ca-certificates"], check=True, env=env)
     return key, crt
 
 
