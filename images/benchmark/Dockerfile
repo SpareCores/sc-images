@@ -59,10 +59,11 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_lib_apt_final,type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update --error-on=any && \
     apt-get upgrade -y && \
-    apt-get install -y colorized-logs libgomp1
+    apt-get install -y colorized-logs libgomp1 openssl python3
 ADD openssl.sh /usr/local/bin/openssl.sh
 ADD bw_mem.sh /usr/local/bin/bw_mem.sh
 ADD geekbench.sh /usr/local/bin/geekbench.sh
+ADD geekbench_capture.py /usr/local/bin/geekbench_capture.py
 ADD compress.py /usr/local/bin/compress.py
 ADD secrets.enc /secrets.enc
 COPY --from=geekbench /usr/local/geekbench-x86_64 /usr/local/geekbench-x86_64
