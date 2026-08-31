@@ -257,6 +257,49 @@ class CpuScalingTest(unittest.TestCase):
             self.assertEqual(b.kv_bytes_per_token(LLAMA8, tp=1), 131_072)
             self.assertEqual(b.kv_bytes_per_token(LLAMA8, tp=4), 32_768)
 
+    def test_worker_memory_scales_weights_for_float32_upcast(self) -> None:
+        """No-bf16 CPU hosts serve float32; a bf16 checkpoint upcast on load
+        doubles the resident weight footprint, so the preflight estimate must
+        double too or it will under-predict OOMs (as seen live on Neoverse-N1)."""
+        metadata = b.ModelMetadata(
+            weight_bytes=16 * 1024**3,
+            num_hidden_layers=32,
+            num_attention_heads=32,
+            num_key_value_heads=8,
+            hidden_size=4096,
+            torch_dtype="bfloat16",
+            source="test",
+        )
+        with mock.patch.object(b, "model_metadata", lambda _spec: metadata):
+            bf16_worker = b.model_worker_memory_gb(
+                LLAMA8, tp=1, max_model_len=2048, dtype="bfloat16"
+            )
+            fp32_worker = b.model_worker_memory_gb(
+                LLAMA8, tp=1, max_model_len=2048, dtype="float32"
+            )
+            # Weights double (16 GiB * 1.10 -> 17.6 GiB extra); KV also doubles
+            # since kv_bytes_per_token follows the same explicit dtype.
+            self.assertGreater(fp32_worker, 2 * bf16_worker - 1.0)
+
+    def test_worker_memory_matches_native_dtype_when_no_upcast(self) -> None:
+        """A host that can actually serve bfloat16 shouldn't pay the upcast
+        penalty: dtype == checkpoint's native dtype keeps the old estimate."""
+        metadata = b.ModelMetadata(
+            weight_bytes=16 * 1024**3,
+            num_hidden_layers=32,
+            num_attention_heads=32,
+            num_key_value_heads=8,
+            hidden_size=4096,
+            torch_dtype="bfloat16",
+            source="test",
+        )
+        with mock.patch.object(b, "model_metadata", lambda _spec: metadata):
+            no_dtype = b.model_worker_memory_gb(LLAMA8, tp=1, max_model_len=2048)
+            bf16_worker = b.model_worker_memory_gb(
+                LLAMA8, tp=1, max_model_len=2048, dtype="bfloat16"
+            )
+            self.assertAlmostEqual(no_dtype, bf16_worker)
+
     def test_nobind_large_model_is_rejected_per_memory_node(self) -> None:
         """Aggregate RAM is not enough: all nobind workers allocate on node 0."""
         self._host(384, 6, ram_gb=3000.0)
@@ -468,9 +511,9 @@ class CpuDtypeAndGpuCompatTest(unittest.TestCase):
             b.get_cpu_flags.cache_clear()
             self.assertTrue(b.cpu_has_bf16())
 
-    def test_cpu_serve_dtype_float16_without_bf16(self) -> None:
+    def test_cpu_serve_dtype_float32_without_bf16(self) -> None:
         with mock.patch.object(b, "cpu_has_bf16", return_value=False):
-            self.assertEqual(b.cpu_serve_dtype(SMOL), "float16")
+            self.assertEqual(b.cpu_serve_dtype(SMOL), "float32")
 
     def test_cpu_serve_dtype_bfloat16_with_bf16(self) -> None:
         with mock.patch.object(b, "cpu_has_bf16", return_value=True):

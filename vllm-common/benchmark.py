@@ -835,6 +835,7 @@ def cpu_layout_memory_plan(
         tp=tp,
         max_model_len=max_model_len,
         min_sequences=min_sequences,
+        dtype=cpu_serve_dtype(spec),
         block_size=128,
     )
     nodes: list[dict[str, Any]] = []
@@ -1355,13 +1356,21 @@ def cpu_serve_dtype(spec: ModelSpec | None = None) -> str:
 
     Graviton2 (Neoverse-N1) and older ARM lack ``bf16``; forcing bfloat16 there
     makes oneDNN fail and the API server never binds :8000.
+
+    float16 is not a safe fallback either: on Neoverse-N1 the oneDNN/ACL fp16
+    GEMM path hangs during the post-load compile/warmup step (confirmed live
+    on m6g/t4g/g5g hardware - weights load fine, then the server never
+    becomes healthy within the timeout, regardless of TP/DP layout or model
+    size). float32 goes through oneDNN's normal, non-ACL GEMM path instead:
+    it compiles and serves correctly, and is also several times faster in
+    practice than routing float16 through --enforce-eager to dodge the hang.
     """
     del spec  # reserved for model-specific overrides later
     if override := environ.get("VLLM_CPU_DTYPE", "").strip():
         return override
     if cpu_has_bf16():
         return "bfloat16"
-    return "float16"
+    return "float32"
 
 
 def gpu_memory_utilization(spec: ModelSpec) -> float:
@@ -1666,6 +1675,14 @@ def model_worker_memory_gb(
     """Conservative per-worker startup footprint: TP weight shard + KV + runtime."""
     parallel_shards = max(1, tp * pp)
     weights = model_memory_gb(spec) * 1.10 / parallel_shards
+    if dtype:
+        # Checkpoints are typically published in bf16/fp16; a serve dtype wider
+        # than that (e.g. float32 on hosts without hardware bf16) inflates the
+        # resident weight footprint by the same ratio once vLLM upcasts on load.
+        native_dtype = model_metadata(spec).torch_dtype or "bfloat16"
+        serve_bytes, native_bytes = dtype_bytes(dtype), dtype_bytes(native_dtype)
+        if serve_bytes > native_bytes:
+            weights *= serve_bytes / native_bytes
     per_token = kv_bytes_per_token(spec, tp, dtype=dtype)
     if per_token is None:
         kv = cpu_min_kv_gb(spec, max_model_len)
