@@ -1899,13 +1899,18 @@ def model_fits(spec: ModelSpec, mode: str) -> bool:
     plan = model_host_plan(spec, mode)
     need = model_memory_gb(spec)
     have = available_memory_gb(mode)
+    native_dtype = plan["metadata"]["torch_dtype"] or "unknown"
+    serve_dtype = cpu_serve_dtype(spec) if mode == "cpu" else None
     logger.info(
-        "memory check %s: weights=%.1f GB aggregate_available=%.1f GB runnable=%s source=%s",
+        "memory check %s: weights=%.1f GB aggregate_available=%.1f GB runnable=%s "
+        "source=%s native_dtype=%s serve_dtype=%s",
         spec.short_name,
         need,
         have,
         plan["runnable"],
         plan["metadata"]["source"],
+        native_dtype,
+        serve_dtype or "n/a",
     )
     return bool(plan["runnable"])
 
@@ -2579,6 +2584,7 @@ def report_to_jsonl(
         "tuning": tuning.as_dict(),
         "model_weight_gib": round(metadata.weight_bytes / (1024**3), 4),
         "model_metadata_source": metadata.source,
+        "model_torch_dtype": metadata.torch_dtype,
         "kv_bytes_per_token_per_tp_rank": kv_bytes_per_token(
             spec,
             tensor_parallel_size(mode, spec),
