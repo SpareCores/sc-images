@@ -3,7 +3,7 @@
 This `pgbench`-driven PostgreSQL benchmark client for the Spare Cores fleet runs against a `postgres:18` server over the network (`SC_DB_HOST`). It simulates how a real application communicates with a managed or remote database instead of hosting the client and the server together.
 # Purpose
 
-[Spare Cores](https://sparecores.com) monitors and publishes empirical performance data for over 5,000 cloud server types as part of the [Navigator](https://sparecores.com/servers) project. Among the measured metrics are the following and more:
+[Spare Cores](https://sparecores.com) monitors and publishes empirical performance data for over 5,000 cloud server types as part of our [Navigator](https://sparecores.com/servers) project. Among the measured metrics are the following and more:
 - Memory bandwidth
 - OpenSSL speed
 - Compression algorithms
