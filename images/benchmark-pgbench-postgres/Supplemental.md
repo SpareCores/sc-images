@@ -1,6 +1,5 @@
----
-Summary: Additional info that can be kept or discarded, but feels like it's bloating the main Readme.md file.
----
+Supplementary information for benchmark-pgebench-postgres
+
 # 1
 **Limitations / Deliberately out of scope:**
 - **Distribution is still uniform, not Zipfian.** The product catalog has over 20k products, but the customer/order/order-item generation is still `g % k` modular arithmetic, not a realistic power-law. A real "few whales, many one-off customers" shape would be a bigger, separate change to the data generator.
