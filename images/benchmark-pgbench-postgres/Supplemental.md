@@ -1,4 +1,4 @@
-Supplementary information for benchmark-pgebench-postgres
+Supplementary information for benchmark-pgebench-postgres.
 
 # 1
 **Limitations / Deliberately out of scope:**
