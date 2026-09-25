@@ -2,7 +2,7 @@
 
 ## Run Script
 
-To use the benchmark, run the following bash script:
+To use the benchmark, run the following shell command:
 
 ```bash
 docker run --rm \

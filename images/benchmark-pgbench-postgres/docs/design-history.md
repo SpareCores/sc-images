@@ -6,10 +6,10 @@ We benchmarked the benchmarks before trusting one. In rough order:
 
 - **sysbench, HammerDB TPROC-C, and BenchBase (Wikipedia read-only and YCSB datasets), alongside pgbench:**
 
-  On regular block storage vs. `tmpfs`, with baseline vs. host-tuned Postgres configs.
+  On regular block storage vs. `tmpfs`, with baseline vs. host-tuned PostgreSQL configs.
   - `tmpfs` lifted write-heavy OLTP results substantially (~10–25% and more), which proved the point that those suites were measuring storage and WAL behavior more than the server. `tmpfs` is not an option on DBaaS anyway, so it only covers IaaS.
   - Their warehouse/scale-factor sizing also couldn't cover a fleet spanning 1 vCPU to thousands of vCPUs
-- **A systematic Postgres config (GUC) sweep:**
+- **A systematic PostgreSQL config (GUC) sweep:**
 
   21 experiments on a 32-vCPU host, where the winning combination (modest `work_mem`, `io_uring`, small WAL buffers, parallel gather off, right-sized `shared_buffers`) gained ~20% throughput over the baseline.
   - Tuning clearly matters, which is why production runs delegate it:
@@ -22,7 +22,7 @@ We benchmarked the benchmarks before trusting one. In rough order:
   - **Conclusion:** make the transaction heavy instead of pipelining a light one.
     - serial mode, a fixed `{1, V/2, V, 2·V}` concurrency profile, and a TPM score
 - **Outcome**:
-  - See `pgbench_ro` workload in the [[benchmark-pgbench-postgres#pgbench_ro|description]]
+  - See `pgbench_ro` workload in the [description](./workloads.md#pgbench_ro)
   - `pgbench_tpcb` is kept as a secondary classic-OLTP (TPC-B-like) reference
 
 A [blog post](https://sparecores.com/articles) with the detailed findings is planned.
@@ -54,7 +54,7 @@ Profiling this transaction locally (fresh `postgres:18` in Docker, `jit=off`, `E
 | Indexes were a plausible-looking mix, but were **not derived from the query's actual hot paths**. | e.g. `attrs->>'tier'` and `email` indexes were never used by the transaction; `profile->>'plan'` (filtered in q2) had no index. |
 | Dataset generation is **near-perfectly uniform** (`g % k` modular arithmetic), unlike Zipfian real-world shop traffic. | Acknowledged as a known simplification this redesign does *not* fully solve. See [Limitations](./limitations.md) for details. |
 
-## v2: Rebalance across Postgres subsystems
+## v2: Rebalance across PostgreSQL subsystems
 
 **Goal:** spread CPU time across distinct executor/access-method/type subsystems so no single one dominates, verified empirically rather than assumed. New schema additions in `ro_cpu_setup.sql`:
 
@@ -69,7 +69,7 @@ Profiling this transaction locally (fresh `postgres:18` in Docker, `jit=off`, `E
 
 `ro_cpu_txn.sql` was rewritten into 8 tagged blocks, each targeting code the old script never touched:
 
-| Block | Targets (Postgres source) | ~ms @ scale=1 |
+| Block | Targets (PostgreSQL source) | ~ms @ scale=1 |
 | ------------ | --------------------------------------------------------------------------------------------------------- | ------------: |
 | `q_idx` | btree index scan, nested loop, window agg (`nodeIndexscan.c`, `nodeWindowAgg.c`) | 0.1 |
 | `q_hashjoin` | hash join + hash aggregate over an unfiltered order/item/product join (`nodeHash.c`, `nodeHashjoin.c`) | 24 |
@@ -91,15 +91,15 @@ Profiling this transaction locally (fresh `postgres:18` in Docker, `jit=off`, `E
 
 - **A block can silently duplicate another block's cost.**
   - `q_array`'s first version joined its GIN-matched products straight to the full 750k-row `order_item` table with no bound
-  - Postgres picked the exact same "seq-scan `order_item` + hash join" plan as `q_hashjoin`, so `q_array` wasn't testing the array/GIN path at all. It was just paying `q_hashjoin`'s cost a second time.
+  - PostgreSQL picked the exact same "seq-scan `order_item` + hash join" plan as `q_hashjoin`, so `q_array` wasn't testing the array/GIN path at all. It was just paying `q_hashjoin`'s cost a second time.
   - Fixed by bounding `q_array`'s join to an indexed `order_id` range slice (like `q_regex`/`q_stats` already do).
   - **Lesson:** always `EXPLAIN` new blocks, don't assume the intended index gets used just because it exists.
 - **`q_hashjoin` has a hard floor (~20–24 ms) that doesn't shrink further.**
-  - Genuine Hash Join semantics require Postgres to fully scan the smaller of the two join inputs' *probe* side; since `order_item` (750k rows) has no narrowing predicate here, shrinking the time window from 22,400 s to 1,500 s only cut runtime from ~51 ms to ~24 ms (not proportionally), because the mandatory full-table scan dominates regardless of window width. This is accepted and documented in the script rather than fought — it's a legitimate, deliberate "large scan + hash join" test case.
+  - Genuine Hash Join semantics require PostgreSQL to fully scan the smaller of the two join inputs' *probe* side; since `order_item` (750k rows) has no narrowing predicate here, shrinking the time window from 22,400 s to 1,500 s only cut runtime from ~51 ms to ~24 ms (not proportionally), because the mandatory full-table scan dominates regardless of window width. This is accepted and documented in the script rather than fought — it's a legitimate, deliberate "large scan + hash join" test case.
 - **A bonus Merge Join appeared unprompted.**
-  - At the calibrated window width, `EXPLAIN` showed Postgres choosing a Merge Join (`nodeMergejoin.c`) for `q_hashjoin`'s outer product join (on top of the Hash Join for the order/item join). This is real coverage of a third join strategy that wasn't deliberately engineered, just verified after the fact.
+  - At the calibrated window width, `EXPLAIN` showed PostgreSQL choosing a Merge Join (`nodeMergejoin.c`) for `q_hashjoin`'s outer product join (on top of the Hash Join for the order/item join). This is real coverage of a third join strategy that wasn't deliberately engineered, just verified after the fact.
 - **BRIN vs. btree "skip scan" isn't pinned.**
-  - The time-window predicate on `ordered_at` sometimes uses the new BRIN index and sometimes a `(status, ordered_at)` btree "skip scan" (a Postgres 17+ feature), depending on window width.
+  - The time-window predicate on `ordered_at` sometimes uses the new BRIN index and sometimes a `(status, ordered_at)` btree "skip scan" (a PostgreSQL 17+ feature), depending on window width.
   - Since this is one monolithic SQL statement (deliberately kept as a single network round trip; see below), there's no way to force one path for this block without an `enable_*` GUC, which would also affect every other block.
   - Documented as "either, verified via `EXPLAIN`" rather than a false promise of one specific plan.
 - **PL/pgSQL's plan cache is a trap for parameterized calibration harnesses.**
@@ -109,7 +109,7 @@ Profiling this transaction locally (fresh `postgres:18` in Docker, `jit=off`, `E
     - Fixed with `SET plan_cache_mode = force_custom_plan` in the harness.
   - **This is purely a harness artifact:** real `pgbench` (simple query protocol) substitutes `:variables` as literal text before every execution, so `ro_cpu_txn.sql` itself was never affected
     - Confirmed by a live `pgbench` run (84 ms avg latency, 0 failures across 179 transactions) before and after the fix
-- `round(double precision, integer)` doesn't exist in Postgres (only `round(numeric, integer)`)
+- `round(double precision, integer)` doesn't exist in PostgreSQL (only `round(numeric, integer)`)
 - `percentile_cont`/`stddev_samp`/`corr` needed explicit `::numeric` casts before rounding for the `q_stats` digest.
 
 ## Validation

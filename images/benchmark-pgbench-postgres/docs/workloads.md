@@ -10,8 +10,7 @@ Standard TPC-B-style OLTP mix (mostly-write, network- and lock-sensitive). See t
 
 This schema uses a cached CPU-heavy SQL workload.
 
-A custom, read-only PostgreSQL benchmark sized to fit in `shared_buffers`, so the benchmark is dominated by CPU work (parse, plan, execute, join, aggregate, text/JSON/array processing) rather than disk I/O.
-It creates the following test data, taking up roughly 260–320 MB in memory:
+A custom, read-only PostgreSQL benchmark sized to fit in `shared_buffers`, so the benchmark is dominated by CPU work (parse, plan, execute, join, aggregate, text/JSON/array processing) rather than disk I/O. It creates the following test data, taking up roughly 260–320 MB in memory:
 
 - 20k products
 - 50k customers
@@ -23,7 +22,7 @@ This benchmark can be run via the `pgbench -D scale=N -f ro_cpu_txn.sql` command
 - `-D scale=N` linearly scales the row-count knobs inside the transaction (wider slices, bigger joins) without touching the underlying dataset, so a single fixed schema can represent a range of CPU intensities.
 - It uses fixed concurrency points instead of a geometric search to work with the uniformity of the test database.
 
-The transaction is intentionally a single SQL script that runs several blocks, each touching a different Postgres subsystem:
+The transaction is intentionally a single SQL script that runs several blocks, each touching a different PostgreSQL subsystem:
 
 - `q_idx`: btree index scan + nested loop + window agg
 - `q_hashjoin`: hash join + hash aggregate over a time slice
