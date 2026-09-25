@@ -4,7 +4,7 @@
 
 - **A Production workload:**
   - Transactions are synthetic proxies; deliberately balanced mixes of PostgreSQL subsystems. See [Workloads](./workloads.md) for details.
-  - The benchmark does *not* predict the throughput of any specific application.
+  - This benchmark does *not* predict the throughput of any specific application.
   - It instead gives a general sense of the relative RDBMS performance expected of a server type.
 - **Disk I/O speed:**
   - Block storage is provisioned independently of the instance type in most clouds, so it is not a property of the server being ranked. The scores do *not* measure storage performance. See [Deliberate Exclusions](#exclusions) for details.
@@ -32,11 +32,11 @@ Most published database benchmarks compare *database engines*, engine versions, 
 
 ### Deliberately out of scope
 
-The following are deliberately left out of scope, either because they detract from the benchmark's overall purpose, or because they go against some other design consideration.
+The following are deliberately left out of scope, either because they detract from this benchmark's overall purpose, or because they go against some other design consideration.
 
 - **Distribution is still uniform, not Zipfian.** The product catalog has over 20k products, but the customer/order/order-item generation is still `g % k` modular arithmetic, not a realistic power-law. A real "few whales, many one-off customers" shape would be a bigger, separate change to the data generator.
 - **`jit` and `max_parallel_workers_per_gather` stay off**, matching the original design's rationale: this benchmark measures raw engine/CPU behavior, *not* LLVM JIT jitter or Gather scalability. Those are treated as a separate testing axis.
-- **A single monolithic statement** (one `SELECT` with 8 CTEs, one `UNION ALL`) is deliberate: it keeps one `pgbench` transaction equal to one network round trip, which makes the cached-RO redesign resilient to `netem`-simulated RTT (see [[Design History]] for details). The tradeoff is that per-block planner GUCs (e.g. forcing Merge Join specifically) aren't possible without affecting every block.
+- **A single monolithic statement** (one `SELECT` with 8 CTEs, one `UNION ALL`) is deliberate: it keeps one `pgbench` transaction equal to one network round trip, which makes the cached-RO redesign resilient to `netem`-simulated RTT (see [Design History](./design-history.md) for details). The tradeoff is that per-block planner GUCs (e.g. forcing Merge Join specifically) aren't possible without affecting every block.
 - **Pre-calibrated weights.** Weights are calibrated on one local Docker `postgres:18` instance. Re-run `profile_v2_breakdown.sql` after any schema/query change, or on significantly different hardware, to confirm no block has drifted back into dominance.
 
 ## Design Constraints
@@ -55,7 +55,7 @@ The CPU-heavy, cached, read-only script stayed within ±0.3% at high concurrency
 
 ## Operational Details
 
-The benchmark can be used for the following production runs:
+This benchmark can be used for the following production runs:
 
 - **IaaS server tuning**: PostgreSQL GUCs are generated per host by [pgtune](https://pgtune.leopard.in.ua/).
   - Form defaults:

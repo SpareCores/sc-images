@@ -22,7 +22,7 @@ We benchmarked the benchmarks before trusting one. In rough order:
   - **Conclusion:** make the transaction heavy instead of pipelining a light one.
     - serial mode, a fixed `{1, V/2, V, 2·V}` concurrency profile, and a TPM score
 - **Outcome**:
-  - See `pgbench_ro` workload in the [description](./workloads.md#pgbench_ro)
+  - See the `pgbench_ro` workload in the [description](./workloads.md#pgbench_ro)
   - `pgbench_tpcb` is kept as a secondary classic-OLTP (TPC-B-like) reference
 
 A [blog post](https://sparecores.com/articles) with the detailed findings is planned.

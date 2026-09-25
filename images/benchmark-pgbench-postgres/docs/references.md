@@ -1,4 +1,4 @@
-# Glossary
+# References
 
 Alphabetized lists of frequently used phrases.
 

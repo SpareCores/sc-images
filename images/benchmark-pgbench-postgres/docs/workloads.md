@@ -10,7 +10,7 @@ Standard TPC-B-style OLTP mix (mostly-write, network- and lock-sensitive). See t
 
 This schema uses a cached CPU-heavy SQL workload.
 
-A custom, read-only PostgreSQL benchmark sized to fit in `shared_buffers`, so the benchmark is dominated by CPU work (parse, plan, execute, join, aggregate, text/JSON/array processing) rather than disk I/O. It creates the following test data, taking up roughly 260–320 MB in memory:
+A custom, read-only PostgreSQL benchmark sized to fit in `shared_buffers`, so this benchmark is dominated by CPU work (parse, plan, execute, join, aggregate, text/JSON/array processing) rather than disk I/O. It creates the following test data, taking up roughly 260–320 MB in memory:
 
 - 20k products
 - 50k customers
