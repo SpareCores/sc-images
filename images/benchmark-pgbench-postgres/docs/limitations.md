@@ -76,7 +76,7 @@ This benchmark can be used for the following production runs:
 - **Topology**: Client and server VMs are deployed in the same availability zone of the same region, talking over private VPC addresses to minimize RTT.
 
   **Note**: This alone is insufficient. Occasional latency glitches still distort lightweight-workload results even when deployed in the same zone. Because of this the workload itself must be RTT-tolerant.
-- **Timing**: See [Key Environment Variables](./usage.md#key-environment-variables) for details.
+- **Timing**: See [Key Environment Variables](./usage.md#key-environment-variables) for configuration options.
   - 120 s warmup (once)
   - 60 s settle between concurrency rungs
   - 300 s measurement per rung
