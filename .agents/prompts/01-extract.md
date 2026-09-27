@@ -4,9 +4,9 @@ Read this prompt together with the repo root [`AGENTS.md`](../../AGENTS.md).
 Use an **OpenAI GPT** model for this phase.
 
 You are **read-only** except for `facts.md`. Do not edit `README.md`,
-`docs/*.md`, Dockerfiles, application code, or
-`.agents/context/<image>.md`. Humans own the context file; a re-extract
-must not touch it.
+`docs/*.md`, `CHANGELOG.md`, Dockerfiles, application code, or
+`.agents/context/<image>.md`. Humans own the context file and the
+changelog; a re-extract must not touch either.
 
 ## Input
 
@@ -15,7 +15,7 @@ The human names a target image folder, e.g. `images/benchmark-pgbench-postgres/`
 Read at least:
 
 - Everything under that folder (Dockerfile, `benchmark.py` / scripts, SQL,
-  config, existing `README.md` and `docs/` if present)
+  config, existing `README.md`, `docs/`, and `CHANGELOG.md` if present)
 - Sibling images referenced by `DEPENDS_ON` or README links
 - Build metadata: `BUILD_ARGS`, `DEPENDS_ON`, `PLATFORMS`, `CONTEXT`, `ZRAM`,
   `SCCACHE`
@@ -60,7 +60,10 @@ Use these exact top-level headings:
   claim under the first six sections. A claim taken from
   `.agents/context/<image>.md` is cited as `source: context` plus the
   heading, not a line number.
-- Prefer code and metadata files over existing prose.
+- Prefer code and metadata files over existing prose. `CHANGELOG.md` is
+  a history log, not a source of runtime facts. Do not copy it into the
+  factual sections. If it contradicts the code, list that under
+  **Conflicts**.
 - If the README asserts something the code does not support, list it under
   **Conflicts**, not under the factual sections.
 - Write **no publishing-ready prose**. Bullets, tables, and short neutral
@@ -85,4 +88,4 @@ Use these exact top-level headings:
 - [ ] Every claim in the first six sections has a citation
 - [ ] Conflicts and open questions are non-empty whenever uncertainty exists
   (empty sections must say `None found.` explicitly)
-- [ ] No edits to published docs, source files, or `.agents/context/`
+- [ ] No edits to published docs, `CHANGELOG.md`, source files, or `.agents/context/`

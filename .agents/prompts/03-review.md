@@ -12,7 +12,8 @@ Do not "fix while reviewing". Your only write is the review report.
 - `.agents/context/<image>.md` — durable maintainer answers (may be
   absent on a first pass; then treat every open question in `facts.md`
   as unanswered)
-- Current draft: `images/<image>/README.md` and `images/<image>/docs/**`
+- Current draft: `images/<image>/README.md`, `images/<image>/docs/**`,
+  and `images/<image>/CHANGELOG.md` if present
 - Image source tree (to spot-check citations and catch drift since extract)
 
 Do not edit `.agents/context/`. If the draft states something that is
@@ -58,7 +59,7 @@ Severity:
 | Level | Use when |
 |-------|----------|
 | Blocker | Factual error vs `facts.md`, context, or code; claim with no source in either file; README reduced to TOC; missing critical prerequisite; broken link/anchor that misleads |
-| Should-fix | Style-guide violations that hurt clarity; imprecise scope; terminology drift; weak structure |
+| Should-fix | Style-guide violations that hurt clarity; imprecise scope; terminology drift; weak structure; raw experiment log or LLM calibration notes left in the README or `docs/` instead of `CHANGELOG.md`; detail removed from the manual with no changelog entry |
 | Nit | Wrapping, punctuation consistency, minor wording |
 
 ### Checklist (tick or fail each)
@@ -79,7 +80,8 @@ Copy into `review.md` and mark `[x]` / `[ ]`:
 - [ ] Opening description stays high-level (no premature env vars)
 - [ ] Detail lives in `docs/` with in-context links from the README
 - [ ] Content order: measure/why → methodology → run → outputs → limits
-- [ ] Design history (if present) is retrospective narrative, not notes dump
+- [ ] Design history in the README and `docs/` is a retrospective summary, not a notes dump
+- [ ] Raw experiment logs and LLM calibration notes live in `CHANGELOG.md`, and the manual links to them when that file exists
 
 ### Style (AGENTS.md house guide)
 - [ ] PostgreSQL / `postgres` / `pgbench` terminology correct

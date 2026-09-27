@@ -94,7 +94,8 @@ benchmarking workloads. Images land on GHCR as
 | `images/<name>/Dockerfile` | Image build definition |
 | `images/<name>/benchmark.py` (or `*.sh`) | Where methodology and runtime behavior live |
 | `images/<name>/README.md` | Public-facing overview (see architecture below) |
-| `images/<name>/docs/*.md` | Detailed companion pages |
+| `images/<name>/docs/*.md` | Detailed companion pages for readers |
+| `images/<name>/CHANGELOG.md` | Full change and experiment log, including calibration notes |
 | `BUILD_ARGS`, `DEPENDS_ON`, `PLATFORMS`, `CONTEXT`, `ZRAM`, `SCCACHE` | Build metadata files next to the Dockerfile |
 | `.github/workflows/push.yml` | Top-level CI entry (push + manual dispatch) |
 | `.github/workflows/build-level.yml` | Per-level build matrix |
@@ -139,14 +140,30 @@ limitations, design history, references, …). The README links to them
 
 ### Methodology / design history
 
-Write as a **retrospective narrative**:
+In the README and `docs/`, write as a **retrospective narrative**:
 
 > We ran 21 experiments on a 32 vCPU host to investigate … and found the
 > winning combination (…) …
 
-Not as keyword lists, not as pasted AI notes. Summarize historical
-findings as the **limiting factors discovered**, then stop. Drop raw
-experiment tables unless a maintainer asks to keep them.
+Not as keyword lists. Summarize historical findings as the **limiting
+factors discovered**, then stop. Link to `CHANGELOG.md` for the rest.
+
+### `CHANGELOG.md` — full log
+
+One file per image, next to the README: `images/<name>/CHANGELOG.md`.
+Create it when the image has history worth keeping. Do not add an empty
+file to every image.
+
+This is where the detail lives that the manual must not carry:
+
+- Every behavior and documentation change, newest entry first
+- Experiment logs, including tables and negative results
+- Calibration notes, including notes drafted by an LLM
+
+The README and `docs/` stay a manual. They summarize and link here.
+They do not paste the log. The changelog keeps that text, including
+rough notes. Phase 01 reads it and must not edit it. Phase 02 moves
+detail here instead of deleting it.
 
 ### Framing
 
@@ -231,6 +248,7 @@ maintainer answers:
 | `.agents/work/<image>/facts.md` | ignored | Phase 01 (GPT) | No — regenerated from code |
 | `.agents/work/<image>/review.md` | ignored | Phase 03 (Gemini) | No — regenerated from the draft |
 | `.agents/context/<image>.md` | tracked | Humans only | Yes |
+| `images/<image>/CHANGELOG.md` | tracked | Humans and phase 02 | Yes — phase 01 must not edit it |
 
 `<image>` is the folder name under `images/`, e.g.
 `benchmark-pgbench-postgres`. See
@@ -242,13 +260,13 @@ images/NAME (code + Dockerfile + CI)
         │
         ▼
   01-extract  (OpenAI GPT)  →  .agents/work/NAME/facts.md
-        │                      (reads context; does not write it)
+        │                      (reads context and CHANGELOG; writes neither)
         ▼
   Human checkpoint: record answers in .agents/context/NAME.md
         │
         ▼
   02-write    (Claude)      →  README.md + docs/*.md
-        │                      (facts.md + context.md are both sources)
+        │                      (moves cut detail into CHANGELOG.md)
         ▼
   03-review   (Gemini)      →  .agents/work/NAME/review.md
         │
@@ -259,7 +277,7 @@ images/NAME (code + Dockerfile + CI)
 | Phase | Model | Prompt | Output |
 |-------|-------|--------|--------|
 | 1. Extract methodology from code | OpenAI GPT | [`.agents/prompts/01-extract.md`](.agents/prompts/01-extract.md) | `.agents/work/<image>/facts.md` |
-| 2. Write / restructure docs | Claude | [`.agents/prompts/02-write.md`](.agents/prompts/02-write.md) | `images/<image>/README.md` + `docs/*.md` |
+| 2. Write / restructure docs | Claude | [`.agents/prompts/02-write.md`](.agents/prompts/02-write.md) | `images/<image>/README.md`, `docs/*.md`, and `CHANGELOG.md` when detail moves |
 | 3. Review for accuracy & style | Gemini | [`.agents/prompts/03-review.md`](.agents/prompts/03-review.md) | `.agents/work/<image>/review.md` |
 
 **Why split models:** GPT is strong at structured extraction with

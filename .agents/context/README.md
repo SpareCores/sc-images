@@ -1,7 +1,10 @@
 # Maintainer context
 
-Durable answers that are **not** in the image code: production topology,
-historical experiment outcomes, cost trade-offs, intentional omissions.
+Short maintainer decisions that are **not** in the image code:
+production topology, cost trade-offs, intentional omissions.
+
+The full experiment log, calibration notes, and change history do not
+belong here. Those go in `images/<image>/CHANGELOG.md`.
 
 One file per image, named after the folder under `images/`:
 
