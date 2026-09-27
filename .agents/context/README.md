@@ -3,17 +3,20 @@
 Short maintainer decisions that are **not** in the image code:
 production topology, cost trade-offs, intentional omissions.
 
-The full experiment log, calibration notes, and change history do not
-belong here. Those go in `images/<image>/CHANGELOG.md`.
-
-One file per image, named after the folder under `images/`:
+Fleet-wide decisions go in
+[shared.md](shared.md). One file per image covers the rest, named after
+the folder under `images/`:
 
 ```text
 .agents/context/benchmark-pgbench-postgres.md
 ```
 
+The full experiment log, calibration notes, and change history do not
+belong here. Those go in `images/<image>/CHANGELOG.md`.
+
 Phase 01 regenerates `.agents/work/<image>/facts.md` and must not edit
-files here. Phase 02 and 03 read them. Humans write them.
+files here. Phase 02 and 03 read `shared.md` and the per-image file.
+Humans write both.
 
 ## Shape
 

@@ -4,9 +4,9 @@ Read this prompt together with the repo root [`AGENTS.md`](../../AGENTS.md).
 Use an **OpenAI GPT** model for this phase.
 
 You are **read-only** except for `facts.md`. Do not edit `README.md`,
-`docs/*.md`, `CHANGELOG.md`, Dockerfiles, application code, or
-`.agents/context/<image>.md`. Humans own the context file and the
-changelog; a re-extract must not touch either.
+`docs/*.md`, `CHANGELOG.md`, Dockerfiles, application code, or anything
+under `.agents/context/`. Humans own context files and changelogs; a
+re-extract must not touch them.
 
 ## Input
 
@@ -21,8 +21,12 @@ Read at least:
   `SCCACHE`
 - Relevant CI pieces under `.github/` if the image has special build
   behavior
-- `.agents/context/<image-folder-name>.md` when it exists (maintainer
-  answers from earlier runs). Read it; do not modify it.
+- `.agents/context/shared.md` (fleet-wide maintainer answers). Read it;
+  do not modify it.
+- `.agents/context/<image-folder-name>.md` when it exists. Read it; do
+  not modify it.
+- For a variant image, the family manual named in `AGENTS.md` (for
+  example `vllm-common/README.md`).
 
 ## Output
 
@@ -58,8 +62,8 @@ Use these exact top-level headings:
 
 - Cite `path:line` (or `path:start-end`) for **every** code-derived
   claim under the first six sections. A claim taken from
-  `.agents/context/<image>.md` is cited as `source: context` plus the
-  heading, not a line number.
+  `.agents/context/shared.md` or `.agents/context/<image>.md` is cited
+  as `source: context` plus the file and heading, not a line number.
 - Prefer code and metadata files over existing prose. `CHANGELOG.md` is
   a history log, not a source of runtime facts. Do not copy it into the
   factual sections. If it contradicts the code, list that under
@@ -80,7 +84,7 @@ Use these exact top-level headings:
 | How to run | Docker image tag, required env, minimal command reconstructed from code/entrypoint |
 | Dependencies and platforms | `DEPENDS_ON`, `FROM` bases, `PLATFORMS`, sibling server images |
 | Conflicts | Doc claim vs code reality, each with citations on both sides |
-| Open questions | Anything a maintainer must confirm (production topology, historical experiments, intentional omissions). Phrase as questions. If `.agents/context/<image>.md` already answers one, do not repeat it here — cite the context heading instead under the matching factual section, marked `source: context` (no `file:line`). If context contradicts the code, list that under Conflicts. |
+| Open questions | Anything a maintainer must confirm (production topology, historical experiments, intentional omissions). Phrase as questions. If `shared.md` or the image context file already answers one, do not repeat it — cite that heading under the matching factual section as `source: context`. If context contradicts the code, list that under Conflicts. |
 
 ## Done criteria
 

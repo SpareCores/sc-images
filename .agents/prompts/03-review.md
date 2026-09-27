@@ -9,15 +9,17 @@ Do not "fix while reviewing". Your only write is the review report.
 ## Input
 
 - `.agents/work/<image>/facts.md` — code-derived claims
-- `.agents/context/<image>.md` — durable maintainer answers (may be
-  absent on a first pass; then treat every open question in `facts.md`
+- `.agents/context/shared.md` and `.agents/context/<image>.md` —
+  durable maintainer answers (the image file may be absent; then treat
+  every open question in `facts.md` that shared context does not answer
   as unanswered)
 - Current draft: `images/<image>/README.md`, `images/<image>/docs/**`,
   and `images/<image>/CHANGELOG.md` if present
+- For a variant image, the family manual named in `AGENTS.md`
 - Image source tree (to spot-check citations and catch drift since extract)
 
 Do not edit `.agents/context/`. If the draft states something that is
-neither in `facts.md` nor in context, that is a blocker.
+neither in `facts.md` nor in either context file, that is a blocker.
 
 ## Output
 
@@ -49,8 +51,8 @@ Each item under Blockers / Should-fix / Nits:
 ```markdown
 - **`path:line`** — short title.
   Detail: what is wrong, why it matters, and what "correct" looks like
-  (reference `facts.md`, `.agents/context/<image>.md`, or `AGENTS.md`
-  style rules). Do not supply a full
+  (reference `facts.md`, `.agents/context/shared.md`,
+  `.agents/context/<image>.md`, or `AGENTS.md` style rules). Do not supply a full
   rewritten section unless a one-line suggestion is enough.
 ```
 
@@ -59,7 +61,7 @@ Severity:
 | Level | Use when |
 |-------|----------|
 | Blocker | Factual error vs `facts.md`, context, or code; claim with no source in either file; README reduced to TOC; missing critical prerequisite; broken link/anchor that misleads |
-| Should-fix | Style-guide violations that hurt clarity; imprecise scope; terminology drift; weak structure; raw experiment log or LLM calibration notes left in the README or `docs/` instead of `CHANGELOG.md`; detail removed from the manual with no changelog entry |
+| Should-fix | Style-guide violations that hurt clarity; imprecise scope; terminology drift; weak structure; a `docs/` split a first-pass reader does not need; a variant README that repeats the family manual; raw experiment log or LLM calibration notes left in the README or `docs/` instead of `CHANGELOG.md`; detail removed from the manual with no changelog entry |
 | Nit | Wrapping, punctuation consistency, minor wording |
 
 ### Checklist (tick or fail each)
@@ -70,23 +72,25 @@ Copy into `review.md` and mark `[x]` / `[ ]`:
 ## Checklist
 
 ### Accuracy
-- [ ] Claims match `facts.md`, `.agents/context/<image>.md`, or code; no invented topology or history
+- [ ] Claims match `facts.md`, `.agents/context/shared.md`, `.agents/context/<image>.md`, or code; no invented topology or history
 - [ ] Parameters, defaults, and outputs match the implementation
 - [ ] Conflicts listed in `facts.md` are resolved in context or explicitly deferred
-- [ ] Published text does not contradict `.agents/context/<image>.md`
+- [ ] Published text does not contradict shared or per-image context
 
 ### Architecture
-- [ ] README is a self-contained overview (not a bare TOC)
-- [ ] Opening description stays high-level (no premature env vars)
-- [ ] Detail lives in `docs/` with in-context links from the README
+- [ ] README is a self-contained manual (not a bare TOC)
+- [ ] A straightforward benchmark or inspection image stays one README
+- [ ] Any `docs/` page exists because one README fails a first pass
+- [ ] Opening paragraph stays high-level (env vars live in Usage, not in the lead)
+- [ ] Variant README states only the difference from the family manual
 - [ ] Content order: measure/why → methodology → run → outputs → limits
 - [ ] Design history in the README and `docs/` is a retrospective summary, not a notes dump
 - [ ] Raw experiment logs and LLM calibration notes live in `CHANGELOG.md`, and the manual links to them when that file exists
 
 ### Style (AGENTS.md house guide)
-- [ ] PostgreSQL / `postgres` / `pgbench` terminology correct
-- [ ] DBaaS / IaaS / vCPU casing correct
-- [ ] "shell command" / "run via Docker" — not "bash script"; headings match
+- [ ] Product names match upstream spelling; program names are in backticks
+- [ ] DBaaS / IaaS / vCPU casing correct where those terms appear
+- [ ] "run via Docker" — not "bash script"; headings match
 - [ ] ~80-character wrap; no one-sentence-per-line paragraphs
 - [ ] Lists: intro sentence, consistent punctuation; shallow nesting
 - [ ] No TODO/FIXME in published docs

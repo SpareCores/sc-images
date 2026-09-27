@@ -45,14 +45,14 @@ Principles:
 - Optimize for **time to understanding**: how quickly a reader grasps
   what the image measures, why the design looks the way it does, and how
   to run it.
-- Order content logically for benchmark / image docs:
+- Order content logically:
 
-  1. What it measures and why it exists
-  2. How it works (high-level methodology)
-  3. Running it (Docker / shell commands)
+  1. What it measures or collects, and why it exists
+  2. How it works (high-level methodology), for benchmarks
+  3. Running it (Docker)
   4. Outputs and how to read them
   5. Limitations and deliberately out-of-scope items
-  6. Links into detailed `docs/*.md` pages
+  6. A link to `docs/` or `CHANGELOG.md` only when that file exists
 
 - Explicitly justify ANY re-ordering or cut content (explain WHY a reader
   needs this information earlier or later).
@@ -101,6 +101,8 @@ benchmarking workloads. Images land on GHCR as
 | `.github/workflows/build-level.yml` | Per-level build matrix |
 | `.github/scripts/` | CI helper scripts (build, cache, resource-tracker, zram, …) |
 | `images/resource-tracker/` | Static binary copied into benchmark images |
+| `vllm-common/` | Shared vLLM harness used by several image folders |
+| `.agents/context/shared.md` | Maintainer decisions that apply to every image |
 
 **Rule:** when docs and code disagree, trust the code and open a question
 for the maintainer. Example from PR review history: the client was
@@ -112,31 +114,47 @@ in the README. Surface it; don't invent a narrative around the old prose.
 
 ## Documentation architecture
 
-### README.md — self-contained overview
+### README.md — the manual
 
-The README is a **detailed high-level overview**. A reader should
-understand what the benchmark does and why **without clicking anywhere**.
-It must **never** shrink to a table of contents or an annotated index.
+The README is the manual. A reader should understand the image on one
+pass, without opening another file. It must **never** shrink to a table
+of contents.
 
-Keep in the README:
+A straightforward benchmark stays in that one file, including a Usage
+section for env vars when the list is short. Inspection images
+(`hwinfo`, `dmidecode`) and base images stay a short README: what it
+collects or builds, how to run it, what it prints.
 
-- What is measured and why it exists (manual framing, not a blog-post
-  "why now?")
-- High-level methodology and design constraints
-- How to run it via Docker (one copy-pasteable example)
-- Headline outputs and how to interpret them
-- Summary of limitations, with links into `docs/` for depth
+Keep the opening paragraph free of env var names and config knobs.
+Those go in a Usage section later in the same file, or in `docs/usage.md`
+when that page exists.
 
-Keep **out** of the opening description:
+### When to split
 
-- Env var names and config knobs (those belong in Usage / `docs/usage.md`)
-- Implementation trivia that only matters after the reader already cares
+Add a file under `docs/` only when a first-pass reader would not get
+through a single README. Typical reasons: a long env-var table, or a
+limitations section that is longer than the methodology.
 
-### `docs/*.md` — fine detail
+Do not split for symmetry. Do not create `purpose.md`,
+`design-history.md`, or `references.md` by default. The README already
+covers purpose. Design history in the manual is a short retrospective;
+the full log is `CHANGELOG.md`.
 
-Split deep material into focused pages (purpose, workloads, usage,
-limitations, design history, references, …). The README links to them
-**from the relevant paragraphs**, not from a bare TOC at the top.
+Each extra page must be linked from the paragraph that needs it.
+
+### Image families
+
+One methodology manual per family. A variant folder documents only what
+differs (base image, architecture, GPU, duration).
+
+| Family | Manual | Variants document only the difference |
+|--------|--------|----------------------------------------|
+| vLLM | [`vllm-common/README.md`](vllm-common/README.md) | `benchmark-vllm-cpu`, `benchmark-vllm-cpu-avx2`, `benchmark-vllm-gpu`, `vllm-cpu-base-avx2` |
+| PostgreSQL bench | `images/benchmark-pgbench-postgres/README.md` | `benchmark-postgres-server` is the server image, not a second methodology |
+| stress-ng | `images/stress-ng/README.md` (when written) | `stress-ng-longrun` says how the long run and pinned version differ |
+
+Do not run the full three-phase pipeline on a folder that only pins a
+base image. Point its README at the family manual.
 
 ### Methodology / design history
 
@@ -179,12 +197,19 @@ Derived from maintainer review of PR #3. Follow every rule below.
 
 ### Terminology
 
+Spell a product the way its project spells it. Put program and command
+names in backticks (`pgbench`, `ffmpeg`, `vllm`).
+
 | Prefer | Avoid / notes |
 |--------|----------------|
-| PostgreSQL | "Postgres" for the product name |
-| `` `postgres` `` (code markup) | bare "postgres" when meaning the server daemon |
-| `` `pgbench` `` and other program names in backticks | bare program names |
+| The upstream product name | A shortened or lowercased product name in prose |
+| `` `postgres` `` | bare "postgres" when that word means the server daemon |
 | DBaaS, IaaS, vCPU | DBaas, iaas, VCPU |
+| "run via Docker" | "bash script" (any shell can run it; Docker is the useful fact) |
+
+PostgreSQL is one example of the product-name rule: write PostgreSQL in
+prose, and `` `postgres` `` for the daemon. Do not copy database terms
+into an image that is not a database.
 
 When you change terminology in the body, **update headings too** (e.g. a
 subsection titled "Bash script" must not survive a body rewrite to
@@ -247,11 +272,14 @@ maintainer answers:
 |------|-----|---------------|------------------------|
 | `.agents/work/<image>/facts.md` | ignored | Phase 01 (GPT) | No — regenerated from code |
 | `.agents/work/<image>/review.md` | ignored | Phase 03 (Gemini) | No — regenerated from the draft |
+| `.agents/context/shared.md` | tracked | Humans only | Yes |
 | `.agents/context/<image>.md` | tracked | Humans only | Yes |
 | `images/<image>/CHANGELOG.md` | tracked | Humans and phase 02 | Yes — phase 01 must not edit it |
 
 `<image>` is the folder name under `images/`, e.g.
-`benchmark-pgbench-postgres`. See
+`benchmark-pgbench-postgres`. Fleet-wide decisions live in
+[`.agents/context/shared.md`](.agents/context/shared.md). Per-image
+decisions live beside it. See
 [`.agents/context/README.md`](.agents/context/README.md) for the file
 shape. LLMs read context; they never create or edit it.
 
@@ -260,7 +288,7 @@ images/NAME (code + Dockerfile + CI)
         │
         ▼
   01-extract  (OpenAI GPT)  →  .agents/work/NAME/facts.md
-        │                      (reads context and CHANGELOG; writes neither)
+        │                      (reads shared + image context and CHANGELOG)
         ▼
   Human checkpoint: record answers in .agents/context/NAME.md
         │
@@ -290,12 +318,15 @@ history that only maintainers know.
 
 1. Open a **new** chat / session with the model named for that phase.
 2. Paste or `@`-include the matching prompt file **and** this `AGENTS.md`.
-3. Point the model at the target `images/<name>/` folder, at
-   `.agents/work/<name>/facts.md`, and at `.agents/context/<name>.md`
-   when that file exists.
-4. After extract, a human copies answers into
-   `.agents/context/<name>.md` and commits that file. Do not paste
-   answers into `facts.md` — the next extract overwrites it.
+3. Point the model at the target folder, at
+   `.agents/context/shared.md`, at `.agents/context/<name>.md` when it
+   exists, and (for write and review) at `.agents/work/<name>/facts.md`.
+   For a variant image, also point at the family manual named above.
+4. After extract, a human copies answers into the context file and
+   commits it. Answers that apply to every image go in `shared.md`.
+   The rest go in `.agents/context/<name>.md`. Do not paste answers
+   into `facts.md`. Re-run extract after context changes so answered
+   questions drop out of the next `facts.md`.
 5. Save machine handoffs under `.agents/work/<name>/` before moving on.
 
 ---
@@ -316,5 +347,5 @@ When you are unsure:
 - Prefer an **Open question for maintainers** over a confident guess.
 - Never paper over a code-vs-docs conflict; list it explicitly in
   `facts.md` (extract) or in section (a) feedback (write / review).
-- Maintainer answers belong in `.agents/context/<image>.md`, not in
-  `facts.md`.
+- Maintainer answers belong in `.agents/context/shared.md` or
+  `.agents/context/<image>.md`, not in `facts.md`.
