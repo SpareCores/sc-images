@@ -1,4 +1,4 @@
-# Phase 03 — Review the docs (Gemini)
+# Phase 03 — Review the docs (Gemini Pro)
 
 Read with the repo root [`AGENTS.md`](../../AGENTS.md).
 

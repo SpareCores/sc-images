@@ -1,4 +1,4 @@
-# Phase 02 — Write the docs (Claude)
+# Phase 02 — Write the docs (Claude Opus)
 
 Read with the repo root [`AGENTS.md`](../../AGENTS.md) and follow its
 documentation architecture and house style.

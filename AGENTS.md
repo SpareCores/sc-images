@@ -165,23 +165,26 @@ Scope and voice:
 
 ## Workflow
 
-Each phase runs in a new session with the model named below, which keeps
-extraction, writing, and review independent.
+Each LLM step runs in a new session, which keeps extraction, writing,
+and review independent. Use a recent reasoning model of the tier named
+below; smaller or faster tiers (Sonnet, Haiku, Flash) miss too much.
 
-| Step | Who | Prompt | Writes |
+| Step | Who | Prompt | Output |
 |------|-----|--------|--------|
-| 1. Extract facts from code | OpenAI GPT | [`01-extract.md`](.agents/prompts/01-extract.md) | `.agents/work/<image>/facts.md` |
-| 2. Answer open questions | Maintainer + writer | [context README](.agents/context/README.md) | `.agents/context/shared.md` or `<image>.md` |
-| 3. Write the docs | Claude | [`02-write.md`](.agents/prompts/02-write.md) | README, `docs/` if needed, `CHANGELOG.md` if detail moves |
-| 4. Review | Gemini | [`03-review.md`](.agents/prompts/03-review.md) | `.agents/work/<image>/review.md` |
-| 5. Fix and open the PR | Writer | — | — |
+| 1. Extract facts from code | Recent GPT reasoning model | [`01-extract.md`](.agents/prompts/01-extract.md) | `.agents/work/<image>/facts.md` |
+| 2. Read `facts.md`; raise open questions with the image's maintainer on Slack | Writer | — | — |
+| 3. Commit the answers | Maintainer | [context README](.agents/context/README.md) | `.agents/context/shared.md` or `<image>.md` |
+| 4. Re-run step 1; repeat 2–4 until nothing answerable is open | Writer | — | `facts.md` |
+| 5. Write the docs | Claude Opus (5.5 preferred) | [`02-write.md`](.agents/prompts/02-write.md) | README, `docs/` if needed, `CHANGELOG.md` if detail moves |
+| 6. Edit manually: rewrite and extend as needed | Writer | — | README |
+| 7. Review | Gemini Pro | [`03-review.md`](.agents/prompts/03-review.md) | `.agents/work/<image>/review.md` |
+| 8. Fix findings, open the PR, request review | Writer, then maintainer | — | PR |
 
-`<image>` is the folder name under `images/`. Re-run step 1 after
-answering questions so the answered ones drop out of `facts.md`.
+`<image>` is the folder name under `images/`.
 
 To run an LLM step, include the prompt file and this `AGENTS.md`, then
 point the model at the image folder, `.agents/context/shared.md`, the
-image's context file if it exists, `facts.md` (steps 3–4), and the
+image's context file if it exists, `facts.md` (steps 5 and 7), and the
 family manual for a variant.
 
 Where things live:
@@ -191,7 +194,7 @@ Where things live:
 | `.agents/work/<image>/facts.md`, `review.md` | ignored | LLM; regenerated each run |
 | `.agents/context/shared.md` | tracked | Humans; applies to every image |
 | `.agents/context/<image>.md` | tracked | Humans; one image |
-| `images/<image>/CHANGELOG.md` | tracked | Humans and step 3 |
+| `images/<image>/CHANGELOG.md` | tracked | Humans and step 5 |
 
 LLMs read context files and never edit them. Answers given only in chat
 are lost on the next extract; record them in a context file.

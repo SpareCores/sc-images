@@ -1,4 +1,4 @@
-# Phase 01 — Extract facts from code (OpenAI GPT)
+# Phase 01 — Extract facts from code (recent GPT reasoning model)
 
 Read with the repo root [`AGENTS.md`](../../AGENTS.md).
 
