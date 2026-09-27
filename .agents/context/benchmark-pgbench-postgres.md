@@ -1,28 +1,26 @@
 # Context: benchmark-pgbench-postgres
 
-Maintainer answers from review of PR #3. Facts the image code does not
-state.
-
 ## Why does this benchmark exist?
 
-Spare Cores monitors and publishes empirical performance data for over
-5,000 cloud server types in the Navigator project
-(https://sparecores.com/servers). A proper Relational Database
-Management System (RDBMS) benchmark was missing. Earlier stand-ins were
-PassMark database operations, Redis, raw CPU speed, and memory
-bandwidth.
+Spare Cores monitors and publishes empirical performance data for over 5,000
+cloud server types in the Navigator project (https://sparecores.com/servers). A
+proper Relational Database Management System (RDBMS) benchmark was missing.
+Earlier stand-ins were PassMark database operations (doesn't scale to 32+
+vCPUs), Redis (not a relational database), raw CPU speed, and memory bandwidth
+(useful proxies, but not a database workload).
 
 ## Where is the benchmarking client run?
 
-The client is agnostic, so it can run on the database server or connect to it
-remotely, and the related difference in latency should not materially change the
-benchmark results, as (1) the workload is heavy and running for ~100ms so 1-5ms
-latency is negligible, (2) the client load is minimal (<1% CPU and ~10 MB RSS on
-an 8-vCPU run).
+The client is agnostic if the database server is local or remote, so it can run
+on the database server or connect to it remotely, and the related difference in
+latency should not materially change the benchmark results, as (1) the workload
+is heavy and running for ~100ms, so 1-5ms latency is negligible, and (2) the
+client load is minimal (<1% CPU and ~10 MB RSS on an 8-vCPU run), so should not
+affect the database server performance.
 
 As the client is containerized, it needs permissions and e.g. Docker to be able
-to run, which is not doable on managed databases, where we always start a
-separate benchmarking client VM that connects remotely to the database server.
+to run, which is not doable on managed databases, so we always start a separate
+benchmarking client VM that connects remotely to the managed database server.
 
 IaaS does not use a separate client VM: the client and the database ran on the
 same node to save on infrastructure costs.
