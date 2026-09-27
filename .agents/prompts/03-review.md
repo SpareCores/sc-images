@@ -1,111 +1,73 @@
-# Phase 03 — Review documentation (Gemini)
+# Phase 03 — Review the docs (Gemini)
 
-Read this prompt together with the repo root [`AGENTS.md`](../../AGENTS.md).
-Use a **Gemini** model for this phase (Gemini Pro when available).
+Read with the repo root [`AGENTS.md`](../../AGENTS.md).
 
-You are a **reviewer only**. Do not rewrite `README.md` or `docs/*.md`.
-Do not "fix while reviewing". Your only write is the review report.
+Review only. Your only write is `review.md`; do not fix the docs.
 
-## Input
+## Read
 
-- `.agents/work/<image>/facts.md` — code-derived claims
-- `.agents/context/shared.md` and `.agents/context/<image>.md` —
-  durable maintainer answers (the image file may be absent; then treat
-  every open question in `facts.md` that shared context does not answer
-  as unanswered)
-- Current draft: `images/<image>/README.md`, `images/<image>/docs/**`,
-  and `images/<image>/CHANGELOG.md` if present
-- For a variant image, the family manual named in `AGENTS.md`
-- Image source tree (to spot-check citations and catch drift since extract)
+- `.agents/work/<image>/facts.md`
+- `.agents/context/shared.md` and `.agents/context/<image>.md` if it
+  exists. A question in `facts.md` that neither answers is still open.
+- The image's `README.md`, `docs/`, and `CHANGELOG.md`
+- The family manual, for a variant image
+- The image source, to spot-check citations and catch changes since the
+  extract
 
-Do not edit `.agents/context/`. If the draft states something that is
-neither in `facts.md` nor in either context file, that is a blocker.
+## Write
 
-## Output
-
-Write:
-
-```text
-.agents/work/<image>/review.md
-```
-
-## `review.md` structure (required)
+`.agents/work/<image>/review.md`:
 
 ```markdown
-# Review: <image-folder-name>
+# Review: <image>
 
 ## Summary
-(2–5 sentences: ship / needs work / blocked — and why)
+Ship, needs work, or blocked, and why, in 2–5 sentences.
 
 ## Blockers
 ## Should-fix
 ## Nits
-
 ## Checklist
 ```
 
-### Finding format
-
-Each item under Blockers / Should-fix / Nits:
+Write each finding as:
 
 ```markdown
 - **`path:line`** — short title.
-  Detail: what is wrong, why it matters, and what "correct" looks like
-  (reference `facts.md`, `.agents/context/shared.md`,
-  `.agents/context/<image>.md`, or `AGENTS.md` style rules). Do not supply a full
-  rewritten section unless a one-line suggestion is enough.
+  What is wrong, why it matters, and what correct looks like, citing
+  facts.md, a context file, or an AGENTS.md rule.
 ```
 
-Severity:
+| Severity | Use for |
+|----------|---------|
+| Blocker | A claim that contradicts or is missing from `facts.md`, the context files, and the code; a README reduced to a table of contents; a missing prerequisite; a misleading link |
+| Should-fix | Style-guide violations that hurt clarity; a `docs/` split that is not needed; a variant README repeating the family manual; experiment logs or LLM notes left in the manual; detail cut with no `CHANGELOG.md` entry |
+| Nit | Wrapping, punctuation, minor wording |
 
-| Level | Use when |
-|-------|----------|
-| Blocker | Factual error vs `facts.md`, context, or code; claim with no source in either file; README reduced to TOC; missing critical prerequisite; broken link/anchor that misleads |
-| Should-fix | Style-guide violations that hurt clarity; imprecise scope; terminology drift; weak structure; a `docs/` split a first-pass reader does not need; a variant README that repeats the family manual; raw experiment log or LLM calibration notes left in the README or `docs/` instead of `CHANGELOG.md`; detail removed from the manual with no changelog entry |
-| Nit | Wrapping, punctuation consistency, minor wording |
-
-### Checklist (tick or fail each)
-
-Copy into `review.md` and mark `[x]` / `[ ]`:
-
-```markdown
 ## Checklist
 
+Copy into `review.md` and mark each item `[x]` or `[ ]`:
+
+```markdown
 ### Accuracy
-- [ ] Claims match `facts.md`, `.agents/context/shared.md`, `.agents/context/<image>.md`, or code; no invented topology or history
+- [ ] Every claim traces to facts.md, a context file, or the code
 - [ ] Parameters, defaults, and outputs match the implementation
-- [ ] Conflicts listed in `facts.md` are resolved in context or explicitly deferred
-- [ ] Published text does not contradict shared or per-image context
+- [ ] Conflicts from facts.md are resolved or explicitly deferred
 
-### Architecture
-- [ ] README is a self-contained manual (not a bare TOC)
-- [ ] A straightforward benchmark or inspection image stays one README
-- [ ] Any `docs/` page exists because one README fails a first pass
-- [ ] Opening paragraph stays high-level (env vars live in Usage, not in the lead)
-- [ ] Variant README states only the difference from the family manual
-- [ ] Content order: measure/why → methodology → run → outputs → limits → optional FAQ
-- [ ] FAQ, when present, is short, at the end of the README, and does not repeat Limitations or hold unanswered maintainer questions
-- [ ] Design history in the README and `docs/` is a retrospective summary, not a notes dump
-- [ ] Raw experiment logs and LLM calibration notes live in `CHANGELOG.md`, and the manual links to them when that file exists
+### Structure
+- [ ] README reads as a complete manual in one pass
+- [ ] Opening paragraph has no env var names
+- [ ] Sections follow the order in AGENTS.md
+- [ ] Every docs/ page is justified; simple images stay one README
+- [ ] FAQ, if present, is short and does not repeat Limitations
+- [ ] History is a short retrospective; the full log is in CHANGELOG.md
+- [ ] A variant README states only the difference from its family manual
 
-### Style (AGENTS.md house guide)
-- [ ] Product names match upstream spelling; program names are in backticks
-- [ ] DBaaS / IaaS / vCPU casing correct where those terms appear
-- [ ] "run via Docker" — not "bash script"; headings match
-- [ ] ~80-character wrap; no one-sentence-per-line paragraphs
-- [ ] Lists: intro sentence, consistent punctuation; shallow nesting
-- [ ] No TODO/FIXME in published docs
-- [ ] Niche terms glossed on first use
-- [ ] Relative links and anchors verified after any moves
-- [ ] No marketing fluff ("fleet", "delve", filler)
-
-### Links
-- [ ] Every internal link target exists and matches the link text's promise
+### Style
+- [ ] Product names spelled as upstream; program names in backticks
+- [ ] "run via Docker", not "bash script"; headings match the body
+- [ ] ~80-column wrap; no one-sentence-per-line paragraphs
+- [ ] Lists have an intro sentence and consistent punctuation
+- [ ] Niche terms glossed; no TODO/FIXME; no marketing phrasing
+- [ ] Every link and anchor resolves and delivers what its text promises
 ```
-
-## Done criteria
-
-- [ ] `review.md` written at the path above
-- [ ] Every finding has a file/line reference
-- [ ] Checklist fully marked
-- [ ] No edits to published documentation

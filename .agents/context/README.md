@@ -1,42 +1,28 @@
 # Maintainer context
 
-Short maintainer decisions that are **not** in the image code:
-production topology, cost trade-offs, intentional omissions.
+Answers that the code cannot give: production topology, cost
+trade-offs, intentional omissions. Humans write these files; LLMs read
+them and never edit them.
 
-Fleet-wide decisions go in
-[shared.md](shared.md). One file per image covers the rest, named after
-the folder under `images/`:
+- `shared.md` — decisions that apply to every image
+- `<image>.md` — decisions for one image, named after its folder under
+  `images/` (e.g. `benchmark-pgbench-postgres.md`)
 
-```text
-.agents/context/benchmark-pgbench-postgres.md
-```
+Experiment logs and calibration notes go in `images/<image>/CHANGELOG.md`,
+not here.
 
-The full experiment log, calibration notes, and change history do not
-belong here. Those go in `images/<image>/CHANGELOG.md`.
-
-Phase 01 regenerates `.agents/work/<image>/facts.md` and must not edit
-files here. Phase 02 and 03 read `shared.md` and the per-image file.
-Humans write both.
-
-## Shape
+## Format
 
 ```markdown
-# Context: <image-folder-name>
-
-Maintainer-approved facts that the code does not state. Each heading is
-the question; the paragraph under it is the answer.
+# Context: <image>
 
 ## Can the client run on the database server?
 
 Yes. The benchmark is agnostic to colocated or remote deployment.
 ```
 
-Rules:
-
-- One heading per decision. Re-extracts match on the heading text, so
-  keep headings stable once written.
-- Who decided, and when, lives in Git history. Do not add timestamps
-  or an `Answer:` label.
-- If a decision changes, edit the paragraph. Add a short `Superseded:`
-  note only when the old answer still matters.
-- Do not put publishing-ready prose here. Short answers only.
+- The heading is the question and the paragraph under it is the answer.
+- Keep headings stable once written; later extracts match on them.
+- Git history records who decided and when, so no dates or labels.
+- When a decision changes, edit the answer. Add a `Superseded:` note only
+  if the old answer still matters.

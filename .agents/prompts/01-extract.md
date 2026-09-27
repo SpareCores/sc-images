@@ -1,52 +1,29 @@
-# Phase 01 — Extract methodology from code (OpenAI GPT)
+# Phase 01 — Extract facts from code (OpenAI GPT)
 
-Read this prompt together with the repo root [`AGENTS.md`](../../AGENTS.md).
-Use an **OpenAI GPT** model for this phase.
+Read with the repo root [`AGENTS.md`](../../AGENTS.md).
 
-You are **read-only** except for `facts.md`. Do not edit `README.md`,
-`docs/*.md`, `CHANGELOG.md`, Dockerfiles, application code, or anything
-under `.agents/context/`. Humans own context files and changelogs; a
-re-extract must not touch them.
+Your only write is `facts.md`. Do not edit docs, `CHANGELOG.md`, code,
+or anything under `.agents/context/`.
 
-## Input
+## Read
 
-The human names a target image folder, e.g. `images/benchmark-pgbench-postgres/`.
+For the image folder the human names:
 
-Read at least:
+- Every file in the folder: Dockerfile, harness code, SQL, config,
+  `README.md`, `docs/`, `CHANGELOG.md`
+- Build metadata (`BUILD_ARGS`, `DEPENDS_ON`, `PLATFORMS`, `CONTEXT`,
+  `ZRAM`, `SCCACHE`) and any sibling image it depends on or links to
+- `.github/` only if the image has special build behavior
+- `.agents/context/shared.md` and `.agents/context/<image>.md` if it
+  exists
+- The family manual, for a variant image (see `AGENTS.md`)
 
-- Everything under that folder (Dockerfile, `benchmark.py` / scripts, SQL,
-  config, existing `README.md`, `docs/`, and `CHANGELOG.md` if present)
-- Sibling images referenced by `DEPENDS_ON` or README links
-- Build metadata: `BUILD_ARGS`, `DEPENDS_ON`, `PLATFORMS`, `CONTEXT`, `ZRAM`,
-  `SCCACHE`
-- Relevant CI pieces under `.github/` if the image has special build
-  behavior
-- `.agents/context/shared.md` (fleet-wide maintainer answers). Read it;
-  do not modify it.
-- `.agents/context/<image-folder-name>.md` when it exists. Read it; do
-  not modify it.
-- For a variant image, the family manual named in `AGENTS.md` (for
-  example `vllm-common/README.md`).
+## Write
 
-## Output
-
-Write:
-
-```text
-.agents/work/<image-folder-name>/facts.md
-```
-
-Example: `.agents/work/benchmark-pgbench-postgres/facts.md`.
-
-Create the directory if needed. Overwriting `facts.md` is expected on a
-fresh extract. Never copy maintainer answers into `facts.md`.
-
-## `facts.md` structure (required)
-
-Use these exact top-level headings:
+`.agents/work/<image>/facts.md`, overwriting any previous version:
 
 ```markdown
-# Facts: <image-folder-name>
+# Facts: <image>
 
 ## What is measured
 ## Workload
@@ -58,38 +35,27 @@ Use these exact top-level headings:
 ## Open questions for maintainers
 ```
 
-### Rules for every factual claim
-
-- Cite `path:line` (or `path:start-end`) for **every** code-derived
-  claim under the first six sections. A claim taken from
-  `.agents/context/shared.md` or `.agents/context/<image>.md` is cited
-  as `source: context` plus the file and heading, not a line number.
-- Prefer code and metadata files over existing prose. `CHANGELOG.md` is
-  a history log, not a source of runtime facts. Do not copy it into the
-  factual sections. If it contradicts the code, list that under
-  **Conflicts**.
-- If the README asserts something the code does not support, list it under
-  **Conflicts**, not under the factual sections.
-- Write **no publishing-ready prose**. Bullets, tables, and short neutral
-  statements only. No rewritten README draft in this file.
-
-### Section guidance
-
 | Section | Include |
 |---------|---------|
-| What is measured | Headline metric(s), what varies across runs, what is held constant |
-| Workload | Scripts, SQL, concurrency model, warmup/settle/duration, topology assumptions that appear in code |
-| Parameters and defaults | Env vars, CLI flags, constants — name, meaning, default, citation |
-| Outputs and schema | Printed metrics, JSON/files, field names and units |
-| How to run | Docker image tag, required env, minimal command reconstructed from code/entrypoint |
-| Dependencies and platforms | `DEPENDS_ON`, `FROM` bases, `PLATFORMS`, sibling server images |
-| Conflicts | Doc claim vs code reality, each with citations on both sides |
-| Open questions | Anything a maintainer must confirm (production topology, historical experiments, intentional omissions). Phrase as questions. If `shared.md` or the image context file already answers one, do not repeat it — cite that heading under the matching factual section as `source: context`. If context contradicts the code, list that under Conflicts. |
+| What is measured | Headline metric, what varies between runs, what is held constant |
+| Workload | Scripts, queries, concurrency, warmup and duration, topology the code implies |
+| Parameters and defaults | Env vars, flags, constants: name, default, meaning |
+| Outputs and schema | Printed output or files, field names, units |
+| How to run | Image tag, required env, minimal command from the entrypoint |
+| Dependencies and platforms | `DEPENDS_ON`, base images, `PLATFORMS`, sibling images |
+| Conflicts | A doc claim versus what the code does, with citations for both |
+| Open questions | What only a maintainer can answer, phrased as questions |
 
-## Done criteria
+## Rules
 
-- [ ] `facts.md` exists at the path above
-- [ ] Every claim in the first six sections has a citation
-- [ ] Conflicts and open questions are non-empty whenever uncertainty exists
-  (empty sections must say `None found.` explicitly)
-- [ ] No edits to published docs, `CHANGELOG.md`, source files, or `.agents/context/`
+- Cite `path:line` or `path:start-end` for every claim in the first six
+  sections. Cite a context answer as `source: context`, with the file
+  and heading.
+- Do not repeat a question the context files already answer; use the
+  answer instead. If context contradicts the code, list it under
+  Conflicts.
+- Treat README and `CHANGELOG.md` text as claims to verify, not as
+  facts.
+- Write bullets and tables, not publishable prose. Never put maintainer
+  answers in `facts.md`.
+- Write `None found.` under an empty section.
