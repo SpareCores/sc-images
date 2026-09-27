@@ -83,7 +83,8 @@ Copy into `review.md` and mark `[x]` / `[ ]`:
 - [ ] Any `docs/` page exists because one README fails a first pass
 - [ ] Opening paragraph stays high-level (env vars live in Usage, not in the lead)
 - [ ] Variant README states only the difference from the family manual
-- [ ] Content order: measure/why → methodology → run → outputs → limits
+- [ ] Content order: measure/why → methodology → run → outputs → limits → optional FAQ
+- [ ] FAQ, when present, is short, at the end of the README, and does not repeat Limitations or hold unanswered maintainer questions
 - [ ] Design history in the README and `docs/` is a retrospective summary, not a notes dump
 - [ ] Raw experiment logs and LLM calibration notes live in `CHANGELOG.md`, and the manual links to them when that file exists
 

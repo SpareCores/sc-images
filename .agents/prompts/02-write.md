@@ -72,7 +72,9 @@ House style guide in `AGENTS.md` strictly.
   3. Running it via Docker
   4. Outputs and how to read them
   5. Limitations / out of scope
-  6. Links to `docs/` or `CHANGELOG.md` only when those files exist
+  6. Optional FAQ at the end, only when a few questions would still
+     interrupt a first pass
+  7. Links to `docs/` or `CHANGELOG.md` only when those files exist
 
 - Methodology history in the README and `docs/` → retrospective
   narrative; summarize limiting factors; link to `CHANGELOG.md`.

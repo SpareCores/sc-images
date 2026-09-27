@@ -52,7 +52,8 @@ Principles:
   3. Running it (Docker)
   4. Outputs and how to read them
   5. Limitations and deliberately out-of-scope items
-  6. A link to `docs/` or `CHANGELOG.md` only when that file exists
+  6. An optional FAQ, when a few questions would still interrupt a first pass
+  7. A link to `docs/` or `CHANGELOG.md` only when that file exists
 
 - Explicitly justify ANY re-ordering or cut content (explain WHY a reader
   needs this information earlier or later).
@@ -128,6 +129,14 @@ collects or builds, how to run it, what it prints.
 Keep the opening paragraph free of env var names and config knobs.
 Those go in a Usage section later in the same file, or in `docs/usage.md`
 when that page exists.
+
+An optional **FAQ** goes at the end of the README. Add it when a few
+questions would otherwise break the first pass, such as a topology
+choice or a score the reader is likely to misread. Each answer is a
+short paragraph and points at the section that already explains the
+detail. Skip the FAQ when the manual already answers those questions.
+Do not use it for unresolved maintainer questions or for a second copy
+of Limitations.
 
 ### When to split
 
