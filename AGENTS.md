@@ -46,7 +46,7 @@ instead of pasting it into chat.
 |------|------------|
 | `images/<name>/` | One container image, published as `ghcr.io/sparecores/<name>:main` |
 | `images/<name>/Dockerfile`, `benchmark.py`, `*.sh` | Where the methodology and runtime behavior actually live |
-| `BUILD_ARGS`, `DEPENDS_ON`, `PLATFORMS`, `CONTEXT`, `ZRAM`, `SCCACHE` | Build metadata next to each Dockerfile |
+| `BUILD_ARGS`, `DEPENDS_ON`, `PLATFORMS`, `CONTEXT`, `ZRAM`, `SCCACHE` | Build metadata next to each Dockerfile: build args, image dependencies, target platforms, build context, compressed swap, compiler cache |
 | `images/<name>/README.md` | The public manual |
 | `images/<name>/docs/*.md` | Extra pages, only when the README would be too long |
 | `images/<name>/CHANGELOG.md` | Full change and experiment log |
@@ -54,6 +54,7 @@ instead of pasting it into chat.
 | `.github/` | CI; read only when an image has special build behavior |
 | `.agents/prompts/` | Phase prompts for the workflow below |
 | `.agents/context/` | Maintainer answers, tracked in Git |
+| `.agents/facts/` | Facts extracted from code, tracked in Git |
 
 ## Documentation architecture
 
@@ -171,10 +172,10 @@ below; smaller or faster tiers (Sonnet, Haiku, Flash) miss too much.
 
 | Step | Who | Prompt | Output |
 |------|-----|--------|--------|
-| 1. Extract facts from code | Recent GPT reasoning model | [`01-extract.md`](.agents/prompts/01-extract.md) | `.agents/work/<image>/facts.md` |
-| 2. Read `facts.md`; raise open questions with the image's maintainer on Slack | Writer | — | — |
+| 1. Extract facts from code, unless the facts file is current (see below) | Recent GPT reasoning model | [`01-extract.md`](.agents/prompts/01-extract.md) | `.agents/facts/<image>.md` |
+| 2. Read the facts file; raise open questions with the image's maintainer on Slack | Writer | — | — |
 | 3. Commit the answers | Maintainer | [context README](.agents/context/README.md) | `.agents/context/shared.md` or `<image>.md` |
-| 4. Re-run step 1; repeat 2–4 until nothing answerable is open | Writer | — | `facts.md` |
+| 4. Re-run step 1; repeat 2–4 until nothing answerable is open; commit the facts file | Writer | — | `.agents/facts/<image>.md` |
 | 5. Write the docs | Claude Opus (5.5 preferred) | [`02-write.md`](.agents/prompts/02-write.md) | README, `docs/` if needed, `CHANGELOG.md` if detail moves |
 | 6. Edit manually: rewrite and extend as needed | Writer | — | README |
 | 7. Review | Gemini Pro | [`03-review.md`](.agents/prompts/03-review.md) | `.agents/work/<image>/review.md` |
@@ -184,14 +185,15 @@ below; smaller or faster tiers (Sonnet, Haiku, Flash) miss too much.
 
 To run an LLM step, include the prompt file and this `AGENTS.md`, then
 point the model at the image folder, `.agents/context/shared.md`, the
-image's context file if it exists, `facts.md` (steps 5 and 7), and the
-family manual for a variant.
+image's context file if it exists, the facts file (steps 5 and 7), and
+the family manual for a variant.
 
 Where things live:
 
 | File | Git | Written by |
 |------|-----|------------|
-| `.agents/work/<image>/facts.md`, `review.md` | ignored | LLM; regenerated each run |
+| `.agents/facts/<image>.md` | tracked | Step 1; regenerated only when stale |
+| `.agents/work/<image>/review.md` | ignored | Step 7; regenerated each run |
 | `.agents/context/shared.md` | tracked | Humans; applies to every image |
 | `.agents/context/<image>.md` | tracked | Humans; one image |
 | `images/<image>/CHANGELOG.md` | tracked | Humans and step 5 |
@@ -199,11 +201,24 @@ Where things live:
 LLMs read context files and never edit them. Answers given only in chat
 are lost on the next extract; record them in a context file.
 
+### Is the facts file current?
+
+Each facts file starts with the commit it was extracted from and the
+paths it read. Check whether any of those paths changed since:
+
+```shell
+git log --oneline <source-commit>..HEAD -- <paths from the Inputs line>
+```
+
+No output means the facts are current: skip step 1. Any output — a code
+change, or a new answer in a context file — means re-extract. A
+`Source commit` marked `(uncommitted changes)` is never current.
+
 ## When unsure
 
 - Ask a maintainer question instead of guessing.
-- List code-vs-docs conflicts explicitly: in `facts.md` during extract,
-  in section (a) during write and review.
+- List code-vs-docs conflicts explicitly: in the facts file during
+  extract, in section (a) during write and review.
 
 When the writer asks you to explain a concept (TPM, `shared_buffers`,
 RTT vs. throughput), explain it in plain language, point at the code

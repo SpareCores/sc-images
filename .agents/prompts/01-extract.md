@@ -2,8 +2,8 @@
 
 Read with the repo root [`AGENTS.md`](../../AGENTS.md).
 
-Your only write is `facts.md`. Do not edit docs, `CHANGELOG.md`, code,
-or anything under `.agents/context/`.
+Your only write is the facts file. Do not edit docs, `CHANGELOG.md`,
+code, or anything under `.agents/context/`.
 
 ## Read
 
@@ -20,10 +20,15 @@ For the image folder the human names:
 
 ## Write
 
-`.agents/work/<image>/facts.md`, overwriting any previous version:
+`.agents/facts/<image>.md`, overwriting any previous version. The file
+is tracked in Git, so later runs can skip extraction while it is still
+current.
 
 ```markdown
 # Facts: <image>
+
+Source commit: <output of `git rev-parse HEAD`>
+Inputs: images/<image>, .agents/context/shared.md, .agents/context/<image>.md, <other paths read>
 
 ## What is measured
 ## Workload
@@ -56,6 +61,11 @@ For the image folder the human names:
   Conflicts.
 - Treat README and `CHANGELOG.md` text as claims to verify, not as
   facts.
-- Write bullets and tables, not publishable prose. Never put maintainer
-  answers in `facts.md`.
+- Write bullets and tables, not publishable prose. Never copy
+  maintainer answers into the facts file; cite them.
 - Write `None found.` under an empty section.
+- List every path you relied on in `Inputs`: the image folder, both
+  context files, and any sibling image, family manual, or `.github/`
+  file. The staleness check in `AGENTS.md` watches exactly those paths.
+- Extract from committed files. If any input path has uncommitted
+  changes, append ` (uncommitted changes)` to the `Source commit` line.

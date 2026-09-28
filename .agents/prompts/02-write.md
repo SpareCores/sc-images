@@ -5,7 +5,8 @@ documentation architecture and house style.
 
 ## Read
 
-- `.agents/work/<image>/facts.md` — facts from the code
+- `.agents/facts/<image>.md` — facts from the code. If its `Source
+  commit` is stale (see `AGENTS.md`), stop and ask for a re-extract.
 - `.agents/context/shared.md` and `.agents/context/<image>.md` —
   approved maintainer answers
 - The current `README.md`, `docs/`, and `CHANGELOG.md` for the image
@@ -26,7 +27,7 @@ into chat.
 
 ## Rules
 
-- Publish only claims found in `facts.md` or a context file. Put
+- Publish only claims found in the facts file or a context file. Put
   anything else in section (a) as an open question.
 - If context and code disagree, stop and report it rather than picking
   one.

@@ -16,6 +16,6 @@ venv/
 # CI build scratch (parallelism secret, assembled build-args)
 .cache/
 
-# Docs workflow machine handoffs (facts.md, review.md) — see AGENTS.md.
-# .agents/context/ is tracked on purpose: maintainer answers live there.
+# Docs workflow review reports — see AGENTS.md. Facts (.agents/facts/)
+# and maintainer answers (.agents/context/) are tracked on purpose.
 .agents/work/

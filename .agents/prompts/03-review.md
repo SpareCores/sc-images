@@ -6,9 +6,11 @@ Review only. Your only write is `review.md`; do not fix the docs.
 
 ## Read
 
-- `.agents/work/<image>/facts.md`
+- `.agents/facts/<image>.md`. If its `Source commit` is stale (see
+  `AGENTS.md`), report that as a blocker.
 - `.agents/context/shared.md` and `.agents/context/<image>.md` if it
-  exists. A question in `facts.md` that neither answers is still open.
+  exists. A question in the facts file that neither answers is still
+  open.
 - The image's `README.md`, `docs/`, and `CHANGELOG.md`
 - The family manual, for a variant image
 - The image source, to spot-check citations and catch changes since the
@@ -35,12 +37,12 @@ Write each finding as:
 ```markdown
 - **`path:line`** — short title.
   What is wrong, why it matters, and what correct looks like, citing
-  facts.md, a context file, or an AGENTS.md rule.
+  the facts file, a context file, or an AGENTS.md rule.
 ```
 
 | Severity | Use for |
 |----------|---------|
-| Blocker | A claim that contradicts or is missing from `facts.md`, the context files, and the code; a README reduced to a table of contents; a missing prerequisite; a misleading link |
+| Blocker | A claim that contradicts or is missing from the facts file, the context files, and the code; a README reduced to a table of contents; a missing prerequisite; a misleading link |
 | Should-fix | Style-guide violations that hurt clarity; a `docs/` split that is not needed; a variant README repeating the family manual; experiment logs or LLM notes left in the manual; detail cut with no `CHANGELOG.md` entry |
 | Nit | Wrapping, punctuation, minor wording |
 
@@ -50,9 +52,9 @@ Copy into `review.md` and mark each item `[x]` or `[ ]`:
 
 ```markdown
 ### Accuracy
-- [ ] Every claim traces to facts.md, a context file, or the code
+- [ ] Every claim traces to the facts file, a context file, or the code
 - [ ] Parameters, defaults, and outputs match the implementation
-- [ ] Conflicts from facts.md are resolved or explicitly deferred
+- [ ] Conflicts from the facts file are resolved or explicitly deferred
 
 ### Structure
 - [ ] README reads as a complete manual in one pass
