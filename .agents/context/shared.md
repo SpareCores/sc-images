@@ -20,7 +20,7 @@ at least some workloads -- such as software engineers or system administrators.
 This repo defines the container: Dockerfile, entrypoint, and benchmark code.
 Choosing server types and any host flag that is not in the Dockerfile (e.g.
 privileged mode, host networking, ulimits, process priority) is orchestration.
-Fleet runs are the concern of https://github.com/sparecores/sc-inspector
+Fleet runs are the concern of [sc/inspector](https://github.com/sparecores/sc-inspector)
 
 ## What is the public image name?
 

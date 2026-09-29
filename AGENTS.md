@@ -43,7 +43,7 @@ instead of pasting it into chat.
 ## Repo map
 
 | Path | What it is |
-|------|------------|
+| ------ | ------------ |
 | `images/<name>/` | One container image, published as `ghcr.io/sparecores/<name>:main` |
 | `images/<name>/Dockerfile`, `benchmark.py`, `*.sh` | Where the methodology and runtime behavior actually live |
 | `BUILD_ARGS`, `DEPENDS_ON`, `PLATFORMS`, `CONTEXT`, `ZRAM`, `SCCACHE` | Build metadata next to each Dockerfile: build args, image dependencies, target platforms, build context, compressed swap, compiler cache |
@@ -115,7 +115,7 @@ image, CPU features, GPU, duration) and links to the manual. Do not run
 the full workflow on a folder that only pins a base image.
 
 | Family | Manual | Variants |
-|--------|--------|----------|
+| -------- | -------- | ---------- |
 | vLLM | `vllm-common/README.md` | `benchmark-vllm-cpu`, `benchmark-vllm-cpu-avx2`, `benchmark-vllm-gpu`, `vllm-cpu-base-avx2` |
 | PostgreSQL | `images/benchmark-pgbench-postgres/README.md` | `benchmark-postgres-server` (the server image) |
 | stress-ng | `images/stress-ng/README.md` | `stress-ng-longrun` |
@@ -171,7 +171,7 @@ and review independent. Use a recent reasoning model of the tier named
 below; smaller or faster tiers (Sonnet, Haiku, Flash) miss too much.
 
 | Step | Who | Prompt | Output |
-|------|-----|--------|--------|
+| ------ | ----- | -------- | -------- |
 | 1. Extract facts from code, unless the facts file is current (see below) | Recent GPT reasoning model | [`01-extract.md`](.agents/prompts/01-extract.md) | `.agents/facts/<image>.md` |
 | 2. Read the facts file; raise open questions with the image's maintainer on Slack | Writer | — | — |
 | 3. Commit the answers | Maintainer | [context README](.agents/context/README.md) | `.agents/context/shared.md` or `<image>.md` |
@@ -191,7 +191,7 @@ the family manual for a variant.
 Where things live:
 
 | File | Git | Written by |
-|------|-----|------------|
+| ------ | ----- | ------------ |
 | `.agents/facts/<image>.md` | tracked | Step 1; regenerated only when stale |
 | `.agents/work/<image>/review.md` | ignored | Step 7; regenerated each run |
 | `.agents/context/shared.md` | tracked | Humans; applies to every image |

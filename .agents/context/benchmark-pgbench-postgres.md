@@ -3,7 +3,7 @@
 ## Why does this benchmark exist?
 
 Spare Cores monitors and publishes empirical performance data for over 5,000
-cloud server types in the Navigator project (https://sparecores.com/servers). A
+cloud server types in the [Navigator project](https://sparecores.com/servers). A
 proper Relational Database Management System (RDBMS) benchmark was missing.
 Earlier stand-ins were PassMark database operations (doesn't scale to 32+
 vCPUs), Redis (not a relational database), raw CPU speed, and memory bandwidth
@@ -24,6 +24,15 @@ benchmarking client VM that connects remotely to the managed database server.
 
 IaaS does not use a separate client VM: the client and the database ran on the
 same node to save on infrastructure costs.
+
+## Does production apply OS-level tuning?
+
+The `No OS-level tuning` section in `images/benchmark-pgbench-postgres/docs/limitations.md`
+accurately describes the environment. Production runs do not apply `sysctl` or
+other host OS tweaks; the documented privileged mode, host networking,
+`seccomp=unconfined`, ulimits, and PostgreSQL process priority are container
+settings applied by `sc-inspector` orchestration. The orchestration code was
+updated previously to match this setup.
 
 ## What is the primary advantage versus other database benchmarks?
 
