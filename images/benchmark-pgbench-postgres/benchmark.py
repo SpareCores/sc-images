@@ -206,8 +206,11 @@ def pg_gucs(mem_gib: float, durability: str = "durable", *, vcpus: int | None = 
 def start_local_postgres(
     mem_gib: float, vcpus: int, durability: str, password: str
 ) -> subprocess.Popen:
-    """Launch a local Postgres server; docker-entrypoint.sh handles initdb/auth."""
+    """Launch a local Postgres server at nice -20; docker-entrypoint.sh handles initdb/auth."""
     cmd = [
+        "nice",
+        "-n",
+        "-20",
         "docker-entrypoint.sh",
         "postgres",
         "-c",
