@@ -4,7 +4,7 @@ In many other benchmarks, the missing piece is the lack of actual, proper databa
 
 In this benchmark, two deployment models are measured with the same client:
 
-- **IaaS (Infrastructure as a Service)**: self-hosted PostgreSQL on a cloud VM, driven by a separate client VM.
+- **IaaS (Infrastructure as a Service)**: self-hosted PostgreSQL on a colocated pair of cloud and client VM.
 - **DBaaS (Database as a Service)**: the cloud vendor's managed PostgreSQL offering - similar hardware, but the vendor provisions, manages, and tunes the engine.
 
 This benchmark helps users compare same-hardware, self-managed, and managed instances through a single, comparable headline score in TPM, and a concurrency profile that measures throughput at various numbers of connected clients.

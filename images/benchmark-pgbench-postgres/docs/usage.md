@@ -1,8 +1,8 @@
 # Usage
 
-## Run Script
+## Run Benchmark
 
-To use this benchmark, run the following shell command:
+This benchmark can be run via Docker:
 
 ```bash
 docker run --rm \
@@ -22,7 +22,7 @@ docker run --rm \
 | `SC_SCALEFACTOR(S)` | `pgbench_tpcb` `-i -s` size(s) | `65` |
 | `SC_RUN_SECONDS` / `SC_WARMUP_SECONDS` / `SC_SETTLE_SECONDS` | measurement/warmup timing | `300` / `120` / `60` |
 
-See [`benchmark.py`](/images/benchmark-pgbench-postgres/benchmark.py) docstring for the full list.
+See [`benchmark.py`](images\benchmark-pgbench-postgres\benchmark.py) docstring for the full list.
 
 The script outputs one JSON document if prompted with `stdout (benchmark: pgbench_postgres)`, with the following information:
 

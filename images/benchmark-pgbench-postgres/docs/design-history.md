@@ -2,34 +2,49 @@
 
 ## How we got here - tools and approaches
 
-We benchmarked the benchmarks before trusting one. In rough order:
+We benchmarked the benchmarks before trusting one.
 
-- **sysbench, HammerDB TPROC-C, and BenchBase (Wikipedia read-only and YCSB datasets), alongside pgbench:**
+### Dataset Test
 
-  On regular block storage vs. `tmpfs`, with baseline vs. host-tuned PostgreSQL configs.
-  - `tmpfs` lifted write-heavy OLTP results substantially (~10–25% and more), which proved the point that those suites were measuring storage and WAL behavior more than the server. `tmpfs` is not an option on DBaaS anyway, so it only covers IaaS.
-  - Their warehouse/scale-factor sizing also couldn't cover a fleet spanning 1 vCPU to thousands of vCPUs
-- **A systematic PostgreSQL config (GUC) sweep:**
+We ran `sysbench`, `HammerDB TPROC-C`, and `BenchBase` (Wikipedia read-only and YCSB datasets), alongside `pgbench` on regular block storage vs. `tmpfs`, with baseline vs. host-tuned PostgreSQL configs. Here is what we found:
 
-  21 experiments on a 32-vCPU host, where the winning combination (modest `work_mem`, `io_uring`, small WAL buffers, parallel gather off, right-sized `shared_buffers`) gained ~20% throughput over the baseline.
-  - Tuning clearly matters, which is why production runs delegate it:
-    - pgtune-style host tuning on IaaS
-    - the vendor's own tuning on DBaaS
-- **Latency and pipelining experiments:**
+- `tmpfs` lifted write-heavy OLTP results substantially (~10–25% and more), which proved that those suites were measuring storage and WAL behavior more than the server.
+- `tmpfs` only covers IaaS, so is not an option on DBaaS. Their warehouse/scale-factor sizing also couldn't cover a fleet spanning 1 vCPU to thousands of vCPUs
 
-  Measurements for `pgbench -S` under induced network delay, then under a custom-built sliding-window `--pipeline-depth` mode in a `pgbench` fork.
-  - Pipelining does rescue RTT-bound scripts (~10× queries/s at +5 ms delay), but for a CPU-bound transaction it adds nothing at low concurrency and actively collapses throughput at high concurrency.
-  - **Conclusion:** make the transaction heavy instead of pipelining a light one.
-    - serial mode, a fixed `{1, V/2, V, 2·V}` concurrency profile, and a TPM score
-- **Outcome**:
-  - See the `pgbench_ro` workload in the [description](./workloads.md#pgbench_ro)
-  - `pgbench_tpcb` is kept as a secondary classic-OLTP (TPC-B-like) reference
+### A systematic PostgreSQL config (GUC) sweep
 
-A [blog post](https://sparecores.com/articles) with the detailed findings is planned.
+  We ran 21 experiments on a 32-vCPU host. The winning combination gained ~20% throughput over the baseline:
+
+- modest `work_mem` and `io_uring`
+- small WAL buffers
+- parallel gather off
+- right-sized `shared_buffers`
+
+Tuning clearly matters, which is why production runs delegate it:
+
+- `pgtune`-style host tuning on IaaS
+- the vendor's own tuning on DBaaS
+
+### Latency and pipelining experiments
+
+The next step was measuring `pgbench -S` under induced network delay, then under a custom-built sliding-window `--pipeline-depth` mode in a `pgbench` fork.
+
+Pipelining does rescue RTT-bound scripts (~10× queries/s at +5 ms delay), but for a CPU-bound transaction it adds nothing at low concurrency and actively collapses throughput at high concurrency.
+
+**Conclusion:** make the transaction heavy instead of pipelining a light one.
+We accomplished this in serial mode, a fixed `{1, V/2, V, 2·V}` concurrency profile, and a TPM score.
+
+### Outcome
+
+`pgbench_ro` is a custom, read-only PostgreSQL benchmark designed to be CPU-heavy and cache-resident, rather than disk-bound. See [`pgbench_ro`](./workloads.md#pgbench_ro) for the detailed description.
+
+`pgbench_tpcb` is kept as a secondary classic-OLTP (TPC-B-like) reference.
+
+<!--A [blog post](https://sparecores.com/articles) with the detailed findings is planned.-->
 
 ## v1: From trivial `pgbench -S` to a cached multi-query script
 
-Plain `pgbench -S` (one `SELECT` by primary key) turned out to be too cheap per-transaction to say anything meaningful about CPU under network latency. Under `netem`-simulated RTT its TPS collapsed almost entirely from RTT, and not from server work (~98% loss at a single connection with +5 ms one-way delay, while a CPU-heavy transaction under the same delay barely moved).
+Plain `pgbench -S` (one `SELECT` by primary key) turned out to be too cheap per-transaction to say anything meaningful about CPU under network latency. Under `netem`[^1]-simulated RTT its TPS collapsed almost entirely from RTT, and not from server work (~98% loss at a single connection with +5 ms one-way delay, while a CPU-heavy transaction under the same delay barely moved).
 This motivated a **cached, multi-query, CPU-heavy** custom script, sized for 100–130 ms of server CPU time per transaction at `-c 1`, using a small (~170 MB) schema that fits in the `shared_buffers` so I/O never becomes a bottleneck, so that RTT stays a small fraction of total latency instead of dominating it.
 
 The original transaction ran four blocks, `q1`–`q4`:
@@ -85,9 +100,9 @@ Profiling this transaction locally (fresh `postgres:18` in Docker, `jit=off`, `E
 - Max single-block share dropped from **~82% (q3/regex)** to **~30–34% (q_hashjoin)**
 - Every other block landed in a much narrower 2–15 ms band
 - Verified with the same Docker profiling method used to find the original problem
-  - (see `profile_v2_breakdown.sql`, kept in this folder for future recalibration, not copied into the image)
+  - (see [`profile_v2_breakdown.sql`](images\benchmark-pgbench-postgres\profile_v2_breakdown.sql))
 
-### Calibration gotchas found along the way (worth knowing before touching this again)
+### Calibration gotchas found along the way
 
 - **A block can silently duplicate another block's cost.**
   - `q_array`'s first version joined its GIN-matched products straight to the full 750k-row `order_item` table with no bound
@@ -133,3 +148,5 @@ docker exec -e PGPASSWORD=bench ro-cpu-cal psql -U postgres -d bench -f /sql/pro
 docker exec -e PGPASSWORD=bench ro-cpu-cal pgbench -h localhost -U postgres -d bench \
   -n -c 1 -T 20 -D scale=1 -f /sql/ro_cpu_txn.sql
 ```
+
+[^1]: [NetEm](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html) (Network Emulator) is an enhancement of the Linux traffic control facilities that allow adding delay, packet loss, duplication and other characteristics to packets outgoing from a selected network interface.

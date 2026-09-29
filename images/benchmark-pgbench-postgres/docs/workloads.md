@@ -2,7 +2,7 @@
 
 ## `pgbench_tpcb`
 
-This workload is pgbench's built-in `tpcb-like` script (`-b tpcb-like`) with a standard `pgbench -i -s N` schema.
+This workload is `pgbench`'s built-in `tpcb-like` script (`-b tpcb-like`) with a standard `pgbench -i -s N` schema.
 
 Standard TPC-B-style OLTP mix (mostly-write, network- and lock-sensitive). See the [official documentation](https://www.postgresql.org/docs/current/pgbench.html) for details.
 

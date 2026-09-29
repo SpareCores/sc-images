@@ -1,6 +1,6 @@
 # References
 
-Alphabetized lists of frequently used phrases.
+Alphabetized lists of frequently used phrases and links to external documentation.
 
 ## Acronyms
 
@@ -25,14 +25,14 @@ Non-official or less-used abbreviations, contractions, and stand-ins.
 
 ## Linked Definitions
 
-Words, phrases, acronyms, and abbreviations with links to explain their meaning or documentation.
+Words, phrases, and expanded acronyms and abbreviations with links to explain their meaning or point to their documentation.
 
 ### PostgreSQL Documentation
 
 - [Grand Unified Configuration](https://www.postgresql.org/docs/current/config-setting.html)
 - [Just-in-Time Compilation](https://www.postgresql.org/docs/current/jit.html)
 - [Parallel Query](https://www.postgresql.org/docs/current/parallel-query.html)
-- [pgbench](https://www.postgresql.org/docs/current/pgbench.html)
+- [`pgbench`](https://www.postgresql.org/docs/current/pgbench.html)
 - [The Oversized-Attribute Storage Technique](https://www.postgresql.org/docs/current/storage-toast.html)
 - [Write-Ahead Logging](https://www.postgresql.org/docs/current/wal-intro.html)
 
