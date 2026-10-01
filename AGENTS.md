@@ -233,6 +233,12 @@ No output means the facts are current: skip step 1. Any output — a code
 change, or a new answer in a context file — means re-extract. A
 `Source commit` marked `(uncommitted changes)` is never current.
 
+Commits that only contain changes to `./agents/prompts/` or `AGENTS.md` do not
+automatically require re-extraction; ask the user if the change is relevant to
+the image first. If not, do not mark the facts file stale. If it is relevant,
+re-extract and commit the new facts. To avoid an infinite re-extraction loop, do
+not consider a newly committed facts file as stale until the next code change.
+
 ## When unsure
 
 - Ask a maintainer question instead of guessing.

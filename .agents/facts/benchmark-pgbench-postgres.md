@@ -1,6 +1,6 @@
 # Facts: benchmark-pgbench-postgres
 
-Source commit: 39b703e64804f87ac2f1d51d5efeb6c9ee73e3f8
+Source commit: 9df11c77ff866d8a21ba96485be492d432e3fc71
 Inputs: images/benchmark-pgbench-postgres, images/benchmark-postgres-server, .agents/context/shared.md, .agents/context/benchmark-pgbench-postgres.md, AGENTS.md, .agents/prompts/01-extract.md
 
 ## What is measured
@@ -91,13 +91,6 @@ Inputs: images/benchmark-pgbench-postgres, images/benchmark-postgres-server, .ag
 - No `ZRAM` or `SCCACHE` file is present in the image folder. (image folder listing)
 - The sibling `benchmark-postgres-server` uses `postgres:18` and `resource-tracker`, but this benchmark does not depend on it. (`images/benchmark-postgres-server/Dockerfile:1-9`, `images/benchmark-postgres-server/DEPENDS_ON:1`, `DEPENDS_ON:1`)
 - The dataset helper uses the CDN prefix `sc-inspector`. (`db_dataset_cache.py:21`)
-
-## Conflicts between code and current docs
-
-- The README says DBaaS targets are set to PostgreSQL major version 18. The image pins its local server to `postgres:18`, but remote connections use the supplied host without checking its version; the major-version claim is not enforced by this image. (`README.md:5-7`, `Dockerfile:4-5`, `benchmark.py:964-985`)
-- `docs/limitations.md` says client and server VMs are always in the same availability zone. Maintainer context says DBaaS traffic uses private addresses, but AZ placement is provider-dependent: same AZ for AWS and potentially same region for other vendors. The image itself does not control placement. (`docs/limitations.md:203-211`; context: `.agents/context/benchmark-pgbench-postgres.md`, “Are DBaaS client/server runs always placed in the same availability zone and connected over private VPC addresses?”; `benchmark.py:968-985`)
-- `docs/workloads.md` presents `pgbench -D scale=N -f ro_cpu_txn.sql` as the user-facing command and says the SQL returns the final headline score. Docker starts this image's harness, which invokes `pgbench`; the SQL returns a checksum, while the harness derives the headline TPM score from parsed `pgbench` TPS. (`docs/workloads.md:28-31`, `docs/workloads.md:54-60`, `Dockerfile:25-26`, `benchmark.py:393-399`, `benchmark.py:523-621`, `ro_cpu_txn.sql:67`, `ro_cpu_txn.sql:334-341`)
-- The README directs readers to the Usage page for details, but does not include the environment-variable reference or output interpretation required for a one-pass manual. The Usage page currently describes the `profile` and `score` at a high level but omits several emitted fields, including `sizes[]` details, latency percentiles, stop reasons, and standalone `postgres`/`pg_image` data. (`README.md:50-60`, `README.md:77-80`, `docs/usage.md:48-56`, `benchmark.py:933-967`, `benchmark.py:1069-1124`; `AGENTS.md`, “README: the manual”)
 
 ## Open questions for maintainers
 
