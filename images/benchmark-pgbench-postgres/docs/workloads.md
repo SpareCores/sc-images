@@ -3,9 +3,9 @@
 ## `pgbench_tpcb`
 
 This workload is `pgbench`'s built-in `tpcb-like` script (`-b tpcb-like`) with a
-standard `pgbench -i -s N` schema. It is a standard TPC-B-style OLTP (Online
-Transaction Processing) mix
-(mostly-write, network- and lock-sensitive).
+standard `pgbench -i -s N` schema. It is a standard TPC-B (Transaction
+Processing Performance Council Benchmark B)-style OLTP (Online Transaction
+Processing) mix (mostly-write, network- and lock-sensitive).
 
 See the [official
 documentation](https://www.postgresql.org/docs/current/pgbench.html) for
@@ -13,20 +13,19 @@ details.
 
 ## `pgbench_ro`
 
-This workload uses a cached CPU-heavy SQL workload.
-
-A custom, read-only PostgreSQL benchmark sized to fit in `shared_buffers`, so
-this benchmark is dominated by CPU work (parse, plan, execute, join, aggregate,
-text/JSON/array processing) rather than disk I/O. It creates the following test
-data, taking up ~260–320 MB in memory:
+`pgbench_ro` is a custom read-only workload with one transaction composed of
+eight query blocks. They exercise joins, aggregation, indexes, full-text search,
+arrays, and other PostgreSQL subsystems to emphasize CPU work rather than disk
+I/O. The setup creates the following test data with an overall estimate of
+~260–320 MB for the data plus indexes:
 
 - 20k products
 - 50k customers
 - 250k orders
 - 750k order items
 
-This benchmark can be run with `pgbench -D scale=N -f ro_cpu_txn.sql`
-via Docker.
+Run this workload via Docker. The harness invokes `pgbench` with
+`-D scale=N` and `-f ro_cpu_txn.sql` internally.
 
 - `-D scale=N` linearly scales the row-count knobs inside the transaction (wider
   slices, bigger joins) without touching the underlying dataset, so a single
@@ -40,7 +39,7 @@ each touching a different PostgreSQL subsystem:
 - `q_idx`: btree index scan + nested loop + window agg
 - `q_hashjoin`: hash join + hash aggregate over a time slice
 - `q_regex`: regex + `md5()`
-- `q_fts`: full-text search via `tsvector`/GIN
+- `q_fts`: full-text search via `tsvector`/GIN
 - `q_array`: array containment with GIN
 - `q_stats`: ordered-set/statistical aggregates
 - `q_toast`: TOAST ([The Oversized-Attribute Storage
@@ -48,11 +47,9 @@ each touching a different PostgreSQL subsystem:
   fetch/decompression
 - `q_seqscan`: plain sequential scan + aggregate
 
-At the end of the transaction, the script does the following:
-
-- builds a single `md5(string_agg(...))` checksum
-- unites all eight block outputs (`UNION ALL`)
-- returns one final headline score for easy comparison
-
-This prevents the planner from optimizing away the work, and makes it a
-realistic, read-only CPU benchmark, rather than a trivial constant-time query.
+At the end of each transaction, the script combines the eight block outputs
+with `UNION ALL` and hashes them into one `md5(string_agg(...))` checksum. The
+checksum makes the result depend on the block outputs and prevents the planner
+from optimizing away their work; it is not the benchmark score. The harness then
+converts `pgbench` throughput to TPM (transactions per minute), the published
+headline score.

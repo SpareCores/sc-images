@@ -19,7 +19,9 @@ names, etc.
 - OLTP (Online Transaction Processing)
 - RDBMS (Relational Database Management System)
 - RTT (Round-Trip Time)
+- TPC-B (Transaction Processing Performance Council Benchmark B)
 - TOAST (The Oversized-Attribute Storage Technique)
+- TPM (Transactions Per Minute)
 - VPC (Virtual Private Cloud)
 - WAL (Write-Ahead Logging)
 
@@ -47,8 +49,8 @@ their meaning or point to their documentation.
 
 ### Definitions and Additional Information
 
-- [Network Emulator](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
-  [Low Level Virtual Machine](https://llvm.org/)
+- [Low Level Virtual Machine](https://llvm.org/)
   - [Wikipedia page](https://en.wikipedia.org/wiki/LLVM)
+- [Network Emulator](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
 - [Relational Database Management System](https://en.wikipedia.org/wiki/Relational_database)
 - [Zipfian](https://en.wikipedia.org/wiki/Zipf%27s_law)

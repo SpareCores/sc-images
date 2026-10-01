@@ -1,16 +1,15 @@
 # benchmark-pgbench-postgres
 
-This PostgreSQL benchmark client measures how well cloud servers handle
-PostgreSQL database workloads using `pgbench` against a local PostgreSQL 18
-instance. Remote servers use what the host provides, but DBaaS (Database as a
-Service) targets are set to PostgreSQL major version 18 (without minor version
-pinning). It is
-designed to be agnostic to whether the client and the database are hosted on the
-same machine or separately.
+This PostgreSQL benchmark client measures cloud-server database performance with
+`pgbench`. In standalone mode, the image starts a local PostgreSQL 18 server. In
+remote mode, it connects to the configured host; this image does not check or
+enforce the remote server version. The client can run on the same node as the
+database or on a separate machine.
 
-This benchmark reports throughput and concurrency behavior, typically in
-transactions per minute and across varying client counts, so users can see both
-peak performance and how scalability changes with load.
+This benchmark reports throughput and concurrency behavior in TPM (Transactions
+Per Minute) across varying client counts, so users can see both peak performance
+and how scalability changes with load on self-managed and managed PostgreSQL on
+the same hardware.
 
 ## Purpose
 
@@ -31,10 +30,6 @@ The same benchmark client measures two deployment models:
   separate client VM; the provider provisions, manages, and tunes the database
   engine.
 
-The benchmark reports a headline score in TPM (transactions per minute) and a
-concurrency profile showing throughput at different client counts. These results
-support comparisons of self-managed and managed PostgreSQL on the same hardware.
-
 ## Limitations
 
 These results compare PostgreSQL server CPU and memory behavior, not application
@@ -54,7 +49,10 @@ throughput. The main limitations are:
 
 ## Usage
 
-This benchmark can be run via Docker:
+Run the image via Docker. Set `SC_DB_HOST` to connect to a remote PostgreSQL
+server, or omit it to start the local PostgreSQL 18 server in the container.
+
+For a remote server, set its host and credentials:
 
 ```bash
 docker run --rm \
@@ -64,19 +62,55 @@ docker run --rm \
   ghcr.io/sparecores/benchmark-pgbench-postgres:main
 ```
 
-For more information on how to use this benchmark, see [Usage](./docs/usage.md).
+For standalone mode, omit `SC_DB_HOST`:
+
+```bash
+docker run --rm ghcr.io/sparecores/benchmark-pgbench-postgres:main
+```
+
+Common settings are listed here; see the [full environment-variable
+reference](./docs/usage.md#key-environment-variables) for all options and
+defaults:
+
+- `SC_WORKLOAD` selects `pgbench_ro` (the default) or `pgbench_tpcb`.
+- `SC_DB_HOST`, `SC_DB_PORT`, `SC_DB_USER`, and `SC_DB_PASSWORD` configure a
+  remote connection. `SC_DB_SSLMODE` controls SSL mode.
+- `SC_DB_VCPUS` supplies the database vCPU count used to derive concurrency
+  points and, in standalone mode, local server settings.
+- `SC_CPU_SCALE` changes `pgbench_ro` transaction work; `SC_SCALEFACTOR` or
+  `SC_SCALEFACTORS` sets `pgbench_tpcb` scale.
+- `SC_RUN_SECONDS`, `SC_WARMUP_SECONDS`, and `SC_SETTLE_SECONDS` control
+  measurement and warmup timing.
+
+### Results
+
+The process prints one JSON object to stdout. Interpret its main fields as
+follows:
+
+- `score` is the highest TPM (transactions per minute) result; `score_unit` is
+  `tpm`, and `peak_concurrency` is the client count for that result.
+- Each `sizes[]` entry represents a workload size and has its own score and
+  `profile`. `pgbench_ro` entries identify `cpu_scale`; `pgbench_tpcb` entries
+  identify `scalefactor`.
+- Each `profile[]` entry is one concurrency measurement. `concurrency` is the
+  client count and `jobs` is the worker count. For `pgbench_ro`, `V` is the
+  database vCPU count; it uses fixed points `{1, V/2, V, 2·V}` and caps worker
+  jobs at 32. `pgbench_tpcb` uses geometric anchors with optional adaptive
+  search.
+- `latency_ms` contains sampled p50, p95, and p99 latency and an average, in
+  milliseconds. The harness samples 1% of transaction latency logs.
 
 ## Workloads
 
-`benchmark-pgbench-postgres` can be used with the following workloads:
+The image supports the following workloads with different transaction patterns:
 
-- [`pgbench_ro`](./docs/workloads.md#pgbench_ro) - our custom-built, read-only
-  PostgreSQL benchmark sized to fit in `shared_buffers`, with a monolithic SQL
-  script that runs several blocks, each touching a different PostgreSQL
-  subsystem.
-- [`pgbench_tpcb`](./docs/workloads.md#pgbench_tpcb) -
-  [`pgbench`](https://www.postgresql.org/docs/current/pgbench.html)'s built-in
-  script with a standard schema
+- [`pgbench_ro`](./docs/workloads.md#pgbench_ro) (default) runs a custom,
+  read-only transaction over a fixed schema, spreading work across eight
+  PostgreSQL subsystems. `SC_CPU_SCALE` changes transaction work without
+  resizing the schema.
+- [`pgbench_tpcb`](./docs/workloads.md#pgbench_tpcb) runs [`pgbench`](https://www.postgresql.org/docs/current/pgbench.html)'s built-in
+  `tpcb-like` transaction mix against a schema initialized at one or more
+  scale factors.
 
 For more information on available workloads, see
 [Workloads](./docs/workloads.md).

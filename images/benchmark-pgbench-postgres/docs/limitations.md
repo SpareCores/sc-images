@@ -9,8 +9,7 @@ subsystems. See [Workloads](./workloads.md) for details.
 
 This benchmark does *not* predict the throughput of any specific application. It
 instead gives a general sense of the relative RDBMS (Relational Database
-Management System)
-performance expected of a server type.
+Management System) performance expected of a server type.
 
 ### Disk I/O Speed
 
@@ -27,11 +26,11 @@ benchmarks for this purpose).
 
 ### Other Limitations
 
-Data distribution is uniform rather than [Zipfian](https://en.wikipedia.org/wiki/Zipf%27s_law):
-although the product catalog has over 20,000 products, customer, order, and
-order-item values use `g % k` modular arithmetic rather than a realistic
-power-law distribution with a few high-activity customers. See
-[Workloads](./workloads.md) for details.
+Data distribution is uniform rather than
+[Zipfian](https://en.wikipedia.org/wiki/Zipf%27s_law): although the product
+catalog has over 20,000 products, customer, order, and order-item values use `g
+% k` modular arithmetic rather than a realistic power-law distribution with a
+few high-activity customers. See [Workloads](./workloads.md) for details.
 
 For `pgbench_ro`, the harness disables PostgreSQL's JIT ([Just-in-Time
 Compilation](https://www.postgresql.org/docs/current/jit.html)) and [parallel
@@ -52,10 +51,9 @@ is the design's primary aim.
 
 #### Minor Engine Versions
 
-Many DBaaS (Database as a Service) providers we benchmark do not allow pinning
-the minor engine version (minor upgrades are applied automatically), so only
-the *major* PostgreSQL version is fixed across IaaS (Infrastructure as a
-Service) and DBaaS runs.
+DBaaS (Database as a Service) providers may apply minor PostgreSQL upgrades
+automatically. This image does not check or enforce the version of a remote
+target; version selection and pinning are deployment responsibilities.
 
 ### Deliberate Exclusions
 
@@ -64,8 +62,7 @@ Service) and DBaaS runs.
 Database throughput usually hinges first on disk IOPS (Input/Output operations
 per second), then on bandwidth. In the cloud, that disk is almost always
 network-attached block storage, provisioned independently of the server type and
-entirely up to the user. As such, it says little about the server
-itself.
+entirely up to the user. As such, it says little about the server itself.
 
 Deploying volumes with high-enough IOPS to never bottleneck across a
 ~5,000-server fleet would also be prohibitively expensive. Because of this, we
@@ -94,10 +91,11 @@ workload size.
 #### Engine Config
 
 Some DBaaS providers allow for config control, while others forbid it. In the
-latter case, the vendor tunes the managed engine, so the
-harness cannot assume superuser access or GUC ([Grand Unified
+latter case, the vendor tunes the managed engine, so the harness cannot assume
+superuser access or GUC ([Grand Unified
 Configuration](https://www.postgresql.org/docs/current/config-setting.html))
-control. For this benchmark, we deliberately do not tune the DBaaS engine, so the score reflects the engine's default behavior.
+control. For this benchmark, we deliberately do not tune the DBaaS engine, so
+the score reflects the engine's default behavior.
 
 ### Deliberately Out of Scope
 
@@ -107,25 +105,25 @@ design consideration.
 
 #### `jit` and `max_parallel_workers_per_gather` Stay Off, Matching the Original Design's Rationale
 
-This benchmark measures raw engine/CPU behavior,
-*not* LLVM ([Low Level Virtual Machine](https://llvm.org/)) JIT jitter or Gather scalability. Those are treated as a separate
-testing axis.
+This benchmark measures raw engine/CPU behavior, *not* LLVM ([Low Level Virtual
+Machine](https://llvm.org/)) JIT jitter or Gather scalability. Those are treated
+as a separate testing axis.
 
 #### A Single Monolithic Statement
 
-One `SELECT` with 8 CTEs, one `UNION ALL`
-is deliberate: it keeps one `pgbench` transaction equal to one network round
-trip. This makes the cached-RO redesign resilient to RTT simulated with
-`netem` (Network Emulator; [documentation](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html));
+One `SELECT` with 8 CTEs, one `UNION ALL` is deliberate: it keeps one `pgbench`
+transaction equal to one network round trip. This makes the cached-RO redesign
+resilient to RTT simulated with `netem` (Network Emulator;
+[documentation](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html));
 see [Latency and pipelining](../CHANGELOG.md#latency-and-pipelining) for the
 experiments. The tradeoff is that per-block planner GUCs (e.g. forcing Merge
 Join specifically) aren't possible without affecting every block.
 
 #### Pre-Calibrated Weights
 
-Weights are calibrated on one local Docker `postgres:18` instance.
-They are, however, not recalibrated automatically on every run.
-See [Recalibration procedure](../CHANGELOG.md#recalibration-procedure) for details.
+Weights are calibrated on one local Docker `postgres:18` instance. They are,
+however, not recalibrated automatically on every run. See [Recalibration
+procedure](../CHANGELOG.md#recalibration-procedure) for details.
 
 ## Design Constraints
 
@@ -135,26 +133,28 @@ with different tools and configs, we identified the following core principles.
 ### Memory-Fit, Small Dataset
 
 This benchmark uses a small dataset of ~260–320 MB, stored comfortably in
-`shared_buffers`, even on the smallest instances. After warmup, the disk is
-not read again.
+`shared_buffers`, even on the smallest instances. After warmup, the disk is not
+read again.
 
 ### Read-Only Workload
 
-No WAL ([Write-Ahead Logging](https://www.postgresql.org/docs/current/wal-intro.html)), no
+No WAL ([Write-Ahead
+Logging](https://www.postgresql.org/docs/current/wal-intro.html)), no
 checkpoints, and no disk-write paths for `pgbench_ro`.
 
 ### CPU-Heavy Transactions
 
-100+ ms of server work per transaction per
-connection. This minimizes network round-trip time to ~0.2–4% of the total
-service time and prevents it from dominating. This is [a necessary
-constraint](#a-necessary-constraint), evidenced by our lab measurements.
+~70-100 ms of server work per transaction per connection. This minimizes network
+round-trip time to ~0.2–4% of the total service time and prevents it from
+dominating. This is [a necessary constraint](#a-necessary-constraint), evidenced
+by our lab measurements.
 
 ### A Necessary Constraint
 
 Experiments showed that lightweight read-only transactions are sensitive to
 network delay, so the default workload uses a heavier cached transaction; see
-[Latency and pipelining](../CHANGELOG.md#latency-and-pipelining) for the results.
+[Latency and pipelining](../CHANGELOG.md#latency-and-pipelining) for the
+results.
 
 ## Operational Details
 
@@ -165,7 +165,8 @@ This benchmark can be used for the following production runs:
 When `SC_DB_HOST` is unset, the benchmark starts PostgreSQL in the same
 container and generates server settings with
 [pgtune](https://pgtune.leopard.in.ua/) using the host's RAM and CPU count.
-Remote servers specified with `SC_DB_HOST` are not tuned, as the benchmark is measuring the vendor's managed service tuning.
+Remote servers specified with `SC_DB_HOST` are not tuned, as the benchmark is
+measuring the vendor's managed service tuning.
 
 The pgtune form defaults are:
 
@@ -202,9 +203,9 @@ following:
 
 ### Topology
 
-Client and server VMs are deployed in the same availability zone of the same
-region, talking over private VPC (Virtual Private Cloud) addresses to minimize
-RTT.
+For AWS, client and server VMs are deployed in the same availability zone of the
+same region, talking over private VPC (Virtual Private Cloud) addresses to
+minimize RTT. For other vendors, the placement is provider-dependent.
 
 **Note**: This alone is insufficient. Occasional latency glitches still distort
 lightweight-workload results even when deployed in the same zone. Because of
