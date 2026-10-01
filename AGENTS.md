@@ -236,9 +236,9 @@ change, or a new answer in a context file — means re-extract. A
 ## When unsure
 
 - Ask a maintainer question instead of guessing.
-- List code-vs-docs conflicts explicitly: in the review file, under a
-  "Conflicts" heading, with citations for both the code and the docs during
-  review.
+- List code-vs-docs conflicts explicitly: only in `review.md`, under a
+  "Conflicts" heading, with citations for both the code and the docs, only
+  during the review phase (`03-review.md`).
 
 When the writer asks you to explain a concept (TPM, `shared_buffers`,
 RTT vs. throughput), explain it in plain language, point at the code
