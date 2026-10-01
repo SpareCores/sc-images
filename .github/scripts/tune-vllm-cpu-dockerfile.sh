@@ -203,6 +203,22 @@ def patch_run(run_block: str) -> str:
                 f'{load_env} \\\n    if [ "$TARGETARCH"',
                 1,
             )
+        # `git checkout <pin>` after `clone --recurse-submodules` leaves submodule
+        # working trees empty unless refreshed for that commit. Without this,
+        # third_party/sleef has no CMakeLists.txt and the wheel build fails.
+        if "git submodule update --init --recursive" not in patched:
+            patched2, n = re.subn(
+                r'(git checkout "[^"]+"; \\\n)([ \t]*)(uv build)',
+                r"\1\2git submodule update --init --recursive; \\\n\2\3",
+                patched,
+                count=1,
+            )
+            if n != 1:
+                raise SystemExit(
+                    "tune-vllm-cpu-dockerfile: could not inject "
+                    "git submodule update after triton-cpu checkout"
+                )
+            patched = patched2
         return patched
     return run_block
 
@@ -237,6 +253,12 @@ for label, needle, override in (
             f"tune-vllm-cpu-dockerfile: {label} RUN is missing the runtime "
             "parallelism secret override"
         )
+triton_blocks = [b for _, _, b in iter_run_blocks(text) if "triton-cpu.git" in b]
+if triton_blocks and "git submodule update --init --recursive" not in triton_blocks[0]:
+    raise SystemExit(
+        "tune-vllm-cpu-dockerfile: triton-cpu RUN is missing post-checkout "
+        "submodule update (sleef would be empty)"
+    )
 
 # Pin floating ubuntu:22.04 so BuildKit layer cache stays stable across runners.
 # Done after stage injects that match "FROM ubuntu:22.04 AS …".
