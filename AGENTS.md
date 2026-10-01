@@ -60,20 +60,36 @@ instead of pasting it into chat.
 
 ### README: the manual
 
-A reader should understand the image in one pass without opening another
-file. The README never shrinks to a table of contents. It is a manual
-(what this is for and how to use it), not a blog post (why we built it
-now). History belongs only where it explains a design choice.
+A reader should have a basic understanding of the image in one pass without
+opening another file. The README never shrinks to a table of contents. It is a
+brief manual (what this is for and how to use it), not a blog post (why we built
+it). History belongs only where it explains a design choice. Keep each heading
+short and descriptive, so that a user with some experience can scan the README
+and find what they need.
 
-Order, adapting headings to the image:
+Structure, adapting headings to the image:
 
-1. What it measures or collects, and why it exists
-2. How it works (high-level methodology), for benchmarks
-3. Running it via Docker
-4. Outputs and how to read them
-5. Limitations and what is deliberately out of scope
-6. Optional FAQ
-7. Links to `docs/` or `CHANGELOG.md`, only when those files exist
+1. Image name
+   - a short summary of what it does, why it exists, and what it measures
+2. Purpose
+   - what it measures or collects
+   - why it exists
+3. Limitations
+   - external and internal limitations
+   - design considerations
+   - what is deliberately out of scope
+4. Usage
+   - Running it via Docker
+   - Outputs and how to read them
+5. Workloads
+   - how it works (high-level methodology) for benchmarks
+6. Design history
+   - a short retrospective of the design and experiments that led to the current
+     implementation, with links to `CHANGELOG.md` and `design-history.md` if the files exist
+7. References
+   - links to external documentation and a glossary of acronyms used in the
+     README and `docs/` pages
+8. FAQ (optional)
 
 Keep env var names out of the opening paragraph. List them in a Usage
 section of the same README.
@@ -89,10 +105,13 @@ unanswered maintainer questions.
 
 ### When to add `docs/` pages
 
-Split only when a first-pass reader would not get through one README,
-for example a long env-var table or limitations longer than the
-methodology. Link each page from the paragraph that needs it. Do not
-create `purpose.md`, `design-history.md`, or `references.md` by default.
+Split only when a first-pass reader would not get through one README, or if the
+section would stretch beyond one page on an average browser page. For example, a
+long env-var table or limitations longer than the methodology. Link each page
+from the paragraph that needs it. When appropriate, link to subheadings within
+the `docs/` files. Do not create `purpose.md`, `design-history.md` by default,
+and only create  `references.md` when the README and `docs/` pages use acronyms
+that need a glossary.
 
 ### History and `CHANGELOG.md`
 
@@ -102,11 +121,11 @@ limiting factors found:
 > We ran 21 experiments on a 32 vCPU host and found that … limited
 > throughput, so …
 
-Then link to `images/<name>/CHANGELOG.md`, which holds everything else,
-newest entry first: behavior and doc changes, experiment logs with
-tables and negative results, and calibration notes, including notes an
-LLM drafted. Create the changelog only when an image has history worth
-keeping. Detail cut from the manual moves there; it is never deleted.
+Then link to `images/<name>/CHANGELOG.md`, which holds everything else, newest
+entry first: behavior and doc changes, experiment logs with tables and negative
+results, and calibration notes, including notes an LLM drafted. Create the
+changelog only when an image has history worth keeping. Details cut from the
+manual should be moved there; it is never deleted.
 
 ### Image families
 
@@ -129,7 +148,8 @@ Terminology:
   use `postgres` in backticks for the daemon.
 - Write DBaaS, IaaS, vCPU.
 - Say "run via Docker", not "bash script" or "shell command".
-- When body wording changes, update the headings that use it.
+- When body wording changes, update the headings that use it, as well as links
+  pointing to those headings.
 - Expand acronyms on first use when the audience needs it, e.g.
   RDBMS (Relational Database Management System).
 - Gloss niche tools on first use, e.g. `netem` (Network Emulator).
@@ -140,25 +160,25 @@ Formatting:
 - Wrap at about 80 characters. Keep a paragraph's sentences on
   continuous wrapped lines, not one sentence per line. Aim to keep links on one line.
 - Give bullet lists an intro sentence, consistent case and punctuation,
-  and shallow nesting.
+  and shallow nesting. Aim to keep each bullet on one line. Use a colon for a
+  list of examples, and the word "following" in the intro sentence where possible.
 - No `TODO` or `FIXME` in published docs; track that work in Linear.
 
 Links:
 
 - A link must lead to a section that delivers what the link text
-  promises. "For details" must point at details, not at an override
-  table.
+  promises. Phrase link texts to match the type of information they point to.
 - After moving content, recheck every relative path and drop phrases
   like "in this folder".
 
 Scope and voice:
 
-- Name what is excluded (disk, network, workload types). Exclusions are
-  not "metrics".
+- Name explicitly what is excluded (disk, network, workload types). Avoid
+  generic language where more direct wording is possible.
 - Compare concretely: "most published database benchmarks", not "most
   benchmarks".
 - Describe topology only as the code or a maintainer confirms it.
-- No marketing phrasing ("for the Spare Cores fleet", "delve",
+- Avoid marketing phrasing ("for the Spare Cores fleet", "delve",
   "seamless"). Link [Navigator](https://sparecores.com/servers) instead
   of saying "our fleet".
 - Use the imperative for instructions: "Set `SC_DB_HOST`".
