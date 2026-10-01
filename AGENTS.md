@@ -128,18 +128,17 @@ Terminology:
   Put program and command names in backticks (`pgbench`, `ffmpeg`), and
   use `postgres` in backticks for the daemon.
 - Write DBaaS, IaaS, vCPU.
-- Say "run via Docker", not "bash script".
+- Say "run via Docker", not "bash script" or "shell command".
 - When body wording changes, update the headings that use it.
 - Expand acronyms on first use when the audience needs it, e.g.
-  Relational Database Management System (RDBMS).
-- Gloss niche tools on first use, e.g. `netem` (Linux network delay
-  emulation).
+  RDBMS (Relational Database Management System).
+- Gloss niche tools on first use, e.g. `netem` (Network Emulator).
 - Do not carry one image's domain terms into another image.
 
 Formatting:
 
 - Wrap at about 80 characters. Keep a paragraph's sentences on
-  continuous wrapped lines, not one sentence per line.
+  continuous wrapped lines, not one sentence per line. Aim to keep links on one line.
 - Give bullet lists an intro sentence, consistent case and punctuation,
   and shallow nesting.
 - No `TODO` or `FIXME` in published docs; track that work in Linear.
@@ -217,8 +216,9 @@ change, or a new answer in a context file — means re-extract. A
 ## When unsure
 
 - Ask a maintainer question instead of guessing.
-- List code-vs-docs conflicts explicitly: in the facts file during
-  extract, in section (a) during write and review.
+- List code-vs-docs conflicts explicitly: in the review file, under a
+  "Conflicts" heading, with citations for both the code and the docs during
+  review.
 
 When the writer asks you to explain a concept (TPM, `shared_buffers`,
 RTT vs. throughput), explain it in plain language, point at the code

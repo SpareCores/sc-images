@@ -29,6 +29,10 @@ Ship, needs work, or blocked, and why, in 2–5 sentences.
 
 ## Blockers
 ## Should-fix
+
+Check if existing, but not mandatory documentation files are justified. If not, mark as a should-fix. If there are acronyms anywhere in the documentation, treat `references.md` as a mandatory glossary.
+
+## Conflicts
 ## Editorial
 
 Check for the following, and suggest changes if necessary:
@@ -66,6 +70,8 @@ Write each finding using the following format:
 | ---------- | --------- |
 | Blocker | A claim that contradicts or is missing from the facts file, the context files, and the code; a README reduced to a table of contents; a missing prerequisite; a misleading link |
 | Should-fix | Style-guide violations that hurt clarity; a `docs/` split that is not needed; a variant README repeating the family manual; experiment logs or LLM notes left in the manual; detail cut with no `CHANGELOG.md` entry |
+| Conflicts | A doc claim versus what the code does, with citations for both |
+| Editorial | Style-guide violations that hurt clarity; a `docs/` split that is not needed; a variant README repeating the family manual; experiment logs or LLM notes left in the manual; detail cut with no `CHANGELOG.md` entry |
 | Nit | Wrapping, punctuation, minor wording |
 
 ## Checklist

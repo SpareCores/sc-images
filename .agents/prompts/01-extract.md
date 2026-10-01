@@ -36,19 +36,17 @@ Inputs: images/<image>, .agents/context/shared.md, .agents/context/<image>.md, <
 ## Outputs and schema
 ## How to run
 ## Dependencies and platforms
-## Conflicts between code and existing docs
 ## Open questions for maintainers
 ```
 
 | Section | Include |
-|---------|---------|
+| --------- | --------- |
 | What is measured | Headline metric, what varies between runs, what is held constant |
 | Workload | Scripts, queries, concurrency, warmup and duration, topology the code implies |
 | Parameters and defaults | Env vars, flags, constants: name, default, meaning |
 | Outputs and schema | Printed output or files, field names, units |
 | How to run | Image tag, required env, minimal command from the entrypoint |
 | Dependencies and platforms | `DEPENDS_ON`, base images, `PLATFORMS`, sibling images |
-| Conflicts | A doc claim versus what the code does, with citations for both |
 | Open questions | What only a maintainer can answer, phrased as questions |
 
 ## Rules
@@ -68,4 +66,4 @@ Inputs: images/<image>, .agents/context/shared.md, .agents/context/<image>.md, <
   context files, and any sibling image, family manual, or `.github/`
   file. The staleness check in `AGENTS.md` watches exactly those paths.
 - Extract from committed files. If any input path has uncommitted
-  changes, append ` (uncommitted changes)` to the `Source commit` line.
+  changes, append `(uncommitted changes)` to the `Source commit` line.

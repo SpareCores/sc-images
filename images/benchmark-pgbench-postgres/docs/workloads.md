@@ -13,22 +13,22 @@ details.
 
 ## `pgbench_ro`
 
-This schema uses a cached CPU-heavy SQL workload.
+This workload uses a cached CPU-heavy SQL workload.
 
 A custom, read-only PostgreSQL benchmark sized to fit in `shared_buffers`, so
 this benchmark is dominated by CPU work (parse, plan, execute, join, aggregate,
 text/JSON/array processing) rather than disk I/O. It creates the following test
-data, taking up 0.17 GiB in memory:
+data, taking up ~260–320 MB in memory:
 
 - 20k products
 - 50k customers
 - 250k orders
 - 750k order items
 
-This benchmark can be run via the `pgbench -D scale=N -f ro_cpu_txn.sql`
-command.
+This benchmark can be run with `pgbench -D scale=N -f ro_cpu_txn.sql`
+via Docker.
 
-- `-D scale=N` linearly scales the row-count knobs inside the transaction (wider
+- `-D scale=N` linearly scales the row-count knobs inside the transaction (wider
   slices, bigger joins) without touching the underlying dataset, so a single
   fixed schema can represent a range of CPU intensities.
 - It uses fixed concurrency points instead of a geometric search to work with
@@ -39,7 +39,7 @@ each touching a different PostgreSQL subsystem:
 
 - `q_idx`: btree index scan + nested loop + window agg
 - `q_hashjoin`: hash join + hash aggregate over a time slice
-- `q_regex`: regex + `md5()`
+- `q_regex`: regex + `md5()`
 - `q_fts`: full-text search via `tsvector`/GIN
 - `q_array`: array containment with GIN
 - `q_stats`: ordered-set/statistical aggregates

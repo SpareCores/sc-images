@@ -27,12 +27,10 @@ same node to save on infrastructure costs.
 
 ## Does production apply OS-level tuning?
 
-The `No OS-level tuning` section in `images/benchmark-pgbench-postgres/docs/limitations.md`
-accurately describes the environment. Production runs do not apply `sysctl` or
-other host OS tweaks; the documented privileged mode, host networking,
+Not at the moment. Production runs do not apply `sysctl` or
+other host OS tweaks; privileged mode, host networking,
 `seccomp=unconfined`, ulimits, and PostgreSQL process priority are container
-settings applied by `sc-inspector` orchestration. The orchestration code was
-updated previously to match this setup.
+settings applied by `sc-inspector` orchestration.
 
 ## What is the primary advantage versus other database benchmarks?
 
@@ -44,3 +42,24 @@ Other database benchmarks usually focus on storage, network throughput, a single
 database operation, or one production workload -- while we focus on CPU and
 memory speed of the instance, as disk and network are usually configured
 alongside the instance type.
+
+## What does the fixed `PGBENCH_RO_CPU_SCHEMA_GIB=0.17` represent relative to the setup SQL estimate of 260–320 MB of data plus indexes?
+
+This variable used to be dynamically tuned for the early versions of the
+benchmark, depending on the instance memory size, but in the current version
+it's static. It's a leftover from a system we used to create the
+schema (this was the ingested dataset size, of course the on disk dataset was
+different), now unused.
+
+## Are DBaaS client/server runs always placed in the same availability zone and connected over private VPC addresses?
+
+AZ-private VPC: always private, but AZ depends on the vendor. Strictly same AZ
+for AWS, others might be same region. The difference it makes is less important
+since our benchmark is not latency-bound.
+
+## Does the `resource-tracker` runtime preserve the benchmark's JSON object on stdout in production?
+
+We run all benchmarks wrapped into resource-tracker. It sends the metrics to our
+sentinel API and we save the JSON output to that S3 bucket simultaneously. We
+collect these data for our own purposes and don't (currently) publish them. We
+have future plans on using these metrics on sparecores.com.

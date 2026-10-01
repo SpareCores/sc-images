@@ -80,6 +80,10 @@ docker exec -e PGPASSWORD=bench ro-cpu-cal pgbench -h localhost -U postgres -d b
   -n -c 1 -T 20 -D scale=1 -f /sql/ro_cpu_txn.sql
 ```
 
+Re-run `profile_v2_breakdown.sql` after any
+schema/query change, or on significantly different hardware, to confirm no
+block has drifted back into dominance.
+
 ## Initial custom workload: v1
 
 Plain `pgbench -S` (one primary-key `SELECT`) was too cheap per transaction to

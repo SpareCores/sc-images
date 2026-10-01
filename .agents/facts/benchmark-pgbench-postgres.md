@@ -1,6 +1,6 @@
 # Facts: benchmark-pgbench-postgres
 
-Source commit: 15d1379ba43af121fb6ad167722a1adc7415a484
+Source commit: 523608975d92a989a1a746e0f9d2d7154c219bbd
 Inputs: images/benchmark-pgbench-postgres, images/benchmark-postgres-server, .agents/context/shared.md, .agents/context/benchmark-pgbench-postgres.md
 
 ## What is measured
