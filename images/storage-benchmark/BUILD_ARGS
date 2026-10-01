@@ -1,0 +1,2 @@
+RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-${ARCH}
+FIO_VERSION=3.43
