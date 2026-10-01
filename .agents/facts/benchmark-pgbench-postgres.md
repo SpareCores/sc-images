@@ -1,7 +1,7 @@
 # Facts: benchmark-pgbench-postgres
 
-Source commit: 523608975d92a989a1a746e0f9d2d7154c219bbd
-Inputs: images/benchmark-pgbench-postgres, images/benchmark-postgres-server, .agents/context/shared.md, .agents/context/benchmark-pgbench-postgres.md
+Source commit: 39b703e64804f87ac2f1d51d5efeb6c9ee73e3f8
+Inputs: images/benchmark-pgbench-postgres, images/benchmark-postgres-server, .agents/context/shared.md, .agents/context/benchmark-pgbench-postgres.md, AGENTS.md, .agents/prompts/01-extract.md
 
 ## What is measured
 
@@ -12,7 +12,7 @@ Inputs: images/benchmark-pgbench-postgres, images/benchmark-postgres-server, .ag
 - `pgbench_tpcb` uses geometric anchors with optional ladder expansion; search defaults on for TPC-B and stops when an expanded rung fails the improvement threshold. (`benchmark.py:52-75`, `benchmark.py:675-692`, `benchmark.py:896-923`, `benchmark.py:994-996`)
 - Both workloads run with `pgbench -M prepared -n`; the RO path uses the custom SQL and applies `jit=off`, `work_mem='64MB'`, and `max_parallel_workers_per_gather=0`, while TPC-B uses `-b tpcb-like`. (`benchmark.py:487-505`, `benchmark.py:523-621`)
 - The image's local database uses `postgres:18`; the Dockerfile does not pin a minor version. Remote server versions are not checked. (`Dockerfile:4-5`, `benchmark.py:964-985`)
-- Local and remote modes are supported. Maintainer context says IaaS colocates the client and database on one node, while DBaaS uses a separate client VM. (`benchmark.py:968-985`; context: `.agents/context/benchmark-pgbench-postgres.md`, “Where is the benchmarking client run?”)
+- Local and remote modes are supported. Maintainer context says IaaS runs place the client and database on one node, while DBaaS uses a separate client VM. Client/server traffic is private; availability-zone placement is provider-dependent (same AZ for AWS, possibly same region for other vendors). (`benchmark.py:968-985`; context: `.agents/context/benchmark-pgbench-postgres.md`, “Where is the benchmarking client run?” and “Are DBaaS client/server runs always placed in the same availability zone and connected over private VPC addresses?”)
 
 ## Workload
 
@@ -20,12 +20,12 @@ Inputs: images/benchmark-pgbench-postgres, images/benchmark-postgres-server, .ag
 - The custom transaction is one `SELECT md5(string_agg(...))` using eight CTE blocks: `q_idx`, `q_hashjoin`, `q_regex`, `q_fts`, `q_array`, `q_stats`, `q_toast`, and `q_seqscan`. (`ro_cpu_txn.sql:67`, `ro_cpu_txn.sql:120-126`, `ro_cpu_txn.sql:334-341`)
 - `-D scale` changes limit/slice widths in the transaction; it does not resize the schema. (`ro_cpu_txn.sql:3-5`, `ro_cpu_txn.sql:36-61`)
 - `ro_cpu_setup.sql` creates 20,000 products, 50,000 customers, 250,000 orders, and 750,000 line items; its comment estimates 260–320 MB of data plus indexes. (`ro_cpu_setup.sql:16`, `ro_cpu_setup.sql:68-70`, `ro_cpu_setup.sql:92`, `ro_cpu_setup.sql:94-106`, `ro_cpu_setup.sql:108`, `ro_cpu_setup.sql:140-151`)
-- `PGBENCH_RO_CPU_SCHEMA_GIB=0.17` is emitted as `schema_gib` for the RO run as a fixed constant, not measured from the created schema. (`benchmark.py:49`, `benchmark.py:1097-1100`)
+- `PGBENCH_RO_CPU_SCHEMA_GIB=0.17` is emitted as `schema_gib` for the RO run as a fixed constant, not measured from the created schema. The maintainer says it is an unused remnant of the old dynamically selected ingested-dataset size; physical database size differed. (`benchmark.py:49`, `benchmark.py:1097-1100`; context: `.agents/context/benchmark-pgbench-postgres.md`, “What does the fixed `PGBENCH_RO_CPU_SCHEMA_GIB=0.17` represent relative to the setup SQL estimate of 260–320 MB of data plus indexes?”)
 - RO initialization runs the setup SQL and applies the three database settings; TPC-B initialization uses `pgbench -i -s <scale>`. (`benchmark.py:487-505`, `benchmark.py:523-571`)
 - Each concurrency rung gets a warmup or settle run followed by a measured run. The first rung uses `SC_WARMUP_SECONDS` when `SC_WARMUP_ONCE` is true; otherwise it uses `SC_SETTLE_SECONDS`. Measured runs use `SC_RUN_SECONDS`, progress reporting, and sampled latency logs. (`benchmark.py:857-919`, `benchmark.py:990-993`, `benchmark.py:577-632`)
 - Latency samples are recorded in milliseconds; the parser reports `p50`, `p95`, `p99`, average, and sample count. (`benchmark.py:419-455`)
 - Dataset preparation restores a matching CDN dump when available; otherwise it builds the database and may upload a dump. (`db_dataset_cache.py:297-342`)
-- With empty `SC_DB_HOST`, the container starts local PostgreSQL at `127.0.0.1:5432`; local settings use pgtune defaults, durability controls `synchronous_commit`, the server process starts at nice `-20`, and `SC_TOPOLOGY` defaults to `single_vm`. A non-empty host is used as-is, without server retuning. (`benchmark.py:161-213`, `benchmark.py:968-985`, `benchmark.py:1015-1018`; context: `.agents/context/benchmark-pgbench-postgres.md`, “Does production apply OS-level tuning?”)
+- With empty `SC_DB_HOST`, the container starts local PostgreSQL at `127.0.0.1:5432`; local settings use pgtune defaults, durability controls `synchronous_commit`, the server process starts at nice `-20`, and `SC_TOPOLOGY` defaults to `single_vm`. A non-empty host is used as-is, without server retuning. Maintainer context says production applies no host `sysctl` or other host OS changes; privileged mode, host networking, `seccomp=unconfined`, ulimits, and PostgreSQL process priority are container settings applied by orchestration. (`benchmark.py:161-213`, `benchmark.py:968-985`, `benchmark.py:1015-1018`; context: `.agents/context/benchmark-pgbench-postgres.md`, “Does production apply OS-level tuning?”)
 
 ## Parameters and defaults
 
@@ -65,7 +65,7 @@ Inputs: images/benchmark-pgbench-postgres, images/benchmark-postgres-server, .ag
 
 ## Outputs and schema
 
-- The process prints one indented, key-sorted JSON object to stdout and returns 0 after a successful run. (`benchmark.py:1125-1134`)
+- The process prints one indented, key-sorted JSON object to stdout and returns 0 after a successful run. Maintainer context says production's `resource-tracker` wrapper sends resource metrics to Sentinel and saves the JSON output alongside them to S3. (`benchmark.py:1125-1134`; context: `.agents/context/benchmark-pgbench-postgres.md`, “Does the `resource-tracker` runtime preserve the benchmark's JSON object on stdout in production?”; `.agents/context/shared.md`, “What wraps the process inside the container?”)
 - Common top-level fields are `benchmark`, `workload`, `topology`, `durability`, `synchronous_commit`, `max_connections`, `max_connections_client_cap`, `run_seconds`, `warmup_seconds`, `settle_seconds`, `warmup_once`, `improve_pct`, `profile_search`, `profile_vus`, `profile_max_clients`, `profile_hard_max_clients`, `db_vcpus`, `client_vcpus`, `db_mem_gib`, `sizes`, `peak_concurrency`, `score`, `score_unit`, `latency_ms`, `latency_avg_ms`, and `latency_stddev_ms`. `benchmark_image` and `workload_kind` are added before output. (`benchmark.py:1069-1095`, `benchmark.py:1103-1104`)
 - `score_unit` is `tpm` (transactions per minute). RO summaries add `cpu_scale`, `peak_cpu_scale`, and `schema_gib`; TPC-B summaries add `scalefactors`, `peak_scalefactor`, and `scalefactor`. (`benchmark.py:1089-1103`)
 - Each `sizes[]` entry has `dataset`, `profile`, `profile_vus`, `concurrency_plan`, `profile_max_clients`, `peak_concurrency`, `score`, `latency_ms`, `latency_avg_ms`, `latency_stddev_ms`, and `stop_reason`. RO entries add `cpu_scale`; TPC-B entries add `scalefactor` and `clients_capped_at_scale`. (`benchmark.py:933-967`, `benchmark.py:1043-1067`)
@@ -92,18 +92,13 @@ Inputs: images/benchmark-pgbench-postgres, images/benchmark-postgres-server, .ag
 - The sibling `benchmark-postgres-server` uses `postgres:18` and `resource-tracker`, but this benchmark does not depend on it. (`images/benchmark-postgres-server/Dockerfile:1-9`, `images/benchmark-postgres-server/DEPENDS_ON:1`, `DEPENDS_ON:1`)
 - The dataset helper uses the CDN prefix `sc-inspector`. (`db_dataset_cache.py:21`)
 
-## Conflicts between code and existing docs
+## Conflicts between code and current docs
 
-- The README says both local and remote targets are PostgreSQL 18, but only the local base image is pinned; the remote path connects to the supplied host without checking its server version. (`README.md:4`, `Dockerfile:4-5`, `benchmark.py:968-985`, `benchmark.py:1015-1016`)
-- `docs/limitations.md` reports the dataset as 0.17 GiB, while `ro_cpu_setup.sql` estimates 260–320 MB of data plus indexes. The code emits `schema_gib=0.17` as fixed metadata, not a measurement of physical schema size. (`docs/limitations.md:143-148`, `ro_cpu_setup.sql:16`, `benchmark.py:49`, `benchmark.py:1100-1101`)
-- README and Limitations claim client/server placement in the same availability zone over private networking, but local code does not control or verify placement; maintainer context confirms IaaS same-node and DBaaS remote-client modes without confirming zone/VPC placement. (`README.md:57-61`, `docs/limitations.md:217-223`; context: `.agents/context/benchmark-pgbench-postgres.md`, “Where is the benchmarking client run?”)
-- README says IaaS runs use pgtune without clarifying local mode; code applies pgtune only when `SC_DB_HOST` is empty and leaves remote servers unchanged. (`README.md:57-61`, `benchmark.py:976-981`)
-- The OS-level tuning statement is confirmed by maintainer context; orchestration applies the documented container settings without host `sysctl` or other host OS tweaks. (context: `.agents/context/benchmark-pgbench-postgres.md`, “Does production apply OS-level tuning?”; `benchmark.py:206-221`, sibling `Dockerfile:8-9`)
-- `docs/usage.md` says the JSON output is “with stdout (benchmark: pgbench_postgres)”; the code directly prints the JSON object to stdout. (`docs/usage.md:27-34`, `benchmark.py:1128`)
-- README gives only a high-level throughput/concurrency description and directs readers to Usage for output details; AGENTS.md requires outputs and interpretation in the one-pass manual. (`README.md:8-9`, `README.md:78-80`, `docs/usage.md:27-34`; `AGENTS.md`, “README: the manual”)
+- The README says DBaaS targets are set to PostgreSQL major version 18. The image pins its local server to `postgres:18`, but remote connections use the supplied host without checking its version; the major-version claim is not enforced by this image. (`README.md:5-7`, `Dockerfile:4-5`, `benchmark.py:964-985`)
+- `docs/limitations.md` says client and server VMs are always in the same availability zone. Maintainer context says DBaaS traffic uses private addresses, but AZ placement is provider-dependent: same AZ for AWS and potentially same region for other vendors. The image itself does not control placement. (`docs/limitations.md:203-211`; context: `.agents/context/benchmark-pgbench-postgres.md`, “Are DBaaS client/server runs always placed in the same availability zone and connected over private VPC addresses?”; `benchmark.py:968-985`)
+- `docs/workloads.md` presents `pgbench -D scale=N -f ro_cpu_txn.sql` as the user-facing command and says the SQL returns the final headline score. Docker starts this image's harness, which invokes `pgbench`; the SQL returns a checksum, while the harness derives the headline TPM score from parsed `pgbench` TPS. (`docs/workloads.md:28-31`, `docs/workloads.md:54-60`, `Dockerfile:25-26`, `benchmark.py:393-399`, `benchmark.py:523-621`, `ro_cpu_txn.sql:67`, `ro_cpu_txn.sql:334-341`)
+- The README directs readers to the Usage page for details, but does not include the environment-variable reference or output interpretation required for a one-pass manual. The Usage page currently describes the `profile` and `score` at a high level but omits several emitted fields, including `sizes[]` details, latency percentiles, stop reasons, and standalone `postgres`/`pg_image` data. (`README.md:50-60`, `README.md:77-80`, `docs/usage.md:48-56`, `benchmark.py:933-967`, `benchmark.py:1069-1124`; `AGENTS.md`, “README: the manual”)
 
 ## Open questions for maintainers
 
-- What does the fixed `PGBENCH_RO_CPU_SCHEMA_GIB=0.17` represent relative to the setup SQL estimate of 260–320 MB of data plus indexes?
-- Are DBaaS client/server runs always placed in the same availability zone and connected over private VPC addresses, as `docs/limitations.md` says?
-- Does the `resource-tracker` runtime preserve the benchmark's JSON object on stdout in production?
+None found. The prior questions about `schema_gib`, DBaaS placement, and `resource-tracker` output are answered in `.agents/context/benchmark-pgbench-postgres.md`.
