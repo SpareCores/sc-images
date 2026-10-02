@@ -10,6 +10,11 @@ performance of cloud servers. [Navigator](https://sparecores.com/servers)
 publishes the empirical results for over 5,000 cloud server types. An image
 README says what that image measures.
 
+Navigator already publishes, among others, raw CPU speed, memory bandwidth,
+OpenSSL speed, compression algorithms, Redis and static web-serving throughput,
+and LLM inference speed. A new image's Purpose section can name which gap it
+fills relative to these.
+
 ## Who is the target audience?
 
 Highly technical readers who are somewhat familiar with cloud server types and
@@ -18,7 +23,7 @@ at least some workloads -- such as software engineers or system administrators.
 ## Where is a production run defined?
 
 This repo defines the container: Dockerfile, entrypoint, and benchmark code.
-Choosing server types and any host flag that is not in the Dockerfile (e.g.
+Choosing server types and any host flag that is not in the `Dockerfile` (e.g.
 privileged mode, host networking, ulimits, process priority) is orchestration.
 Fleet runs are the concern of [sc-inspector](https://github.com/sparecores/sc-inspector)
 
@@ -27,18 +32,21 @@ Fleet runs are the concern of [sc-inspector](https://github.com/sparecores/sc-in
 `ghcr.io/sparecores/<folder>:main`. `<folder>` is the directory name
 under `images/`.
 
-## What wraps the process inside the container?
+## What wraps the main benchmarking process inside the container?
 
 Images copy `resource-tracker` and typically exec it as the entrypoint
-(`resource-tracker -- <command>`), with `TRACKER_QUIET=true`. The image
-README documents the workload command and its output. Tracker flags and
-CI metrics belong to the resource-tracker docs and the repository root
-README, not to each benchmark manual.
+(`resource-tracker -- <command>`), with `TRACKER_QUIET=true`.
 
-We use Resource Tracker to track the resource usage of each benchmark,
-streamed to the Spare Cores Sentinel platform. This is useful for us to
-check if all CPU or GPU cores etc are utilized as intended while running
-the benchmarks.
+We use Resource Tracker to track the resource usage of each benchmark (such as
+CPU, memory, disk, network, GPU and VRAM sampled once per second), streamed to
+the Spare Cores Sentinel platform. This is useful for us to check if all CPU or
+GPU cores are utilized as intended while running the benchmarks.
+
+## Are the resource-tracker metrics and raw JSON outputs published?
+
+Not currently. We primarily collect these for our own monitoring purposes, but
+we have plans to publish aggregate statistics from them in the future. Docs
+should not promise raw access to telemetry data for the time being.
 
 ## Which folders share one manual?
 
