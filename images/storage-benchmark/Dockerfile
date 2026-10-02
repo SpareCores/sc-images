@@ -34,7 +34,9 @@ RUN --mount=type=tmpfs,target=/tmp,rw \
     apt-get install -y --no-install-recommends \
       libaio1t64 \
       liburing2 \
+      nvme-cli \
       python3 \
+      smartmontools \
       util-linux \
       zlib1g
 COPY --from=fio_builder /usr/local/bin/fio /usr/local/bin/fio

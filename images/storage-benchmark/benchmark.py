@@ -5,6 +5,12 @@ Discovers the real block devices of the host, groups identical ones, benchmarks 
 representative per group (single mode) and all members of multi-device groups
 concurrently (group mode), then prints a single JSON document on stdout.
 
+All I/O is O_DIRECT on the raw device, so the page cache is never involved. Writable
+devices are preconditioned to keep the SSD's own caches and spare area from inflating
+results: discard, sequential fill of the whole device, and a random-write pass before
+the random-write tests. Writes over a partially written device would land on spare
+area and never trigger garbage collection.
+
 Needs a privileged container with the host PID namespace (`--privileged --pid=host`):
 host mounts are read from /proc/1/mountinfo and unmounts run via nsenter.
 """
@@ -34,14 +40,25 @@ def env_int(name: str, default: int) -> int:
 
 
 RUNTIME_S = env_int("SC_STORAGE_RUNTIME_S", 10)
+# writes need longer runs to get past the drive's DRAM/SLC write buffer
+WRITE_RUNTIME_S = env_int("SC_STORAGE_WRITE_RUNTIME_S", 30)
 RAMP_S = env_int("SC_STORAGE_RAMP_S", 2)
 MIN_RUNTIME_S = env_int("SC_STORAGE_MIN_RUNTIME_S", 5)
-FILL_CAP_S = env_int("SC_STORAGE_FILL_CAP_S", 90)
-WS_TARGET_BYTES = env_int("SC_STORAGE_WS_TARGET_BYTES", 128 * GiB)
+MIN_WRITE_RUNTIME_S = env_int("SC_STORAGE_MIN_WRITE_RUNTIME_S", 15)
+# total sequential fill time, split evenly between writable groups; drives that don't fill
+# completely keep unmapped spare area, which flatters random writes (see filled_fraction)
+FILL_BUDGET_S = env_int("SC_STORAGE_FILL_BUDGET_S", 300)
+# 0 fills the whole device
+WS_TARGET_BYTES = env_int("SC_STORAGE_WS_TARGET_BYTES", 0)
+RAND_PRECOND_S = env_int("SC_STORAGE_RAND_PRECOND_S", 120)
 BUDGET_S = env_int("SC_STORAGE_BUDGET_S", 2400)
 UMOUNT = os.environ.get("SC_STORAGE_UMOUNT", "1") != "0"
+PURGE = os.environ.get("SC_STORAGE_PURGE", "1") != "0"
+PURGE_TIMEOUT_S = 300
+HEALTH_TIMEOUT_S = 60
 
 LOG_AVG_MSEC = 500
+SERIES_STEP_MSEC = 5000
 INFLIGHT_CAP_BYTES = 256 * MiB
 MAX_JOBS_PER_DEVICE = 4
 QD_RANDOM = 256
@@ -164,6 +181,96 @@ def fio_version() -> str:
 
 def lsblk_version() -> str:
     return run(["lsblk", "-V"]).stdout.strip().split()[-1]
+
+
+def tool_version(cmd: list[str]) -> str | None:
+    try:
+        lines = run(cmd, timeout=10).stdout.strip().splitlines()
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return lines[0] if lines else None
+
+
+# ---------------------------------------------------------------------------
+# device health (SMART / NVMe logs); best effort, virtual disks usually refuse
+# ---------------------------------------------------------------------------
+
+
+def run_json(cmd: list[str], ok_codes: set[int] | None = None) -> dict:
+    try:
+        proc = run(cmd, timeout=HEALTH_TIMEOUT_S)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return {"error": f"{cmd[0]}: {e}"}
+    try:
+        data = json.loads(proc.stdout)
+    except ValueError:
+        return {"error": f"{cmd[0]} exit {proc.returncode}: {(proc.stderr or proc.stdout).strip()[-500:]}"}
+    if ok_codes is not None and proc.returncode not in ok_codes:
+        data["error"] = f"{cmd[0]} exit {proc.returncode}"
+    return data
+
+
+def smartctl(path: str) -> dict:
+    # exit status is a bitmask: bits 0-1 mean the device could not be queried, the
+    # rest report health findings alongside valid output
+    data = run_json(["smartctl", "-x", "-j", path])
+    status = (data.get("smartctl") or {}).get("exit_status")
+    if status is not None and status & 0b11:
+        messages = [m.get("string") for m in (data.get("smartctl") or {}).get("messages", [])]
+        return {"error": f"smartctl exit {status}: {'; '.join(filter(None, messages))}"}
+    data.pop("json_format_version", None)
+    return data
+
+
+def health_snapshot(path: str, nvme: bool) -> dict:
+    snapshot = {"taken_at": now_iso(), "smartctl": smartctl(path)}
+    if nvme:
+        snapshot["nvme_smart_log"] = run_json(["nvme", "smart-log", "-o", "json", path], {0})
+    return snapshot
+
+
+NVME_COUNTERS = [
+    "data_units_read",
+    "data_units_written",
+    "host_read_commands",
+    "host_write_commands",
+    "controller_busy_time",
+    "media_errors",
+    "num_err_log_entries",
+    "warning_temp_time",
+    "critical_comp_time",
+]
+
+
+def health_delta(before: dict, after: dict) -> dict | None:
+    """Counter changes over the run from the NVMe health log (data units are 512,000 bytes)."""
+    b, a = before.get("nvme_smart_log") or {}, after.get("nvme_smart_log") or {}
+    if "error" in b or "error" in a:
+        return None
+    delta = {k: a[k] - b[k] for k in NVME_COUNTERS if isinstance(a.get(k), int) and isinstance(b.get(k), int)}
+    if not delta:
+        return None
+    for k in ("data_units_read", "data_units_written"):
+        if k in delta:
+            delta[k.replace("data_units", "bytes")] = delta[k] * 512_000
+    for k in ("percent_used", "avail_spare", "critical_warning"):
+        if k in a:
+            delta[f"{k}_after"] = a[k]
+    return delta
+
+
+def collect_health(inventory: dict, phase: str, health: dict) -> None:
+    for name, inv in inventory.items():
+        nvme = inv.get("tran") == "nvme"
+        entry = health.setdefault(name, {})
+        if phase == "before" and nvme:
+            entry["nvme_id_ctrl"] = run_json(["nvme", "id-ctrl", "-o", "json", inv["path"]], {0})
+            entry["nvme_id_ns"] = run_json(["nvme", "id-ns", "-o", "json", inv["path"]], {0})
+        entry[phase] = health_snapshot(inv["path"], nvme)
+        if phase == "after":
+            entry["delta"] = health_delta(entry.get("before") or {}, entry["after"])
+        errors = [k for k, v in entry[phase].items() if isinstance(v, dict) and "error" in v]
+        log(f"health {phase} {name}: {'errors in ' + ', '.join(errors) if errors else 'ok'}")
 
 
 # ---------------------------------------------------------------------------
@@ -342,6 +449,8 @@ class Spec:
     qd: int  # nominal outstanding I/Os per device
     rwmixread: int | None = None
     fill: bool = False
+    # preconditioning step: reported separately, not as a benchmark
+    precondition: bool = False
 
     @property
     def writes(self) -> bool:
@@ -353,9 +462,13 @@ class Spec:
 
     @property
     def kind(self) -> str:
+        if self.fill:
+            return "fill"
         if self.rw == "randrw":
-            return f"randrw{self.rwmixread}"
-        return {"read": "seqread", "write": "seqwrite"}.get(self.rw, self.rw)
+            kind = f"randrw{self.rwmixread}"
+        else:
+            kind = {"read": "seqread", "write": "seqwrite"}.get(self.rw, self.rw)
+        return f"precondition_{kind}" if self.precondition else kind
 
     @property
     def base_name(self) -> str:
@@ -376,6 +489,23 @@ class PlanItem:
         return f"{self.spec.base_name}_qd{self.numjobs * self.iodepth}"
 
 
+@dataclass
+class Timing:
+    runtime: int
+    write_runtime: int
+    fill_cap: int
+
+    def measured(self, spec: Spec) -> int:
+        if spec.fill:
+            return self.fill_cap
+        if spec.precondition:
+            return RAND_PRECOND_S
+        return self.write_runtime if spec.writes else self.runtime
+
+    def ramp(self, spec: Spec) -> int:
+        return 0 if spec.fill or spec.precondition else RAMP_S
+
+
 def layout(spec: Spec, n_devices: int) -> tuple[int, int]:
     if spec.qd == 1 or spec.fill:
         numjobs = 1
@@ -386,7 +516,8 @@ def layout(spec: Spec, n_devices: int) -> tuple[int, int]:
     return numjobs, iodepth
 
 
-def single_specs(inv: dict, skipped: list, gid: str) -> list[Spec]:
+def single_specs(inv: dict, skipped: list, gid: str) -> tuple[list[Spec], list[Spec]]:
+    """Read and random-write specs for the representative; sequential write is planned separately."""
     log_sec = inv["log_sec"] or 512
     sizes = []
     for bs in BLOCK_SIZES:
@@ -394,57 +525,72 @@ def single_specs(inv: dict, skipped: list, gid: str) -> list[Spec]:
             skipped.append({"group": gid, "scope": "single", "test": f"*_{bs_label(bs)}", "reason": f"bs < log_sec ({log_sec})"})
         else:
             sizes.append(bs)
-    writable = inv["mode"] == "read_write"
-    specs = []
-    if writable:
-        specs.append(Spec("write", FILL_BS, QD_SEQ, fill=True))
-    specs.append(Spec("randread", 4 * KiB, 1))
-    specs += [Spec("randread", bs, QD_RANDOM) for bs in sizes]
-    specs.append(Spec("read", 1 * MiB, QD_SEQ))
-    if writable:
-        specs += [Spec("randrw", bs, QD_RANDOM, rwmixread=70) for bs in (4 * KiB, 64 * KiB, 1 * MiB)]
-        specs.append(Spec("randrw", 4 * KiB, 1, rwmixread=70))
-        specs.append(Spec("randwrite", 4 * KiB, 1))
-        specs += [Spec("randwrite", bs, QD_RANDOM) for bs in sizes]
+    reads = [Spec("randread", 4 * KiB, 1)]
+    reads += [Spec("randread", bs, QD_RANDOM) for bs in sizes]
+    reads.append(Spec("read", 1 * MiB, QD_SEQ))
+    writes = []
+    if inv["mode"] == "read_write":
+        writes += [Spec("randrw", bs, QD_RANDOM, rwmixread=70) for bs in (4 * KiB, 64 * KiB, 1 * MiB)]
+        writes.append(Spec("randrw", 4 * KiB, 1, rwmixread=70))
+        writes.append(Spec("randwrite", 4 * KiB, 1))
+        writes += [Spec("randwrite", bs, QD_RANDOM) for bs in sizes]
     else:
         skipped.append({"group": gid, "scope": "single", "test": "write tests", "reason": f"read_only: {inv['mode_reason']}"})
-    return specs
+    return reads, writes
 
 
 def build_plan(inventory: dict, groups: dict, skipped: list) -> list[PlanItem]:
+    """Per group: fill, reads, sequential writes, random-write precondition, random writes.
+
+    Reads run on the freshly filled device; random writes run last because the random
+    precondition fragments the FTL mapping, which a later sequential test would inherit.
+    """
     plan = []
     for gid, group in groups.items():
         rep = group["representative"]
-        for spec in single_specs(inventory[rep], skipped, gid):
-            plan.append(PlanItem(gid, "single", [rep], spec, *layout(spec, 1)))
         members = group["members"]
-        if len(members) < 2:
-            continue
         writable = [n for n in members if inventory[n]["mode"] == "read_write"]
-        group_specs = []
-        if len(writable) >= 2:
-            group_specs.append((writable, Spec("write", FILL_BS, QD_SEQ, fill=True)))
-        group_specs.append((members, Spec("randread", 4 * KiB, QD_RANDOM)))
-        group_specs.append((members, Spec("read", 1 * MiB, QD_SEQ)))
-        if len(writable) >= 2:
-            group_specs.append((writable, Spec("randrw", 4 * KiB, QD_RANDOM, rwmixread=70)))
-            group_specs.append((writable, Spec("randwrite", 4 * KiB, QD_RANDOM)))
-        else:
+        multi, multi_writable = len(members) >= 2, len(writable) >= 2
+        writable_scope = "group" if multi_writable else "single"
+
+        def add(scope: str, devices: list[str], spec: Spec) -> None:
+            plan.append(PlanItem(gid, scope, devices, spec, *layout(spec, len(devices))))
+
+        reads, writes = single_specs(inventory[rep], skipped, gid)
+        if writable:
+            add(writable_scope, writable, Spec("write", FILL_BS, QD_SEQ, fill=True, precondition=True))
+        for spec in reads:
+            add("single", [rep], spec)
+        if multi:
+            add("group", members, Spec("randread", 4 * KiB, QD_RANDOM))
+            add("group", members, Spec("read", 1 * MiB, QD_SEQ))
+        if writable:
+            add("single", [rep], Spec("write", 1 * MiB, QD_SEQ))
+            if multi_writable:
+                add("group", writable, Spec("write", 1 * MiB, QD_SEQ))
+            add(writable_scope, writable, Spec("randwrite", 4 * KiB, QD_RANDOM, precondition=True))
+            for spec in writes:
+                add("single", [rep], spec)
+            if multi_writable:
+                add("group", writable, Spec("randrw", 4 * KiB, QD_RANDOM, rwmixread=70))
+                add("group", writable, Spec("randwrite", 4 * KiB, QD_RANDOM))
+        if multi and not multi_writable:
             skipped.append({"group": gid, "scope": "group", "test": "write tests", "reason": "fewer than 2 writable members"})
-        for devices, spec in group_specs:
-            plan.append(PlanItem(gid, "group", devices, spec, *layout(spec, len(devices))))
     return plan
 
 
-def estimate_s(plan: list[PlanItem], runtime: int, ramp: int) -> int:
-    return sum((FILL_CAP_S if item.spec.fill else runtime + ramp) + TEST_OVERHEAD_S for item in plan)
+def estimate_s(plan: list[PlanItem], timing: Timing) -> int:
+    return sum(timing.measured(item.spec) + timing.ramp(item.spec) + TEST_OVERHEAD_S for item in plan)
 
 
-def fit_budget(plan: list[PlanItem], skipped: list) -> tuple[list[PlanItem], int]:
-    runtime = RUNTIME_S
-    while estimate_s(plan, runtime, RAMP_S) > BUDGET_S and runtime > MIN_RUNTIME_S:
-        runtime -= 1
-    if estimate_s(plan, runtime, RAMP_S) > BUDGET_S:
+def fit_budget(plan: list[PlanItem], skipped: list) -> tuple[list[PlanItem], Timing]:
+    fills = sum(1 for item in plan if item.spec.fill)
+    timing = Timing(RUNTIME_S, WRITE_RUNTIME_S, FILL_BUDGET_S // max(1, fills))
+    while estimate_s(plan, timing) > BUDGET_S and timing.runtime > MIN_RUNTIME_S:
+        timing.runtime -= 1
+    while estimate_s(plan, timing) > BUDGET_S and timing.write_runtime > MIN_WRITE_RUNTIME_S:
+        timing.write_runtime -= 1
+    if estimate_s(plan, timing) > BUDGET_S:
         kept = []
         for item in plan:
             if item.spec.base_name in LOW_PRIORITY_TESTS:
@@ -452,7 +598,7 @@ def fit_budget(plan: list[PlanItem], skipped: list) -> tuple[list[PlanItem], int
             else:
                 kept.append(item)
         plan = kept
-    return plan, runtime
+    return plan, timing
 
 
 # ---------------------------------------------------------------------------
@@ -460,7 +606,7 @@ def fit_budget(plan: list[PlanItem], skipped: list) -> tuple[list[PlanItem], int
 # ---------------------------------------------------------------------------
 
 
-def job_file(item: PlanItem, ws: dict[str, int], paths: dict[str, str], logdir: str, runtime: int) -> str:
+def job_file(item: PlanItem, ws: dict[str, int], paths: dict[str, str], logdir: str, timing: Timing) -> str:
     spec = item.spec
     lines = [
         "[global]",
@@ -486,9 +632,11 @@ def job_file(item: PlanItem, ws: dict[str, int], paths: dict[str, str], logdir: 
     if spec.rwmixread is not None:
         lines.append(f"rwmixread={spec.rwmixread}")
     if spec.fill:
-        lines.append(f"runtime={FILL_CAP_S}")
+        lines.append(f"runtime={timing.fill_cap}")
     else:
-        lines += ["time_based=1", f"runtime={runtime}", f"ramp_time={RAMP_S}"]
+        lines += ["time_based=1", f"runtime={timing.measured(spec)}"]
+        if timing.ramp(spec):
+            lines.append(f"ramp_time={timing.ramp(spec)}")
     for dev in item.devices:
         lines += ["", f"[{dev}]", f"filename={paths[dev]}", f"write_iops_log={logdir}/{dev}", f"write_bw_log={logdir}/{dev}"]
         if spec.sequential and item.numjobs > 1:
@@ -533,8 +681,8 @@ def merge_latency(lats: list[dict]) -> dict | None:
     }
 
 
-def interval_stats(logfiles: list[str], ddir: int, scale: float) -> dict | None:
-    """Aggregate per-window samples across jobs; only windows where every job reported are kept."""
+def window_totals(logfiles: list[str], ddir: int, scale: float) -> list[float]:
+    """Per-window totals across jobs in time order; only windows where every job reported are kept."""
     buckets = defaultdict(lambda: [0.0, 0])
     for path in logfiles:
         with open(path) as f:
@@ -545,10 +693,17 @@ def interval_stats(logfiles: list[str], ddir: int, scale: float) -> dict | None:
                 bucket = buckets[round(int(parts[0]) / LOG_AVG_MSEC)]
                 bucket[0] += float(parts[1]) * scale
                 bucket[1] += 1
-    complete = sorted(total for total, count in buckets.values() if count == len(logfiles))
-    values = complete or sorted(total for total, _ in buckets.values())
-    if not values:
+    windows = sorted(buckets.items())
+    complete = [total for _, (total, count) in windows if count == len(logfiles)]
+    return complete or [total for _, (total, _) in windows]
+
+
+def interval_stats(totals: list[float]) -> dict | None:
+    if not totals:
         return None
+    values = sorted(totals)
+    # second half of the run: lower than mean while the drive is still draining its write buffer
+    tail = totals[len(totals) // 2:]
     return {
         "min": values[0],
         "p5": percentile_of(values, 5),
@@ -556,27 +711,40 @@ def interval_stats(logfiles: list[str], ddir: int, scale: float) -> dict | None:
         "p95": percentile_of(values, 95),
         "max": values[-1],
         "mean": sum(values) / len(values),
+        "tail_mean": sum(tail) / len(tail),
         "samples": len(values),
     }
 
 
-def merge_direction(jobs: list[dict], ddir: str, logdir: str, devices: list[str]) -> dict | None:
+def series(totals: list[float]) -> list[float]:
+    """Totals averaged into SERIES_STEP_MSEC steps, for steady-state checks of long runs."""
+    step = SERIES_STEP_MSEC // LOG_AVG_MSEC
+    chunks = [totals[i:i + step] for i in range(0, len(totals), step)]
+    return [round(sum(c) / len(c), 1) for c in chunks]
+
+
+def merge_direction(jobs: list[dict], ddir: str, logdir: str, devices: list[str], with_series: bool = False) -> dict | None:
     parts = [job[ddir] for job in jobs if job.get(ddir, {}).get("total_ios")]
     if not parts:
         return None
     code = {"read": 0, "write": 1}[ddir]
-    iops_logs = [p for dev in devices for p in glob.glob(f"{logdir}/{dev}_iops.*.log")]
-    bw_logs = [p for dev in devices for p in glob.glob(f"{logdir}/{dev}_bw.*.log")]
-    return {
+    iops = window_totals([p for dev in devices for p in glob.glob(f"{logdir}/{dev}_iops.*.log")], code, 1.0)
+    bw = window_totals([p for dev in devices for p in glob.glob(f"{logdir}/{dev}_bw.*.log")], code, float(KiB))
+    merged = {
         "iops": sum(p["iops"] for p in parts),
         "bw_bytes": sum(p["bw_bytes"] for p in parts),
         "io_bytes": sum(p["io_bytes"] for p in parts),
         "total_ios": sum(p["total_ios"] for p in parts),
         "runtime_ms": max(p["runtime"] for p in parts),
-        "iops_interval": interval_stats(iops_logs, code, 1.0),
-        "bw_bytes_interval": interval_stats(bw_logs, code, float(KiB)),
+        "iops_interval": interval_stats(iops),
+        "bw_bytes_interval": interval_stats(bw),
         "lat_ns": merge_latency([p["lat_ns"] for p in parts]),
     }
+    if with_series:
+        merged["series_step_ms"] = SERIES_STEP_MSEC
+        merged["iops_series"] = series(iops)
+        merged["bw_bytes_series"] = series(bw)
+    return merged
 
 
 def parse_fio_output(path: str) -> dict:
@@ -585,7 +753,22 @@ def parse_fio_output(path: str) -> dict:
     return json.loads(text[text.index("{"):])
 
 
-def run_item(item: PlanItem, ws: dict[str, int], paths: dict[str, str], runtime: int) -> dict:
+def purge(path: str, inv: dict) -> dict:
+    """Discard the whole device so every run starts from the same mapping state."""
+    if not inv.get("disc_max"):
+        return {"done": False, "reason": "discard not supported"}
+    started = time.monotonic()
+    try:
+        proc = run(["blkdiscard", "-f", path], timeout=PURGE_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        return {"done": False, "reason": f"blkdiscard timed out after {PURGE_TIMEOUT_S}s"}
+    elapsed = round(time.monotonic() - started, 1)
+    if proc.returncode != 0:
+        return {"done": False, "reason": f"blkdiscard exit {proc.returncode}: {proc.stderr.strip()[-500:]}", "elapsed_s": elapsed}
+    return {"done": True, "elapsed_s": elapsed}
+
+
+def run_item(item: PlanItem, ws: dict[str, int], paths: dict[str, str], timing: Timing) -> dict:
     spec = item.spec
     record = {
         "group": item.group,
@@ -597,21 +780,20 @@ def run_item(item: PlanItem, ws: dict[str, int], paths: dict[str, str], runtime:
         "rwmixread": spec.rwmixread,
         "numjobs": item.numjobs,
         "iodepth": item.iodepth,
-        "fill": spec.fill,
-        "runtime_s": FILL_CAP_S if spec.fill else runtime,
-        "ramp_time_s": 0 if spec.fill else RAMP_S,
+        "runtime_s": timing.measured(spec),
+        "ramp_time_s": timing.ramp(spec),
         "working_set_bytes": {dev: ws[dev] for dev in item.devices},
         "error": None,
     }
     with tempfile.TemporaryDirectory(prefix="fio-") as tmp:
         jobpath, outpath = f"{tmp}/job.fio", f"{tmp}/out.json"
         with open(jobpath, "w") as f:
-            f.write(job_file(item, ws, paths, tmp, runtime))
+            f.write(job_file(item, ws, paths, tmp, timing))
         cmd = ["fio", "--eta=never", "--output-format=json+", f"--output={outpath}"]
         if not spec.writes:
             cmd.append("--readonly")
         cmd.append(jobpath)
-        timeout = (FILL_CAP_S if spec.fill else runtime + RAMP_S) + 120
+        timeout = timing.measured(spec) + timing.ramp(spec) + 120
         started = time.monotonic()
         try:
             proc = run(cmd, timeout=timeout)
@@ -630,11 +812,13 @@ def run_item(item: PlanItem, ws: dict[str, int], paths: dict[str, str], runtime:
         if errors:
             record["error"] = f"fio job errors: {errors}"
         for ddir in ("read", "write"):
-            record[ddir] = merge_direction(jobs, ddir, tmp, item.devices)
+            record[ddir] = merge_direction(jobs, ddir, tmp, item.devices, with_series=spec.precondition)
         if item.scope == "group":
             record["per_device"] = {
                 dev: {
-                    ddir: merge_direction([j for j in jobs if j["jobname"] == dev], ddir, tmp, [dev])
+                    ddir: merge_direction(
+                        [j for j in jobs if j["jobname"] == dev], ddir, tmp, [dev], with_series=spec.precondition
+                    )
                     for ddir in ("read", "write")
                 }
                 for dev in item.devices
@@ -654,16 +838,19 @@ def run_item(item: PlanItem, ws: dict[str, int], paths: dict[str, str], runtime:
     return record
 
 
-def execute(plan: list[PlanItem], inventory: dict, groups: dict, raw: dict, runtime: int, skipped: list) -> list[dict]:
+def execute(
+    plan: list[PlanItem], inventory: dict, raw: dict, timing: Timing, skipped: list
+) -> tuple[list[dict], list[dict]]:
+    """Run the plan; returns (benchmarks, preconditioning records)."""
     paths = {name: inv["path"] for name, inv in inventory.items()}
     # working set per device: whole device until a fill defines the written region
     ws = {name: align_down(inv["size"], FILL_BS) for name, inv in inventory.items()}
     failed_fill = set()
-    results = []
+    results, preconditioning = [], []
     for idx, item in enumerate(plan, 1):
         spec = item.spec
-        # an unfilled working set would make reads hit unwritten blocks
-        if (item.scope == "single" or spec.writes) and failed_fill.intersection(item.devices):
+        # an unfilled (discarded) working set would make reads hit unmapped blocks
+        if failed_fill.intersection(item.devices):
             skipped.append({"group": item.group, "scope": item.scope, "test": item.name, "reason": "fill failed"})
             continue
         if spec.writes:
@@ -671,22 +858,28 @@ def execute(plan: list[PlanItem], inventory: dict, groups: dict, raw: dict, runt
             if reason:
                 skipped.append({"group": item.group, "scope": item.scope, "test": item.name, "reason": reason})
                 continue
+        purged = {}
         if spec.fill:
-            target = WS_TARGET_BYTES
-            if item.scope == "group":
-                target = ws[groups[item.group]["representative"]]
             for dev in item.devices:
-                ws[dev] = align_down(min(inventory[dev]["size"], target), FILL_BS)
+                if PURGE:
+                    purged[dev] = purge(paths[dev], inventory[dev])
+                    log(f"purge {dev}: {purged[dev]}")
+                size = inventory[dev]["size"]
+                ws[dev] = align_down(min(size, WS_TARGET_BYTES or size), FILL_BS)
         log(f"[{idx}/{len(plan)}] {item.scope} {item.name} on {','.join(item.devices)}")
-        record = run_item(item, ws, paths, runtime)
+        record = run_item(item, ws, paths, timing)
         if spec.fill:
+            record["purge"] = purged
             written = record.get("written_bytes") or {}
+            record["filled_fraction"] = {}
             for dev in item.devices:
                 filled = align_down(written.get(dev, 0), FILL_BS)
                 if record["error"] or filled == 0:
                     failed_fill.add(dev)
                 else:
                     ws[dev] = filled
+                record["filled_fraction"][dev] = round(filled / inventory[dev]["size"], 4)
+            log(f"  filled: {record['filled_fraction']}")
         if record["error"]:
             log(f"  error: {record['error']}")
         else:
@@ -697,8 +890,8 @@ def execute(plan: list[PlanItem], inventory: dict, groups: dict, raw: dict, runt
                     p99 = (d["lat_ns"] or {}).get("percentiles", {}).get("99")
                     summary.append(f"{ddir} {d['iops']:.0f} IOPS {d['bw_bytes'] / MiB:.1f} MiB/s p99 {p99 / 1000 if p99 else 0:.0f}us")
             log("  " + "; ".join(summary))
-        results.append(record)
-    return results
+        (preconditioning if spec.precondition else results).append(record)
+    return results, preconditioning
 
 
 def main() -> int:
@@ -710,31 +903,44 @@ def main() -> int:
         "schema_version": SCHEMA_VERSION,
         "fio_version": fio_version(),
         "lsblk_version": lsblk_version(),
+        "smartctl_version": tool_version(["smartctl", "--version"]),
+        "nvme_cli_version": tool_version(["nvme", "version"]),
         "started_at": started_at,
         "host": host_info(),
     }
     inventory, excluded, groups, raw = discover()
     skipped: list[dict] = []
     plan = build_plan(inventory, groups, skipped)
-    plan, runtime = fit_budget(plan, skipped)
+    plan, timing = fit_budget(plan, skipped)
     output["config"] = {
         "ioengine": "libaio",
         "ramp_time_s": RAMP_S,
-        "runtime_s": runtime,
-        "fill_cap_s": FILL_CAP_S,
+        "runtime_s": timing.runtime,
+        "write_runtime_s": timing.write_runtime,
+        "fill_cap_s": timing.fill_cap,
+        "fill_budget_s": FILL_BUDGET_S,
         "ws_target_bytes": WS_TARGET_BYTES,
+        "rand_precondition_s": RAND_PRECOND_S,
+        "purge": PURGE,
         "budget_s": BUDGET_S,
         "log_avg_msec": LOG_AVG_MSEC,
         "inflight_cap_bytes": INFLIGHT_CAP_BYTES,
         "percentiles": PERCENTILES,
-        "estimated_s": estimate_s(plan, runtime, RAMP_S),
+        "estimated_s": estimate_s(plan, timing),
     }
     output["inventory"] = inventory
     output["excluded"] = excluded
     output["groups"] = groups
     log(f"devices: {', '.join(f'{n} ({i['mode']})' for n, i in inventory.items())}; excluded: {', '.join(excluded) or '-'}")
-    log(f"plan: {len(plan)} tests, runtime {runtime}s, estimated {output['config']['estimated_s']}s")
-    output["benchmarks"] = execute(plan, inventory, groups, raw, runtime, skipped)
+    log(
+        f"plan: {len(plan)} steps, runtime {timing.runtime}s, write runtime {timing.write_runtime}s, "
+        f"fill cap {timing.fill_cap}s, estimated {output['config']['estimated_s']}s"
+    )
+    health: dict = {}
+    collect_health(inventory, "before", health)
+    output["benchmarks"], output["preconditioning"] = execute(plan, inventory, raw, timing, skipped)
+    collect_health(inventory, "after", health)
+    output["health"] = health
     output["skipped"] = skipped
     output["finished_at"] = now_iso()
     json.dump(output, sys.stdout, indent=2)
