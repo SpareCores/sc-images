@@ -23,13 +23,13 @@ docker run --rm \
 | `SC_DB_PASSWORD` | Database password. | `postgres` |
 | `SC_DB_NAME` | Admin database used for setup and settings queries. | `postgres` |
 | `SC_PGBENCH_DB` | Database used by the benchmark. | `pgbench` |
-| `SC_DB_SSLMODE` | SSL mode for database and dataset-dump connections. | `prefer` |
+| `SC_DB_SSLMODE` | SSL (Secure Sockets Layer) mode for database and dataset-dump connections. | `prefer` |
 | `SC_CPU_SCALE` | `pgbench_ro` transaction work multiplier. | `1` |
 | `SC_SCALEFACTORS` | Comma-separated `pgbench_tpcb` scale factors. | Unset. |
 | `SC_SCALEFACTOR` | `pgbench_tpcb` scale factor when `SC_SCALEFACTORS` is unset or empty. | `65` |
 | `SC_PROFILE_VUS` | Comma-separated concurrency anchors. | Derived from DB vCPUs. |
 | `SC_PROFILE_SEARCH` | Allow adaptive concurrency search; forced off for `pgbench_ro`. | True for `pgbench_tpcb`; false for `pgbench_ro`. |
-| `SC_PROFILE_IMPROVE_PCT` | Throughput improvement threshold for TPC-B search. | `5.0` |
+| `SC_PROFILE_IMPROVE_PCT` | Throughput improvement threshold for TPC-B (Transaction Processing Performance Council Benchmark B) search. | `5.0` |
 | `SC_PROFILE_MAX_CLIENTS` | Maximum client count for the profile. | Highest anchor. |
 | `SC_PROFILE_HARD_MAX_CLIENTS` | Hard concurrency ceiling. | Highest anchor for RO; `3072` for TPC-B. |
 | `SC_RUN_SECONDS` | Measurement duration per concurrency rung. | `300` |
@@ -49,8 +49,8 @@ The process prints one indented, key-sorted JSON object to
 stdout. It includes a per-concurrency `profile` array and a headline `score`
 in TPM (transactions per minute). Profile behavior depends on the workload:
 
-- `pgbench_ro` reports TPM only, not TPS, and uses the fixed concurrency
-  profile `{1, V/2, V, 2·V}`. It caps `pgbench` worker jobs at 32 per run,
-  independently of the client count.
+- `pgbench_ro` reports TPM only, not TPS (transactions per second), and uses
+  the fixed concurrency profile `{1, V/2, V, 2·V}`. It caps `pgbench` worker
+  jobs at 32 per run, independently of the client count.
 - `pgbench_tpcb` uses geometric concurrency anchors with optional adaptive
   search.

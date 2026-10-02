@@ -132,7 +132,7 @@ with different tools and configs, we identified the following core principles.
 
 ### Memory-Fit, Small Dataset
 
-This benchmark uses a small dataset of ~260–320 MB, stored comfortably in
+This benchmark is designed to use a small dataset of ~260–320 MB, stored comfortably in
 `shared_buffers`, even on the smallest instances. After warmup, the disk is not
 read again.
 

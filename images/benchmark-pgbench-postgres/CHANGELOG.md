@@ -1,6 +1,6 @@
 # Changelog
 
-## Current RO workload: v2 subsystem rebalance
+## Current RO Workload: V2 Subsystem Rebalance
 
 The v2 redesign spreads transaction work across PostgreSQL executor, access
 method, and data type subsystems so no single block dominates. The schema adds
@@ -23,7 +23,7 @@ about 30–34% in `q_hashjoin`; other blocks measured in a narrower 2–15 ms ba
 The query plans and block timings were checked using the same local Docker
 profiling method used to investigate v1.
 
-### Calibration findings
+### Calibration Findings
 
 - The first `q_array` version joined GIN-matched products to all 750,000
   `order_item` rows. PostgreSQL chose the same sequential scan and hash join as
@@ -65,7 +65,7 @@ Real `pgbench` runs against the redesigned schema and script used local Docker
 | `-c 4 -j 4 -T 20 -D scale=1` | 899 transactions, 0 failed, 89.3 ms average latency |
 | `-c 1 -T 15 -D scale=4` | 80 transactions, 0 failed, 187.8 ms average latency; growth is sub-linear because the `q_hashjoin` floor does not scale with `-D scale` |
 
-### Recalibration procedure
+### Recalibration Procedure
 
 Run the setup and profiling scripts against a fresh PostgreSQL 18 database, then
 run the transaction directly after adjusting its block widths:
@@ -84,7 +84,7 @@ Re-run `profile_v2_breakdown.sql` after any
 schema/query change, or on significantly different hardware, to confirm no
 block has drifted back into dominance.
 
-## Initial custom workload: v1
+## Initial Custom Workload: V1
 
 Plain `pgbench -S` (one primary-key `SELECT`) was too cheap per transaction to
 measure CPU behavior under network latency. With `netem` ([Linux network
@@ -118,9 +118,9 @@ BUFFERS)`, and per-block `clock_timestamp()` loops identified these issues:
 | Several indexes did not match the query's actual hot paths. | The `attrs->>'tier'` and `email` indexes were unused, while q2 filtered on `profile->>'plan'` without an index. |
 | Generated data was nearly uniform rather than Zipfian. | The `g % k` arithmetic remained a known simplification in v2; see `docs/limitations.md`. |
 
-## Experiments that informed the design
+## Experiments That Informed the Design
 
-### Dataset comparisons
+### Dataset Comparisons
 
 `sysbench`, HammerDB TPROC-C, BenchBase (Wikipedia read-only and YCSB datasets),
 and `pgbench` were compared using regular block storage and `tmpfs`, with
@@ -132,7 +132,7 @@ baseline and host-tuned PostgreSQL configurations.
 - `tmpfs` was not available for DBaaS comparisons. Warehouse and scale-factor
   sizing also did not cover the tested range from 1 vCPU to thousands of vCPUs.
 
-### PostgreSQL configuration sweep
+### PostgreSQL Configuration Sweep
 
 Twenty-one experiments on a 32-vCPU host found a winning configuration with
 about 20% more throughput than the baseline. The combination used modest
@@ -140,7 +140,7 @@ about 20% more throughput than the baseline. The combination used modest
 right-sized `shared_buffers`. The results motivated per-host tuning for IaaS and
 provider-managed tuning for DBaaS.
 
-### Latency and pipelining
+### Latency and Pipelining
 
 The experiments measured `pgbench -S` under induced network delay, then used a
 custom sliding-window `--pipeline-depth` mode in a `pgbench` fork. Pipelining

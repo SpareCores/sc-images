@@ -45,7 +45,7 @@ throughput. The main limitations are:
   See [exclusions](./docs/limitations.md#exclusions).
 - **Standalone tuning:** When `SC_DB_HOST` is unset, the image starts PostgreSQL
   locally and tunes it with `pgtune`. A remote `SC_DB_HOST` target is not tuned
-  by the benchmark. See [operational details](./docs/limitations.md#operational-details).
+  by this benchmark. See [operational details](./docs/limitations.md#operational-details).
 
 ## Usage
 
@@ -61,6 +61,8 @@ docker run --rm \
   -e SC_WORKLOAD=pgbench_ro \
   ghcr.io/sparecores/benchmark-pgbench-postgres:main
 ```
+
+**Note:** the restore path can drop and recreate the benchmark database.
 
 For standalone mode, omit `SC_DB_HOST`:
 

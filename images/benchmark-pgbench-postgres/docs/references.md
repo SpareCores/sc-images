@@ -8,8 +8,10 @@ documentation.
 Officially used, short-form versions for longer phrases, company and product
 names, etc.
 
+- BRIN (Block Range Index)
 - CDN (Content Delivery Network)
 - DBaaS (Database as a Service)
+- GIN (Generalized Inverted Index)
 - GUC (Grand Unified Configuration)
 - IaaS (Infrastructure as a Service)
 - IOPS (Input/Output operations per second)
@@ -19,9 +21,11 @@ names, etc.
 - OLTP (Online Transaction Processing)
 - RDBMS (Relational Database Management System)
 - RTT (Round-Trip Time)
-- TPC-B (Transaction Processing Performance Council Benchmark B)
+- SSL (Secure Sockets Layer)
 - TOAST (The Oversized-Attribute Storage Technique)
+- TPC-B (Transaction Processing Performance Council Benchmark B)
 - TPM (Transactions Per Minute)
+- TPS (transactions per second)
 - VPC (Virtual Private Cloud)
 - WAL (Write-Ahead Logging)
 
