@@ -49,26 +49,22 @@ throughput. The main limitations are:
 
 ## Usage
 
-Run the image via Docker. Set `SC_DB_HOST` to connect to a remote PostgreSQL
-server, or omit it to start the local PostgreSQL 18 server in the container.
-
-For a remote server, set its host and credentials:
-
-```bash
-docker run --rm \
-  -e SC_DB_HOST=<postgres-host> \
-  -e SC_DB_PASSWORD=<password> \
-  -e SC_WORKLOAD=pgbench_ro \
-  ghcr.io/sparecores/benchmark-pgbench-postgres:main
-```
-
-**Note:** the restore path can drop and recreate the benchmark database.
-
-For standalone mode, omit `SC_DB_HOST`:
+Run the image via Docker. Without `SC_DB_HOST`, it starts a local PostgreSQL 18
+server in the container (standalone mode):
 
 ```bash
 docker run --rm ghcr.io/sparecores/benchmark-pgbench-postgres:main
 ```
+
+Set `SC_DB_HOST` to benchmark a remote PostgreSQL server instead. A remote run
+needs more setup: database privileges, a disposable benchmark database, and the
+server's vCPU count. Follow [Remote Mode](./docs/usage.md#remote-mode) for more
+details and settings.
+
+Both modes tries to download the dataset from a CDN (Content Delivery Network)
+over HTTPS, but if that fails, it builds the dataset locally.
+
+### Settings
 
 Common settings are listed here; see the [full environment-variable
 reference](./docs/usage.md#key-environment-variables) for all options and
@@ -77,8 +73,8 @@ defaults:
 - `SC_WORKLOAD` selects `pgbench_ro` (the default) or `pgbench_tpcb`.
 - `SC_DB_HOST`, `SC_DB_PORT`, `SC_DB_USER`, and `SC_DB_PASSWORD` configure a
   remote connection. `SC_DB_SSLMODE` controls SSL mode.
-- `SC_DB_VCPUS` supplies the database vCPU count used to derive concurrency
-  points and, in standalone mode, local server settings.
+- `SC_DB_VCPUS` sets the database vCPU count used to derive concurrency points
+  and the local server settings in standalone mode, .
 - `SC_CPU_SCALE` changes `pgbench_ro` transaction work; `SC_SCALEFACTOR` or
   `SC_SCALEFACTORS` sets `pgbench_tpcb` scale.
 - `SC_RUN_SECONDS`, `SC_WARMUP_SECONDS`, and `SC_SETTLE_SECONDS` control
