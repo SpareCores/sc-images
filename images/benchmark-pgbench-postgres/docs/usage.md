@@ -106,6 +106,50 @@ database with `ALTER DATABASE … SET`, after building or restoring the dataset:
 They apply to every `pgbench` session and override the server-level values,
 including the standalone pgtune settings. `pgbench_tpcb` changes no settings.
 
+## Run Duration
+
+A run prepares the dataset, then measures throughput at a series of
+concurrency points (client counts) in the following steps:
+
+1. Restore the dataset from a cached dump on the CDN, or build it if no dump
+   exists for it.
+2. Warm up once for `SC_WARMUP_SECONDS` (default 120 s) at the first
+   concurrency point. Before each later point, run a settle period of
+   `SC_SETTLE_SECONDS` (default 60 s) at that point's client count. Neither is
+   measured. With `SC_WARMUP_ONCE=false`, every point gets the full warmup.
+3. Measure each concurrency point for `SC_RUN_SECONDS` (default 300 s),
+   sampling 1% of transaction latencies.
+4. Report the highest TPM of all concurrency points (and scale factors) as the
+   score.
+
+For `pgbench_ro`, the concurrency points are `{1, V/2, V, 2·V}`, where `V` is
+`SC_DB_VCPUS`. Duplicates collapse on small servers, so the default duration
+depends on `V` as follows, excluding dataset preparation:
+
+| `V` | Concurrency points | Duration |
+| --- | --- | --- |
+| 1 | 1, 2 | 13 minutes (120 + 60 + 2 × 300 s) |
+| 2 | 1, 2, 4 | 19 minutes (120 + 2 × 60 + 3 × 300 s) |
+| 3 | 1, 3, 6 | 19 minutes (120 + 2 × 60 + 3 × 300 s) |
+| 4 or more | 1, V/2, V, 2·V | 25 minutes (120 + 3 × 60 + 4 × 300 s) |
+
+For example, a standalone run on a 96-vCPU AWS `m9g.24xlarge` measured 1, 48,
+96, and 192 clients and took 25 minutes 25 seconds in total. Restoring the
+dataset from the CDN and starting the server accounted for the extra 25
+seconds; building the dataset instead takes longer.
+
+The following settings also change the number of concurrency points, and so
+the duration:
+
+- `SC_PROFILE_VUS` replaces the default concurrency points.
+- Points above the server's `max_connections` minus 50 are dropped, which can
+  shorten runs against a remote server with a low connection limit.
+- `pgbench_tpcb` prepares and measures each scale factor in `SC_SCALEFACTORS`
+  in turn, with a settle period before every point after the first warmup.
+
+Each `pgbench` call times out after its duration plus 600 seconds, and dataset
+preparation times out after 4 hours.
+
 ## Key Environment Variables
 
 | Variable | Meaning | Default |

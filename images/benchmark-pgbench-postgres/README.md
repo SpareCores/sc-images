@@ -61,8 +61,13 @@ needs more setup: database privileges, a disposable benchmark database, and the
 server's vCPU count. Follow [Remote Mode](./docs/usage.md#remote-mode) for more
 details and settings.
 
-Both modes tries to download the dataset from a CDN (Content Delivery Network)
-over HTTPS, but if that fails, it builds the dataset locally.
+Both modes tries to download the dataset from the Spare Cores CDN (Content
+Delivery Network) over HTTPS.
+
+A default run takes about 25 minutes on servers with 4 or more vCPUs: a short
+warmup, then 5 minutes of measurement at each of four client counts. See
+[Run Duration](./docs/usage.md#run-duration) for the steps and how to change
+them.
 
 ### Settings
 

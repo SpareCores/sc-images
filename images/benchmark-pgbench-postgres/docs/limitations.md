@@ -211,13 +211,22 @@ minimize RTT. For other vendors, the placement is provider-dependent.
 lightweight-workload results even when deployed in the same zone. Because of
 this the workload itself must be RTT-tolerant.
 
-### Timing
+### Run Duration
 
-This benchmark uses the following default timing settings:
+This is deliberately not a long-running benchmark. Each concurrency point is
+measured once for 5 minutes after a short warmup or settle period, so a default
+`pgbench_ro` run takes about 25 minutes.
 
-- 120 s warmup (once)
-- 60 s settle between concurrency rungs
-- 300 s measurement per rung
+We tested 5-, 10-, 15-, and 30-minute measurement windows with five interleaved
+trials each, using BenchBase Wikipedia on three GCP server types and
+`pgbench -S` on a fourth. Longer windows moved mean throughput by less than 2%
+and did not reduce run-to-run variation, which comes from load, OS, and
+noisy-neighbor effects rather than from too short an average. See
+[Measurement duration](../CHANGELOG.md#measurement-duration) for the results.
 
-See [Key Environment Variables](./usage.md#key-environment-variables) for
-configuration options.
+As a result, each score is a single 5-minute sample. Repeated runs on the same
+server type varied by a CV (coefficient of variation) of about 0.5–4% in these
+tests, so treat smaller differences between server types as noise.
+
+See [Run Duration](./usage.md#run-duration) for the steps, durations by vCPU
+count, and the settings that change them.

@@ -140,6 +140,43 @@ about 20% more throughput than the baseline. The combination used modest
 right-sized `shared_buffers`. The results motivated per-host tuning for IaaS and
 provider-managed tuning for DBaaS.
 
+### Measurement Duration
+
+Two experiments checked whether measuring longer than 5 minutes changes mean
+throughput or only its variance. Each tested 5-, 10-, 15-, and 30-minute
+measurement windows after a 2-minute warmup, with five independent trials per
+window on an interleaved schedule and a fresh database load for every trial.
+PostgreSQL 18 ran with pgtune form defaults.
+
+BenchBase Wikipedia, with as many terminals as vCPUs, gave the following mean
+TPM and CV per window:
+
+| Server type | 5 min | 10 min | 15 min | 30 min |
+| --- | ---: | ---: | ---: | ---: |
+| GCP `t2d-standard-16` | 580,228 (0.50%) | 578,237 (0.49%) | 576,567 (0.50%) | 576,145 (0.42%) |
+| GCP `t2d-standard-32` | 690,881 (0.90%) | 691,927 (2.48%) | 677,111 (3.60%) | 686,730 (2.25%) |
+| GCP `e2-highmem-16` | 260,997 (2.17%) | 261,574 (3.65%) | 264,425 (1.67%) | 260,321 (3.86%) |
+
+`pgbench -S` at scale 65 with 60 clients on GCP `t2d-standard-60` gave the
+following:
+
+| 5 min | 10 min | 15 min | 30 min |
+| ---: | ---: | ---: | ---: |
+| 58,070,697 (0.47%) | 58,738,095 (1.06%) | 58,639,217 (0.75%) | 58,366,021 (0.78%) |
+
+The findings were the following:
+
+- No window shifted the mean by more than 2% from the 5-minute result; the
+  largest shift (−1.99%) was partly one low outlier.
+- Longer windows did not tighten the CV. The 5-minute window often had the
+  smallest CV, because occasional dips from load, the OS, or noisy neighbors
+  hurt a long average as much as a short one.
+- The budget is better spent on more server types or repeated short trials
+  than on longer windows, so the measurement window stayed at 5 minutes.
+
+Note that these experiments used the previously considered BenchBase Wikipedia
+and `pgbench -S`, and not the current `pgbench_ro` workload.
+
 ### Latency and Pipelining
 
 The experiments measured `pgbench -S` under induced network delay, then used a
