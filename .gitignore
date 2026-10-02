@@ -15,3 +15,7 @@ venv/
 
 # CI build scratch (parallelism secret, assembled build-args)
 .cache/
+
+# Docs workflow review reports — see AGENTS.md. Facts (.agents/facts/)
+# and maintainer answers (.agents/context/) are tracked on purpose.
+.agents/work/

@@ -1,0 +1,146 @@
+# Context: benchmark-pgbench-postgres
+
+## Why does this benchmark exist?
+
+Spare Cores monitors and publishes empirical performance data for over 5,000
+cloud server types in the [Navigator project](https://sparecores.com/servers). A
+proper Relational Database Management System (RDBMS) benchmark was missing.
+Earlier stand-ins were PassMark database operations (doesn't scale to 32+
+vCPUs), Redis (not a relational database), raw CPU speed, and memory bandwidth
+(useful proxies, but not a database workload).
+
+## Where is the benchmarking client run?
+
+The client is agnostic if the database server is local or remote, so it can run
+on the database server or connect to it remotely, and the related difference in
+latency should not materially change the benchmark results, as (1) the workload
+is heavy and running for ~100ms, so 1-5ms latency is negligible, and (2) the
+client load is minimal (<1% CPU and ~10 MB RSS on an 8-vCPU run), so should not
+affect the database server performance.
+
+As the client is containerized, it needs permissions and e.g. Docker to be able
+to run, which is not doable on managed databases, so we always start a separate
+benchmarking client VM that connects remotely to the managed database server.
+
+IaaS does not use a separate client VM: the client and the database ran on the
+same node to save on infrastructure costs.
+
+## Does production apply OS-level tuning?
+
+Production runs do not apply `sysctl` or other host OS tweaks.
+
+Privileged mode, host networking, `seccomp=unconfined`, ulimits (high `nofile`
+and an unlimited `memlock` unlocking huge pages and `io_uring` for the server),
+and PostgreSQL process priority via `nice -n -20` are container settings applied
+by `sc-inspector` orchestration.
+
+## What is the primary advantage versus other database benchmarks?
+
+Our primary goal was to have a benchmarking methodology that scales across
+instance sizes: from small instances (e.g. 1 vCPU and 1 GB of RAM) to large
+nodes with hundreds of vCPUs.
+
+Other database benchmarks usually focus on storage, network throughput, a single
+database operation, or one production workload -- while we focus on CPU and
+memory speed of the instance, as disk and network are usually configured
+alongside the instance type.
+
+## What is the size of the benchmarking database?
+
+The database schema is static and the data is generated on the fly via the
+`ro_cpu_setup.sql` script.
+
+Historically we experimented with the `PGBENCH_RO_CPU_SCHEMA_GIB` environment
+variable to dynamically tune the dataset size, but it's fixed now for all cloud
+server types. `pg_database_size` reports 303 MiB after a fresh import into
+PostgreSQL 18.
+
+## Are the DBaaS server and its benchmarking client always placed in the same availability zone and connected over private VPC addresses?
+
+It's always private VPC, but actual placement depends on the vendor. E.g. for
+AWS, it's always the same AZ, but others might be different zones of the same
+region. Note that since the benchmark is less sensitive to latency, the client
+doesn't necessarily need to be in the same AZ.
+
+## Do IaaS and DBaaS runs use the same hardware?
+
+Yes, in general, it's the same hardware: the cloud provider provisions the
+managed database on a given cloud server type (referenced as the underlying
+`server_id` in the Spare Cores Navigator data), so essentially the same silicon.
+
+## Is the PostgreSQL version held constant across runs?
+
+Only the major version is fixed, the minor version is allowed to vary:
+
+- Many DBaaS providers we benchmark do not allow pinning the minor version and
+  apply minor upgrades automatically.
+- The local PostgreSQL version is also kept at 18 for consistency by building on
+  the `postgres:18` Docker image.
+
+## Why is disk performance excluded?
+
+Database throughput usually depends on the disk first (IOPS, then bandwidth).
+In the cloud, that disk is almost always network-attached block storage that
+the user provisions independently of the server type, so it says little about
+the server itself. Provisioning volumes fast enough never to be the bottleneck
+on all ~5,000 server types would also be prohibitively expensive. We therefore
+eliminate disk from the measurement and score the engine's CPU and memory
+performance.
+
+## Why is network performance excluded, and how is RTT handled?
+
+With a remote client, bandwidth and especially latency between client and server
+can dominate short workloads. Initially, we tried to minimize RTT through server
+and client placement in the same AZ or at least same region, but random latency
+glitches still distorted the results, so we designed the workload so that the
+remaining RTT is a rounding error. This was achieved by using heavy read
+operations that run for ~100ms instead of the default read-only `pgbench`.
+
+## Why is the DBaaS engine not tuned?
+
+The managed service's tuning is part of what is being measured, so the
+vendor-managed configuration is left untouched by design. The harness also
+cannot assume superuser access or control over GUCs on DBaaS. IaaS servers are
+tuned per host with `pgtune` because a configuration sweep showed that tuning
+matters (about 20% more throughput on a 32-vCPU host).
+
+## Why are JIT and parallel query disabled for `pgbench_ro`?
+
+The benchmark measures raw engine and CPU behavior. JIT variance and Gather
+scalability are treated as a separate testing axis.
+
+## Why is the `pgbench_ro` transaction a single statement?
+
+One `SELECT` with eight CTEs and one `UNION ALL` keeps one `pgbench`
+transaction equal to one network round trip, which is what makes the workload
+resilient to RTT. The trade-off is that per-block planner GUCs (for example,
+forcing a Merge Join for one block) cannot be set without affecting every
+block.
+
+## Why does `pgbench_ro` use a fixed concurrency profile?
+
+It came out of the latency and pipelining experiments. Pipelining helped
+RTT-bound scripts but added nothing to a CPU-bound transaction at low
+concurrency and reduced throughput at high concurrency. We chose to make the
+transaction heavy instead of pipelining a light one: serial mode, a fixed `{1,
+V/2, V, 2·V}` concurrency profile (`V` stands for the number of vCPUs), and a
+TPM score.
+
+## Why is `pgbench_tpcb` kept?
+
+It's currently unused due to being disk-limited, but we kept it to potentially
+revisit later. The main and our only PostgreSQL benchmark in production is
+`pgbench_ro`.
+
+## Is the uniform data distribution intentional?
+
+It is a known simplification, not a goal. The product catalog has a deliberate
+cold long tail (20,000 products, of which only the first 5,000 ever sell), but
+customer, order, and order-item generation still uses `g % k` modular
+arithmetic rather than a realistic power-law ("few whales, many one-off
+customers") distribution.
+
+## Who helped shape the design?
+
+We consulted benchANT (https://benchant.com) while iterating on the tools,
+configurations, and design constraints -- and we highly appreciate their help!
