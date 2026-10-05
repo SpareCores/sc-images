@@ -15,6 +15,11 @@ OpenSSL speed, compression algorithms, Redis and static web-serving throughput,
 and LLM inference speed. A new image's Purpose section can name which gap it
 fills relative to these.
 
+## Does Navigator publish network benchmarks?
+
+Not currently. No image measures network throughput or latency, so docs should
+not point readers to a Spare Cores network benchmark.
+
 ## Who is the target audience?
 
 Highly technical readers who are somewhat familiar with cloud server types and
