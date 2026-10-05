@@ -24,15 +24,14 @@ I/O. The setup creates the following test data with an overall estimate of
 - 250,000 orders
 - 750,000 order items
 
-Run this workload via Docker. The harness invokes `pgbench` with
-`-D scale=N` and `-f ro_cpu_txn.sql` internally.
+The harness invokes `pgbench` with `-D scale=N` and `-f ro_cpu_txn.sql`.
+`-D scale=N` linearly scales the row-count knobs inside the transaction (wider
+slices, bigger joins) without touching the underlying dataset, so a single fixed
+schema can represent a range of CPU intensities.
 
-- `-D scale=N` linearly scales the row-count knobs inside the transaction (wider
-  slices, bigger joins) without touching the underlying dataset, so a single
-  fixed schema can represent a range of CPU intensities.
-- It uses fixed concurrency points `{1, V/2, V, 2·V}`, where `V` is the
-  database vCPU count, instead of a geometric search, a choice that came out of the [latency and pipelining
-  experiments](../CHANGELOG.md#latency-and-pipelining).
+The workload uses fixed concurrency points `{1, V/2, V, 2·V}`, where `V` is the
+database vCPU count, instead of a geometric search. This choice came out of the
+[latency and pipelining experiments](../CHANGELOG.md#latency-and-pipelining).
 
 The transaction is intentionally a single SQL script that runs several blocks,
 each touching a different PostgreSQL subsystem:
@@ -48,9 +47,8 @@ each touching a different PostgreSQL subsystem:
   fetch/decompression
 - `q_seqscan`: plain sequential scan + aggregate
 
-The setup also uses BRIN (Block Range Index) patterns in the design notes, but
-this workload keeps the primary explanation focused on the visible operators in
-`pgbench_ro`.
+The setup also creates a BRIN (Block Range Index) index on the order
+`ordered_at` column; the planner may use it for the time-window predicate.
 
 At the end of each transaction, the script combines the eight block outputs
 with `UNION ALL` and hashes them into one `md5(string_agg(...))` checksum. The

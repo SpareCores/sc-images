@@ -17,8 +17,7 @@ names, etc.
 - IaaS (Infrastructure as a Service)
 - IOPS (Input/Output Operations Per Second)
 - JIT (Just-in-Time)
-- LLVM (orphan initialism for "Low Level Virtual Machine", refers to the compiler infrastructure used by PostgreSQL JIT)
-- `netem` (Network Emulator)
+- LLVM (not an acronym; the compiler infrastructure used by PostgreSQL JIT)
 - OLTP (Online Transaction Processing)
 - RDBMS (Relational Database Management System)
 - RTT (Round-Trip Time)
@@ -48,6 +47,7 @@ their meaning or point to their documentation.
 
 - [LLVM](https://llvm.org/)
   - [Wikipedia page](https://en.wikipedia.org/wiki/LLVM)
-- [Network Emulator](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
+- [`netem` (Network Emulator)](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
+- [`pgtune`](https://pgtune.leopard.in.ua/)
 - [Relational Database Management System](https://en.wikipedia.org/wiki/Relational_database)
 - [Zipfian](https://en.wikipedia.org/wiki/Zipf%27s_law)

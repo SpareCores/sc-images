@@ -9,6 +9,10 @@ the Docker container:
 docker run --rm ghcr.io/sparecores/benchmark-pgbench-postgres:main
 ```
 
+**Note**: Docker `--memory` and `--cpus` limits do not change the tuning. With
+`--memory`, PostgreSQL is still sized for the host's memory and can be killed
+for running out of memory; with `--cpus`, set `SC_DB_VCPUS` to match.
+
 The local server will automatically tune its settings based on the identified
 vCPU count and system memory size using the following algorithm:
 
@@ -150,6 +154,48 @@ the duration:
 Each `pgbench` call times out after its duration plus 600 seconds, and dataset
 preparation times out after 4 hours.
 
+### Why 5 Minutes
+
+This is deliberately not a long-running benchmark. We tested 5-, 10-, 15-, and
+30-minute measurement windows with five interleaved trials each, using
+BenchBase Wikipedia on three GCP server types and `pgbench -S` on a fourth.
+Longer windows moved mean throughput by less than 2% and did not reduce
+run-to-run variation, which comes from load, OS, and noisy-neighbor effects
+rather than from too short an average. See [Measurement
+duration](../CHANGELOG.md#measurement-duration) for the results.
+
+As a result, each score is a single 5-minute sample. Repeated runs on the same
+server type varied by a CV (coefficient of variation) of about 0.5–4% in these
+tests, so treat smaller differences between server types as noise.
+
+## Production Setup
+
+Spare Cores runs this image through `sc-inspector` orchestration with the
+following setup. A plain `docker run` differs from it as noted below.
+
+### Container Settings
+
+Production runs apply no `sysctl` or other host OS tweaks. The container runs
+privileged with the following settings:
+
+- host networking
+- `seccomp=unconfined`
+- high `nofile` and unlimited `memlock` ulimits (unlocking huge pages and
+  `io_uring`)
+
+In standalone mode, the harness itself starts `postgres` under `nice -n -20`.
+The higher priority takes effect only when the container has `CAP_SYS_NICE`, as
+under `--privileged`; with a plain `docker run`, the server runs at normal
+priority.
+
+### Topology
+
+IaaS (Infrastructure as a Service) runs place the client and database on the
+same node. DBaaS runs use a separate client VM that always reaches the database
+over private VPC (Virtual Private Cloud) addresses. On AWS, both are in the
+same availability zone; other vendors may place them in different zones of the
+same region.
+
 ## Key Environment Variables
 
 | Variable | Meaning | Default |
@@ -166,9 +212,9 @@ preparation times out after 4 hours.
 | `SC_SCALEFACTORS` | Comma-separated `pgbench_tpcb` scale factors. | Unset |
 | `SC_SCALEFACTOR` | `pgbench_tpcb` scale factor when `SC_SCALEFACTORS` is unset or empty. | `65` |
 | `SC_PROFILE_VUS` | Comma-separated concurrency anchors. | Derived from database vCPUs |
-| `SC_PROFILE_SEARCH` | Allow adaptive concurrency search; forced off for `pgbench_ro`. | True for `pgbench_tpcb`; false for `pgbench_ro` |
+| `SC_PROFILE_SEARCH` | Allow adaptive concurrency search for `pgbench_tpcb`; forced off for `pgbench_ro`. Takes effect only when `SC_PROFILE_MAX_CLIENTS` is above the highest anchor. | True for `pgbench_tpcb`; false for `pgbench_ro` |
 | `SC_PROFILE_IMPROVE_PCT` | Throughput improvement threshold for TPC-B (Transaction Processing Performance Council Benchmark B) search. | `5.0` |
-| `SC_PROFILE_MAX_CLIENTS` | Maximum client count for the profile. | Highest anchor |
+| `SC_PROFILE_MAX_CLIENTS` | Maximum client count for the profile. Raise it above the highest anchor to let `pgbench_tpcb` search add points. | Highest anchor |
 | `SC_PROFILE_HARD_MAX_CLIENTS` | Hard concurrency ceiling. | Highest anchor for `pgbench_ro`; `3072` for TPC-B. |
 | `SC_RUN_SECONDS` | Measurement duration per concurrency rung. | `300` |
 | `SC_WARMUP_SECONDS` | Initial warmup duration. | `120` |
@@ -183,12 +229,4 @@ preparation times out after 4 hours.
 | `SC_CDN_DATASET_POST_B64` | Optional base64-encoded presigned upload configuration for dataset dumps. | Unset |
 | `SC_CDN_UPLOAD` | Permit dataset upload when a valid upload configuration is supplied. | `1` |
 
-The process prints one indented, key-sorted JSON object to
-stdout. It includes a per-concurrency `profile` array and a headline `score`
-in TPM (transactions per minute). Profile behavior depends on the workload:
-
-- `pgbench_ro` reports TPM only, not TPS (transactions per second), and uses
-  the fixed concurrency profile `{1, V/2, V, 2·V}`. It caps `pgbench` worker
-  jobs at 32 per run, independently of the client count.
-- `pgbench_tpcb` uses geometric concurrency anchors with optional adaptive
-  search.
+See [Results](../README.md#results) for the output fields.

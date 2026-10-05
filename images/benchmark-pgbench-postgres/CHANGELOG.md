@@ -19,7 +19,8 @@ transaction in `ro_cpu_txn.sql` uses eight tagged blocks:
 | `q_seqscan` | Sequential scan and aggregate | 2 |
 
 The maximum single-block share fell from about 82% in the old regex block to
-about 30–34% in `q_hashjoin`; other blocks measured in a narrower 2–15 ms band.
+about 30 to 34% in `q_hashjoin`. Apart from `q_idx` at 0.1 ms, the remaining
+blocks measured in a narrower band of 2 to 15 ms.
 The query plans and block timings were checked using the same local Docker
 profiling method used to investigate v1.
 
@@ -68,7 +69,10 @@ Real `pgbench` runs against the redesigned schema and script used local Docker
 ### Recalibration Procedure
 
 Run the setup and profiling scripts against a fresh PostgreSQL 18 database, then
-run the transaction directly after adjusting its block widths:
+run the transaction directly after adjusting its block widths. Run these commands
+from `images/benchmark-pgbench-postgres/` in a checkout of this repository;
+`profile_v2_breakdown.sql` is a development helper that is not in the published
+image:
 
 ```bash
 docker run -d --name ro-cpu-cal -e POSTGRES_PASSWORD=bench -e POSTGRES_DB=bench \
@@ -80,9 +84,9 @@ docker exec -e PGPASSWORD=bench ro-cpu-cal pgbench -h localhost -U postgres -d b
   -n -c 1 -T 20 -D scale=1 -f /sql/ro_cpu_txn.sql
 ```
 
-Re-run `profile_v2_breakdown.sql` after any
-schema/query change, or on significantly different hardware, to confirm no
-block has drifted back into dominance.
+Re-run `profile_v2_breakdown.sql` after any schema/query change, or on
+significantly different hardware, to confirm no block has drifted back into
+dominance.
 
 ## Initial Custom Workload: V1
 
@@ -116,7 +120,7 @@ BUFFERS)`, and per-block `clock_timestamp()` loops identified these issues:
 | q1's `LIMIT 40` did not limit results. | The generated dataset contained only five orders per customer. |
 | q2 limited a cohort without `ORDER BY`. | The selected rows could vary across plans and runs, making digests and debugging less reproducible. |
 | Several indexes did not match the query's actual hot paths. | The `attrs->>'tier'` and `email` indexes were unused, while q2 filtered on `profile->>'plan'` without an index. |
-| Generated data was nearly uniform rather than Zipfian. | The `g % k` arithmetic remained a known simplification in v2; see `docs/limitations.md`. |
+| Generated data was nearly uniform rather than Zipfian. | The `g % k` arithmetic remained a known simplification in v2; see [Uniform Data](./docs/limitations.md#uniform-data). |
 
 ## Experiments That Informed the Design
 

@@ -1,15 +1,15 @@
 # benchmark-pgbench-postgres
 
-This PostgreSQL benchmark client measures cloud server database performance with
-`pgbench`. In standalone mode, the image starts a local PostgreSQL 18 server. In
-remote mode, it connects to the configured host without checking or enforcing
-the remote server version. The client can run on the same node as the database
-or on a separate machine.
+This image measures cloud server database performance with `pgbench`. In
+standalone mode, this image starts a local PostgreSQL 18 server. In remote mode,
+it connects to the configured host without checking or enforcing the remote
+server version. This image can run on the same node as the database or on a
+separate machine.
 
-This benchmark reports throughput and concurrency behavior in TPM (Transactions
-Per Minute), as well as latency across varying client counts, so users can see both peak performance
-and how scalability changes with load on self-managed and managed PostgreSQL on
-the same hardware.
+This image reports throughput and concurrency behavior in TPM (Transactions Per
+Minute), as well as latency across varying client counts, so users can see both
+peak performance and how scalability changes with load on self-managed and
+managed PostgreSQL on the same hardware.
 
 ## Purpose
 
@@ -17,13 +17,16 @@ Our [Navigator](https://sparecores.com/servers) project publishes empirical
 performance measurements for more than 5,000 cloud server types. We needed an
 RDBMS ([Relational Database Management
 System](https://en.wikipedia.org/wiki/Relational_database)) benchmark that
-tracks relevant metrics directly rather than relying on proxies. Many of our
-other database benchmarks have close-enough approximations, but they aren't
-fully accurate; PassMark database operations don't scale to larger instances,
-Redis is not relational, and raw CPU speed and memory bandwidth are proxies
-rather than database workloads.
+tracks relevant metrics directly rather than relying on proxies. Navigator
+previously relied on stand-ins: PassMark database operations, which do not
+scale to 32+ vCPUs; Redis, which is not relational; and raw CPU speed and
+memory bandwidth, which are useful proxies but not database workloads.
 
-The same benchmark client measures two deployment models:
+The main design goal is one methodology that scales across instance sizes, from
+small instances (e.g. 1 vCPU and 1 GB of RAM) to large nodes with hundreds of
+vCPUs.
+
+This image measures two deployment models:
 
 - **IaaS (Infrastructure as a Service):** Self-hosted PostgreSQL, with the
   client and database on the same node.
@@ -33,20 +36,23 @@ The same benchmark client measures two deployment models:
 
 ## Limitations
 
-These results compare PostgreSQL server CPU and memory performance, not application
-throughput. The main limitations are:
+These results compare PostgreSQL server CPU and memory performance, not
+application throughput. The main limitations are:
 
 - **Workload:** `pgbench_ro` uses synthetic transactions and uniform data; the
-  results do not specifically predict any given application's throughput, but aim to provide meaningful comparisons across different server types. See the
+  results do not specifically predict any given application's throughput, but
+  aim to provide meaningful comparisons across different server types. See the
   [workload limitations](./docs/limitations.md#disclaimer-what-this-benchmark-does-not-deliver).
 - **Disk and network:** The score excludes disk performance and does not measure
-  network throughput or latency. See [deliberate exclusions](./docs/limitations.md#deliberate-exclusions).
+  network throughput or latency. See [Disk I/O Speed](./docs/limitations.md#disk-io-speed)
+  and [Network Performance](./docs/limitations.md#network-performance).
 - **Engine tuning:** When `SC_DB_HOST` is unset, the image starts PostgreSQL
   locally and tunes it with `pgtune`. A remote `SC_DB_HOST` target is not tuned
-  by this benchmark. See [operational
-  details](./docs/limitations.md#operational-details).
-  
-  **Note**: DBaaS engines are not tuned by the benchmark, and minor versions may
+  by this image. See [Standalone Mode](./docs/usage.md#standalone-mode)
+  for the tuning and [Engine Config](./docs/limitations.md#engine-config) for
+  why managed engines are left untuned.
+
+  **Note**: DBaaS engines are not tuned by this image, and minor versions may
     vary when providers do not support pinning. See
   [Minor Engine Versions](./docs/limitations.md#minor-engine-versions) for details.
 
@@ -58,6 +64,9 @@ server in the container (standalone mode):
 ```bash
 docker run --rm ghcr.io/sparecores/benchmark-pgbench-postgres:main
 ```
+
+Do not limit memory with `--memory`: the local server is tuned for the host's
+full memory. See [Standalone Mode](./docs/usage.md#standalone-mode).
 
 Set `SC_DB_HOST` to benchmark a remote PostgreSQL server instead. A remote run
 needs more setup: database privileges, a disposable benchmark database, and the
@@ -74,9 +83,9 @@ them.
 
 ### Settings
 
-Common settings for `pgbench_ro` are listed here; see the [full environment-variable
-reference](./docs/usage.md#key-environment-variables) for all options and
-defaults:
+Common settings for `pgbench_ro` are listed here; see the
+[full environment-variable reference](./docs/usage.md#key-environment-variables)
+for all options and defaults:
 
 - `SC_DB_HOST`, `SC_DB_PORT`, `SC_DB_USER`, and `SC_DB_PASSWORD` configure a  
   remote connection. `SC_DB_SSLMODE` controls SSL (Secure Sockets Layer) mode.  
@@ -93,18 +102,22 @@ defaults:
 The process prints one JSON object to stdout. Interpret its main fields as
 follows:
 
-- `score` is the highest TPM result; `score_unit` is
-  `tpm`, and `peak_concurrency` is the client count for that result.
+- `score` is the highest TPM result; `score_unit` is `tpm`, and
+  `peak_concurrency` is the client count for that result.
 - Each `sizes[]` entry represents a workload size and has its own score and
   `profile`. `pgbench_ro` entries identify `cpu_scale`; `pgbench_tpcb` entries
   identify `scalefactor`.
 - Each `profile[]` entry is one concurrency measurement. `concurrency` is the
   client count and `jobs` is the worker count. For `pgbench_ro`, `V` is the
   database vCPU count; it uses fixed points `{1, V/2, V, 2·V}` and caps worker
-  jobs at 32. `pgbench_tpcb` uses geometric anchors with optional adaptive
-  search.
+  jobs at 32. `pgbench_tpcb` measures geometric anchors `{1, V/4, V/2, V}`,
+  rounded to ladder rungs; its adaptive search adds points only when
+  `SC_PROFILE_MAX_CLIENTS` is raised above the highest anchor.
 - `latency_ms` contains sampled p50, p95, and p99 (50th, 95th, and 99th
-  percentile) latency and an average, in milliseconds. The harness samples 1% of transaction latency logs.
+  percentile) latency and an average, in milliseconds. The harness samples 1%
+  of transaction latency logs.
+- `schema_gib` (`0.17`) in `pgbench_ro` output is a legacy constant, not the
+  dataset size; the restored database is about 303 MiB.
 
 ## Workloads
 
@@ -140,12 +153,10 @@ about 20%. The `pgbench_ro` redesign uses a fixed, cache-resident schema and
 spreads CPU work across PostgreSQL subsystems; `pgbench_tpcb` remains a
 conventional reference workload.
 
-The workload remains synthetic: its generated data is uniform and it does not
-predict application throughput or measure disk and network performance. See the
-[changelog](./CHANGELOG.md) for experiment results, validation, and calibration
-details.
+See the [changelog](./CHANGELOG.md) for experiment results, validation, and
+calibration details.
 
 ## References
 
-See the full list of [References](./docs/references.md) used in this
+See the full list of [references](./docs/references.md) used in this
 documentation.
