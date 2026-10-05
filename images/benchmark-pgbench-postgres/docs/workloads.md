@@ -30,8 +30,9 @@ Run this workload via Docker. The harness invokes `pgbench` with
 - `-D scale=N` linearly scales the row-count knobs inside the transaction (wider
   slices, bigger joins) without touching the underlying dataset, so a single
   fixed schema can represent a range of CPU intensities.
-- It uses fixed concurrency points instead of a geometric search to work with
-  the uniformity of the test database.
+- It uses fixed concurrency points `{1, V/2, V, 2·V}`, where `V` is the
+  database vCPU count, instead of a geometric search, a choice that came out of the [latency and pipelining
+  experiments](../CHANGELOG.md#latency-and-pipelining).
 
 The transaction is intentionally a single SQL script that runs several blocks,
 each touching a different PostgreSQL subsystem:

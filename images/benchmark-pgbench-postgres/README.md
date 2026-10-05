@@ -81,7 +81,9 @@ defaults:
 - `SC_DB_HOST`, `SC_DB_PORT`, `SC_DB_USER`, and `SC_DB_PASSWORD` configure a  
   remote connection. `SC_DB_SSLMODE` controls SSL (Secure Sockets Layer) mode.  
 - `SC_DB_VCPUS` sets the database vCPU count used to derive concurrency points  
-  and the local server settings in standalone mode.  
+  and the local server settings in standalone mode. Set it to the database
+  server's vCPU count for remote targets; the default is the client's CPU
+  count.  
 - `SC_CPU_SCALE` changes `pgbench_ro` transaction work.  
 - `SC_RUN_SECONDS`, `SC_WARMUP_SECONDS`, and `SC_SETTLE_SECONDS` control  
   measurement and warmup timing.
@@ -127,7 +129,7 @@ resources, while write-heavy workloads got bottlenecked by storage and WAL.
 On `tmpfs`, write-heavy OLTP results improved by 10–25%, showing how much disk
 behavior could influence a score. But `tmpfs` was unavailable for DBaaS, and
 warehouse or scale-factor sizing could not cover the range from 1 vCPU to
-thousands. `pgbench` looked promising as a simpler, more scalable basis for a
+hundreds. `pgbench` looked promising as a simpler, more scalable basis for a
 cross-provider benchmark.
 
 Early `pgbench -S` runs were dominated by network latency, and profiling found

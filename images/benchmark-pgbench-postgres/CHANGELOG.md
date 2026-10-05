@@ -130,7 +130,7 @@ baseline and host-tuned PostgreSQL configurations.
   that those suites were measuring storage and WAL behavior as well as server
   performance.
 - `tmpfs` was not available for DBaaS comparisons. Warehouse and scale-factor
-  sizing also did not cover the tested range from 1 vCPU to thousands of vCPUs.
+  sizing also did not cover the tested range from 1 vCPU to hundreds of vCPUs.
 
 ### PostgreSQL Configuration Sweep
 

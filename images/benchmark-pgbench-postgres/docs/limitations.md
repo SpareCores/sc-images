@@ -79,9 +79,8 @@ placement, then design the workload so the remaining RTT is a rounding error.
 
 #### Massive Workload Size Range
 
-From the smallest cloud server instances with a single vCPU and mere megabytes
-of memory to industrial-scale machines with thousands of vCPUs and terabytes of
-memory, the same workload must produce meaningful, comparable numbers.
+From small instances (e.g. 1 vCPU and 1 GB of RAM) to large nodes with hundreds
+of vCPUs, the same workload must produce meaningful, comparable numbers.
   
 Available warehouse and scale-factor sizing schemes can't quite fulfill this
 purpose. Because of this, we chose a fixed-size workload that could run on all
