@@ -148,10 +148,11 @@ configurations, and design constraints -- and we highly appreciate their help!
 
 ## Which servers is `pgbench_ro` run on in production?
 
-Only servers with at least 2 GiB of RAM, as reported by the vendor. On smaller
- nodes the dataset does not fit entirely in `shared_buffers`, so there might be
-some disk overhead. This 2 GiB minimum is also the smallest instance size the
-design targets.
+Only servers with at least 2 GiB of RAM, as reported by the vendor. Below that,
+the dataset does not fit in memory and there might be some disk overhead. At
+2 GiB, the dataset may not fit in `shared_buffers` alone (see the `MemTotal`
+answer below), so it relies on the OS page cache as well. This 2 GiB minimum is
+also the smallest instance size the design targets.
 
 
 ## Does a measured `pgbench_ro` run write WAL?
