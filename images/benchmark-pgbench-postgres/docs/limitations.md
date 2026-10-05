@@ -7,7 +7,7 @@
 Transactions are synthetic proxies; deliberately balanced mixes of PostgreSQL
 subsystems. See [Workloads](./workloads.md) for details.
 
-This benchmark does *not* predict the throughput of any specific application. It
+This benchmark does *not* predict the specific performance of any given application. It
 instead gives a general sense of the relative RDBMS (Relational Database
 Management System) performance expected of a server type.
 
@@ -105,9 +105,9 @@ design consideration.
 
 #### `jit` and `max_parallel_workers_per_gather` Stay Off, Matching the Original Design's Rationale
 
-This benchmark measures raw engine/CPU behavior, *not* LLVM ([Low Level Virtual
-Machine](https://llvm.org/)) JIT jitter or Gather scalability. Those are treated
-as a separate testing axis.
+This benchmark measures raw engine/CPU behavior, *not* LLVM (PostgreSQL JIT
+    compiler infrastructure) jitter or Gather scalability. Those are treated as
+a separate testing axis.
 
 #### A Single Monolithic Statement
 
@@ -121,8 +121,8 @@ Join specifically) aren't possible without affecting every block.
 
 #### Pre-Calibrated Weights
 
-Weights are calibrated on one local Docker `postgres:18` instance. They are,
-however, not recalibrated automatically on every run. See [Recalibration
+Weights were manually calibrated on one local Docker `postgres:18` instance and
+on a few cloud server SKUs. This remains fixed for all runs. See [Recalibration
 procedure](../CHANGELOG.md#recalibration-procedure) for details.
 
 ## Design Constraints
@@ -158,30 +158,8 @@ results.
 
 ## Operational Details
 
-This benchmark can be used for the following production runs:
-
-### IaaS Server Tuning
-
-When `SC_DB_HOST` is unset, the benchmark starts PostgreSQL in the same
-container and generates server settings with
-[pgtune](https://pgtune.leopard.in.ua/) using the host's RAM and CPU count.
-Remote servers specified with `SC_DB_HOST` are not tuned, as the benchmark is
-measuring the vendor's managed service tuning.
-
-The pgtune form defaults are:
-
-- Linux
-- PostgreSQL 18
-- web application
-- SSD storage
-- mid-RAM database size
-- automatic connection count
-
-The benchmark then applies these local-server overrides:
-
-- `synchronous_commit` is `off` when `SC_DURABILITY=async`, and `on` otherwise.
-- `max_connections` is raised to at least 3,122: 3,072 client connections plus
-  50 reserved connections.
+The following sections describe the operational configuration, topology, and
+run duration.
 
 ### No DBaaS Tuning
 

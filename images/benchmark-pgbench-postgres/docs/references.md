@@ -16,7 +16,7 @@ names, etc.
 - IaaS (Infrastructure as a Service)
 - IOPS (Input/Output operations per second)
 - JIT (Just-in-Time Compilation)
-- LLVM (Low Level Virtual Machine)
+- LLVM (orphan initialism for "Low Level Virtual Machine", refers to the compiler infrastructure used by PostgreSQL JIT)
 - `netem` (Network Emulator)
 - OLTP (Online Transaction Processing)
 - RDBMS (Relational Database Management System)
@@ -28,14 +28,6 @@ names, etc.
 - TPS (transactions per second)
 - VPC (Virtual Private Cloud)
 - WAL (Write-Ahead Logging)
-
-<!--
-## Custom Abbreviations
-
-Non-official or less-used abbreviations, contractions, and stand-ins.
-
--
--->
 
 ## Linked Definitions
 
@@ -53,7 +45,7 @@ their meaning or point to their documentation.
 
 ### Definitions and Additional Information
 
-- [Low Level Virtual Machine](https://llvm.org/)
+- [LLVM](https://llvm.org/)
   - [Wikipedia page](https://en.wikipedia.org/wiki/LLVM)
 - [Network Emulator](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
 - [Relational Database Management System](https://en.wikipedia.org/wiki/Relational_database)
