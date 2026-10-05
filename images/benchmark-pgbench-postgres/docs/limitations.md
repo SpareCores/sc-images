@@ -144,17 +144,12 @@ checkpoints, and no disk-write paths for `pgbench_ro`.
 
 ### CPU-Heavy Transactions
 
-~70-100 ms of server work per transaction per connection. This minimizes network
+~70–100 ms of server work per transaction per connection. This minimizes network
 round-trip time to ~0.2–4% of the total service time and prevents it from
-dominating. This is [a necessary constraint](#a-necessary-constraint), evidenced
-by our lab measurements.
-
-### A Necessary Constraint
-
-Experiments showed that lightweight read-only transactions are sensitive to
-network delay, so the default workload uses a heavier cached transaction; see
-[Latency and pipelining](../CHANGELOG.md#latency-and-pipelining) for the
-results.
+dominating. Experiments showed that lightweight read-only transactions are
+sensitive to network delay, so the default workload uses a heavier cached
+transaction; see [Latency and pipelining](../CHANGELOG.md#latency-and-pipelining)
+for the results.
 
 ## Operational Details
 

@@ -19,10 +19,10 @@ arrays, and other PostgreSQL subsystems to emphasize CPU work rather than disk
 I/O. The setup creates the following test data with an overall estimate of
 ~260–320 MB for the data plus indexes:
 
-- 20k products
-- 50k customers
-- 250k orders
-- 750k order items
+- 20,000 products
+- 50,000 customers
+- 250,000 orders
+- 750,000 order items
 
 Run this workload via Docker. The harness invokes `pgbench` with
 `-D scale=N` and `-f ro_cpu_txn.sql` internally.
@@ -36,7 +36,7 @@ Run this workload via Docker. The harness invokes `pgbench` with
 The transaction is intentionally a single SQL script that runs several blocks,
 each touching a different PostgreSQL subsystem:
 
-- `q_idx`: btree index scan + nested loop + window agg
+- `q_idx`: B-tree index scan + nested loop + window agg
 - `q_hashjoin`: hash join + hash aggregate over a time slice
 - `q_regex`: regex + `md5()`
 - `q_fts`: full-text search via `tsvector`/GIN (Generalized Inverted Index)
