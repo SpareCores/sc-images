@@ -29,10 +29,11 @@ same node to save on infrastructure costs.
 
 Production runs do not apply `sysctl` or other host OS tweaks.
 
-Privileged mode, host networking, `seccomp=unconfined`, ulimits (high `nofile`
-and an unlimited `memlock` unlocking huge pages and `io_uring` for the server),
-and PostgreSQL process priority via `nice -n -20` are container settings applied
-by `sc-inspector` orchestration.
+Privileged mode, host networking, `seccomp=unconfined`, and ulimits (high
+`nofile` and an unlimited `memlock` unlocking huge pages and `io_uring` for the
+server) are container settings applied by `sc-inspector` orchestration. The
+image itself starts PostgreSQL with `nice -n -20`; privileged mode is what lets
+that higher priority take effect.
 
 ## What is the primary advantage versus other database benchmarks?
 
@@ -50,10 +51,10 @@ alongside the instance type.
 The database schema is static and the data is generated on the fly via the
 `ro_cpu_setup.sql` script.
 
-Historically we experimented with the `PGBENCH_RO_CPU_SCHEMA_GIB` environment
-variable to dynamically tune the dataset size, but it's fixed now for all cloud
-server types. `pg_database_size` reports 303 MiB after a fresh import into
-PostgreSQL 18.
+Historically we experimented with a `PGBENCH_RO_CPU_SCHEMA_GIB` setting to
+dynamically tune the dataset size, but it's fixed now for all cloud server
+types; the image still emits the old constant as `schema_gib`.
+`pg_database_size` reports 303 MiB after a fresh import into PostgreSQL 18.
 
 ## Are the DBaaS server and its benchmarking client always placed in the same availability zone and connected over private VPC addresses?
 
@@ -111,10 +112,11 @@ scalability are treated as a separate testing axis.
 
 ## Why is the `pgbench_ro` transaction a single statement?
 
-One `SELECT` with eight CTEs and one `UNION ALL` keeps one `pgbench` transaction
-equal to one network round trip, which is what makes the workload resilient to
-RTT. The trade-off is that per-block planner GUCs (for example, forcing a Merge
-Join for one block) cannot be set without affecting every block.
+One `SELECT` whose eight query blocks are CTEs combined with `UNION ALL` keeps
+one `pgbench` transaction equal to one network round trip, which is what makes
+the workload resilient to RTT. The trade-off is that per-block planner GUCs (for
+ example, forcing a Merge Join for one block) cannot be set without affecting
+every block.
 
 ## Why does `pgbench_ro` use a fixed concurrency profile?
 
@@ -172,7 +174,10 @@ None of these need to be covered in the docs.
 
 ## What is `storage_gib`?
 
-A measurement of the benchmarking environment, not a benchmark metric.
+A fixed label for the benchmarking environment (the 128 GiB `sc-inspector`
+root volume), not a measurement and not a benchmark metric. The image reports
+128 in every standalone run, including a plain `docker run` outside
+production.
 
 ## Should the docs cover leftovers from earlier experiments?
 
@@ -193,3 +198,14 @@ docs.
 
 No. Which steps account for the time beyond the measurement windows is not
 relevant for the docs.
+
+## Should the docs explain the `schema_gib` output field?
+
+Yes, in one line. It is a leftover constant (`0.17`), but every `pgbench_ro`
+run still prints it, so the README warns that it is not the dataset size.
+
+## Does the `MemTotal` rounding need a code fix?
+
+No. A server sold with 2 GiB of RAM usually reports a little less in
+`MemTotal`, so the harness tunes it as 1 GiB and `shared_buffers` (256 MB) ends
+up below the 303 MiB database. This is accepted as is.
