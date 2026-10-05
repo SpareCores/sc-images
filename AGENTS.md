@@ -55,6 +55,7 @@ instead of pasting it into chat.
 | `.agents/prompts/` | Phase prompts for the workflow below |
 | `.agents/context/` | Maintainer answers, tracked in Git |
 | `.agents/facts/` | Facts extracted from code, tracked in Git |
+| `../sc-docs/tw-materials/images-style-manual.md` | Editorial rules for all published image documentation (in the `sc-docs` repo) |
 
 ## Documentation architecture
 
@@ -109,9 +110,10 @@ Split only when a first-pass reader would not get through one README, or if the
 section would stretch beyond one page on an average browser page. For example, a
 long env-var table or limitations longer than the methodology. Link each page
 from the paragraph that needs it. When appropriate, link to subheadings within
-the `docs/` files. Do not create `purpose.md`, `design-history.md` by default,
-and only create  `references.md` when the README and `docs/` pages use acronyms
-that need a glossary.
+the `docs/` files. Do not create `purpose.md` or `design-history.md` by
+default. Create `references.md` when the style manual's
+[Glossary](../sc-docs/tw-materials/images-style-manual.md#glossary) rule
+requires it.
 
 ### History and `CHANGELOG.md`
 
@@ -141,47 +143,18 @@ the full workflow on a folder that only pins a base image.
 
 ## House style
 
-Terminology:
+All editorial rules for published docs live in the
+[images style manual](../sc-docs/tw-materials/images-style-manual.md):
+voice and tone, terminology, acronyms and the `references.md` glossary,
+headings, formatting and lists, punctuation and numbers, links, and scope
+and precision. Read it before writing or reviewing docs, and cite its
+sections in findings.
 
-- Spell products the way the project does (PostgreSQL, FFmpeg, vLLM).
-  Put program and command names in backticks (`pgbench`, `ffmpeg`), and
-  use `postgres` in backticks for the daemon.
-- Write DBaaS, IaaS, vCPU.
-- Say "run via Docker", not "bash script" or "shell command".
-- When body wording changes, update the headings that use it, as well as links
-  pointing to those headings.
-- Expand acronyms on first use when the audience needs it, e.g.
-  RDBMS (Relational Database Management System).
-- Gloss niche tools on first use, e.g. `netem` (Network Emulator).
-- Do not carry one image's domain terms into another image.
+The manual lives in the `sc-docs` repo, which must be checked out next to
+`sc-images`. If the file is missing, stop and ask; do not guess the rules.
 
-Formatting:
-
-- Wrap at about 80 characters. Keep a paragraph's sentences on
-  continuous wrapped lines, not one sentence per line. Aim to keep links on one line.
-- Give bullet lists an intro sentence, consistent case and punctuation,
-  and shallow nesting. Aim to keep each bullet on one line. Use a colon for a
-  list of examples, and the word "following" in the intro sentence where possible.
-- No `TODO` or `FIXME` in published docs; track that work in Linear.
-
-Links:
-
-- A link must lead to a section that delivers what the link text
-  promises. Phrase link texts to match the type of information they point to.
-- After moving content, recheck every relative path and drop phrases
-  like "in this folder".
-
-Scope and voice:
-
-- Name explicitly what is excluded (disk, network, workload types). Avoid
-  generic language where more direct wording is possible.
-- Compare concretely: "most published database benchmarks", not "most
-  benchmarks".
-- Describe topology only as the code or a maintainer confirms it.
-- Avoid marketing phrasing ("for the Spare Cores fleet", "delve",
-  "seamless"). Link [Navigator](https://sparecores.com/servers) instead
-  of saying "our fleet".
-- Use the imperative for instructions: "Set `SC_DB_HOST`".
+Agent files (`AGENTS.md`, `CLAUDE.md`, `.agents/`) are internal and exempt
+from the manual's punctuation rules.
 
 ## Workflow
 
@@ -202,10 +175,11 @@ below; smaller or faster tiers (Sonnet, Haiku, Flash) miss too much.
 
 `<image>` is the folder name under `images/`.
 
-To run an LLM step, include the prompt file and this `AGENTS.md`, then
-point the model at the image folder, `.agents/context/shared.md`, the
-image's context file if it exists, the facts file (steps 5 and 7), and
-the family manual for a variant.
+To run an LLM step, include the prompt file, this `AGENTS.md`, and the
+images style manual (steps 5 and 7), then point the model at the image
+folder, `.agents/context/shared.md`, the image's context file if it
+exists, the facts file (steps 5 and 7), and the family manual for a
+variant.
 
 Where things live:
 
@@ -242,9 +216,8 @@ not consider a newly committed facts file as stale until the next code change.
 ## When unsure
 
 - Ask a maintainer question instead of guessing.
-- List code-vs-docs conflicts explicitly: only in `review.md`, under a
-  "Conflicts" heading, with citations for both the code and the docs, only
-  during the review phase (`03-review.md`).
+- Leave code-vs-docs conflicts to the review step; see
+  [`03-review.md`](.agents/prompts/03-review.md).
 
 When the writer asks you to explain a concept (TPM, `shared_buffers`,
 RTT vs. throughput), explain it in plain language, point at the code
