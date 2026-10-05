@@ -111,8 +111,8 @@ a separate testing axis.
 
 #### A Single Monolithic Statement
 
-One `SELECT` with 8 CTEs, one `UNION ALL` is deliberate: it keeps one `pgbench`
-transaction equal to one network round trip. This makes the cached-RO redesign
+One `SELECT` with 8 CTEs (Common Table Expressions), one `UNION ALL` is
+deliberate: it keeps one `pgbench` transaction equal to one network round trip. This makes the cached-RO redesign
 resilient to RTT simulated with `netem` (Network Emulator;
 [documentation](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html));
 see [Latency and pipelining](../CHANGELOG.md#latency-and-pipelining) for the

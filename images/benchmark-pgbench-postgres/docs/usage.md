@@ -165,11 +165,11 @@ preparation times out after 4 hours.
 | `SC_CPU_SCALE` | `pgbench_ro` transaction work multiplier. | `1` |
 | `SC_SCALEFACTORS` | Comma-separated `pgbench_tpcb` scale factors. | Unset. |
 | `SC_SCALEFACTOR` | `pgbench_tpcb` scale factor when `SC_SCALEFACTORS` is unset or empty. | `65` |
-| `SC_PROFILE_VUS` | Comma-separated concurrency anchors. | Derived from DB vCPUs. |
+| `SC_PROFILE_VUS` | Comma-separated concurrency anchors. | Derived from database vCPUs. |
 | `SC_PROFILE_SEARCH` | Allow adaptive concurrency search; forced off for `pgbench_ro`. | True for `pgbench_tpcb`; false for `pgbench_ro`. |
 | `SC_PROFILE_IMPROVE_PCT` | Throughput improvement threshold for TPC-B (Transaction Processing Performance Council Benchmark B) search. | `5.0` |
 | `SC_PROFILE_MAX_CLIENTS` | Maximum client count for the profile. | Highest anchor. |
-| `SC_PROFILE_HARD_MAX_CLIENTS` | Hard concurrency ceiling. | Highest anchor for RO; `3072` for TPC-B. |
+| `SC_PROFILE_HARD_MAX_CLIENTS` | Hard concurrency ceiling. | Highest anchor for `pgbench_ro`; `3072` for TPC-B. |
 | `SC_RUN_SECONDS` | Measurement duration per concurrency rung. | `300` |
 | `SC_WARMUP_SECONDS` | Initial warmup duration. | `120` |
 | `SC_SETTLE_SECONDS` | Settle duration between concurrency rungs. | `60` |

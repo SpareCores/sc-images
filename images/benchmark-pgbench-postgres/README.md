@@ -27,7 +27,7 @@ The same benchmark client measures two deployment models:
 
 - **IaaS (Infrastructure as a Service):** Self-hosted PostgreSQL, with the
   client and database on the same node.
-- **DBaaS:** Provider-managed PostgreSQL, with a
+- **DBaaS (Database as a Service):** Provider-managed PostgreSQL, with a
   separate client VM; the provider provisions, manages, and tunes the database
   engine.
 
@@ -79,7 +79,7 @@ reference](./docs/usage.md#key-environment-variables) for all options and
 defaults:
 
 - `SC_DB_HOST`, `SC_DB_PORT`, `SC_DB_USER`, and `SC_DB_PASSWORD` configure a  
-  remote connection. `SC_DB_SSLMODE` controls SSL mode.  
+  remote connection. `SC_DB_SSLMODE` controls SSL (Secure Sockets Layer) mode.  
 - `SC_DB_VCPUS` sets the database vCPU count used to derive concurrency points  
   and the local server settings in standalone mode.  
 - `SC_CPU_SCALE` changes `pgbench_ro` transaction work.  
@@ -91,7 +91,7 @@ defaults:
 The process prints one JSON object to stdout. Interpret its main fields as
 follows:
 
-- `score` is the highest TPM (transactions per minute) result; `score_unit` is
+- `score` is the highest TPM result; `score_unit` is
   `tpm`, and `peak_concurrency` is the client count for that result.
 - Each `sizes[]` entry represents a workload size and has its own score and
   `profile`. `pgbench_ro` entries identify `cpu_scale`; `pgbench_tpcb` entries
@@ -101,8 +101,8 @@ follows:
   database vCPU count; it uses fixed points `{1, V/2, V, 2·V}` and caps worker
   jobs at 32. `pgbench_tpcb` uses geometric anchors with optional adaptive
   search.
-- `latency_ms` contains sampled p50, p95, and p99 latency and an average, in
-  milliseconds. The harness samples 1% of transaction latency logs.
+- `latency_ms` contains sampled p50, p95, and p99 (50th, 95th, and 99th
+  percentile) latency and an average, in milliseconds. The harness samples 1% of transaction latency logs.
 
 ## Workloads
 

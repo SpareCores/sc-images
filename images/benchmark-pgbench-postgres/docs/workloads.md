@@ -3,9 +3,9 @@
 ## `pgbench_tpcb`
 
 This workload is `pgbench`'s built-in `tpcb-like` script (`-b tpcb-like`) with a
-standard `pgbench -i -s N` schema. It is a standard TPC-B-style OLTP (Online
-Transaction Processing) mix
-(mostly-write, network- and lock-sensitive).
+standard `pgbench -i -s N` schema. It is a standard OLTP (Online Transaction
+Processing) mix in the style of TPC-B (Transaction Processing Performance
+Council Benchmark B): mostly-write, network- and lock-sensitive.
 
 See the [official
 documentation](https://www.postgresql.org/docs/current/pgbench.html) for
@@ -40,7 +40,7 @@ each touching a different PostgreSQL subsystem:
 - `q_hashjoin`: hash join + hash aggregate over a time slice
 - `q_regex`: regex + `md5()`
 - `q_fts`: full-text search via `tsvector`/GIN (Generalized Inverted Index)
-- `q_array`: array containment with GIN (Generalized Inverted Index)
+- `q_array`: array containment with GIN
 - `q_stats`: ordered-set/statistical aggregates
 - `q_toast`: TOAST ([The Oversized-Attribute Storage
   Technique](https://www.postgresql.org/docs/current/storage-toast.html))
