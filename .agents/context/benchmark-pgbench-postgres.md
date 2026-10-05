@@ -37,7 +37,7 @@ by `sc-inspector` orchestration.
 ## What is the primary advantage versus other database benchmarks?
 
 Our primary goal was to have a benchmarking methodology that scales across
-instance sizes: from small instances (e.g. 1 vCPU and 1 GB of RAM) to large
+instance sizes: from small instances (e.g. 1 vCPU and 2 GB of RAM) to large
 nodes with hundreds of vCPUs.
 
 Other database benchmarks usually focus on storage, network throughput, a single
@@ -79,11 +79,11 @@ Only the major version is fixed, the minor version is allowed to vary:
 
 ## Why is disk performance excluded?
 
-Database throughput usually depends on the disk first (IOPS, then bandwidth).
-In the cloud, that disk is almost always network-attached block storage that
-the user provisions independently of the server type, so it says little about
-the server itself. Provisioning volumes fast enough never to be the bottleneck
-on all ~5,000 server types would also be prohibitively expensive. We therefore
+Database throughput usually depends on the disk first (IOPS, then bandwidth). In
+the cloud, that disk is almost always network-attached block storage that the
+user provisions independently of the server type, so it says little about the
+server itself. Provisioning volumes fast enough never to be the bottleneck on
+all ~5,000 server types would also be prohibitively expensive. We therefore
 eliminate disk from the measurement and score the engine's CPU and memory
 performance.
 
@@ -111,11 +111,10 @@ scalability are treated as a separate testing axis.
 
 ## Why is the `pgbench_ro` transaction a single statement?
 
-One `SELECT` with eight CTEs and one `UNION ALL` keeps one `pgbench`
-transaction equal to one network round trip, which is what makes the workload
-resilient to RTT. The trade-off is that per-block planner GUCs (for example,
-forcing a Merge Join for one block) cannot be set without affecting every
-block.
+One `SELECT` with eight CTEs and one `UNION ALL` keeps one `pgbench` transaction
+equal to one network round trip, which is what makes the workload resilient to
+RTT. The trade-off is that per-block planner GUCs (for example, forcing a Merge
+Join for one block) cannot be set without affecting every block.
 
 ## Why does `pgbench_ro` use a fixed concurrency profile?
 
@@ -136,9 +135,9 @@ revisit later. The main and our only PostgreSQL benchmark in production is
 
 It is a known simplification, not a goal. The product catalog has a deliberate
 cold long tail (20,000 products, of which only the first 5,000 ever sell), but
-customer, order, and order-item generation still uses `g % k` modular
-arithmetic rather than a realistic power-law ("few whales, many one-off
-customers") distribution.
+customer, order, and order-item generation still uses `g % k` modular arithmetic
+rather than a realistic power-law ("few whales, many one-off customers")
+distribution.
 
 ## Who helped shape the design?
 
@@ -148,7 +147,9 @@ configurations, and design constraints -- and we highly appreciate their help!
 ## Which servers is `pgbench_ro` run on in production?
 
 Only servers with at least 2 GB of RAM. On smaller nodes the dataset does not
-fit entirely in `shared_buffers`, so there might be some disk overhead.
+fit entirely in `shared_buffers`, so there might be some disk overhead. This 2
+GB minimum is also the smallest instance size the design targets.
+
 
 ## Does a measured `pgbench_ro` run write WAL?
 
