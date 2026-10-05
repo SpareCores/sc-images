@@ -144,3 +144,32 @@ customers") distribution.
 
 We consulted benchANT (https://benchant.com) while iterating on the tools,
 configurations, and design constraints -- and we highly appreciate their help!
+
+## Which servers is `pgbench_ro` run on in production?
+
+Only servers with at least 2 GB of RAM. On smaller nodes the dataset does not
+fit entirely in `shared_buffers`, so there might be some disk overhead.
+
+## Does a measured `pgbench_ro` run write WAL?
+
+"No WAL" refers to the steady state, i.e. the actual measured benchmark.
+
+## Where does the `m9g.24xlarge` timing example come from?
+
+It is an actual production run, recorded at
+https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m9g.24xlarge/pgbench_postgres_ro_durable/stdout
+
+## Which open edge cases are deliberately left out of the docs?
+
+- Planner statistics and hint bits after a CDN restore, and the generic-plan
+  risk under `-M prepared`: probably fine, to be double-checked later.
+- An upper bound for `SC_CPU_SCALE`, and truncated CDN downloads: guards may be
+  added to the code later.
+- Whether the block weights were also calibrated on cloud servers: unknown for
+  now.
+
+None of these need to be covered in the docs.
+
+## What is `storage_gib`?
+
+A measurement of the benchmarking environment, not a benchmark metric.
