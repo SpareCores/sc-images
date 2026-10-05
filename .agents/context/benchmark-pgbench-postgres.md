@@ -146,9 +146,10 @@ configurations, and design constraints -- and we highly appreciate their help!
 
 ## Which servers is `pgbench_ro` run on in production?
 
-Only servers with at least 2 GB of RAM. On smaller nodes the dataset does not
-fit entirely in `shared_buffers`, so there might be some disk overhead. This 2
-GB minimum is also the smallest instance size the design targets.
+Only servers with at least 2 GiB of RAM, as reported by the vendor. On smaller
+ nodes the dataset does not fit entirely in `shared_buffers`, so there might be
+some disk overhead. This 2 GiB minimum is also the smallest instance size the
+design targets.
 
 
 ## Does a measured `pgbench_ro` run write WAL?
@@ -166,11 +167,29 @@ https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m9g.24xlarge/
   risk under `-M prepared`: probably fine, to be double-checked later.
 - An upper bound for `SC_CPU_SCALE`, and truncated CDN downloads: guards may be
   added to the code later.
-- Whether the block weights were also calibrated on cloud servers: unknown for
-  now.
 
 None of these need to be covered in the docs.
 
 ## What is `storage_gib`?
 
 A measurement of the benchmarking environment, not a benchmark metric.
+
+## Should the docs cover leftovers from earlier experiments?
+
+No. The benchmark grew out of running and sizing standard benchmark suites
+before writing our own, so the code may still contain leftovers from that
+experimentation. Document what is in use, not those leftovers.
+
+Some experiment artifacts are kept at
+https://github.com/SpareCores/sc-db-benchmark-tmp, but not all of them.
+
+## Where were the `pgbench_ro` block weights calibrated?
+
+First on a local machine, then on the cloud test instance (which changed between
+cloud providers because of credit outages). This detail does not matter for the
+docs.
+
+## Does the `m9g.24xlarge` example's extra time need a breakdown?
+
+No. Which steps account for the time beyond the measurement windows is not
+relevant for the docs.
