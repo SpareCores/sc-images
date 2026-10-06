@@ -13,26 +13,26 @@ Database Management System) performance expected of a server type.
 
 ### Disk I/O Speed
 
-The scores do *not* measure storage performance. Database throughput usually
-hinges first on disk IOPS (Input/Output Operations Per Second), then on
-bandwidth. In the cloud, that disk is almost always network-attached block
-storage, provisioned independently of the server type and entirely up to the
-user, so it says little about the server itself.
+The scores do *not* measure storage I/O (Input/Output) performance. Database
+throughput usually hinges first on disk IOPS (Input/Output Operations Per
+Second), then on bandwidth. In the cloud, that disk is almost always
+network-attached block storage, provisioned independently of the server type and
+entirely up to the user, so it says little about the server itself.
 
-Deploying volumes with high-enough IOPS to never bottleneck across the more
-than 5,000 server types on [Navigator](https://sparecores.com/servers) would
-also be prohibitively expensive. Because of this, we exclude disk speed from the
+Deploying volumes with high-enough IOPS to never bottleneck across the more than
+5,000 server types on [Navigator](https://sparecores.com/servers) would also be
+prohibitively expensive. Because of this, we exclude disk speed from the
 measurement and score the database engine's CPU and memory performance.
 
 ### Network Performance
 
-The scores say nothing about a server's network throughput or latency (we
-publish separate benchmarks for this purpose). With a remote client, both
-bandwidth and especially RTT (Round-Trip Time) between client and server can
-dominate chatty workloads. Placing the client close to the server is not enough
-on its own: occasional latency glitches still distort lightweight-workload
-results. The workload is therefore designed so the remaining RTT is a rounding
-error; see [CPU-Heavy Transactions](#cpu-heavy-transactions).
+The scores say nothing about a server's network throughput or latency. With a
+remote client, both bandwidth and especially RTT (Round-Trip Time) between
+client and server can dominate chatty workloads. Placing the client close to
+the server is not enough on its own: occasional latency glitches still distort
+lightweight-workload results. The workload is therefore designed so the
+remaining RTT is a rounding error; see
+[CPU-Heavy Transactions](#cpu-heavy-transactions).
 
 ### Uniform Data
 
@@ -45,36 +45,41 @@ than a realistic power-law distribution with a few high-activity customers. See
 
 ## Scope Decisions
 
-Most published database benchmarks compare *database engines*, engine versions,
-or config tuning on fixed hardware. Our approach is the inverse: keep the engine
-constant and vary the hardware across thousands of server types. This inversion
-is the design's primary aim.
+Most published database benchmarks focus on storage, network throughput, a
+single database operation, or one production workload. Our approach focuses on
+the CPU and memory speed of the server instead: we keep the workload and the
+PostgreSQL major version constant and vary the hardware across thousands of
+server types.
 
 ### Minor Engine Versions
 
-DBaaS (Database as a Service) providers may apply minor PostgreSQL upgrades
-automatically. This image does not check or enforce the version of a remote
-target; version selection and pinning are deployment responsibilities.
+Only the PostgreSQL major version is fixed. DBaaS (Database as a Service)
+providers may apply minor PostgreSQL upgrades automatically. This benchmark does
+not check or enforce the version of a remote target; version selection and
+pinning are deployment responsibilities. Standalone runs use whichever
+PostgreSQL 18 minor release the `postgres:18` base image had when the image was
+built.
 
-### Massive Workload Size Range
+### Instance Size Range
 
-From small instances (e.g. 1 vCPU and 1 GB of RAM) to large nodes with hundreds
+From small instances (e.g. 1 vCPU and 2 GiB of RAM) to large nodes with hundreds
 of vCPUs, the same workload must produce meaningful, comparable numbers.
 
-Available warehouse and scale-factor sizing schemes cannot fulfill this purpose.
-Because of this, we chose a fixed-size workload that could run on all
-server types on [Navigator](https://sparecores.com/servers), with larger servers
-being taxed by concurrency rather than workload size.
+Available sizing schemes, such as warehouse counts (the dataset-size unit in
+HammerDB TPROC-C, HammerDB's transaction processing workload, and similar
+suites) and scale factors, cannot fulfill this purpose. Because of this, we
+chose a fixed-size workload that can run on every server type on
+[Navigator](https://sparecores.com/servers) with at least 2 GiB of RAM, with
+larger servers being taxed by concurrency rather than workload size.
 
-### Engine Config
+### Engine Configuration
 
-Some DBaaS providers allow for config control, while others forbid it. In the
-latter case, the vendor tunes the managed engine, so the harness cannot assume
-superuser access or GUC ([Grand Unified
+The vendor tunes the managed engine, and the harness cannot assume superuser
+access or GUC ([Grand Unified
 Configuration](https://www.postgresql.org/docs/current/config-setting.html))
-control. For this benchmark, we deliberately do not tune the DBaaS engine: the
-tuning of the managed service is part of what is being measured, so the score
-reflects the vendor's configuration.
+control on DBaaS. For this benchmark, we deliberately do not tune the DBaaS
+engine: the tuning of the managed service is part of what is being measured, so
+the score reflects the vendor's configuration.
 
 ### JIT and Parallel Query
 
@@ -89,45 +94,50 @@ variance or Gather scalability. Those are treated as a separate testing axis.
 
 ### A Single Monolithic Statement
 
-One `SELECT` with 8 CTEs (Common Table Expressions), one `UNION ALL` is
-deliberate: it keeps one `pgbench` transaction equal to one network round trip.
-This makes the `pgbench_ro` workload resilient to RTT simulated with `netem`
-(Network Emulator;
-[documentation](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html));
+One `SELECT` whose eight query blocks are CTEs (Common Table Expressions)
+combined with `UNION ALL` is deliberate: it keeps one `pgbench` transaction
+equal to one network round trip. This makes the `pgbench_ro` workload resilient
+to RTT simulated with `netem` ([Network
+Emulator](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html));
 see [Latency and pipelining](../CHANGELOG.md#latency-and-pipelining) for the
 experiments. The tradeoff is that per-block planner GUCs (e.g. forcing Merge
 Join specifically) are not possible without affecting every block.
 
 ### Pre-Calibrated Weights
 
-Weights were manually calibrated on one local Docker `postgres:18` instance and
-on a few cloud server SKUs. This remains fixed for all runs. See [Recalibration
-procedure](../CHANGELOG.md#recalibration-procedure) for details.
+The time shares of the eight query blocks in the `pgbench_ro` transaction were
+manually calibrated and remain fixed for all runs. See the
+[block timings](../CHANGELOG.md#current-pgbench_ro-workload-v2-subsystem-rebalance)
+and the [recalibration procedure](../CHANGELOG.md#recalibration-procedure) for
+details.
 
 ## Design Constraints
 
 With the help of the [benchANT](https://benchant.com) team, over many iterations
-with different tools and configs, we identified the following core principles.
+with different tools and configurations, we identified the following core
+principles.
 
 ### Memory-Fit, Small Dataset
 
-This benchmark is designed to use a small dataset of ~260–320 MB, small enough
-to stay in memory (`shared_buffers` plus the OS page cache) even on the smallest
-instances. After warmup, the disk is not read again. Because the dataset is
-small by design, large instances are exercised through concurrency rather than
-data volume.
+This benchmark is designed to use a small dataset of about 303 MiB. On the
+smallest nodes, the dataset does not fit in memory, which can add some disk
+overhead, so production runs this benchmark only on servers with at least
+2 GiB of RAM, as reported by the vendor. There, the dataset is meant to stay in
+memory (`shared_buffers` plus the OS page cache), so that the disk is not read
+again after warmup. Because the dataset is small by design, large instances are
+exercised through concurrency rather than data volume.
 
 ### Read-Only Workload
 
-No WAL ([Write-Ahead
-Logging](https://www.postgresql.org/docs/current/wal-intro.html)), no
-checkpoints, and no disk-write paths for `pgbench_ro`.
+The measured `pgbench_ro` transaction writes no data, so in the steady state of
+this benchmark it generates no WAL ([Write-Ahead
+Logging](https://www.postgresql.org/docs/current/wal-intro.html)) records.
 
 ### CPU-Heavy Transactions
 
-~70–100 ms of server work per transaction per connection. This minimizes network
-round-trip time to ~0.2–4% of the total service time and prevents it from
-dominating. Experiments showed that lightweight read-only transactions are
-sensitive to network delay, so the default workload uses a heavier cached
-transaction; see [Latency and pipelining](../CHANGELOG.md#latency-and-pipelining)
-for the results.
+Each transaction takes about 70 to 100 ms of server work per connection. With 1
+to 5 ms of RTT against roughly 100 ms of server work, network time stays a small
+fraction of each transaction and cannot dominate. Experiments showed that
+lightweight read-only transactions are sensitive to network delay, so the
+default workload uses a heavier cached transaction; see [Latency and
+pipelining](../CHANGELOG.md#latency-and-pipelining) for the results.

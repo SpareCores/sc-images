@@ -1,6 +1,6 @@
 # Changelog
 
-## Current RO Workload: V2 Subsystem Rebalance
+## Current `pgbench_ro` Workload: V2 Subsystem Rebalance
 
 The v2 redesign spreads transaction work across PostgreSQL executor, access
 method, and data type subsystems so no single block dominates. The schema adds
@@ -20,11 +20,13 @@ transaction in `ro_cpu_txn.sql` uses eight tagged blocks:
 
 The maximum single-block share fell from about 82% in the old regex block to
 about 30 to 34% in `q_hashjoin`. Apart from `q_idx` at 0.1 ms, the remaining
-blocks measured in a narrower band of 2 to 15 ms.
-The query plans and block timings were checked using the same local Docker
-profiling method used to investigate v1.
+blocks measured in a narrower band of 2 to 15 ms. The query plans and block
+timings were checked using the same local Docker profiling method used to
+investigate v1.
 
 ### Calibration Findings
+
+Calibration found the following:
 
 - The first `q_array` version joined GIN-matched products to all 750,000
   `order_item` rows. PostgreSQL chose the same sequential scan and hash join as
@@ -32,7 +34,7 @@ profiling method used to investigate v1.
   Bounding the join to an indexed `order_id` slice corrected this. New blocks
   should be checked with `EXPLAIN`; the presence of an index does not guarantee
   that the planner uses it.
-- `q_hashjoin` has a floor of about 20–24 ms. The `order_item` probe side must
+- `q_hashjoin` has a floor of about 20-24 ms. The `order_item` probe side must
   be scanned even when the time window narrows, so reducing the window from
   22,400 seconds to 1,500 seconds only reduced the measured time from about 51
   ms to 24 ms. This is retained as a deliberate large-scan/hash-join case.
@@ -46,9 +48,8 @@ profiling method used to investigate v1.
   generic cached plan after five calls. A variable `LIMIT` was then estimated
   poorly, causing `q_array` to use the unbounded full-table plan and take 271 ms
   instead of about 8 ms. `SET plan_cache_mode = force_custom_plan` fixes this
-  harness artifact. It does not affect the real `pgbench` script: `pgbench`
-  substitutes its variables as literals before planning each execution. A direct
-  `pgbench` run confirmed the production script was unaffected.
+  harness artifact. A direct `pgbench` run without `-M prepared` showed no such
+  regression.
 - PostgreSQL has no `round(double precision, integer)` overload; the relevant
   values must be cast to `numeric` before rounding. `percentile_cont`,
   `stddev_samp`, and `corr` likewise needed explicit numeric casts for the
@@ -69,19 +70,20 @@ Real `pgbench` runs against the redesigned schema and script used local Docker
 ### Recalibration Procedure
 
 Run the setup and profiling scripts against a fresh PostgreSQL 18 database, then
-run the transaction directly after adjusting its block widths. Run these commands
-from `images/benchmark-pgbench-postgres/` in a checkout of this repository;
-`profile_v2_breakdown.sql` is a development helper that is not in the published
-image:
+run the transaction directly after adjusting its block widths. Run these
+commands from `images/benchmark-pgbench-postgres/` in a checkout of this
+repository; `profile_v2_breakdown.sql` is a development helper that is not in
+the published image:
 
 ```bash
 docker run -d --name ro-cpu-cal -e POSTGRES_PASSWORD=bench -e POSTGRES_DB=bench \
-  -v "$PWD:/sql:ro" postgres:18 -c shared_buffers=1GB -c jit=off
+  -v "$PWD:/sql:ro" postgres:18 -c shared_buffers=1GB -c jit=off \
+  -c work_mem=64MB -c max_parallel_workers_per_gather=0
 docker exec -e PGPASSWORD=bench ro-cpu-cal psql -U postgres -d bench -f /sql/ro_cpu_setup.sql
 docker exec -e PGPASSWORD=bench ro-cpu-cal psql -U postgres -d bench -f /sql/profile_v2_breakdown.sql
 # Adjust widths in ro_cpu_txn.sql, repeat until no block dominates, then:
 docker exec -e PGPASSWORD=bench ro-cpu-cal pgbench -h localhost -U postgres -d bench \
-  -n -c 1 -T 20 -D scale=1 -f /sql/ro_cpu_txn.sql
+  -n -M prepared -c 1 -T 20 -D scale=1 -f /sql/ro_cpu_txn.sql
 ```
 
 Re-run `profile_v2_breakdown.sql` after any schema/query change, or on
@@ -91,13 +93,13 @@ dominance.
 ## Initial Custom Workload: V1
 
 Plain `pgbench -S` (one primary-key `SELECT`) was too cheap per transaction to
-measure CPU behavior under network latency. With `netem` ([Linux network
-emulator](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html))
-simulating RTT (round-trip time), its throughput fell by about 98% at one
+measure CPU behavior under network latency. With `netem` ([Network
+Emulator](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html))
+simulating RTT (Round-Trip Time), its throughput fell by about 98% at one
 connection with an additional 5 ms of one-way delay, while the CPU-heavy
 transaction barely changed.
 
-The first custom script used a cached, multi-query transaction sized for 100–130
+The first custom script used a cached, multi-query transaction sized for 100-130
 ms of server CPU time at `-c 1`, with a roughly 170 MB schema intended to fit in
 `shared_buffers`. It had four blocks:
 
@@ -114,7 +116,7 @@ BUFFERS)`, and per-block `clock_timestamp()` loops identified these issues:
 
 | Finding | Evidence |
 | --- | --- |
-| q3's regex and `md5()` work took about 70–82% of the transaction. | Timings were q1 0.09 ms, q2 9.8 ms, q3 49.1 ms, and q4 0.10 ms (59.6 ms total); regex alone took 42.3 ms in q3. |
+| q3's regex and `md5()` work took about 70-82% of the transaction. | Timings were q1 0.09 ms, q2 9.8 ms, q3 49.1 ms, and q4 0.10 ms (59.6 ms total); regex alone took 42.3 ms in q3. |
 | The script only exercised B-tree, nested-loop, and regex work. | It did not use GIN, BRIN, hash or merge joins, full-text search, arrays, TOAST, or ordered-set aggregates. The local PostgreSQL source was checked under `src/backend/access/`, `src/backend/executor/nodeX.c`, and `src/backend/utils/adt/`. |
 | A data-generation bug made all five orders for a customer share one status. | With 50,000 customers, a multiple of five, `status = 1 + (g % 5)` assigned each customer's orders the same residue. `status IN ('paid','shipped','done')` returned zero rows for about 40% of sampled customers and five for the rest, making q1 inconsistent. |
 | q1's `LIMIT 40` did not limit results. | The generated dataset contained only five orders per customer. |
@@ -128,9 +130,10 @@ BUFFERS)`, and per-block `clock_timestamp()` loops identified these issues:
 
 `sysbench`, HammerDB TPROC-C, BenchBase (Wikipedia read-only and YCSB datasets),
 and `pgbench` were compared using regular block storage and `tmpfs`, with
-baseline and host-tuned PostgreSQL configurations.
+baseline and host-tuned PostgreSQL configurations. The comparison showed the
+following:
 
-- `tmpfs` improved write-heavy OLTP results by about 10–25% or more, indicating
+- `tmpfs` improved write-heavy OLTP results by about 10-25% or more, indicating
   that those suites were measuring storage and WAL behavior as well as server
   performance.
 - `tmpfs` was not available for DBaaS comparisons. Warehouse and scale-factor
@@ -138,7 +141,7 @@ baseline and host-tuned PostgreSQL configurations.
 
 ### PostgreSQL Configuration Sweep
 
-Twenty-one experiments on a 32-vCPU host found a winning configuration with
+Twenty-one experiments on a 32 vCPU host found a winning configuration with
 about 20% more throughput than the baseline. The combination used modest
 `work_mem` and `io_uring`, small WAL buffers, parallel gather disabled, and
 right-sized `shared_buffers`. The results motivated per-host tuning for IaaS and
@@ -150,7 +153,7 @@ Two experiments checked whether measuring longer than 5 minutes changes mean
 throughput or only its variance. Each tested 5-, 10-, 15-, and 30-minute
 measurement windows after a 2-minute warmup, with five independent trials per
 window on an interleaved schedule and a fresh database load for every trial.
-PostgreSQL 18 ran with pgtune form defaults.
+PostgreSQL 18 ran with `pgtune` form defaults.
 
 BenchBase Wikipedia, with as many terminals as vCPUs, gave the following mean
 TPM and CV per window:
@@ -171,12 +174,12 @@ following:
 The findings were the following:
 
 - No window shifted the mean by more than 2% from the 5-minute result; the
-  largest shift (−1.99%) was partly one low outlier.
+  largest shift (-1.99%) was partly one low outlier.
 - Longer windows did not tighten the CV. The 5-minute window often had the
   smallest CV, because occasional dips from load, the OS, or noisy neighbors
   hurt a long average as much as a short one.
-- The budget is better spent on more server types or repeated short trials
-  than on longer windows, so the measurement window stayed at 5 minutes.
+- The budget is better spent on more server types or repeated short trials than
+  on longer windows, so the measurement window stayed at 5 minutes.
 
 Note that these experiments used the previously considered BenchBase Wikipedia
 and `pgbench -S`, and not the current `pgbench_ro` workload.
