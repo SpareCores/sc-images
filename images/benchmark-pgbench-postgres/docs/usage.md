@@ -65,7 +65,7 @@ settings](#workload-settings) on top of these.
 
 ## Remote Mode
 
-Set `SC_DB_HOST` to benchmark an existing PostgreSQL server, such as a DBaaS
+Set `SC_DB_HOST` to benchmark an existing PostgreSQL 18 server, such as a DBaaS
 (Database as a Service) instance, from the same or a separate machine. Before
 you run, check the following prerequisites:
 
@@ -90,6 +90,7 @@ Set the host, credentials, and server size:
 ```bash
 docker run --rm \
   -e SC_DB_HOST=<postgres-host> \
+  -e SC_DB_USER=<username> \
   -e SC_DB_PASSWORD=<password> \
   -e SC_DB_VCPUS=<database-vcpus> \
   -e SC_DB_MEM_GIB=<database-memory-gib> \
