@@ -164,41 +164,28 @@ also the smallest instance size the design targets.
 It is an actual production run, recorded at
 https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m9g.24xlarge/pgbench_postgres_ro_durable/stdout
 
-## Which open edge cases are deliberately left out of the docs?
+## Which details should the docs leave out?
 
-- Planner statistics and hint bits after a CDN restore, and the generic-plan
-  risk under `-M prepared`: probably fine, to be double-checked later.
-- An upper bound for `SC_CPU_SCALE`, and truncated CDN downloads: guards may be
-  added to the code later.
+These come up during extraction but add nothing for readers. Do not document
+them and do not raise them as open questions.
 
-None of these need to be covered in the docs.
-
-## What is `storage_gib`?
-
-A fixed label for the benchmarking environment (the 128 GiB `sc-inspector`
-root volume), not a measurement and not a benchmark metric. The image reports
-128 in every standalone run, including a plain `docker run` outside
-production.
-
-## Should the docs cover leftovers from earlier experiments?
-
-No. The benchmark grew out of running and sizing standard benchmark suites
-before writing our own, so the code may still contain leftovers from that
-experimentation. Document what is in use, not those leftovers.
-
-Some experiment artifacts are kept at
-https://github.com/SpareCores/sc-db-benchmark-tmp, but not all of them.
-
-## Where were the `pgbench_ro` block weights calibrated?
-
-First on a local machine, then on the cloud test instance (which changed between
-cloud providers because of credit outages). This detail does not matter for the
-docs.
-
-## Does the `m9g.24xlarge` example's extra time need a breakdown?
-
-No. Which steps account for the time beyond the measurement windows is not
-relevant for the docs.
+- `storage_gib`: a known code oversight. `benchmark.py` hard-codes 128 instead
+  of reading the disk size, which is not always 128 GiB. Leave the field out of
+  the docs.
+- Leftovers from earlier experiments. The benchmark grew out of running and
+  sizing standard benchmark suites before writing our own, so the code may
+  still contain leftovers. Document what is in use. Some experiment artifacts
+  are kept at https://github.com/SpareCores/sc-db-benchmark-tmp, but not all of
+  them.
+- Where the `pgbench_ro` block weights were calibrated (a local machine, then
+  cloud test instances that changed between providers because of credit
+  outages).
+- Which steps account for the time in the `m9g.24xlarge` example beyond the
+  measurement windows.
+- Open edge cases: planner statistics and hint bits after a CDN restore, the
+  generic-plan risk under `-M prepared` (probably fine, to be double-checked
+  later), an upper bound for `SC_CPU_SCALE`, and truncated CDN downloads
+  (guards may be added to the code later).
 
 ## Should the docs explain the `schema_gib` output field?
 
