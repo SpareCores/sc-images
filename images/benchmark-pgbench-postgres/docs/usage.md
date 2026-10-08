@@ -147,11 +147,10 @@ preparation:
 | 4 or more | 1, V/2, V, 2·V | 25 minutes (120 + 3 × 60 + 4 × 300 s) |
 
 For example, a production run on a 96 vCPU AWS (Amazon Web Services)
-`m9g.24xlarge` measured 1, 48, 96, and 192 clients and took 25 minutes 25
-seconds in total ([recorded
-output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m9g.24xlarge/pgbench_postgres_ro_durable/stdout)),
-including restoring the dataset from the CDN and starting the server. Building
-the dataset instead takes longer.
+`m9g.24xlarge` measured 1, 48, 96, and 192 clients, with 25 minutes of warmup
+and measurement ([recorded
+output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m9g.24xlarge/pgbench_postgres_ro_durable/stdout)).
+Preparing the dataset and starting the server add to the total run time.
 
 The following settings also change the number of concurrency points, and so the
 duration:
