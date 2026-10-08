@@ -25,8 +25,9 @@ underlying dataset, so a single fixed schema can represent a range of CPU
 intensities. Total work grows sub-linearly, because some blocks have fixed
 costs.
 
-The workload uses fixed concurrency points `{1, V/2, V, 2·V}`, where `V` is the
-database vCPU count, instead of a geometric search. This choice came out of the
+The workload uses fixed concurrency points `{1, V/2, V, 2·V}`, set in
+[`benchmark.py`](../benchmark.py), where `V` is the database vCPU count,
+instead of a geometric search. This choice came out of the
 [latency and pipelining experiments](../CHANGELOG.md#latency-and-pipelining).
 
 The transaction is intentionally a single SQL (Structured Query Language)

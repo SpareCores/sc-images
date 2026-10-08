@@ -17,10 +17,11 @@ Our [Navigator](https://sparecores.com/servers) project publishes empirical
 performance measurements for more than 5,000 cloud server types. We needed an
 RDBMS ([Relational Database Management
 System](https://en.wikipedia.org/wiki/Relational_database)) benchmark that
-tracks relevant metrics directly rather than relying on proxies. Navigator
-previously relied on stand-ins: PassMark database operations, which do not scale
-to 32+ vCPUs; Redis, which is not relational; and raw CPU speed and memory
-bandwidth, which are useful proxies but not database workloads.
+measures database throughput and latency directly rather than relying on
+proxies. Navigator previously relied on stand-ins: PassMark database
+operations, which do not scale to 32+ vCPUs; Redis, which is not relational;
+and raw CPU speed and memory bandwidth, which are useful proxies but not
+database workloads.
 
 The main design goal is one methodology that scales across instance sizes, from
 small instances (e.g. 1 vCPU and 2 GiB of RAM) to large nodes with hundreds of
@@ -130,10 +131,10 @@ the run. Interpret the JSON object's main fields as follows:
   `profile`. `pgbench_ro` entries identify `cpu_scale`; `pgbench_tpcb` entries
   identify `scalefactor`.
 - Each `profile[]` entry is one concurrency measurement. `concurrency` is the
-  client count and `jobs` is the worker count. For `pgbench_ro`, `V` is the
-  database vCPU count; it uses fixed points `{1, V/2, V, 2·V}` (`V/2` rounded
-  down) and caps worker jobs at 32. For how `pgbench_tpcb` picks its client
-  counts, see
+  client count and `jobs` is the worker count. For `pgbench_ro`,
+  [`benchmark.py`](./benchmark.py) uses fixed points `{1, V/2, V, 2·V}`, where
+  `V` is the database vCPU count (`V/2` rounded down), and caps worker jobs at
+  32. For how `pgbench_tpcb` picks its client counts, see
   [`pgbench_tpcb`](./docs/workloads.md#pgbench_tpcb).
 - `latency_ms` contains sampled p50, p95, and p99 (50th, 95th, and 99th
   percentile) latency and an average, in milliseconds. The harness samples 1% of

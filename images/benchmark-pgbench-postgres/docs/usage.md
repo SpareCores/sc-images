@@ -134,10 +134,10 @@ points (client counts) in the following steps:
 4. Report the highest TPM (Transactions Per Minute) of all concurrency points
    (and scale factors) as the score.
 
-For `pgbench_ro`, the concurrency points are `{1, V/2, V, 2·V}`, where `V` is
-`SC_DB_VCPUS` and `V/2` is rounded down. Duplicates collapse on small servers,
-so the default duration depends on `V` as follows, excluding dataset
-preparation:
+For `pgbench_ro`, [`benchmark.py`](../benchmark.py) sets the concurrency points
+to `{1, V/2, V, 2·V}`, where `V` is `SC_DB_VCPUS` and `V/2` is rounded down.
+Duplicates collapse on small servers, so the default duration depends on `V` as
+follows, excluding dataset preparation:
 
 | `V` | Concurrency points | Duration |
 | --- | --- | --- |
