@@ -46,8 +46,9 @@ statement whose eight blocks each touch a different PostgreSQL subsystem:
 - `q_seqscan`: plain sequential scan and aggregate
 
 The setup also creates a BRIN ([Block Range
-Index](https://www.postgresql.org/docs/current/brin.html)) on the order `ordered_at`
-  column; the planner may use it for the time-window predicate.
+Index](https://www.postgresql.org/docs/current/brin.html)) on the
+`ro_cpu_order.ordered_at` column; the planner may use it for the time-window
+predicate.
 
 At the end of each transaction, the script combines the eight block outputs with
 `UNION ALL` and hashes them into one `md5(string_agg(...))` checksum. The

@@ -103,8 +103,9 @@ all options and defaults:
 - `SC_DB_HOST`, `SC_DB_PORT`, `SC_DB_USER`, and `SC_DB_PASSWORD` configure a
   remote connection; leave `SC_DB_PORT` and `SC_DB_USER` unset in standalone
   mode. `SC_DB_SSLMODE` sets the SSL ([Secure Sockets
-  Layer](https://www.postgresql.org/docs/current/ssl-tcp.html)) mode
-  for the dataset restore and dump connections only.
+  Layer](https://www.postgresql.org/docs/current/ssl-tcp.html)) mode for the
+  dataset restore and dump connections and the connection that drops and
+  recreates the benchmark database, not for `pgbench`.
 - `SC_DB_VCPUS` sets the database vCPU count used to derive concurrency points
   and the local server settings in standalone mode. Set it to the database
   server's vCPU count for remote targets; the default is the client host's
