@@ -6,8 +6,7 @@ it connects to the configured host without checking or enforcing the remote
 server version. The image can run on the same node as the database or on a
 separate machine.
 
-This benchmark reports throughput in TPM ([Transactions Per
-Minute](https://en.wikipedia.org/wiki/Transactions_per_second)) and latency
+This benchmark reports throughput in TPM (Transactions Per Minute) and latency
 at several client counts. Together, they show peak performance and how it scales
 with load, for self-managed and managed PostgreSQL on the same hardware.
 
@@ -15,13 +14,11 @@ with load, for self-managed and managed PostgreSQL on the same hardware.
 
 Our [Navigator](https://sparecores.com/servers) project publishes empirical
 performance measurements for more than 5,000 cloud server types. We needed an
-RDBMS ([Relational Database Management
-System](https://en.wikipedia.org/wiki/Relational_database)) benchmark that
-measures database throughput and latency directly rather than relying on
-proxies. Navigator previously relied on stand-ins: PassMark database
-operations, which do not scale to 32+ vCPUs; Redis, which is not relational;
-and raw CPU speed and memory bandwidth, which are useful proxies but not
-database workloads.
+RDBMS (Relational Database Management System) benchmark that measures database
+throughput and latency directly rather than relying on proxies. Navigator
+previously relied on stand-ins: PassMark database operations, which do not scale
+to 32+ vCPUs; Redis, which is not relational; and raw CPU speed and memory
+bandwidth, which are useful proxies but not database workloads.
 
 The main design goal is one methodology that scales across instance sizes, from
 small instances (e.g. 1 vCPU and 2 GiB of RAM) to large nodes with hundreds of
@@ -29,11 +26,11 @@ vCPUs.
 
 This benchmark measures two deployment models:
 
-- **IaaS ([Infrastructure as a Service](https://en.wikipedia.org/wiki/Infrastructure_as_a_service)):**
-  Self-hosted PostgreSQL, with the client and database on the same node.
-- **DBaaS ([Database as a Service](https://en.wikipedia.org/wiki/Cloud_database)):**
-  Provider-managed PostgreSQL, with a separate client VM; the provider
-  provisions, manages, and tunes the database engine.
+- **IaaS (Infrastructure as a Service):** Self-hosted PostgreSQL, with the
+  client and database on the same node.
+- **DBaaS (Database as a Service):** Provider-managed PostgreSQL, with a
+  separate client VM; the provider provisions, manages, and tunes the database
+  engine.
 
 ## Limitations
 
@@ -88,10 +85,9 @@ needs more setup: database privileges, a disposable benchmark database, and the
 server's vCPU count. Follow [Remote Mode](./docs/usage.md#remote-mode) for more
 details and settings.
 
-Both modes need outbound HTTPS ([Hypertext Transfer Protocol
-Secure](https://en.wikipedia.org/wiki/HTTPS)) access to the Spare Cores CDN
-([Content Delivery Network](https://en.wikipedia.org/wiki/Content_delivery_network))
-to download the dataset; the run fails if the CDN is unreachable.
+Both modes need outbound HTTPS (Hypertext Transfer Protocol Secure) access to
+the Spare Cores CDN (Content Delivery Network) to download the dataset; the run
+fails if the CDN is unreachable.
 
 A default run takes about 25 minutes on servers with 4 or more vCPUs: a 2-minute
 warmup, 1-minute settle periods, and 5 minutes of measurement at each of four
@@ -165,12 +161,11 @@ processing workload](https://www.hammerdb.com/docs/)), BenchBase, and
 `pgbench`. The experiments showed that write-heavy workloads got bottlenecked by
 storage and WAL
 ([Write-Ahead Logging](https://www.postgresql.org/docs/current/wal-intro.html)).
-On `tmpfs`, write-heavy OLTP ([Online Transaction
-Processing](https://en.wikipedia.org/wiki/Online_transaction_processing))
-results improved by 10-25%, showing how much disk behavior could influence a
-score. But `tmpfs` was unavailable for DBaaS, and sizing by warehouse count
-(TPROC-C's dataset-size unit) or scale factor could not cover the range from
-1 vCPU to hundreds. `pgbench` looked promising as a simpler, more scalable basis
+On `tmpfs`, write-heavy OLTP (Online Transaction Processing) results improved
+by 10-25%, showing how much disk behavior could influence a score. But `tmpfs`
+was unavailable for DBaaS, and sizing by warehouse count (TPROC-C's
+dataset-size unit) or scale factor could not cover the range from 1 vCPU to
+hundreds. `pgbench` looked promising as a simpler, more scalable basis
 for a cross-provider benchmark.
 
 Early `pgbench -S` runs were dominated by network latency, and profiling found

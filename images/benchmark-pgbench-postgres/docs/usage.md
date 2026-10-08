@@ -146,8 +146,8 @@ follows, excluding dataset preparation:
 | 3 | 1, 3, 6 | 19 minutes (120 + 2 × 60 + 3 × 300 s) |
 | 4 or more | 1, V/2, V, 2·V | 25 minutes (120 + 3 × 60 + 4 × 300 s) |
 
-For example, a production run on a 96 vCPU AWS (Amazon Web Services)
-`m9g.24xlarge` measured 1, 48, 96, and 192 clients, with 25 minutes of warmup
+For example, a production run on a 96 vCPU AWS ([Amazon Web
+Services](https://aws.amazon.com/)) `m9g.24xlarge` measured 1, 48, 96, and 192 clients, with 25 minutes of warmup
 and measurement ([recorded
 output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m9g.24xlarge/pgbench_postgres_ro_durable/stdout)).
 Preparing the dataset and starting the server add to the total run time.
@@ -169,11 +169,11 @@ no timeout.
 
 This is deliberately not a long-running benchmark. We tested 5-, 10-, 15-, and
 30-minute measurement windows with five interleaved trials each, using BenchBase
-Wikipedia on three GCP (Google Cloud Platform) server types and `pgbench -S` on
-a fourth. Longer windows moved mean throughput by less than 2% and did not
-reduce run-to-run variation, which comes from load, OS, and noisy-neighbor
-effects rather than from too short an average. See [Measurement
-duration](../CHANGELOG.md#measurement-duration) for the results.
+Wikipedia on three GCP ([Google Cloud Platform](https://cloud.google.com/))
+server types and `pgbench -S` on a fourth. Longer windows moved mean throughput
+by less than 2% and did not reduce run-to-run variation, which comes from load,
+OS, and noisy-neighbor effects rather than from too short an average. See
+[Measurement duration](../CHANGELOG.md#measurement-duration) for the results.
 
 As a result, each score is a single 5-minute sample. Repeated runs on the same
 server type varied by a CV (Coefficient of Variation) of about 0.5-4% in these
@@ -220,7 +220,7 @@ region.
 | `SC_DB_PASSWORD` | Database password. | `postgres` |
 | `SC_DB_NAME` | Admin database used for setup and settings queries. | `postgres` |
 | `SC_PGBENCH_DB` | Database used by this benchmark; its contents are dropped and recreated. | `pgbench` |
-| `SC_DB_SSLMODE` | SSL (Secure Sockets Layer) mode for the dataset restore, `pg_dump`, and the connection that drops and recreates the benchmark database. `pgbench` and the setup queries do not use it. | `prefer` |
+| `SC_DB_SSLMODE` | SSL ([Secure Sockets Layer](https://www.postgresql.org/docs/current/ssl-tcp.html)) mode for the dataset restore, `pg_dump`, and the connection that drops and recreates the benchmark database. `pgbench` and the setup queries do not use it. | `prefer` |
 | `SC_CPU_SCALE` | `pgbench_ro` transaction work multiplier. | `1` |
 | `SC_SCALEFACTORS` | Comma-separated `pgbench_tpcb` scale factors. | Unset |
 | `SC_SCALEFACTOR` | `pgbench_tpcb` scale factor when `SC_SCALEFACTORS` is unset or empty. | `65` |

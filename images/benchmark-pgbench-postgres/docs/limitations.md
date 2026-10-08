@@ -36,8 +36,7 @@ remaining RTT is a rounding error; see
 
 ### Uniform Data
 
-Data distribution is uniform rather than
-[Zipfian](https://en.wikipedia.org/wiki/Zipf%27s_law). The product catalog has
+Data distribution is uniform rather than Zipfian. The product catalog has
 20,000 products, of which order items reference only the first 5,000, but
 customer, order, and order-item values use `g % k` modular arithmetic rather
 than a realistic power-law distribution with a few high-activity customers. See
@@ -65,10 +64,11 @@ built.
 From small instances (e.g. 1 vCPU and 2 GiB of RAM) to large nodes with hundreds
 of vCPUs, the same workload must produce meaningful, comparable numbers.
 
-Available sizing schemes, such as warehouse counts (the dataset-size unit in
-HammerDB TPROC-C, HammerDB's transaction processing workload, and similar
-suites) and scale factors, cannot fulfill this purpose. Because of this, we
-chose a fixed-size workload that can run on every server type on
+HammerDB TPROC-C ([HammerDB's transaction processing
+workload](https://www.hammerdb.com/docs/)) and similar suites size their
+datasets by warehouse count, and `pgbench` by scale factor. Neither sizing
+scheme can fulfill this purpose. Because of this, we chose a fixed-size
+workload that can run on every server type on
 [Navigator](https://sparecores.com/servers) with at least 2 GiB of RAM, with
 larger servers being taxed by concurrency rather than workload size.
 
@@ -94,7 +94,8 @@ variance or Gather scalability. Those are treated as a separate testing axis.
 
 ### A Single Monolithic Statement
 
-One `SELECT` whose eight query blocks are CTEs (Common Table Expressions)
+One `SELECT` whose eight query blocks are CTEs ([Common Table
+Expressions](https://www.postgresql.org/docs/current/queries-with.html))
 combined with `UNION ALL` is deliberate: it keeps one `pgbench` transaction
 equal to one network round trip. This makes the `pgbench_ro` workload resilient
 to RTT simulated with `netem` ([Network
