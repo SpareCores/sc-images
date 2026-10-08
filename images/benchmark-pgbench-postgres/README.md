@@ -6,9 +6,10 @@ it connects to the configured host without checking or enforcing the remote
 server version. The image can run on the same node as the database or on a
 separate machine.
 
-This benchmark reports throughput in TPM (Transactions Per Minute) and latency
-at several client counts. Together, they show peak performance and how it scales
-with load, for self-managed and managed PostgreSQL on the same hardware.
+This benchmarking tool reports throughput in TPM (Transactions Per Minute) and
+latency at several client counts. Together, they show peak performance and how
+it scales with load, for self-managed and managed PostgreSQL on the same
+hardware.
 
 ## Purpose
 
