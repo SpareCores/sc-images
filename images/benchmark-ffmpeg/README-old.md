@@ -1,3 +1,4 @@
+<!-- old README file, keep until new documentation is fully integrated -->
 # benchmark-ffmpeg
 
 Aggregate FFmpeg transcoding-capacity benchmark for x86_64 and arm64. It
