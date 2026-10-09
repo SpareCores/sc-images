@@ -186,6 +186,7 @@ class ScenarioTests(unittest.TestCase):
             self.assertIn("-hwaccel_output_format cuda", joined)
             if encoder:
                 self.assertIn(f"-c:v {encoder}", joined)
+                self.assertIn("-preset p4 -rc vbr -cq 22 -b:v 0", joined)
 
     def test_gpu_search_anchor_is_one_session_per_gpu(self) -> None:
         host = bench.HostProfile(

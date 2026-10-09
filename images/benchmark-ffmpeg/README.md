@@ -130,14 +130,51 @@ transcode (`source-hevc.mp4`). See [Fixtures](#fixtures).
 
 | Scenario | Backend | Operation | Input | Codec |
 |---|---|---|---|---|
-| `cpu_h264_encode` | CPU | encode | H.264 | `libx264 -crf 18` |
-| `cpu_h265_encode` | CPU | encode | H.264 | `libx265 -crf 18` |
+| `cpu_h264_encode` | CPU | encode | H.264 | `libx264 -crf 18` (default medium) |
+| `cpu_h265_encode` | CPU | encode | H.264 | `libx265 -crf 18` (default medium) |
 | `cpu_h264_decode` | CPU | decode | H.264 | H.264 |
 | `cpu_h265_decode` | CPU | decode | HEVC | HEVC |
-| `gpu_h264_encode` | NVIDIA | encode | H.264 | `h264_nvenc` |
+| `gpu_h264_encode` | NVIDIA | encode | H.264 | `h264_nvenc -preset p4 -rc vbr -cq 22 -b:v 0` |
 | `gpu_h264_decode` | NVIDIA | decode | H.264 | `h264_cuvid` |
-| `gpu_h265_encode` | NVIDIA | encode | H.264 | `hevc_nvenc` |
+| `gpu_h265_encode` | NVIDIA | encode | H.264 | `hevc_nvenc -preset p4 -rc vbr -cq 22 -b:v 0` |
 | `gpu_h265_decode` | NVIDIA | decode | HEVC | `hevc_cuvid` |
+
+NVENC has no CRF. Preset `p4` is FFmpeg’s medium default. A CQ sweep on the
+pinned Tears of Steel H.264 fixture (`source.mp4`, software decode into both
+encoders) was run on UpCloud `GPU-32xCPU-160GB-2xRTXPRO6000` (2× RTX PRO 6000
+Blackwell) to pick the closest constant-quality match to CPU `-crf 18`. Scales
+still differ by encoder family — approximate parity, not bit-exact.
+
+**H.264 / H.265 encode vs source (CQ 18 vs CRF 18):**
+
+| Encode | Bytes | Bitrate (bps) | SSIM All vs source | PSNR avg |
+|---|---:|---:|---:|---:|
+| `libx264 -crf 18 -preset medium` | 15165835 | 4036087 | 0.993770 | 48.962137 |
+| `h264_nvenc -preset p4 -rc vbr -cq 18 -b:v 0` | 28290834 | 7531112 | 0.995426 | 51.395851 |
+| `libx265 -crf 18 -preset medium` | 11696839 | 3111461 | 0.993383 | 48.895972 |
+| `hevc_nvenc -preset p4 -rc vbr -cq 18 -b:v 0` | 25329289 | 6742451 | 0.995170 | 51.142542 |
+
+GPU↔CPU pairwise SSIM All: H.264 0.993345, H.265 0.993799.
+
+**H.264 NVENC CQ sweep vs `libx264 -crf 18` (same fixture):**
+
+| Setting | Bytes | Bitrate (bps) | SSIM All vs source | SSIM All vs CPU |
+|---|---:|---:|---:|---:|
+| CRF 18 (CPU) | 15165835 | 4036087 | 0.993770 | — |
+| CQ 15 | 40578290 | 10803186 | 0.996467 | 0.993435 |
+| CQ 16 | 36600522 | 9743939 | 0.996173 | 0.993424 |
+| CQ 17 | 32627231 | 8685869 | 0.995861 | 0.993427 |
+| CQ 18 | 28290834 | 7531112 | 0.995426 | 0.993345 |
+| CQ 19 | 24934170 | 6637265 | 0.995019 | 0.993288 |
+| CQ 20 | 21833713 | 5811627 | 0.994608 | 0.993289 |
+| CQ 21 | 19143406 | 5095219 | 0.994195 | 0.993186 |
+| CQ 22 | 16652394 | 4431879 | 0.993700 | 0.993010 |
+| CQ 23 | 14553619 | 3872988 | 0.993181 | 0.992821 |
+| CQ 24 | 12590211 | 3350150 | 0.992607 | 0.992560 |
+
+`-cq 22` is closest to CRF 18 on SSIM-to-source (0.993700 vs 0.993770) and
+bitrate (4431879 vs 4036087). `-cq 18` is higher quality at 1.87× the CPU
+bitrate. The GPU encode scenarios therefore use `-cq 22`.
 
 GPU workers are distributed round-robin over all GPUs reported by
 `nvidia-smi`. The search starts at one session per GPU and doubles until
@@ -271,7 +308,7 @@ describes the [null muxer as intended for testing and benchmarking](https://ffmp
 ## Output
 
 One compact JSON document is written to stdout
-(`benchmark=ffmpeg_transcoding`, `version=3.2.1`); logs go to stderr.
+(`benchmark=ffmpeg_transcoding`, `version=3.3.0`); logs go to stderr.
 Version 3 intentionally removes all derived rollups. Each repetition contains
 `wall_time_sec`, worker outcomes, and either:
 

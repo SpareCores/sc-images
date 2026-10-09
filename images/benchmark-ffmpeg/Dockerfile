@@ -41,6 +41,8 @@ ARG VIDEO_FIXTURE_SHA256="a49fe8b82c96bafcc344d374facb716f481e3fa9c6753d56f6d1e0
 ARG VIDEO_HEVC_FIXTURE_SHA256="79a70a6aa81e745d650621768dee5cd3fc1da7d2c15d39871125737064f6cde7"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LD_LIBRARY_PATH=/usr/local/lib
+# Mount NVENC/NVDEC libs from the host driver (default is compute,utility only).
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
 RUN --mount=type=tmpfs,target=/tmp,rw \
     --mount=id=var_cache_apt,type=cache,target=/var/cache/apt,sharing=locked \
     --mount=id=var_lib_apt,type=cache,target=/var/lib/apt,sharing=locked \
