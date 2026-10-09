@@ -1,0 +1,1 @@
+Checks whether the server supports KVM hardware virtualization and reports the result as JSON.

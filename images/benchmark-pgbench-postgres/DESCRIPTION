@@ -1,0 +1,1 @@
+Read-only PostgreSQL database benchmark with pgbench focusing on CPU and memory performance, measuring transactions per second and latency against a local or remote server.

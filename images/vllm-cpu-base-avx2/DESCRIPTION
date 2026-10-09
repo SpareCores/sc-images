@@ -1,0 +1,1 @@
+vLLM CPU build for x86_64 hosts with AVX2 but no AVX-512, used as the base of benchmark-vllm-cpu-avx2.

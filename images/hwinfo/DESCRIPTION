@@ -1,0 +1,1 @@
+Collects CPU, memory, and topology details with lshw and hwloc, plus the measured CPU frequency.
