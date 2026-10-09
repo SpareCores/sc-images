@@ -32,8 +32,9 @@ case "$TARGETARCH" in
                 nv-codec-headers
         fi
         make -C nv-codec-headers install PREFIX="$PREFIX"
+        # nvenc/cuvid/ffnvcodec are HWACCEL autodetection, not nonfree (FFmpeg 9+).
+        # --enable-nonfree would mark the binary unredistributable; do not add it.
         NVIDIA_FLAGS=(
-            --enable-nonfree
             --enable-cuvid
             --enable-nvenc
             --enable-ffnvcodec
