@@ -1,0 +1,1 @@
+Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk.
