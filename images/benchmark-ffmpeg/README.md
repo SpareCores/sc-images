@@ -55,6 +55,8 @@ and skips the GPU scenarios:
 docker run --rm ghcr.io/sparecores/benchmark-ffmpeg:main > results.json
 ```
 
+The image contains its test media, so it needs no network access at run time.
+
 To include the NVIDIA GPU scenarios, pass the GPUs to the container. This needs
 the NVIDIA driver and the
 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html)
@@ -64,7 +66,6 @@ on the host:
 docker run --rm --gpus all ghcr.io/sparecores/benchmark-ffmpeg:main > results.json
 ```
 
-The image contains its test media, so it needs no network access at run time.
 See [GPU Run](./docs/usage.md#gpu-run) for the GPU requirements.
 
 Production runs the container privileged and with host networking; a plain

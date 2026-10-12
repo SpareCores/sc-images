@@ -118,9 +118,9 @@ counts stop the search immediately.
 
 Audio encoding does not scale one stream across many cores: neither
 `libvorbis`, `libopus`, `libmp3lame`, native AAC, nor FFmpeg's FLAC encoder
-advertises frame or slice threading useful for this workload.
-This benchmark therefore runs independent `ffmpeg` processes with one codec
-thread each, matching a batch transcoding service.
+advertises frame or slice threading useful for this workload. This benchmark
+therefore runs independent `ffmpeg` processes with one codec thread each,
+matching a batch transcoding service.
 
 It never sums per-process `speed=` values, which would overstate capacity when
 workers start or finish at different times. Startup and teardown are included.

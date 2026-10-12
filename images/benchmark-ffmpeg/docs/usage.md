@@ -124,9 +124,9 @@ Each scenario runs the following steps:
    of wall time. Faster servers therefore process more media in the same time.
    A successful pilot is not reported; a pilot that still fails after up to four
    attempts is reported as a failed repetition and ends the scenario.
-3. Three repetitions are measured. While the CV (Coefficient of Variation) of
-   their rates is above 10%, more are added, up to five. A repetition with a
-   failed worker ends the worker count.
+3. By default, three repetitions are measured. While the CV (Coefficient of
+   Variation) of their rates is above 10%, more are added, up to five. A
+   repetition with a failed worker ends the worker count.
 
 Each repetition, including pilots, times out after
 `FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` (default 30&nbsp;s), and workers that

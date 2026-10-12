@@ -47,6 +47,7 @@ their meaning or point to their documentation.
 
 - [Advanced Audio Coding encoder](https://ffmpeg.org/ffmpeg-codecs.html#aac)
 - [Compute Unified Device Architecture](https://docs.nvidia.com/cuda/)
+- [Constant Quality](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/nvenc-video-encoder-api-prog-guide/index.html#rate-control)
 - [Constant Rate Factor](https://trac.ffmpeg.org/wiki/Encode/H.264#crf)
 - [FFmpeg command-line tool](https://ffmpeg.org/ffmpeg.html)
 - [Null muxer](https://ffmpeg.org/ffmpeg-formats.html#null)
@@ -61,7 +62,6 @@ their meaning or point to their documentation.
 - [AOMedia Video 1](https://aomedia.org/specifications/av1/)
 - [cgroup v2 (control groups v2)](https://docs.kernel.org/admin-guide/cgroup-v2.html)
 - [Coefficient of Variation](https://en.wikipedia.org/wiki/Coefficient_of_variation)
-- [Constant Quality](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/nvenc-video-encoder-api-prog-guide/index.html#rate-control)
 - [Content Delivery Network](https://en.wikipedia.org/wiki/Content_delivery_network)
 - [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/)
 - [Creative Commons Zero 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
