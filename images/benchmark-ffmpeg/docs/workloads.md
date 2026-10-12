@@ -63,8 +63,8 @@ setting was chosen to approximately match the CPU encodes at CRF 18; see
 
 ## Test Media
 
-The image downloads the test media from the Spare Cores CDN (Content Delivery
-Network) when it is built and checks each file's SHA-256
+The image build downloads the test media from the Spare Cores CDN (Content
+Delivery Network) and checks each file's SHA-256
 ([Secure Hash Algorithm 256](https://csrc.nist.gov/pubs/fips/180-4/upd1/final))
 checksum. At run time, the H.264 and H.265 clips are checked again; the audio
 file is not. The files are the following:

@@ -80,7 +80,7 @@ worker counts measured, and with GPU scenarios. See
 
 ### Settings
 
-Common settings are listed here; see the
+The following settings are the most common; see the
 [full environment-variable reference](./docs/usage.md#environment-variables)
 for all options and defaults:
 
