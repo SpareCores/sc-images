@@ -43,9 +43,9 @@ Before you run, check the following prerequisites:
   GPUs; without it, the GPU scenarios are skipped.
 
 The image sets `NVIDIA_DRIVER_CAPABILITIES=compute,utility,video`, so the
-container toolkit also mounts the driver's video libraries; you do not need to
-request them yourself. Without the `video` capability, the GPU scenarios fail
-to load `libnvcuvid.so.1` and are skipped.
+NVIDIA Container Toolkit also mounts the driver's video libraries; you do not
+need to request them yourself. Without the `video` capability, the GPU
+scenarios fail to load `libnvcuvid.so.1` and are skipped.
 
 Each GPU scenario first runs a one-worker probe. If the GPU cannot open an
 NVENC or NVDEC session for it, the scenario is skipped with the error text as
