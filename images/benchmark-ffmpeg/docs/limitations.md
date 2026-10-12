@@ -97,8 +97,8 @@ quality setting the CPU encodes use. The scenarios use the following settings:
 
 - CPU encodes: `libx264` and `libx265` with `-crf 18` and the encoders' default
   preset (medium).
-- GPU encodes: `h264_nvenc` and `hevc_nvenc` with `-preset p4 -rc vbr -cq 22
-  -b:v 0`, a constant-quality mode.
+- GPU encodes: `h264_nvenc` and `hevc_nvenc` with
+  `-preset p4 -rc vbr -cq 22 -b:v 0`, a constant-quality mode.
 
 A sweep of NVENC quality levels on the test clip found that `-cq 22` matched
 `libx264 -crf 18` most closely, at an SSIM to the source of about 0.9937 and a

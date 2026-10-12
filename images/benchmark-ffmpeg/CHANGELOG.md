@@ -5,10 +5,10 @@
 Harness version 3.3.0 changes the GPU encode scenarios and the image's GPU
 setup:
 
-- `gpu_h264_encode` and `gpu_h265_encode` now run NVENC with `-preset p4 -rc
-  vbr -cq 22 -b:v 0` instead of `-preset p4` with the default rate control.
-  `-cq 22` was the closest match to the CPU encodes at `-crf 18`; see
-  [NVENC CQ Sweep](#nvenc-cq-sweep). The match is approximate, not exact.
+- `gpu_h264_encode` and `gpu_h265_encode` now run NVENC with
+  `-preset p4 -rc vbr -cq 22 -b:v 0` instead of `-preset p4` with the default
+  rate control. `-cq 22` was the closest match to the CPU encodes at `-crf 18`;
+  see [NVENC CQ Sweep](#nvenc-cq-sweep). The match is approximate, not exact.
 - The image sets `NVIDIA_DRIVER_CAPABILITIES=compute,utility,video`, so the
   NVIDIA Container Toolkit mounts the driver's NVENC and NVDEC libraries.
   Before this change, many production GPU runs skipped all GPU scenarios with

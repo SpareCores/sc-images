@@ -64,7 +64,7 @@ The image bundles three test files, served from the Spare Cores CDN and
 described in [`SOURCE.md`](../SOURCE.md). The `Dockerfile` copies `SOURCE.md`
 into the image at `/opt/benchmark-ffmpeg/SOURCE.md`, so keep the file.
 
-To regenerate the files, run the following scripts from this folder:
+To regenerate the files, run the following scripts:
 
 1. [`prepare-video-fixture.sh`](../prepare-video-fixture.sh) downloads the
    Tears of Steel 1080p release and cuts the H.264 excerpt of 30&nbsp;s,
