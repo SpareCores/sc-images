@@ -66,7 +66,7 @@ their meaning or point to their documentation.
   v2)](https://docs.kernel.org/admin-guide/cgroup-v2.html)
 - [Coefficient of
   Variation](https://en.wikipedia.org/wiki/Coefficient_of_variation)
-- [Constant Quality](https://en.wikipedia.org/wiki/Variable_bitrate)
+- [Constant Quality](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/nvenc-video-encoder-api-prog-guide/index.html#rate-control)
 - [Content Delivery
   Network](https://en.wikipedia.org/wiki/Content_delivery_network)
 - [Creative Commons Attribution

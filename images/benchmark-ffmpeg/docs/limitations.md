@@ -54,9 +54,10 @@ workers in parallel, not from more threads per job.
 The CPU worker counts are based on physical cores rather than logical CPUs.
 Two single-threaded workers on the two hyperthreads of one core compete for
 that core, so counting logical CPUs over-subscribes servers with SMT
-(Simultaneous Multithreading) and can lower throughput. When throughput is
-still rising at the physical core count, one extra measurement at twice that
-count shows whether SMT helps; see [Worker Counts](./usage.md#worker-counts).
+(Simultaneous Multithreading) and can lower throughput, especially for
+decoding. When throughput at the physical core count is at least 8% higher than
+at half of it, one extra measurement at twice that count shows whether SMT
+helps; see [Worker Counts](./usage.md#worker-counts).
 
 ### Audio on the CPU Only
 

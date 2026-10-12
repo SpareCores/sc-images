@@ -59,8 +59,8 @@ lower the worker counts:
 
 - `--cpus` (cgroup `cpu.max`)
 - `--cpuset-cpus` (CPU affinity)
-- `--memory` (`memory.max`): each audio worker is budgeted 64&nbsp;MB and each
-  video worker 320&nbsp;MB of available memory.
+- `--memory` (`memory.max`): each audio worker is budgeted 64&nbsp;MiB and each
+  video worker 320&nbsp;MiB of available memory.
 - `--pids-limit` (`pids.max`): each worker is budgeted
   `FFMPEG_BENCH_PID_TASKS_PER_WORKER` tasks (default four), because the PID
   (Process Identifier) limit counts threads, not only processes.

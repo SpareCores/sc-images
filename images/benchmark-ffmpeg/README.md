@@ -115,8 +115,10 @@ stderr. Interpret the main fields as follows:
 - `host`, `ffmpeg`, `sources`, and `methodology` record the server, the FFmpeg
   build, the test media, and the measurement settings.
 
-If the run fails, the process exits with code 1 and prints a JSON object with
-an `error` field.
+If the harness itself fails, the process exits with code 1 and prints a JSON
+object with an `error` field; if `ffmpeg` is not on the `PATH`, it exits with
+code 1 and prints no JSON. Exit code 0 does not mean that every scenario ran:
+check `skipped`, `skip_reason`, and `failed_workers` in the output.
 
 ## Workloads
 
@@ -139,17 +141,19 @@ worker counts, timing, and repetitions.
 ## Design History
 
 We built this benchmark around aggregate capacity. Instead of adding up the
-speed that each `ffmpeg` process reports for itself, the harness times the
-whole group with one clock, from a shared start to the last worker's exit, so
-process startup and teardown count too. Worker counts follow physical cores
+speed that each `ffmpeg` process reports for itself, the harness
+([`benchmark.py`](./benchmark.py)) times the whole group with one clock, from a
+shared start to the last worker's exit, so process startup and teardown count
+too. Worker counts follow physical cores
 rather than logical CPUs, because two single-threaded workers on the
-hyperthreads of one core compete for it and can lower throughput.
+hyperthreads of one core compete for it and can lower throughput, especially
+for decoding.
 
 GPU encodes were later calibrated against the CPU encodes: NVENC has no direct
 equivalent of the CPU encoders' quality setting, so we compared several NVENC
 quality levels on the test clip and picked the closest match. In version 3.3.0,
 the image also started requesting the NVIDIA driver's video libraries itself,
-which earlier GPU runs could not load.
+which many earlier GPU runs could not load.
 
 The remaining limits are that this benchmark checks no output quality at run
 time, that CPU and GPU encode quality match only approximately, and that GPU
