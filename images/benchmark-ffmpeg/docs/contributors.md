@@ -26,9 +26,9 @@ the Ubuntu package. [`build-ffmpeg.sh`](../build-ffmpeg.sh) enables only what
 this benchmark needs:
 
 - CPU codecs: `libx264`, `libx265`, `libvorbis`, `libopus`, `libmp3lame`, and
-  FFmpeg's native AAC ([Advanced Audio
-  Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)) and FLAC ([Free Lossless
-  Audio Codec](https://xiph.org/flac/)) encoders.
+  FFmpeg's native AAC
+  ([Advanced Audio Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)) and FLAC
+  ([Free Lossless Audio Codec](https://xiph.org/flac/)) encoders.
 - NVIDIA video: `--enable-cuvid --enable-nvenc --enable-ffnvcodec`, built
   against `nv-codec-headers`. The NVIDIA libraries are loaded from the host
   driver at run time.
@@ -67,8 +67,8 @@ into the image at `/opt/benchmark-ffmpeg/SOURCE.md`, so keep the file.
 To regenerate the files, run the following scripts from this folder:
 
 1. [`prepare-video-fixture.sh`](../prepare-video-fixture.sh) downloads the
-   Tears of Steel 1080p release and cuts the H.264 excerpt of 30&nbsp;s, starting
-   at 60&nbsp;s, with stream copy, into `source.mp4`.
+   Tears of Steel 1080p release and cuts the H.264 excerpt of 30&nbsp;s,
+   starting at 60&nbsp;s, with stream copy, into `source.mp4`.
 2. [`prepare-hevc-fixture.sh`](../prepare-hevc-fixture.sh) transcodes
    `source.mp4` into `source-hevc.mp4` with `libx265 -crf 18 -preset medium`.
 3. Add the FLAC music sample as `source.flac`.
@@ -77,9 +77,10 @@ To regenerate the files, run the following scripts from this folder:
    `sc-cdn-cae3awai`, under the prefix `sc-inspector/benchmark-ffmpeg`, with
    the AWS ([Amazon Web Services](https://aws.amazon.com/)) profile `sc`.
 
-The prepare scripts check their output against the pinned SHA-256 ([Secure Hash
-Algorithm 256](https://csrc.nist.gov/pubs/fips/180-4/upd1/final)) hashes. If you change a file's content, update its hash in every
-place it is pinned:
+The prepare scripts check their output against the pinned SHA-256
+([Secure Hash Algorithm 256](https://csrc.nist.gov/pubs/fips/180-4/upd1/final))
+hashes. If you change a file's content, update its hash in every place it is
+pinned:
 
 - [`BUILD_ARGS`](../BUILD_ARGS) and the `ARG` defaults in the
   [`Dockerfile`](../Dockerfile), which verify the downloads at build time.

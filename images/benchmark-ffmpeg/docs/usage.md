@@ -30,12 +30,14 @@ docker run --rm --gpus all ghcr.io/sparecores/benchmark-ffmpeg:main > results.js
 
 Before you run, check the following prerequisites:
 
-- The host has an NVIDIA GPU, the NVIDIA driver, and the [NVIDIA Container
-  Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html).
-  The image ships no CUDA ([Compute Unified Device
-  Architecture](https://docs.nvidia.com/cuda/)) toolkit or driver libraries; NVENC (NVIDIA Video
-  Encoder) and NVDEC (NVIDIA Video Decoder) are loaded from the host driver at
-  run time.
+- The host has an NVIDIA GPU, the NVIDIA driver, and the
+  [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html).
+  The image ships no CUDA
+  ([Compute Unified Device Architecture](https://docs.nvidia.com/cuda/))
+  toolkit or driver libraries;
+  NVENC ([NVIDIA Video Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
+  and NVDEC ([NVIDIA Video Decoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
+  are loaded from the host driver at run time.
 - `nvidia-smi` works inside the container. The harness uses it to find the
   GPUs; without it, the GPU scenarios are skipped.
 
@@ -51,11 +53,11 @@ its `skip_reason`.
 ## Container Resource Limits
 
 This benchmark sizes its worker counts to the resources the container is
-allowed to use, read from the cgroup v2 ([control groups
-v2](https://docs.kernel.org/admin-guide/cgroup-v2.html)) files and the CPU
-affinity. The following [Docker resource
-limits](https://docs.docker.com/engine/containers/resource_constraints/) all
-lower the worker counts:
+allowed to use, read from the cgroup v2
+([control groups v2](https://docs.kernel.org/admin-guide/cgroup-v2.html)) files
+and the CPU affinity. The following
+[Docker resource limits](https://docs.docker.com/engine/containers/resource_constraints/)
+all lower the worker counts:
 
 - `--cpus` (cgroup `cpu.max`)
 - `--cpuset-cpus` (CPU affinity)
@@ -90,11 +92,11 @@ processes), set in [`benchmark.py`](../benchmark.py) as follows:
   the 1.08 ratio does not apply to GPUs.
 
 A worker count with a failed worker stops the search for that scenario. On
-servers with more than one NUMA ([Non-Uniform Memory
-Access](https://docs.kernel.org/mm/numa.html)) node, workers are spread across
-the nodes in proportion to their CPUs and bound to them with
-[`numactl`](https://man7.org/linux/man-pages/man8/numactl.8.html), if binding
-works in the container. Otherwise, normal Linux scheduling applies.
+servers with more than one NUMA
+([Non-Uniform Memory Access](https://docs.kernel.org/mm/numa.html)) node,
+workers are spread across the nodes in proportion to their CPUs and bound to
+them with [`numactl`](https://man7.org/linux/man-pages/man8/numactl.8.html), if
+binding works in the container. Otherwise, normal Linux scheduling applies.
 
 For example, a server with 48 physical cores and 96 logical CPUs, with no
 container limits, measures the CPU scenarios at 1, 24, and 48 workers, and at
@@ -135,8 +137,8 @@ Total run time therefore depends on the number of scenarios that run and the
 worker counts each one measures. A production run on a 64&nbsp;vCPU AWS
 ([Amazon Web Services](https://aws.amazon.com/)) `m9g.16xlarge` without GPUs
 measured every CPU and audio scenario at 1, 32, and 64 workers and took about
-10&nbsp;minutes ([recorded
-output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/ffmpeg)).
+10&nbsp;minutes
+([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/ffmpeg)).
 Across 372 production runs of harness version 3.2.1, run time ranged from about
 3&nbsp;minutes on servers with 2&nbsp;vCPUs to about 17&nbsp;minutes on GPU
 servers, with a median of about 9.5&nbsp;minutes.
@@ -146,7 +148,7 @@ servers, with a median of about 9.5&nbsp;minutes.
 Each repetition targets 5&nbsp;s of wall time by default. Because the pilot
 scales the media to that target, larger servers process more media in the same
 time instead of running longer. For a study of 2, 5, and 10&nbsp;s targets, see
-[Why five seconds](../CHANGELOG.md#why-five-seconds).
+[Why 5 Seconds](../CHANGELOG.md#why-5-seconds).
 
 ### Shorter Test Runs
 
@@ -188,6 +190,9 @@ Failed production runs are investigated and then run again.
 
 ## Environment Variables
 
+The following variables configure this benchmark. See
+[Results](../README.md#results) for the output fields.
+
 | Variable | Meaning | Default |
 | --- | --- | --- |
 | `FFMPEG_BENCH_TARGET_SECONDS` | Target wall time per repetition, in seconds. | `5` |
@@ -214,5 +219,3 @@ Failed production runs are investigated and then run again.
 | `FFMPEG_BENCH_VIDEO_HEVC_SHA256` | Expected SHA-256 of the H.265 file; empty skips the check. | Pinned hash |
 | `FFMPEG_BENCH_CDN_BASE_URL` | Base URL recorded as the test media source in the output; nothing is downloaded. | `https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg` |
 | `FFMPEG`, `FFPROBE` | Alternate `ffmpeg` and `ffprobe` binaries. | `ffmpeg` and `ffprobe` on `PATH` |
-
-See [Results](../README.md#results) for the output fields.

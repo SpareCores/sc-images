@@ -7,8 +7,8 @@ setup:
 
 - `gpu_h264_encode` and `gpu_h265_encode` now run NVENC with `-preset p4 -rc
   vbr -cq 22 -b:v 0` instead of `-preset p4` with the default rate control.
-  `-cq 22` was the closest match to the CPU encodes at `-crf 18`; see [NVENC CQ
-  Sweep](#nvenc-cq-sweep). The match is approximate, not exact.
+  `-cq 22` was the closest match to the CPU encodes at `-crf 18`; see
+  [NVENC CQ Sweep](#nvenc-cq-sweep). The match is approximate, not exact.
 - The image sets `NVIDIA_DRIVER_CAPABILITIES=compute,utility,video`, so the
   NVIDIA Container Toolkit mounts the driver's NVENC and NVDEC libraries.
   Before this change, many production GPU runs skipped all GPU scenarios with
@@ -83,22 +83,22 @@ GPU vs. CPU pairwise SSIM All: H.264 0.993345, H.265 0.993799.
 bitrate (4431879 vs 4036087). `-cq 18` is higher quality at 1.87× the CPU
 bitrate. The GPU encode scenarios therefore use `-cq 22`.
 
-### Why Five Seconds
+### Why 5 Seconds
 
 A localhost study ran every available CPU codec for five repetitions at 2, 5,
-and 10-second targets. At five seconds, the median coefficient of variation was
-2.2%; seven of eight codecs were within 10% after the first three repetitions,
-and only H.264 decode requested extra runs. At two seconds only six of eight
-were within 10%. Ten-second runs were less stable because ambient host load
-drift dominated, demonstrating that a longer sample does not fix an
-uncontrolled machine. NVIDIA scenarios were discovered but skipped because the
-study host had no CUDA GPU.
+and 10&nbsp;second targets. At 5&nbsp;seconds, the median coefficient of
+variation was 2.2%; seven of eight codecs were within 10% after the first three
+repetitions, and only H.264 decode requested extra runs. At 2&nbsp;seconds only
+six of eight were within 10%. Runs of 10&nbsp;seconds were less stable because
+ambient host load drift dominated, demonstrating that a longer sample does not
+fix an uncontrolled machine. NVIDIA scenarios were discovered but skipped
+because the study host had no CUDA GPU.
 
-Five seconds is therefore the shortest reliable default observed on the test
-host. Large machines do not automatically need longer runs: the per-worker
-count pilot scales media volume to keep wall time constant, so faster machines
-process more source data in those five seconds. Increase the duration only for
-especially noisy or externally shared hosts.
+A target of 5&nbsp;seconds is therefore the shortest reliable default observed
+on the test host. Large machines do not automatically need longer runs: the
+per-worker count pilot scales media volume to keep wall time constant, so
+faster machines process more source data in those 5&nbsp;seconds. Increase the
+duration only for especially noisy or externally shared hosts.
 
 ### Worker Scaling on Large Instances
 
@@ -125,6 +125,7 @@ thread each, matching a batch transcoding service.
 It never sums per-process `speed=` values, which would overstate capacity when
 workers start or finish at different times. Startup and teardown are included.
 FFmpeg documents both its
-[benchmark options and machine-readable progress output](https://ffmpeg.org/ffmpeg.html);
+[benchmark options](https://ffmpeg.org/ffmpeg.html#Advanced-options) and
+[machine-readable progress output](https://ffmpeg.org/ffmpeg.html#Main-options);
 the harness uses its own group clock because FFmpeg only knows about one
 process.

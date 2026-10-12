@@ -2,9 +2,11 @@
 
 ## Audio Encoding
 
-Every audio job decodes the bundled FLAC ([Free Lossless Audio
-Codec](https://xiph.org/flac/)) music sample, resamples it, and encodes stereo
-output with one codec thread. The audio scenarios run on the CPU only; see
+Every audio job decodes the bundled FLAC
+([Free Lossless Audio Codec](https://xiph.org/flac/)) music sample, resamples
+it, and encodes stereo output with one codec thread, using Vorbis, Opus, AAC
+([Advanced Audio Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)), MP3, or
+FLAC. The audio scenarios run on the CPU only; see
 [Audio on the CPU Only](./limitations.md#audio-on-the-cpu-only).
 
 | Scenario | Encoder | Settings | Sample rate |
@@ -16,8 +18,7 @@ output with one codec thread. The audio scenarios run on the CPU only; see
 | `flac_lossless` | `flac` (FFmpeg's native FLAC encoder) | Compression level 5 | 44.1&nbsp;kHz |
 
 `opus_128k` uses 48&nbsp;kHz because `libopus` accepts only 8, 12, 16, 24, or
-48&nbsp;kHz, not the sample's 44.1&nbsp;kHz. AAC stands for [Advanced Audio
-Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac).
+48&nbsp;kHz, not the sample's 44.1&nbsp;kHz.
 
 Audio results are reported as `audio_seconds_per_sec`: seconds of audio
 processed per second of wall time, across all workers.
@@ -35,10 +36,10 @@ job for both decoding and encoding:
 | `cpu_h265_decode` | Decode | H.265 clip | `hevc` | None |
 
 The encode scenarios also decode their H.264 input on the CPU, so they measure
-a full transcode. CRF ([Constant Rate
-Factor](https://trac.ffmpeg.org/wiki/Encode/H.264#crf)) 18 is a quality target;
-no `-preset` is set, so `libx264` and `libx265` use their default preset
-(medium).
+a full transcode. CRF
+([Constant Rate Factor](https://trac.ffmpeg.org/wiki/Encode/H.264#crf)) 18 is a
+quality target; no `-preset` is set, so `libx264` and `libx265` use their
+default preset (medium).
 
 Video results are reported as `aggregate_fps`: frames processed per second of
 wall time, across all workers.
@@ -46,8 +47,8 @@ wall time, across all workers.
 ## NVIDIA Video
 
 The NVIDIA video scenarios decode on the GPU and, for encodes, keep the frames
-in GPU memory for NVENC ([NVIDIA Video
-Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)):
+in GPU memory for NVENC
+([NVIDIA Video Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)):
 
 | Scenario | Operation | Input | Decoder | Encoder and settings |
 | --- | --- | --- | --- | --- |
@@ -57,22 +58,23 @@ Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-
 | `gpu_h265_decode` | Decode | H.265 clip | `hevc_cuvid` | None |
 
 Each job runs with `-hwaccel cuda` on one GPU. The `-cq 22` constant-quality
-setting was chosen to approximately match the CPU encodes at CRF 18; see [CPU
-and GPU Encode Quality](./limitations.md#cpu-and-gpu-encode-quality).
+setting was chosen to approximately match the CPU encodes at CRF 18; see
+[CPU and GPU Encode Quality](./limitations.md#cpu-and-gpu-encode-quality).
 
 ## Test Media
 
 The image downloads the test media from the Spare Cores CDN (Content Delivery
-Network) when it is built and checks each file's SHA-256 ([Secure Hash
-Algorithm 256](https://csrc.nist.gov/pubs/fips/180-4/upd1/final)) checksum. At run time,
-the H.264 and H.265 clips are checked again; the audio file is not. The files
-are the following:
+Network) when it is built and checks each file's SHA-256
+([Secure Hash Algorithm 256](https://csrc.nist.gov/pubs/fips/180-4/upd1/final))
+checksum. At run time, the H.264 and H.265 clips are checked again; the audio
+file is not. The files are the following:
 
 - **H.264 clip** (`source.mp4`): an excerpt of 30&nbsp;s from the Blender
   Foundation's open movie [Tears of Steel](https://mango.blender.org/), cut at
   60&nbsp;s from the 1080p release with stream copy. It is 1920x800 pixels at
-  24&nbsp;fps. License: CC BY 3.0 ([Creative Commons Attribution
-  3.0](https://creativecommons.org/licenses/by/3.0/)), as stated on the
+  24&nbsp;fps. License: CC BY 3.0
+  ([Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/)),
+  as stated on the
   [Tears of Steel sharing page](https://mango.blender.org/sharing/).
 - **H.265 clip** (`source-hevc.mp4`): the same excerpt, transcoded with
   `libx265 -crf 18 -preset medium`, so the H.265 decode scenarios get the same
@@ -90,7 +92,8 @@ duration at run time and reports them in `sources`.
 
 This benchmark runs its 13 scenarios in a fixed order, as defined in
 [`benchmark.py`](../benchmark.py): the eight video scenarios first, then the
-five audio scenarios. Each repetition measures one group of parallel workers in the following steps:
+five audio scenarios. Each repetition measures one group of parallel workers in
+the following steps:
 
 1. The harness starts every worker as a separate process, held back by a shared
    pipe.

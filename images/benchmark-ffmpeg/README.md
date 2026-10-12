@@ -32,19 +32,19 @@ following limitations:
 - **Output quality:** This benchmark measures speed, not output quality, and
   computes no quality metric. GPU encode settings are calibrated to
   approximately match the CPU encode quality, but the match is not exact. See
-  [Output Quality](./docs/limitations.md#output-quality) and [CPU and GPU Encode
-  Quality](./docs/limitations.md#cpu-and-gpu-encode-quality).
+  [Output Quality](./docs/limitations.md#output-quality) and
+  [CPU and GPU Encode Quality](./docs/limitations.md#cpu-and-gpu-encode-quality).
 - **Storage:** Encoded output is discarded through FFmpeg's null muxer, so file,
-  disk, and object-storage writes are not measured. See [Storage and
-  Output](./docs/limitations.md#storage-and-output).
+  disk, and object-storage writes are not measured. See
+  [Storage and Output](./docs/limitations.md#storage-and-output).
 - **Fixed media and settings:** Every job uses the same short video clip or
   music sample with fixed codec settings. Other resolutions, settings, and
-  codecs are not covered, for example AV1 ([AOMedia Video
-  1](https://aomedia.org/specifications/av1/)). See [A Specific Media
-  Pipeline](./docs/limitations.md#a-specific-media-pipeline).
+  codecs are not covered, for example AV1
+  ([AOMedia Video 1](https://aomedia.org/specifications/av1/)). See
+  [A Specific Media Pipeline](./docs/limitations.md#a-specific-media-pipeline).
 - **GPUs:** Only NVIDIA GPUs are used, for video only; audio always runs on the
-  CPU. A GPU scenario that cannot start on a given GPU is skipped. See [GPU
-  Coverage](./docs/limitations.md#gpu-coverage).
+  CPU. A GPU scenario that cannot start on a given GPU is skipped. See
+  [GPU Coverage](./docs/limitations.md#gpu-coverage).
 
 ## Usage
 
@@ -56,8 +56,8 @@ docker run --rm ghcr.io/sparecores/benchmark-ffmpeg:main > results.json
 ```
 
 To include the NVIDIA GPU scenarios, pass the GPUs to the container. This needs
-the NVIDIA driver and the [NVIDIA Container
-Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html)
+the NVIDIA driver and the
+[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html)
 on the host:
 
 ```bash
@@ -68,20 +68,20 @@ The image contains its test media, so it needs no network access at run time.
 See [GPU Run](./docs/usage.md#gpu-run) for the GPU requirements.
 
 Production runs the container privileged and with host networking; a plain
-`docker run` needs neither. See [Production
-Setup](./docs/usage.md#production-setup) before you compare your results with
-production runs.
+`docker run` needs neither. See
+[Production Setup](./docs/usage.md#production-setup) before you compare your
+results with production runs.
 
 A production run on an AWS ([Amazon Web Services](https://aws.amazon.com/))
-`m9g.16xlarge` took about
-10&nbsp;minutes. Run time grows with the number of worker counts measured, and
-with GPU scenarios. See [Run Duration](./docs/usage.md#run-duration) for the
-steps and timeouts.
+`m9g.16xlarge` took about 10&nbsp;minutes. Run time grows with the number of
+worker counts measured, and with GPU scenarios. See
+[Run Duration](./docs/usage.md#run-duration) for the steps and timeouts.
 
 ### Settings
 
-Common settings are listed here; see the [full environment-variable
-reference](./docs/usage.md#environment-variables) for all options and defaults:
+Common settings are listed here; see the
+[full environment-variable reference](./docs/usage.md#environment-variables)
+for all options and defaults:
 
 - `FFMPEG_BENCH_TARGET_SECONDS` sets the wall time of each measured repetition
   (default 5&nbsp;s).
@@ -131,9 +131,10 @@ All scenarios run by default, in the following groups:
 - [CPU video](./docs/workloads.md#cpu-video): H.264 and H.265 encoding and
   decoding of one film clip, with one codec thread per job.
 - [NVIDIA video](./docs/workloads.md#nvidia-video): the same H.264 and H.265
-  encoding and decoding on NVIDIA GPUs, with NVENC ([NVIDIA Video
-  Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
-  and NVDEC (NVIDIA Video Decoder).
+  encoding and decoding on NVIDIA GPUs, with NVENC
+  ([NVIDIA Video Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
+  and NVDEC
+  ([NVIDIA Video Decoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)).
 
 See [How Measurement Works](./docs/workloads.md#how-measurement-works) for the
 worker counts, timing, and repetitions.
@@ -144,10 +145,9 @@ We built this benchmark around aggregate capacity. Instead of adding up the
 speed that each `ffmpeg` process reports for itself, the harness
 ([`benchmark.py`](./benchmark.py)) times the whole group with one clock, from a
 shared start to the last worker's exit, so process startup and teardown count
-too. Worker counts follow physical cores
-rather than logical CPUs, because two single-threaded workers on the
-hyperthreads of one core compete for it and can lower throughput, especially
-for decoding.
+too. Worker counts follow physical cores rather than logical CPUs, because two
+single-threaded workers on the hyperthreads of one core compete for it and can
+lower throughput, especially for decoding.
 
 GPU encodes were later calibrated against the CPU encodes: NVENC has no direct
 equivalent of the CPU encoders' quality setting, so we compared several NVENC
@@ -164,5 +164,5 @@ study.
 ## References
 
 See the full list of [references](./docs/references.md) used in this
-documentation. To change, rebuild, or test this image, see the [contributor
-guide](./docs/contributors.md).
+documentation. To change, rebuild, or test this image, see the
+[contributor guide](./docs/contributors.md).

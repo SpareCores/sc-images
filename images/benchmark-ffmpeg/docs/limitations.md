@@ -5,19 +5,21 @@
 ### Output Quality
 
 This benchmark measures throughput, not the quality of the encoded output. It
-computes no quality metric, such as PSNR ([Peak Signal-to-Noise
-Ratio](https://ffmpeg.org/ffmpeg-filters.html#psnr)), SSIM
-([Structural Similarity Index
-Measure](https://ffmpeg.org/ffmpeg-filters.html#ssim)), or VMAF ([Video
-Multimethod Assessment Fusion](https://github.com/Netflix/vmaf)). The encode
-settings are fixed per scenario, so the quality target stays the same across
-server types; see [CPU and GPU Encode Quality](#cpu-and-gpu-encode-quality)
-for how CPU and GPU settings relate.
+computes no quality metric, such as PSNR
+([Peak Signal-to-Noise Ratio](https://ffmpeg.org/ffmpeg-filters.html#psnr)),
+SSIM
+([Structural Similarity Index Measure](https://ffmpeg.org/ffmpeg-filters.html#ssim)),
+or VMAF
+([Video Multimethod Assessment Fusion](https://github.com/Netflix/vmaf)). The
+encode settings are fixed per scenario, so the quality target stays the same
+across server types; see
+[CPU and GPU Encode Quality](#cpu-and-gpu-encode-quality) for how CPU and GPU
+settings relate.
 
 ### Storage and Output
 
-Every job sends its encoded output to FFmpeg's [null
-muxer](https://ffmpeg.org/ffmpeg-formats.html#null) (`-f null -`), which
+Every job sends its encoded output to FFmpeg's
+[null muxer](https://ffmpeg.org/ffmpeg-formats.html#null) (`-f null -`), which
 discards it. This benchmark therefore does *not* measure disk, file system, or
 object-storage writes, and a transcoding service that stores its output can be
 limited by storage instead.
@@ -29,9 +31,9 @@ of 30&nbsp;s at 1920x800 pixels and 24&nbsp;fps, and a music sample of about
 85&nbsp;s. See [Test Media](./workloads.md#test-media) for details.
 
 The results do *not* predict the speed of other resolutions, frame rates,
-content, codec settings, or codecs, such as AV1 ([AOMedia Video
-1](https://aomedia.org/specifications/av1/)). They give a relative sense of how
-much of this fixed work each server type completes.
+content, codec settings, or codecs, such as AV1
+([AOMedia Video 1](https://aomedia.org/specifications/av1/)). They give a
+relative sense of how much of this fixed work each server type completes.
 
 ### Single-Job Speed
 
@@ -62,21 +64,22 @@ helps; see [Worker Counts](./usage.md#worker-counts).
 ### Audio on the CPU Only
 
 FFmpeg's NVIDIA encoders and decoders handle video only, and there is no NVIDIA
-hardware encoder for Vorbis, Opus, AAC (Advanced Audio Coding), MP3, or FLAC
-(Free Lossless Audio Codec). The audio scenarios therefore always run on the
-CPU, and a GPU does not change the audio results. The output records this as
-`audio_gpu_acceleration: false`. See the [NVIDIA FFmpeg
-guide](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)
+hardware encoder for Vorbis, Opus, AAC
+([Advanced Audio Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)), MP3, or
+FLAC ([Free Lossless Audio Codec](https://xiph.org/flac/)). The audio
+scenarios therefore always run on the CPU, and a GPU does not change the audio
+results. The output records this as `audio_gpu_acceleration: false`. See the
+[NVIDIA FFmpeg guide](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)
 for the supported video codecs.
 
 ### NVIDIA GPUs Only
 
 The FFmpeg build in this image enables only NVIDIA's video acceleration: NVENC
-([NVIDIA Video
-Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
-and NVDEC (NVIDIA Video Decoder). It enables no other GPU backend, so other vendors' GPUs are
-not used. Within NVIDIA, the build targets datacenter GPUs; Jetson devices are
-not supported.
+([NVIDIA Video Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
+and NVDEC
+([NVIDIA Video Decoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)).
+It enables no other GPU backend, so other vendors' GPUs are not used. Within
+NVIDIA, the build targets datacenter GPUs; Jetson devices are not supported.
 
 ### Raw Results Only
 
@@ -88,9 +91,9 @@ summary statistic. You decide how to aggregate the repetitions; see
 
 ### CPU and GPU Encode Quality
 
-NVENC has no CRF ([Constant Rate
-Factor](https://trac.ffmpeg.org/wiki/Encode/H.264#crf)), the quality setting the
-CPU encodes use. The scenarios use the following settings:
+NVENC has no CRF
+([Constant Rate Factor](https://trac.ffmpeg.org/wiki/Encode/H.264#crf)), the
+quality setting the CPU encodes use. The scenarios use the following settings:
 
 - CPU encodes: `libx264` and `libx265` with `-crf 18` and the encoders' default
   preset (medium).
@@ -100,8 +103,9 @@ CPU encodes use. The scenarios use the following settings:
 A sweep of NVENC quality levels on the test clip found that `-cq 22` matched
 `libx264 -crf 18` most closely, at an SSIM to the source of about 0.9937 and a
 bitrate of about 4&nbsp;Mbps. The match is approximate, not exact, so compare
-CPU and GPU encode rates with that in mind. See the [NVENC CQ (Constant
-Quality) sweep](../CHANGELOG.md#nvenc-cq-sweep) for the data.
+CPU and GPU encode rates with that in mind. See the
+[NVENC CQ (Constant Quality) sweep](../CHANGELOG.md#nvenc-cq-sweep) for the
+data.
 
 ### GPU Coverage
 
