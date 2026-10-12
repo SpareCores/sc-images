@@ -85,8 +85,9 @@ file is not. The files are the following:
 
 Each job loops its input (`-stream_loop -1`) and stops after the media length
 set for that worker count (`-t`), so the length of a job does not depend on the
-length of the file. The harness probes each file's resolution, frame rate, and
-duration at run time and reports them in `sources`.
+length of the file. The harness ([`benchmark.py`](../benchmark.py)) probes each
+file's resolution, frame rate, and duration at run time and reports them in
+`sources`.
 
 ## How Measurement Works
 

@@ -107,11 +107,11 @@ The worker ladder is built from **physical cores** (SMT siblings collapsed via
 cores rather than 96 hyperthreads. CPU scenarios measure **1, P/2, and P**. If
 aggregate throughput at P is still at least 8% above P/2, one SMT probe at
 `min(2P, logical)` is added. Memory-bound work (H.264 decode) typically peaks
-at P/2 and skips the HT point; compute-bound encode may keep the extra sample.
+at P/2 and skips the SMT point; compute-bound encode may keep the extra sample.
 
 GPU scenarios measure **1 and G** (one session per GPU), then **double** (2G,
 4G, ...) until throughput falls or a session ceiling is hit. That finds the
-NVENC/NVDEC sweet spot without assuming 8 sessions per GPU. Failed worker
+NVENC/NVDEC sweet spot without assuming eight sessions per GPU. Failed worker
 counts stop the search immediately.
 
 ### Aggregate Timing Rationale
@@ -119,7 +119,7 @@ counts stop the search immediately.
 Audio encoding does not scale one stream across many cores: neither
 `libvorbis`, `libopus`, `libmp3lame`, native AAC, nor FFmpeg's FLAC encoder
 advertises frame or slice threading useful for this workload.
-The benchmark therefore runs independent FFmpeg processes with one codec
+This benchmark therefore runs independent `ffmpeg` processes with one codec
 thread each, matching a batch transcoding service.
 
 It never sums per-process `speed=` values, which would overstate capacity when

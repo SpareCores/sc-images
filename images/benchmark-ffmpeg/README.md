@@ -115,7 +115,7 @@ stderr. Interpret the main fields as follows:
 - `host`, `ffmpeg`, `sources`, and `methodology` record the server, the FFmpeg
   build, the test media, and the measurement settings.
 
-If the harness itself fails, the process exits with code 1 and prints a JSON
+If `benchmark.py` itself fails, the process exits with code 1 and prints a JSON
 object with an `error` field; if `ffmpeg` is not on the `PATH`, it exits with
 code 1 and prints no JSON. Exit code 0 does not mean that every scenario ran:
 check `skipped`, `skip_reason`, and `failed_workers` in the output.

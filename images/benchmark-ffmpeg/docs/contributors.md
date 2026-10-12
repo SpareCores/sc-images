@@ -50,7 +50,7 @@ builder for the FFmpeg compile, set by the [`ZRAM`](../ZRAM) file.
 
 ## Image Metadata
 
-CI publishes two files from this folder as image labels on the GitHub Container
+CI publishes the following two files as image labels on the GitHub Container
 Registry:
 
 - [`DESCRIPTION`](../DESCRIPTION): the one-sentence summary, shown as the image

@@ -84,7 +84,7 @@ NVIDIA, the build targets datacenter GPUs; Jetson devices are not supported.
 ### Raw Results Only
 
 The output contains every measured repetition, but no headline score, peak, or
-summary statistic. You decide how to aggregate the repetitions; see
+summary statistic. Aggregate the repetitions yourself; see
 [Results](../README.md#results).
 
 ## Design Constraints
@@ -98,14 +98,15 @@ quality setting the CPU encodes use. The scenarios use the following settings:
 - CPU encodes: `libx264` and `libx265` with `-crf 18` and the encoders' default
   preset (medium).
 - GPU encodes: `h264_nvenc` and `hevc_nvenc` with
-  `-preset p4 -rc vbr -cq 22 -b:v 0`, a constant-quality mode.
+  `-preset p4 -rc vbr -cq 22 -b:v 0`, a CQ
+  ([Constant Quality](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/nvenc-video-encoder-api-prog-guide/index.html#rate-control))
+  mode.
 
 A sweep of NVENC quality levels on the test clip found that `-cq 22` matched
 `libx264 -crf 18` most closely, at an SSIM to the source of about 0.9937 and a
 bitrate of about 4&nbsp;Mbps. The match is approximate, not exact, so compare
 CPU and GPU encode rates with that in mind. See the
-[NVENC CQ (Constant Quality) sweep](../CHANGELOG.md#nvenc-cq-sweep) for the
-data.
+[NVENC CQ sweep](../CHANGELOG.md#nvenc-cq-sweep) for the data.
 
 ### GPU Coverage
 

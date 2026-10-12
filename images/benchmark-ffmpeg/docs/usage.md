@@ -14,7 +14,8 @@ No environment variables are required, and the image needs no network access at
 run time: the test media is downloaded and checksum-verified when the image is
 built.
 
-`--version` prints the harness and FFmpeg versions and exits:
+`--version` prints the versions of the harness
+([`benchmark.py`](../benchmark.py)) and FFmpeg, and exits:
 
 ```bash
 docker run --rm ghcr.io/sparecores/benchmark-ffmpeg:main --version
