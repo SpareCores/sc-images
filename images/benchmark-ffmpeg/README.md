@@ -1,7 +1,7 @@
 # benchmark-ffmpeg
 
 This benchmark measures how much audio and video a server can transcode with
-FFmpeg when many jobs run at once. It starts independent, single-threaded
+FFmpeg when many jobs are run at once. It starts independent, single-threaded
 `ffmpeg` processes from a shared start signal: audio encoding runs on the CPU,
 and H.264 and H.265 video encoding and decoding run on the CPU and, when
 available, on NVIDIA GPUs.
@@ -15,7 +15,7 @@ headline score.
 
 Our [Navigator](https://sparecores.com/servers) project publishes empirical
 performance measurements for more than 5,000 cloud server types. Media
-businesses often run video and audio transcoding, and similar tasks, in the
+businesses often run video and audio transcoding and similar tasks in the
 cloud, because their compute needs change over time. Navigator previously
 covered this kind of work only through proxies from the Geekbench suite: photo
 editing, ray tracing, and document rendering.
@@ -38,9 +38,9 @@ following limitations:
   disk, and object-storage writes are not measured. See [Storage and
   Output](./docs/limitations.md#storage-and-output).
 - **Fixed media and settings:** Every job uses the same short video clip or
-  music sample with fixed codec settings. Other resolutions, codecs (such as
-  AV1, [AOMedia Video 1](https://aomedia.org/specifications/av1/)), and
-  settings are not covered. See [A Specific Media
+  music sample with fixed codec settings. Other resolutions, settings, and
+  codecs are not covered, for example AV1 ([AOMedia Video
+  1](https://aomedia.org/specifications/av1/)). See [A Specific Media
   Pipeline](./docs/limitations.md#a-specific-media-pipeline).
 - **GPUs:** Only NVIDIA GPUs are used, for video only; audio always runs on the
   CPU. A GPU scenario that cannot start on a given GPU is skipped. See [GPU
@@ -123,14 +123,15 @@ an `error` field.
 All scenarios run by default, in the following groups:
 
 - [Audio encoding](./docs/workloads.md#audio-encoding): Vorbis, Opus, AAC
-  (Advanced Audio Coding), MP3, and FLAC (Free Lossless Audio Codec) encodes of
-  one music sample, on the CPU.
+  ([Advanced Audio Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)), MP3,
+  and FLAC ([Free Lossless Audio Codec](https://xiph.org/flac/)) encodes of one
+  music sample, on the CPU.
 - [CPU video](./docs/workloads.md#cpu-video): H.264 and H.265 encoding and
   decoding of one film clip, with one codec thread per job.
 - [NVIDIA video](./docs/workloads.md#nvidia-video): the same H.264 and H.265
-  encoding and decoding on NVIDIA GPUs, with NVENC and NVDEC ([NVIDIA's video
-  encoder and
-  decoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)).
+  encoding and decoding on NVIDIA GPUs, with NVENC ([NVIDIA Video
+  Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
+  and NVDEC (NVIDIA Video Decoder).
 
 See [How Measurement Works](./docs/workloads.md#how-measurement-works) for the
 worker counts, timing, and repetitions.
