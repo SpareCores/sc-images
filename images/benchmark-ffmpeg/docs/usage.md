@@ -141,12 +141,12 @@ Across 372 production runs of harness version 3.2.1, run time ranged from about
 3&nbsp;minutes on servers with 2&nbsp;vCPUs to about 17&nbsp;minutes on GPU
 servers, with a median of about 9.5&nbsp;minutes.
 
-### Why 5 Seconds
+### Repetition Length
 
-The 5&nbsp;s default comes from a study of 2, 5, and 10&nbsp;s targets; see
-[Why five seconds](../CHANGELOG.md#why-five-seconds) for the results. Larger
-servers do not need a longer target, because the pilot scales the media to the
-target wall time.
+Each repetition targets 5&nbsp;s of wall time by default. Because the pilot
+scales the media to that target, larger servers process more media in the same
+time instead of running longer. For a study of 2, 5, and 10&nbsp;s targets, see
+[Why five seconds](../CHANGELOG.md#why-five-seconds).
 
 ### Shorter Test Runs
 
