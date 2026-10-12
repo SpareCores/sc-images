@@ -171,9 +171,11 @@ The results of such a run are not comparable with default runs.
 ## Production Setup
 
 Spare Cores runs this image through
-[`sc-inspector`](https://github.com/SpareCores/sc-inspector) orchestration
-across the server types on [Navigator](https://sparecores.com/servers), with
-the following settings. A plain `docker run` differs from it as noted below:
+[`sc-inspector`](https://github.com/SpareCores/sc-inspector) orchestration on
+every server type except those on the
+[`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
+blocklist, with the following settings. A plain `docker run` differs from it as
+noted below:
 
 - The container runs privileged and with host networking. This benchmark does
   not need either, and a plain `docker run` uses neither.

@@ -13,7 +13,7 @@ The tests in [`test_benchmark.py`](../test_benchmark.py) are not copied into
 the image, and CI does not run them, so run them before you open a pull
 request.
 
-Build the image locally from the image folder:
+Build the image locally from the `sc-images` root:
 
 ```bash
 docker build -t benchmark-ffmpeg:local images/benchmark-ffmpeg
@@ -71,7 +71,9 @@ To regenerate the files, run the following scripts:
    starting at 60&nbsp;s, with stream copy, into `source.mp4`.
 2. [`prepare-hevc-fixture.sh`](../prepare-hevc-fixture.sh) transcodes
    `source.mp4` into `source-hevc.mp4` with `libx265 -crf 18 -preset medium`.
-3. Add the FLAC music sample as `source.flac`.
+3. Download the original FLAC music sample from
+   [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Entre-dos-aguas-laucke-version-sample.flac)
+   and save it as `source.flac`; no script fetches it.
 4. [`upload-fixtures.sh`](../upload-fixtures.sh) uploads all three files to the
    S3 ([Simple Storage Service](https://aws.amazon.com/s3/)) bucket
    `sc-cdn-cae3awai`, under the prefix `sc-inspector/benchmark-ffmpeg`, with
