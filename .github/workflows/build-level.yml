@@ -165,6 +165,12 @@ jobs:
           images: ${{ env.REGISTRY }}/sparecores/${{ matrix.folder }}
           flavor: |
             suffix=-${{ matrix.arch }},onlatest=false
+          # per-image values from DESCRIPTION and CATEGORY instead of the repo-wide defaults
+          labels: |
+            org.opencontainers.image.title=${{ matrix.folder }}
+            org.opencontainers.image.description=${{ steps.cfg.outputs.description }}
+            org.opencontainers.image.documentation=${{ steps.cfg.outputs.documentation }}
+            com.sparecores.image.category=${{ steps.cfg.outputs.category }}
       - name: Assemble BuildKit cache backends
         id: cache
         env:
@@ -231,8 +237,22 @@ jobs:
       - name: Create manifest from per-arch images
         env:
           PLATFORMS: ${{ steps.cfg.outputs.platforms }}
+          FOLDER: ${{ matrix.folder }}
+          DESCRIPTION: ${{ steps.cfg.outputs.description }}
+          DOCUMENTATION: ${{ steps.cfg.outputs.documentation }}
+          CATEGORY: ${{ steps.cfg.outputs.category }}
+          SOURCE: ${{ github.server_url }}/${{ github.repository }}
         run: |
           set -euo pipefail
+          # GHCR shows the description of a multi-arch image from the index
+          # annotations, not from the labels of the per-arch images
+          annotations=(
+            --annotation "index:org.opencontainers.image.title=${FOLDER}"
+            --annotation "index:org.opencontainers.image.source=${SOURCE}"
+            --annotation "index:org.opencontainers.image.documentation=${DOCUMENTATION}"
+          )
+          [ -n "$DESCRIPTION" ] && annotations+=(--annotation "index:org.opencontainers.image.description=${DESCRIPTION}")
+          [ -n "$CATEGORY" ] && annotations+=(--annotation "index:com.sparecores.image.category=${CATEGORY}")
           sources=()
           for p in $PLATFORMS; do
             sources+=("$p")
@@ -254,7 +274,7 @@ jobs:
               continue
             fi
             echo "Creating ${tag} from: ${refs[*]}"
-            docker buildx imagetools create --tag "$tag" "${refs[@]}"
+            docker buildx imagetools create "${annotations[@]}" --tag "$tag" "${refs[@]}"
           done <<< "${{ steps.meta.outputs.tags }}"
       - name: Make GHCR package public
         env:

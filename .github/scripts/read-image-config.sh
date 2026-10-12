@@ -13,6 +13,8 @@
 #   ZRAM        - enable compressed swap on the builder (true/1/yes, or PERCENT e.g. 125); default off
 #   SCCACHE     - enable sccache S3 compile cache (true/1/yes); default off
 #   prepare.sh  - pre-build hook (presence reported as has_prepare=true)
+#   DESCRIPTION - one-sentence summary, used as the OCI image description (shown on GHCR)
+#   CATEGORY    - free-text group name, e.g. benchmark or hardware-discovery
 #
 # Emits key=value lines (for $GITHUB_OUTPUT) and writes resolved static
 # build-args to .cache/build-args.
@@ -27,6 +29,11 @@ read_scalar() {
   [ -f "$1" ] || return 0
   tr -d '\r' < "$1" | sed 's/#.*//' | tr -d '[:space:]'
 }
+# Free text: keeps inner spaces and '#', joins wrapped lines into one.
+read_text() {
+  [ -f "$1" ] || return 0
+  tr -d '\r' < "$1" | tr '\n' ' ' | tr -s ' \t' ' ' | sed 's/^ //; s/ $//'
+}
 read_list() {
   sed 's/#.*//' "$1" 2>/dev/null | tr -s ' \t' '\n' | sed '/^[[:space:]]*$/d'
 }
@@ -34,6 +41,12 @@ read_list() {
 context="$(read_scalar "$fdir/CONTEXT")"; [ -n "$context" ] || context="$fdir"
 dockerfile="$(read_scalar "$fdir/DOCKERFILE")"; [ -n "$dockerfile" ] || dockerfile="$fdir/Dockerfile"
 target="$(read_scalar "$fdir/TARGET")"
+
+description="$(read_text "$fdir/DESCRIPTION")"
+[ -n "$description" ] || echo "::warning::images/$folder has no DESCRIPTION file" >&2
+category="$(read_text "$fdir/CATEGORY")"
+[ -n "$category" ] || echo "::warning::images/$folder has no CATEGORY file" >&2
+documentation="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-SpareCores/sc-images}/tree/main/$fdir"
 
 if [ -f "$fdir/PLATFORMS" ]; then
   platforms="$(read_list "$fdir/PLATFORMS" | tr '\n' ' ')"
@@ -127,4 +140,7 @@ fi
   echo "zram=$zram"
   echo "zram_percent=$zram_percent"
   echo "sccache=$sccache"
+  echo "description=$description"
+  echo "category=$category"
+  echo "documentation=$documentation"
 }

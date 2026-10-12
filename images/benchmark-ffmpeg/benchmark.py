@@ -39,7 +39,7 @@ basicConfig(
 logger = getLogger("benchmark-ffmpeg")
 
 BENCHMARK_NAME = "ffmpeg_transcoding"
-BENCHMARK_VERSION = "3.2.1"
+BENCHMARK_VERSION = "3.3.0"
 
 VIDEO_CALIBRATION_DURATION_SEC = float(
     os.environ.get("FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS", "1")
@@ -178,9 +178,13 @@ VIDEO_SCENARIOS: tuple[ScenarioSpec, ...] = (
         "cpu_h265_decode", "cpu", "decode", "video", "hevc",
         requires_decoder="hevc", source_codec="hevc",
     ),
+    # NVENC has no CRF. On the Tears of Steel fixture, -cq 22 matched libx264
+    # -crf 18 closest in SSIM-to-source (~0.9937) and bitrate (~4 Mbps); -cq 18
+    # was markedly higher quality / ~1.9× bitrate. Preset p4 ≈ medium.
     ScenarioSpec(
         "gpu_h264_encode", "gpu", "encode", "video", "h264_nvenc",
         requires_encoder="h264_nvenc",
+        encode_args=("-preset", "p4", "-rc", "vbr", "-cq", "22", "-b:v", "0"),
     ),
     ScenarioSpec(
         "gpu_h264_decode", "gpu", "decode", "video", "h264_cuvid",
@@ -189,6 +193,7 @@ VIDEO_SCENARIOS: tuple[ScenarioSpec, ...] = (
     ScenarioSpec(
         "gpu_h265_encode", "gpu", "encode", "video", "hevc_nvenc",
         requires_encoder="hevc_nvenc",
+        encode_args=("-preset", "p4", "-rc", "vbr", "-cq", "22", "-b:v", "0"),
     ),
     ScenarioSpec(
         "gpu_h265_decode", "gpu", "decode", "video", "hevc_cuvid",
@@ -826,7 +831,7 @@ def build_worker_command(
     cmd += ["-i", str(input_path), "-an", "-t", f"{media_duration_sec:.6f}"]
     if spec.operation == "encode":
         if spec.backend == "gpu":
-            cmd += ["-c:v", spec.codec, "-preset", "p4", "-gpu", str(gpu_index)]
+            cmd += ["-c:v", spec.codec, *spec.encode_args, "-gpu", str(gpu_index)]
         else:
             encode_args = list(spec.encode_args)
             if spec.codec == "libx265":
@@ -1558,6 +1563,7 @@ def run_benchmark() -> dict[str, Any]:
                     "synchronized capacity sweep vs serial transcode",
                     "custom ffmpeg build vs PTS static build",
                     "audio and NVIDIA scenarios are benchmark extensions",
+                    "NVENC uses -rc vbr -cq 22 -b:v 0 (fixture-calibrated CRF 18 analogue; not identical to x264/x265 CRF)",
                 ],
             },
         },
