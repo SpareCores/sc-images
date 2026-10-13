@@ -81,6 +81,6 @@ alone, but disks that are not mounted are always overwritten. See
 
 ### Time Budget
 
-This benchmark targets an estimated 2400&nbsp;s of tests. On hosts with many
-groups of disks, it shortens tests and then drops low-priority ones to fit. See
+This benchmark targets an estimated 2400 s of tests. When the estimate exceeds
+that, it shortens tests and then drops low-priority ones to fit. See
 [Run Duration](./usage.md#run-duration) for the order.

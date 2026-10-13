@@ -68,9 +68,9 @@ docker run --rm --privileged --pid=host ghcr.io/sparecores/benchmark-storage:mai
 ```
 
 **Warning:** Every filesystem this benchmark unmounts is destroyed, together
-with the data on every unmounted disk. Never run it on production or similar
-systems. Set `SC_STORAGE_UMOUNT=0` to leave mounted disks alone; disks that are
-not mounted are still overwritten. See
+with the data on every disk that is not mounted. Never run it on production or
+similar systems. Set `SC_STORAGE_UMOUNT=0` to leave mounted disks alone; disks
+that are not mounted are still overwritten. See
 [Disk Safety](./docs/usage.md#disk-safety) for which disks this benchmark
 writes to.
 

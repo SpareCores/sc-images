@@ -78,8 +78,8 @@ If the representative is writable, it also runs the following write tests:
 - sequential writes of 1&nbsp;MiB at a queue depth of 64
 - mixed random I/O (Input/Output) with 70% reads at a queue depth of 256, at
   4&nbsp;KiB, 64&nbsp;KiB, and 1&nbsp;MiB
-- mixed random I/O with 70% reads and random writes, each at 4&nbsp;KiB and a
-  queue depth of 1
+- mixed random I/O with 70% reads, at 4 KiB and a queue depth of 1
+- random writes of 4 KiB at a queue depth of 1
 - random writes at a queue depth of 256, at each block size from 512&nbsp;B to
   16&nbsp;MiB
 

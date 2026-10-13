@@ -21,8 +21,9 @@ systems.
    `/var/lib/docker`.
 4. With `SC_STORAGE_UMOUNT=0`, any other mounted disk is `read_only`.
 5. Otherwise, this benchmark unmounts the disk's filesystems, deepest first,
-   without forcing it. If the kernel refuses because a filesystem is busy, it
-   remounts what it already unmounted and marks the disk `read_only`.
+   without forcing it. If any unmount fails, for example because a filesystem
+   is busy, it remounts what it already unmounted and marks the disk
+   `read_only`.
    Otherwise, the disk is `read_write`.
 
 This benchmark never remounts a filesystem after unmounting it, and the write
