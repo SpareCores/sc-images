@@ -1,331 +1,169 @@
 # benchmark-ffmpeg
 
-Aggregate FFmpeg transcoding-capacity benchmark for x86_64 and arm64. It
-measures Vorbis, Opus, AAC, MP3, and FLAC audio encoding alongside H.264/H.265
-CPU and NVIDIA video scenarios.
+This benchmark measures how much audio and video a server can transcode with
+FFmpeg when many jobs are run at once. It starts independent, single-threaded
+`ffmpeg` processes from a shared start signal: audio encoding runs on the CPU,
+and H.264 and H.265 video encoding and decoding run on the CPU and, when
+available, on NVIDIA GPUs.
 
-Published as `ghcr.io/sparecores/benchmark-ffmpeg:main`.
+This benchmark reports the aggregate throughput of each scenario at several
+worker counts: frames per second for video, and audio seconds processed per
+second for audio. It emits every measured repetition as raw data, without a
+headline score.
+
+## Purpose
+
+Our [Navigator](https://sparecores.com/servers) project publishes empirical
+performance measurements for more than 5,000 cloud server types. Media
+businesses often run video and audio transcoding and similar tasks in the
+cloud, because their compute needs change over time. Navigator previously
+covered this kind of work only through proxies from the Geekbench suite: photo
+editing, ray tracing, and document rendering.
+
+This benchmark measures transcoding directly. It runs many single-threaded jobs
+in parallel and times the whole group, so the result shows how much media a
+server type processes at once, rather than how fast a single job finishes.
+
+## Limitations
+
+These results compare transcoding throughput across server types. Note the
+following limitations:
+
+- **Output quality:** This benchmark measures speed, not output quality, and
+  computes no quality metric. GPU encode settings are calibrated to
+  approximately match the CPU encode quality, but the match is not exact. See
+  [Output Quality](./docs/limitations.md#output-quality) and
+  [CPU and GPU Encode Quality](./docs/limitations.md#cpu-and-gpu-encode-quality).
+- **Storage:** Encoded output is discarded through FFmpeg's null muxer, so file,
+  disk, and object-storage writes are not measured. See
+  [Storage and Output](./docs/limitations.md#storage-and-output).
+- **Fixed media and settings:** Every job uses the same short video clip or
+  music sample with fixed codec settings. Other resolutions, settings, and
+  codecs are not covered, for example AV1
+  ([AOMedia Video 1](https://aomedia.org/specifications/av1/)). See
+  [A Specific Media Pipeline](./docs/limitations.md#a-specific-media-pipeline).
+- **GPUs:** Only NVIDIA GPUs are used, for video only; audio always runs on the
+  CPU. A GPU scenario that cannot start on a given GPU is skipped. See
+  [GPU Coverage](./docs/limitations.md#gpu-coverage).
 
 ## Usage
 
+Run the image via Docker. With no options, it runs the CPU and audio scenarios
+and skips the GPU scenarios:
+
 ```bash
 docker run --rm ghcr.io/sparecores/benchmark-ffmpeg:main > results.json
+```
+
+The image contains its test media, so it needs no network access at run time.
+
+To include the NVIDIA GPU scenarios, pass the GPUs to the container. This needs
+the NVIDIA driver and the
+[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html)
+on the host:
+
+```bash
 docker run --rm --gpus all ghcr.io/sparecores/benchmark-ffmpeg:main > results.json
 ```
 
-The image needs no runtime network access. `--version` prints the harness and
-FFmpeg versions.
+See [GPU Run](./docs/usage.md#gpu-run) for the GPU requirements.
 
-For a quick development run:
+Production runs the container privileged and with host networking; a plain
+`docker run` needs neither. See
+[Production Setup](./docs/usage.md#production-setup) before you compare your
+results with production runs.
 
-```bash
-docker run --rm \
-  -e FFMPEG_BENCH_WORKERS=1,2 \
-  -e FFMPEG_BENCH_REPETITIONS=1 \
-  -e FFMPEG_BENCH_TARGET_SECONDS=1 \
-  -e FFMPEG_BENCH_MIN_MEDIA_SECONDS=1 \
-  -e FFMPEG_BENCH_MAX_MEDIA_SECONDS=5 \
-  -e FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS=1 \
-  -e FFMPEG_BENCH_AUDIO_CALIBRATION_SECONDS=1 \
-  ghcr.io/sparecores/benchmark-ffmpeg:main
-```
+A production run on an AWS ([Amazon Web Services](https://aws.amazon.com/))
+`m9g.16xlarge` took about 10 minutes. Run time grows with the number of
+worker counts measured, and with GPU scenarios. See
+[Run Duration](./docs/usage.md#run-duration) for the steps and timeouts.
 
-## Fixtures
+### Settings
 
-The image downloads pinned audio and video fixtures from
-[sc-cdn](https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg/) at build
-time, verifies SHA-256, and needs no runtime network access. Workers loop the
-local files with `-stream_loop -1` and `-t` so fast machines still measure a
-long enough interval without storing an expanded copy.
+The following settings are the most common; see the
+[full environment-variable reference](./docs/usage.md#environment-variables)
+for all options and defaults:
 
-See also [`SOURCE.md`](SOURCE.md) for regeneration and upload steps.
+- `FFMPEG_BENCH_TARGET_SECONDS` sets the wall time of each measured repetition
+  (default 5 s).
+- `FFMPEG_BENCH_REPETITIONS` and `FFMPEG_BENCH_MAX_REPETITIONS` set how many
+  repetitions run at each worker count (default three, up to five).
+- `FFMPEG_BENCH_WORKERS` replaces the automatic worker counts with an explicit,
+  comma-separated list.
+- `FFMPEG_BENCH_MAX_WORKERS` caps the number of parallel workers.
+- `FFMPEG_BENCH_TIMEOUT_SECONDS` sets the deadline for the whole run (default
+  7,200 s).
 
-| File | CDN (image build) | SHA-256 |
-|---|---|---|
-| `source.flac` | https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg/source.flac | `4445399abe62c9d7c546711a853fccfab8ab274226d2e80aa0e5ad948589e516` |
-| `source.mp4` | https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg/source.mp4 | `a49fe8b82c96bafcc344d374facb716f481e3fa9c6753d56f6d1e0ed509a14e7` |
-| `source-hevc.mp4` | https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg/source-hevc.mp4 | `79a70a6aa81e745d650621768dee5cd3fc1da7d2c15d39871125737064f6cde7` |
+### Results
 
-### Audio — original source
+The process prints one compact JSON line to stdout when the run ends; logs go to
+stderr. Interpret the main fields as follows:
 
-| | |
-|---|---|
-| Work | “Entre dos Aguas” sample, performed by Michael Laucke |
-| Format | FLAC, ~85 s, ~8.3 MB |
-| License | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
-| Commons page | https://commons.wikimedia.org/wiki/File:Entre-dos-aguas-laucke-version-sample.flac |
-| Direct download | https://commons.wikimedia.org/wiki/Special:Redirect/file/Entre-dos-aguas-laucke-version-sample.flac |
+- `scenarios[]` has one entry per scenario, with its `name`, `backend` (`cpu`
+  or `gpu`), `operation` (`encode` or `decode`), and `codec`. A scenario that
+  could not run has `skipped: true` and a `skip_reason`.
+- Each `scaling_steps[]` entry is one worker count: `workers` parallel jobs,
+  each processing `media_duration_sec` seconds of media.
+- Each `repetitions[]` entry is one measurement at that worker count. Video
+  repetitions report `aggregate_fps` (frames per second across all workers) and
+  `processed_frames`; audio repetitions report `audio_seconds_per_sec` and
+  `processed_audio_seconds`. `wall_time_sec` is the time from the shared start
+  to the last worker's exit.
+- `successful_workers`, `failed_workers`, and `timed_out_workers` describe each
+  repetition. A failed worker contributes no media, but its time still counts.
+- There is no score, peak, or median: aggregate the repetitions yourself, for
+  example by taking the median rate at each worker count.
+- `host`, `ffmpeg`, `sources`, and `methodology` record the server, the FFmpeg
+  build, the test media, and the measurement settings.
 
-### Video — original source
+If `benchmark.py` itself fails, the process exits with code 1 and prints a JSON
+object with an `error` field; if `ffmpeg` is not on the `PATH`, it exits with
+code 1 and prints no JSON. Exit code 0 does not mean that every scenario ran:
+check `skipped`, `skip_reason`, and `failed_workers` in the output.
 
-| | |
-|---|---|
-| Work | [Tears of Steel](https://mango.blender.org/) (Blender Foundation open movie) |
-| Upstream release | [HD 1080p MOV](https://mango.blender.org/download/) (~557 MB, 1920×800, 24 fps, H.264) |
-| Mirror used by `prepare-video-fixture.sh` | http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_1080p.mov (zip-wrapped MOV) |
-| Alternate upstream | https://download.blender.org/demo/movies/ToS/tears_of_steel_1080p.mov.zip |
-| Bundled H.264 excerpt | 30 s cut at 60–90 s with `-c:v copy` → `source.mp4` (~20 MB) |
-| Bundled HEVC excerpt | Transcode of `source.mp4` → `source-hevc.mp4` (~11 MB); see below |
-| License | [CC BY 3.0](https://mango.blender.org/sharing/) |
+## Workloads
 
-### Why / how the HEVC fixture exists
+All scenarios run by default, in the following groups:
 
-Encode scenarios and H.264 decode all feed the same H.264 excerpt (`source.mp4`).
-H.265 decode cannot reuse that file: the decoder under test must consume an
-**HEVC bitstream**. Rather than pull a second upstream movie, we transcode the
-pinned H.264 excerpt locally so geometry, fps, duration, and scene content stay
-aligned with the H.264 path:
+- [Audio encoding](./docs/workloads.md#audio-encoding): Vorbis, Opus, AAC
+  ([Advanced Audio Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)), MP3,
+  and FLAC ([Free Lossless Audio Codec](https://xiph.org/flac/)) encodes of one
+  music sample, on the CPU.
+- [CPU video](./docs/workloads.md#cpu-video): H.264 and H.265 encoding and
+  decoding of one film clip, with one codec thread per job.
+- [NVIDIA video](./docs/workloads.md#nvidia-video): the same H.264 and H.265
+  encoding and decoding on NVIDIA GPUs, with NVENC
+  ([NVIDIA Video Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
+  and NVDEC
+  ([NVIDIA Video Decoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)).
 
-```bash
-./prepare-video-fixture.sh   # optional if source.mp4 is already present
-./prepare-hevc-fixture.sh    # libx265 -crf 18 -preset medium → source-hevc.mp4
-./upload-fixtures.sh         # AWS profile sc → s3://sc-cdn-cae3awai/...
-```
+See [How Measurement Works](./docs/workloads.md#how-measurement-works) for the
+worker counts, timing, and repetitions.
 
-`prepare-hevc-fixture.sh` runs:
+## Design History
 
-`ffmpeg -i source.mp4 -an -c:v libx265 -crf 18 -preset medium -pix_fmt yuv420p -tag:v hvc1 -movflags +faststart source-hevc.mp4`
+We built this benchmark around aggregate capacity. Instead of adding up the
+speed that each `ffmpeg` process reports for itself, the harness
+([`benchmark.py`](./benchmark.py)) times the whole group with one clock, from a
+shared start to the last worker's exit, so process startup and teardown count
+too. Worker counts follow physical cores rather than logical CPUs, because two
+single-threaded workers on the hyperthreads of one core compete for it and can
+lower throughput, especially for decoding.
 
-CRF 18 matches the CPU encode scenarios’ quality target so decode complexity is
-in the same ballpark as a typical “upload / mezzanine” HEVC stream rather than
-an ultrafast throwaway encode. The SHA-256 is pinned in `BUILD_ARGS` /
-`Dockerfile` the same way as the H.264 and FLAC fixtures.
+GPU encodes were later calibrated against the CPU encodes: NVENC has no direct
+equivalent of the CPU encoders' quality setting, so we compared several NVENC
+quality levels on the test clip and picked the closest match. In version 3.3.0,
+the image also started requesting the NVIDIA driver's video libraries itself,
+which many earlier GPU runs could not load.
 
-To refresh all fixtures: `./prepare-video-fixture.sh`, `./prepare-hevc-fixture.sh`,
-copy or download the FLAC, then `./upload-fixtures.sh` (AWS profile `sc`, bucket
-`sc-cdn-cae3awai`, prefix `sc-inspector/benchmark-ffmpeg/`).
+The remaining limits are that this benchmark checks no output quality at run
+time, that CPU and GPU encode quality match only approximately, and that GPU
+results depend on what each GPU and driver support. See the
+[changelog](./CHANGELOG.md) for the calibration data and the measurement-length
+study.
 
-## Audio profiles
+## References
 
-Every audio job decodes the same lossless music source and explicitly produces
-stereo audio. Most profiles use 44.1 kHz; Opus uses 48 kHz because `libopus`
-rejects 44.1 kHz. Encoded packets go to FFmpeg's null muxer so the score
-measures codec capacity rather than storage.
-
-Multiple Vorbis bitrates were dropped: on real hosts 96/160/320 kbps scored
-within ~±15%, so they did not separate instances. The suite now covers distinct
-lossy codecs professionals actually choose, plus FLAC.
-
-| Scenario | Encoder | Output profile |
-|---|---|---|
-| `ogg_vorbis_160k` | `libvorbis` | Ogg Vorbis, 160 kbps |
-| `opus_128k` | `libopus` | Opus, 128 kbps, 48 kHz |
-| `aac_128k` | `aac` (native) | AAC-LC, 128 kbps |
-| `mp3_192k` | `libmp3lame` | MP3, 192 kbps |
-| `flac_lossless` | `flac` | FLAC, compression level 5 |
-
-None of these have NVIDIA GPU acceleration. Upstream FFmpeg NVENC only registers
-`h264_nvenc` / `hevc_nvenc` / `av1_nvenc`; CUVID/QSV/VAAPI/AMF are likewise
-video-only. Platform HW audio (AudioToolbox, MediaFoundation, MediaCodec)
-exists but not for Linux datacenter GPUs, so audio scenarios stay CPU-only.
-
-Every audio job uses the pinned CC0 FLAC fixture described under
-[Fixtures](#fixtures).
-
-## Video profiles
-
-Encode and H.264 decode loop the pinned Tears of Steel **H.264** excerpt
-(`source.mp4`, 1920×800, 24 fps, 30 s). H.265 decode loops the matching **HEVC**
-transcode (`source-hevc.mp4`). See [Fixtures](#fixtures).
-
-| Scenario | Backend | Operation | Input | Codec |
-|---|---|---|---|---|
-| `cpu_h264_encode` | CPU | encode | H.264 | `libx264 -crf 18` (default medium) |
-| `cpu_h265_encode` | CPU | encode | H.264 | `libx265 -crf 18` (default medium) |
-| `cpu_h264_decode` | CPU | decode | H.264 | H.264 |
-| `cpu_h265_decode` | CPU | decode | HEVC | HEVC |
-| `gpu_h264_encode` | NVIDIA | encode | H.264 | `h264_nvenc -preset p4 -rc vbr -cq 22 -b:v 0` |
-| `gpu_h264_decode` | NVIDIA | decode | H.264 | `h264_cuvid` |
-| `gpu_h265_encode` | NVIDIA | encode | H.264 | `hevc_nvenc -preset p4 -rc vbr -cq 22 -b:v 0` |
-| `gpu_h265_decode` | NVIDIA | decode | HEVC | `hevc_cuvid` |
-
-NVENC has no CRF. Preset `p4` is FFmpeg’s medium default. A CQ sweep on the
-pinned Tears of Steel H.264 fixture (`source.mp4`, software decode into both
-encoders) was run on UpCloud `GPU-32xCPU-160GB-2xRTXPRO6000` (2× RTX PRO 6000
-Blackwell) to pick the closest constant-quality match to CPU `-crf 18`. Scales
-still differ by encoder family — approximate parity, not bit-exact.
-
-**H.264 / H.265 encode vs source (CQ 18 vs CRF 18):**
-
-| Encode | Bytes | Bitrate (bps) | SSIM All vs source | PSNR avg |
-|---|---:|---:|---:|---:|
-| `libx264 -crf 18 -preset medium` | 15165835 | 4036087 | 0.993770 | 48.962137 |
-| `h264_nvenc -preset p4 -rc vbr -cq 18 -b:v 0` | 28290834 | 7531112 | 0.995426 | 51.395851 |
-| `libx265 -crf 18 -preset medium` | 11696839 | 3111461 | 0.993383 | 48.895972 |
-| `hevc_nvenc -preset p4 -rc vbr -cq 18 -b:v 0` | 25329289 | 6742451 | 0.995170 | 51.142542 |
-
-GPU↔CPU pairwise SSIM All: H.264 0.993345, H.265 0.993799.
-
-**H.264 NVENC CQ sweep vs `libx264 -crf 18` (same fixture):**
-
-| Setting | Bytes | Bitrate (bps) | SSIM All vs source | SSIM All vs CPU |
-|---|---:|---:|---:|---:|
-| CRF 18 (CPU) | 15165835 | 4036087 | 0.993770 | — |
-| CQ 15 | 40578290 | 10803186 | 0.996467 | 0.993435 |
-| CQ 16 | 36600522 | 9743939 | 0.996173 | 0.993424 |
-| CQ 17 | 32627231 | 8685869 | 0.995861 | 0.993427 |
-| CQ 18 | 28290834 | 7531112 | 0.995426 | 0.993345 |
-| CQ 19 | 24934170 | 6637265 | 0.995019 | 0.993288 |
-| CQ 20 | 21833713 | 5811627 | 0.994608 | 0.993289 |
-| CQ 21 | 19143406 | 5095219 | 0.994195 | 0.993186 |
-| CQ 22 | 16652394 | 4431879 | 0.993700 | 0.993010 |
-| CQ 23 | 14553619 | 3872988 | 0.993181 | 0.992821 |
-| CQ 24 | 12590211 | 3350150 | 0.992607 | 0.992560 |
-
-`-cq 22` is closest to CRF 18 on SSIM-to-source (0.993700 vs 0.993770) and
-bitrate (4431879 vs 4036087). `-cq 18` is higher quality at 1.87× the CPU
-bitrate. The GPU encode scenarios therefore use `-cq 22`.
-
-GPU workers are distributed round-robin over all GPUs reported by
-`nvidia-smi`. The search starts at one session per GPU and doubles until
-aggregate throughput drops; eight sessions per GPU is only a ceiling. A runtime
-probe still decides whether each scenario is actually usable. Both amd64 and
-arm64 images build FFmpeg with NVENC/NVDEC (`h264_nvenc` / `hevc_nvenc` /
-`h264_cuvid` / `hevc_cuvid`) for datacenter GPUs (including arm64 T4G on g5g).
-Jetson/`nvmpi` is not supported; scenarios are skipped when codecs or GPUs are
-missing at runtime.
-
-Vorbis, Opus, AAC, MP3, and FLAC are CPU-only. FFmpeg's NVENC/NVDEC, VAAPI, QSV,
-and AMF backends expose video codecs only (H.264/HEVC/AV1, etc.); there is no
-NVIDIA hardware encoder for these audio codecs. GPUs therefore do not change
-the audio scores. See the [NVIDIA FFmpeg guide](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html).
-
-## Correct aggregate timing
-
-Audio encoding does not scale one stream across many cores: neither
-`libvorbis`, `libopus`, `libmp3lame`, native AAC, nor FFmpeg's FLAC encoder
-advertises frame or slice threading useful for this workload.
-The benchmark therefore runs independent FFmpeg processes with one codec
-thread each, matching a batch transcoding service.
-
-For each scaling step it:
-
-1. Pre-spawns every worker behind one inherited pipe barrier.
-2. Starts `time.monotonic_ns()` and releases every worker with the same EOF.
-3. Records each exit and the last successful/failed completion.
-4. Reports the original count and its rate: processed frames and aggregate FPS
-   for video, or processed audio seconds and audio-seconds-per-second for audio.
-5. Repeats the step and emits every raw repetition. Variability is calculated
-   internally only to decide whether another repetition is necessary.
-6. Enforces the whole-benchmark time budget with a monotonic deadline that is
-   passed into every repetition.
-
-It never sums per-process `speed=` values, which would overstate capacity when
-workers start or finish at different times. Startup and teardown are included.
-FFmpeg documents both its
-[benchmark options and machine-readable progress output](https://ffmpeg.org/ffmpeg.html);
-the harness uses its own group clock because FFmpeg only knows about one
-process.
-
-There are no converted capacity units, peaks, recommendations, summary
-statistics, or duplicated realtime factors in the output. Consumers receive
-the source counts, wall-clock time, rates, worker outcomes, and finish spread
-for every repetition and can aggregate those measurements as needed.
-
-## Scaling on large instances
-
-The worker ladder is built from **physical cores** (SMT siblings collapsed via
-`thread_siblings_list`), not `nproc`. On this class of instance that is 48
-cores rather than 96 hyperthreads. CPU scenarios measure **1, P/2, and P**. If
-aggregate throughput at P is still at least 8% above P/2, one SMT probe at
-`min(2P, logical)` is added. Memory-bound work (H.264 decode) typically peaks
-at P/2 and skips the HT point; compute-bound encode may keep the extra sample.
-
-GPU scenarios measure **1 and G** (one session per GPU), then **double** (2G,
-4G, …) until throughput falls or a session ceiling is hit. That finds the
-NVENC/NVDEC sweet spot without assuming 8 sessions per GPU. Failed worker
-counts stop the search immediately.
-
-Independent FFmpeg processes are already single-threaded.
-`FFMPEG_BENCH_OVERSUBSCRIPTION=2` still forces a 2·P CPU point.
-`FFMPEG_BENCH_WORKERS` disables adaptive search and uses an explicit list.
-
-It always attempts the physical-core (CPU) or one-per-GPU (GPU) anchor unless
-an earlier worker count cannot run.
-
-Available capacity is the minimum of scheduler affinity and cgroup v2
-`cpu.max`; RAM, `pids.max`, and an optional explicit cap limit process count.
-The benchmark applies a conservative per-worker PID budget because the cgroup
-PID controller counts threads, not just top-level FFmpeg processes. The JSON
-records cpuset/quota information and raw `cpu.stat` snapshots.
-On usable multi-node systems, `numactl` stages one hot source copy per NUMA
-node and binds each node's worker pool and memory proportionally to the CPUs on
-that node. Restricted containers fall back to normal Linux scheduling.
-
-A discarded pilot at every worker count sizes media to the requested wall
-time. If a pilot times out, the harness shortens the media and retries up to
-four times. A failed measured repetition stops that step immediately instead
-of repeating the same timeout. Because calibration targets wall time rather
-than a fixed amount of media, larger machines process more frames or audio in
-the same measurement interval.
-
-## Configuration
-
-| Variable | Default | Purpose |
-|---|---:|---|
-| `FFMPEG_BENCH_TARGET_SECONDS` | `5` | Approximate measured time per repetition |
-| `FFMPEG_BENCH_MIN_MEDIA_SECONDS` | `0.5` | Minimum media encoded per worker |
-| `FFMPEG_BENCH_MAX_MEDIA_SECONDS` | `1800` | Maximum media encoded per worker |
-| `FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS` | `1` | Media used by discarded video calibration |
-| `FFMPEG_BENCH_AUDIO_CALIBRATION_SECONDS` | `5` | Media used by discarded audio calibration |
-| `FFMPEG_BENCH_REPETITIONS` | `3` | Measured repetitions per worker count |
-| `FFMPEG_BENCH_MAX_REPETITIONS` | `5` | Adaptive repetition cap |
-| `FFMPEG_BENCH_CV_THRESHOLD` | `0.10` | Internal threshold for adding repetitions |
-| `FFMPEG_BENCH_OVERSUBSCRIPTION` | `1` | Set to `2` to add a 2·V worker count |
-| `FFMPEG_BENCH_PID_TASKS_PER_WORKER` | `4` | Conservative cgroup PID budget per worker |
-| `FFMPEG_BENCH_MAX_WORKERS` | automatic | Hard worker cap |
-| `FFMPEG_BENCH_GPU_ENCODE_SESSIONS_PER_GPU` | `8` | NVENC search ceiling per GPU |
-| `FFMPEG_BENCH_GPU_DECODE_SESSIONS_PER_GPU` | `8` | NVDEC search ceiling per GPU |
-| `FFMPEG_BENCH_SCALE_CONTINUE_RATIO` | `1.08` | Min gain vs previous point to keep doubling / try SMT |
-| `FFMPEG_BENCH_WORKERS` | automatic | Explicit comma-separated ladder |
-| `FFMPEG_BENCH_TIMEOUT_SECONDS` | `7200` | Whole benchmark deadline |
-| `FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` | `max(30, target×6)` | Pilot/repetition deadline |
-| `FFMPEG_BENCH_AUDIO_SOURCE` | bundled fixture | Alternate local FLAC |
-| `FFMPEG_BENCH_VIDEO_SOURCE` | bundled fixture | Alternate local MP4 |
-| `FFMPEG` / `FFPROBE` | PATH binaries | Alternate FFmpeg build |
-
-### Why five seconds
-
-A localhost study ran every available CPU codec for five repetitions at 2, 5,
-and 10-second targets. At five seconds, the median coefficient of variation was
-2.2%; seven of eight codecs were within 10% after the first three repetitions,
-and only H.264 decode requested extra runs. At two seconds only six of eight
-were within 10%. Ten-second runs were less stable because ambient host load
-drift dominated, demonstrating that a longer sample does not fix an
-uncontrolled machine. NVIDIA scenarios were discovered but skipped because the
-study host had no CUDA GPU.
-
-Five seconds is therefore the shortest reliable default observed on the test
-host. Large machines do not automatically need longer runs: the per-worker
-count pilot scales media volume to keep wall time constant, so faster machines
-process more source data in those five seconds. Increase the duration only for
-especially noisy or externally shared hosts.
-
-The null muxer intentionally excludes object-store and filesystem output; use
-a separate storage benchmark when production write throughput matters. FFmpeg
-describes the [null muxer as intended for testing and benchmarking](https://ffmpeg.org/ffmpeg-formats.html#null).
-
-## Output
-
-One compact JSON document is written to stdout
-(`benchmark=ffmpeg_transcoding`, `version=3.3.0`); logs go to stderr.
-Version 3 intentionally removes all derived rollups. Each repetition contains
-`wall_time_sec`, worker outcomes, and either:
-
-- `processed_frames` plus `aggregate_fps`, or
-- `processed_audio_seconds` plus `audio_seconds_per_sec`.
-
-## Local development
-
-```bash
-python3 images/benchmark-ffmpeg/test_benchmark.py
-python3 -m py_compile images/benchmark-ffmpeg/benchmark.py
-images/benchmark-ffmpeg/prepare-video-fixture.sh   # optional: refresh source.mp4
-images/benchmark-ffmpeg/upload-fixtures.sh         # upload to sc-cdn (AWS profile sc)
-docker build -t benchmark-ffmpeg:local images/benchmark-ffmpeg
-```
-
-The image builds FFmpeg 9.0.1 from source (see `build-ffmpeg.sh`, `BUILD_ARGS`).
-Expect several minutes per architecture on a cold build; CI enables zram for the
-compile stage. Override `FFMPEG_VERSION` or `NV_CODEC_HEADERS_TAG` via
-`docker build --build-arg` when testing newer upstream releases.
+See the full list of [references](./docs/references.md) used in this
+documentation. To change, rebuild, or test this image, see the
+[contributor guide](./docs/contributors.md).
