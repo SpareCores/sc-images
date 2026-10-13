@@ -13,9 +13,9 @@ synthetic `fio` load, not what an application will see through a filesystem.
 
 The output has one record per test and does *not* combine them into a single
 number. Navigator will publish bandwidth and IOPS (Input/Output Operations Per
-Second) at different block sizes, per disk and for all disks of a server
-together. The rest of the output, including any headline metric, is not
-decided yet.
+Second) at different block sizes, per disk and for each group of identical
+disks. The rest of the output, including any headline metric, is not decided
+yet.
 
 ### Other `fio` I/O Engines
 
