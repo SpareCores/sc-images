@@ -30,7 +30,7 @@ output.
 | [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, testing each distinct disk type of the host and multi-disk groups concurrently. |
 | [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeted CPUs with AVX-512. |
 | [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeted CPUs with AVX2 but no AVX-512. |
-| [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, using tensor parallelism across all available GPUs. |
+| [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, using the largest valid tensor-parallel size per model across all available GPUs. |
 | [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. |
 | [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory bandwidth benchmark with nvbandwidth, measuring host-to-device and device-to-device copy speeds. |
 | [`stress-ng`](images/stress-ng) | CPU benchmark running stress-ng stressors and counting their operations per second. |
@@ -41,7 +41,7 @@ output.
 | Image | Description |
 | ----- | ----------- |
 | [`dmidecode`](images/dmidecode) | Reads the server's DMI/SMBIOS tables with dmidecode to report hardware details such as memory modules and firmware. |
-| [`hwinfo`](images/hwinfo) | Collects CPU, memory, and topology details with lshw and hwloc, plus the measured CPU frequency. |
+| [`hwinfo`](images/hwinfo) | Collects CPU, memory, and topology details with hwloc, likwid, and lshw. |
 | [`virtualization`](images/virtualization) | Checks whether the server supports KVM hardware virtualization and reports the result as JSON. |
 
 ### Services
@@ -71,6 +71,12 @@ Run an image via Docker:
 docker run --rm ghcr.io/sparecores/<image>:main
 ```
 
+**Note:** Some images, such as `stress-ng`, `dmidecode`, and `hwinfo`, have no
+default command, so append the command to run after the image name. Others
+need extra parameters, such as environment variables or Docker options. The
+command and parameters production passes to each image are in sc-inspector's
+[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py).
+
 An image's README, where it has one, lists its settings, its output, and any
 extra Docker options it needs; otherwise, see its `Dockerfile`. Benchmark
 images run their workload under
@@ -81,40 +87,25 @@ Some images need the following extra Docker options:
 
 - **GPUs:** `--gpus all` for `benchmark-vllm-gpu`, `nvbandwidth`, and
   `llama.cpp`, and for the GPU runs of `benchmark-llm` and `benchmark-ffmpeg`.
+- **Shared memory:** `--shm-size=4g` for the `benchmark-vllm-*` images, which
+  fail with Docker's default 64&nbsp;MiB `/dev/shm`.
+- **Privileged mode:** `--privileged` for `dmidecode` and `virtualization`,
+  and for the images that raise their priority with `nice -n -20`:
+  `benchmark`, `benchmark-passmark`, `benchmark-pgbench-postgres`,
+  `benchmark-postgres-server`, `benchmark-redis`, and `benchmark-web`. Without
+  it, the `nice` images run at normal priority.
 - **Disk access:** `--privileged --pid=host` for `benchmark-storage`. It
   discards, overwrites, and unmounts the disks it tests, so do not run it on a
   machine with data you need.
 
-Production runs set their Docker options per task in sc-inspector's
-[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py),
-so they can differ from a plain `docker run`.
+## Contributing
 
-## Adding an Image
+See the following pages for maintaining and extending this repo:
 
-CI auto-discovers every folder under `images/` (any dir with a `Dockerfile` or `prepare.sh`) and builds it. Per-image behavior is declared with optional metadata files. The defaults cover simple single-stage images, so most folders need none of the following:
-
-| File | Meaning | Default |
-|------|---------|---------|
-| `DEPENDS_ON` | image folder names that must be published **before** this one (one per line) | none |
-| `PLATFORMS` | arches to build | `amd64 arm64` |
-| `CONTEXT` | build context, repo-relative | `images/<folder>` |
-| `DOCKERFILE` | Dockerfile path, repo-relative | `images/<folder>/Dockerfile` |
-| `TARGET` | build target stage | none |
-| `BUILD_ARGS` | `KEY=VALUE` lines; tokens `${ARCH}`, `${VLLM_VERSION}`, `${GUIDELLM_VERSION}`, `${RESOURCE_TRACKER_VERSION}` | none |
-| `ZRAM` | enable compressed swap on the builder (`true`/`1`/`yes`, or a PERCENT e.g. `125`) | off |
-| `SCCACHE` | enable sccache S3 compile cache for source builds (`true`/`1`/`yes`) | off |
-| `prepare.sh` | pre-build hook (clone sources, patch Dockerfile, emit BuildKit secret + parallelism) | none |
-| `DESCRIPTION` | one-sentence summary; published as the `org.opencontainers.image.description` label and index annotation, so it shows on the GHCR package page | none (CI warns) |
-| `CATEGORY` | group name: `benchmark`, `hardware-discovery`, `service`, or `base`; published as the `com.sparecores.image.category` label and used to group the [Images](#images) tables | none (CI warns) |
-
-[`resolve-build-plan.sh`](.github/scripts/resolve-build-plan.sh) topologically sorts folders by `DEPENDS_ON` into levels (0 = no deps). [`push.yml`](.github/workflows/push.yml) builds each level via the reusable [`build-level.yml`](.github/workflows/build-level.yml) and publishes it before the next, so a dependency is always available as a base image; [`read-image-config.sh`](.github/scripts/read-image-config.sh) resolves each folder's config at build time. No image names are hardcoded in the workflow.
-
-Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; `benchmark-vllm-cpu-avx2` also depends on `vllm-cpu-base-avx2` (source-compiled via `prepare.sh`). `benchmark-vllm-gpu` uses Hub `vllm/vllm-openai` for amd64 and arm64. Add a new dependent image by dropping a folder in `images/` with a `DEPENDS_ON` file.
-
-## CI and Build Internals
-
-See [CI and Build Internals](docs/ci.md) for how CI builds, caches, tracks,
-and publishes the images.
+- [Adding an Image](docs/contributors.md): the folder layout, the metadata
+  files that control each image's build, and how dependencies are ordered.
+- [CI and Build Internals](docs/ci.md): how CI builds, caches, tracks, and
+  publishes the images.
 
 ## License
 
