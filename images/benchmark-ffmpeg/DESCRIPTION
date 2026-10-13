@@ -1,1 +1,1 @@
-FFmpeg transcoding-capacity benchmark of audio and H.264/H.265 video encoding.
+FFmpeg benchmark of aggregate transcoding throughput: frames per second for H.264/H.265 video encoding and decoding on CPUs and NVIDIA GPUs, and audio seconds processed per second for audio encoding on CPUs.

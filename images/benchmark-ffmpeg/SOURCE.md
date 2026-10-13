@@ -25,8 +25,8 @@ License: [CC BY 3.0](https://mango.blender.org/sharing/).
 
 `source-hevc.mp4` is a local `libx265 -crf 18 -preset medium` transcode of that
 same excerpt so H.265 decode scenarios have a real HEVC bitstream without a
-second upstream download. See `README.md` (Fixtures) and
-`prepare-hevc-fixture.sh`.
+second upstream download. See `docs/workloads.md` (Test Media),
+`docs/contributors.md` (Test Media), and `prepare-hevc-fixture.sh`.
 
 Regenerate locally with `./prepare-video-fixture.sh`, `./prepare-hevc-fixture.sh`,
 add `source.flac`, then `./upload-fixtures.sh` (AWS profile `sc`).
@@ -37,7 +37,7 @@ The image compiles FFmpeg from upstream release tarballs instead of using the
 distro package. Build metadata is pinned in `BUILD_ARGS`:
 
 - `FFMPEG_VERSION` — currently `9.0.1` from [ffmpeg.org/releases](https://ffmpeg.org/releases/)
-- `NV_CODEC_HEADERS_TAG` — currently `n13.0.19.1` for amd64 NVENC/NVDEC only
+- `NV_CODEC_HEADERS_TAG` — currently `n13.0.19.1` for amd64 and arm64 NVENC/NVDEC
 
 The build script `build-ffmpeg.sh` enables only what the benchmark needs:
 
