@@ -66,8 +66,8 @@ following share of each NVMe
 - OVHcloud `i1-90`: 33% of each of two drives
 
 A disk that is not fully written keeps unmapped spare area, which flatters
-random-write results. Check `filled_fraction` in the fill record before
-comparing random-write results across disks. Setting
+random-write results. The fill record's `filled_fraction` shows how much of
+each disk the fill wrote. Setting
 `SC_STORAGE_WS_TARGET_BYTES` limits the fill, and all later tests, to a smaller
 region of each disk.
 

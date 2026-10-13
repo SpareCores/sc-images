@@ -29,10 +29,9 @@ Network storage attached on demand is out of scope, because its performance is
 not a property of the server type. See
 [Disk Scope](./docs/limitations.md#disk-scope).
 
-The main design goal is results that are comparable across vendors. SSDs absorb
-short bursts of writes in their own caches and spare area, so this benchmark
-preconditions each writable disk before measuring it, and runs write tests for
-longer than read tests. See
+SSDs absorb short bursts of writes in their own caches and spare area. To make
+results comparable across vendors, this benchmark preconditions each writable
+disk before measuring it, and runs write tests for longer than read tests. See
 [Preconditioning](./docs/workloads.md#preconditioning) for the steps.
 
 ## Limitations
