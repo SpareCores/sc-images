@@ -56,7 +56,8 @@ filesystem or application performance. The main limitations are:
   read tests only, on whatever data they already hold. See
   [Read-Only Disks](./docs/limitations.md#read-only-disks).
 - **No single score:** The output has one record per test, and no headline
-  metric is defined yet. See [Results](#results).
+  metric is defined yet. See
+  [A Single Score](./docs/limitations.md#a-single-score).
 
 ## Usage
 
@@ -125,7 +126,8 @@ See [Output](./docs/usage.md#output) for every field and its unit.
 
 ## Workloads
 
-Each group of identical disks runs the following steps, in this order:
+[`benchmark.py`](./benchmark.py) runs the following steps for each group of
+identical disks, in this order:
 
 - [Preconditioning](./docs/workloads.md#preconditioning) discards and fills
   each writable disk sequentially, and later writes it randomly before the
