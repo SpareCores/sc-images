@@ -27,8 +27,8 @@ limited by storage instead.
 ### A Specific Media Pipeline
 
 All jobs use the same pinned test media and fixed codec settings: a film clip
-of 30&nbsp;s at 1920x800 pixels and 24&nbsp;fps, and a music sample of about
-85&nbsp;s. See [Test Media](./workloads.md#test-media) for details.
+of 30 s at 1920x800 pixels and 24 fps, and a music sample of about
+85 s. See [Test Media](./workloads.md#test-media) for details.
 
 The results do *not* predict the speed of other resolutions, frame rates,
 content, codec settings, or codecs, such as AV1
@@ -104,7 +104,7 @@ quality setting the CPU encodes use. The scenarios use the following settings:
 
 A sweep of NVENC quality levels on the test clip found that `-cq 22` matched
 `libx264 -crf 18` most closely, at an SSIM to the source of about 0.9937 and a
-bitrate of about 4&nbsp;Mbps. The match is approximate, not exact, so compare
+bitrate of about 4 Mbps. The match is approximate, not exact, so compare
 CPU and GPU encode rates with that in mind. See the
 [NVENC CQ sweep](../CHANGELOG.md#nvenc-cq-sweep) for the data.
 

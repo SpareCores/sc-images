@@ -74,7 +74,7 @@ Production runs the container privileged and with host networking; a plain
 results with production runs.
 
 A production run on an AWS ([Amazon Web Services](https://aws.amazon.com/))
-`m9g.16xlarge` took about 10&nbsp;minutes. Run time grows with the number of
+`m9g.16xlarge` took about 10 minutes. Run time grows with the number of
 worker counts measured, and with GPU scenarios. See
 [Run Duration](./docs/usage.md#run-duration) for the steps and timeouts.
 
@@ -85,14 +85,14 @@ The following settings are the most common; see the
 for all options and defaults:
 
 - `FFMPEG_BENCH_TARGET_SECONDS` sets the wall time of each measured repetition
-  (default 5&nbsp;s).
+  (default 5 s).
 - `FFMPEG_BENCH_REPETITIONS` and `FFMPEG_BENCH_MAX_REPETITIONS` set how many
   repetitions run at each worker count (default three, up to five).
 - `FFMPEG_BENCH_WORKERS` replaces the automatic worker counts with an explicit,
   comma-separated list.
 - `FFMPEG_BENCH_MAX_WORKERS` caps the number of parallel workers.
 - `FFMPEG_BENCH_TIMEOUT_SECONDS` sets the deadline for the whole run (default
-  7,200&nbsp;s).
+  7,200 s).
 
 ### Results
 

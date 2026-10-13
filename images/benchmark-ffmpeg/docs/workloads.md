@@ -4,21 +4,21 @@
 
 Every audio job decodes the bundled FLAC
 ([Free Lossless Audio Codec](https://xiph.org/flac/)) music sample, resamples
-it, and encodes stereo output with one codec thread, using Vorbis, Opus, AAC
-([Advanced Audio Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)), MP3, or
-FLAC. The audio scenarios run on the CPU only; see
+it when needed, and encodes stereo output with one codec thread, using Vorbis,
+Opus, AAC ([Advanced Audio Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)),
+MP3, or FLAC. The audio scenarios run on the CPU only; see
 [Audio on the CPU Only](./limitations.md#audio-on-the-cpu-only).
 
 | Scenario | Encoder | Settings | Sample rate |
 | --- | --- | --- | --- |
-| `ogg_vorbis_160k` | `libvorbis` | 160&nbsp;kbps | 44.1&nbsp;kHz |
-| `opus_128k` | `libopus` | 128&nbsp;kbps | 48&nbsp;kHz |
-| `aac_128k` | `aac` (FFmpeg's native AAC encoder) | 128&nbsp;kbps | 44.1&nbsp;kHz |
-| `mp3_192k` | `libmp3lame` | 192&nbsp;kbps | 44.1&nbsp;kHz |
-| `flac_lossless` | `flac` (FFmpeg's native FLAC encoder) | Compression level 5 | 44.1&nbsp;kHz |
+| `ogg_vorbis_160k` | `libvorbis` | 160 kbps | 44.1 kHz |
+| `opus_128k` | `libopus` | 128 kbps | 48 kHz |
+| `aac_128k` | `aac` (FFmpeg's native AAC encoder) | 128 kbps | 44.1 kHz |
+| `mp3_192k` | `libmp3lame` | 192 kbps | 44.1 kHz |
+| `flac_lossless` | `flac` (FFmpeg's native FLAC encoder) | Compression level 5 | 44.1 kHz |
 
-`opus_128k` uses 48&nbsp;kHz because `libopus` accepts only 8, 12, 16, 24, or
-48&nbsp;kHz, not the sample's 44.1&nbsp;kHz.
+`opus_128k` uses 48 kHz because `libopus` accepts only 8, 12, 16, 24, or
+48 kHz, not the sample's 44.1 kHz.
 
 Audio results are reported as `audio_seconds_per_sec`: seconds of audio
 processed per second of wall time, across all workers.
@@ -69,10 +69,10 @@ Delivery Network) and checks each file's SHA-256
 checksum. At run time, the H.264 and H.265 clips are checked again; the audio
 file is not. The files are the following:
 
-- **H.264 clip** (`source.mp4`): an excerpt of 30&nbsp;s from the Blender
+- **H.264 clip** (`source.mp4`): an excerpt of 30 s from the Blender
   Foundation's open movie [Tears of Steel](https://mango.blender.org/), cut at
-  60&nbsp;s from the 1080p release with stream copy. It is 1920x800 pixels at
-  24&nbsp;fps. License: CC BY 3.0
+  60 s from the 1080p release with stream copy. It is 1920x800 pixels at
+  24 fps. License: CC BY 3.0
   ([Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/)),
   as stated on the
   [Tears of Steel sharing page](https://mango.blender.org/sharing/).
@@ -80,7 +80,7 @@ file is not. The files are the following:
   `libx265 -crf 18 -preset medium`, so the H.265 decode scenarios get the same
   frame size, frame rate, and duration.
 - **Music sample** (`source.flac`): the "Entre dos Aguas" sample performed by
-  Michael Laucke, about 85&nbsp;s at 44.1&nbsp;kHz. License: CC0 1.0
+  Michael Laucke, about 85 s at 44.1 kHz. License: CC0 1.0
   ([Creative Commons Zero 1.0](https://creativecommons.org/publicdomain/zero/1.0/)).
 
 Each job loops its input (`-stream_loop -1`) and stops after the media length

@@ -62,8 +62,8 @@ all lower the worker counts:
 
 - `--cpus` (cgroup `cpu.max`)
 - `--cpuset-cpus` (CPU affinity)
-- `--memory` (`memory.max`): each audio worker is budgeted 64&nbsp;MiB and each
-  video worker 320&nbsp;MiB of available memory.
+- `--memory` (`memory.max`): each audio worker is budgeted 64 MiB and each
+  video worker 320 MiB of available memory.
 - `--pids-limit` (`pids.max`): each worker is budgeted
   `FFMPEG_BENCH_PID_TASKS_PER_WORKER` tasks (default four), because the PID
   (Process Identifier) limit counts threads, not only processes.
@@ -73,8 +73,8 @@ The output records the limits it found in `host`, including `cgroup_cpu_max`,
 `cgroup_cpu_stat_after` snapshots. The `_gb` memory fields are in GiB.
 
 The harness copies the test media into a work directory on `/dev/shm` when it
-has at least 512&nbsp;MiB free, and into the default temporary directory
-otherwise. Docker's default `/dev/shm` is 64&nbsp;MiB, so a plain `docker run`
+has at least 512 MiB free, and into the default temporary directory
+otherwise. Docker's default `/dev/shm` is 64 MiB, so a plain `docker run`
 uses `/tmp`.
 
 ## Worker Counts
@@ -116,11 +116,11 @@ The following settings change the worker counts:
 
 Each scenario runs the following steps:
 
-1. A one-worker probe with 1&nbsp;s of video or 5&nbsp;s of audio checks that
+1. A one-worker probe with 1 s of video or 5 s of audio checks that
    the scenario can run and estimates its speed. A scenario whose probe fails is
    skipped.
 2. At each worker count, a pilot run sizes the media for each worker so that
-   one repetition takes about `FFMPEG_BENCH_TARGET_SECONDS` (default 5&nbsp;s)
+   one repetition takes about `FFMPEG_BENCH_TARGET_SECONDS` (default 5 s)
    of wall time. Faster servers therefore process more media in the same time.
    A successful pilot is not reported; a pilot that still fails after up to four
    attempts is reported as a failed repetition and ends the scenario.
@@ -129,26 +129,26 @@ Each scenario runs the following steps:
    repetition with a failed worker ends the worker count.
 
 Each repetition, including pilots, times out after
-`FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` (default 30&nbsp;s), and workers that
+`FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` (default 30 s), and workers that
 run past it count as failed. The whole run stops after
-`FFMPEG_BENCH_TIMEOUT_SECONDS` (default 7,200&nbsp;s); scenarios that have not
+`FFMPEG_BENCH_TIMEOUT_SECONDS` (default 7,200 s); scenarios that have not
 started by then are reported as skipped with `overall_timeout`.
 
 Total run time therefore depends on the number of scenarios that run and the
-worker counts each one measures. A production run on a 64&nbsp;vCPU AWS
+worker counts each one measures. A production run on a 64 vCPU AWS
 ([Amazon Web Services](https://aws.amazon.com/)) `m9g.16xlarge` without GPUs
 measured every CPU and audio scenario at 1, 32, and 64 workers and took about
-10&nbsp;minutes
+10 minutes
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/ffmpeg)).
 Across 372 production runs of harness version 3.2.1, run time ranged from about
-3&nbsp;minutes on servers with 2&nbsp;vCPUs to about 17&nbsp;minutes on GPU
-servers, with a median of about 9.5&nbsp;minutes.
+3 minutes on servers with 2 vCPUs to about 17 minutes on GPU
+servers, with a median of about 9.5 minutes.
 
 ### Repetition Length
 
-Each repetition targets 5&nbsp;s of wall time by default. Because the pilot
+Each repetition targets 5 s of wall time by default. Because the pilot
 scales the media to that target, larger servers process more media in the same
-time instead of running longer. For a study of 2, 5, and 10&nbsp;s targets, see
+time instead of running longer. For a study of 2, 5, and 10 s targets, see
 [Why 5 Seconds](../CHANGELOG.md#why-5-seconds).
 
 ### Shorter Test Runs
@@ -180,12 +180,12 @@ noted below:
 
 - The container runs privileged and with host networking. This benchmark does
   not need either, and a plain `docker run` uses neither.
-- No `--shm-size` is set, so `/dev/shm` keeps Docker's 64&nbsp;MiB default and
+- No `--shm-size` is set, so `/dev/shm` keeps Docker's 64 MiB default and
   the test media is copied to `/tmp`, as in a plain run.
 - GPUs are requested for the container, equivalent to `--gpus all`. If that
   fails, the run is retried without GPUs.
-- The task timeout is 2&nbsp;hours, the same as the harness default.
-- Production skips servers with less than 1&nbsp;GiB of memory. The image does
+- The task timeout is 2 hours, the same as the harness default.
+- Production skips servers with less than 1 GiB of memory. The image does
   not enforce this minimum.
 
 Failed production runs are investigated and then run again.

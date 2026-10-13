@@ -67,8 +67,8 @@ into the image at `/opt/benchmark-ffmpeg/SOURCE.md`, so keep the file.
 To regenerate the files, complete the following steps:
 
 1. [`prepare-video-fixture.sh`](../prepare-video-fixture.sh) downloads the
-   Tears of Steel 1080p release and cuts the H.264 excerpt of 30&nbsp;s,
-   starting at 60&nbsp;s, with stream copy, into `source.mp4`.
+   Tears of Steel 1080p release and cuts the H.264 excerpt of 30 s,
+   starting at 60 s, with stream copy, into `source.mp4`.
 2. [`prepare-hevc-fixture.sh`](../prepare-hevc-fixture.sh) transcodes
    `source.mp4` into `source-hevc.mp4` with `libx265 -crf 18 -preset medium`.
 3. Download the original FLAC music sample from
@@ -89,5 +89,6 @@ pinned:
 - [`benchmark.py`](../benchmark.py), which verifies the video files again at
   run time and reports the audio hash in its output.
 - The defaults in `prepare-video-fixture.sh` and `prepare-hevc-fixture.sh`.
+- The SHA-256 table in [`SOURCE.md`](../SOURCE.md).
 
 The fixture files themselves are ignored by Git.
