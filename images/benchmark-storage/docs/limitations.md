@@ -32,6 +32,13 @@ HDDs (Hard Disk Drives), or a network drive behind the scenes. Network storage
 attached on demand is out of scope, because its performance is not a property
 of the server type.
 
+Results reflect the bundled storage as provisioned with the server type,
+regardless of the underlying medium. A result may therefore be bounded by a
+constraint outside the drive itself, such as a provider-imposed IOPS or
+bandwidth limit on network-attached storage, or the mechanical limits of an
+HDD. This benchmark does not attribute results to a specific cause: it reports
+performance as measured, and Navigator publishes those measurements.
+
 The image does *not* detect which disks are bundled. It tests every real block
 device that passes
 [discovery](./workloads.md#disk-discovery-and-grouping), including any volume

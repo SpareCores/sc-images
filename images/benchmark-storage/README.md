@@ -22,11 +22,13 @@ benchmark adds storage performance: Navigator will publish bandwidth and IOPS
 at different block sizes, both per disk and for all disks of a server
 together.
 
-This benchmark covers a server type's bundled storage: the disk or disks that
-come with the server type by default. Depending on the provider, these can be
-locally attached SSDs or HDDs (Hard Disk Drives), or a network drive behind the
-scenes. Network storage that you attach on demand is out of scope, because its
-performance is not a property of the server type.
+This benchmark focuses on a server type's bundled storage: the disk or disks
+provisioned with the server type by default, regardless of whether HDDs (Hard
+Disk Drives), SSDs, or network-attached storage back them. Results reflect the
+storage as provisioned, including any provider-imposed IOPS or bandwidth limit.
+Network storage attached on demand is out of scope, because its performance is
+not a property of the server type. See
+[Disk Scope](./docs/limitations.md#disk-scope).
 
 The main design goal is results that are comparable across vendors. SSDs absorb
 short bursts of writes in their own caches and spare area, so this benchmark
