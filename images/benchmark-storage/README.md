@@ -77,7 +77,8 @@ writes to.
 Both flags are required. `--privileged` gives the container raw access to the
 host's disks. `--pid=host` lets it read the host's mount table from
 `/proc/1/mountinfo` and unmount filesystems in the host's mount namespace, which
-the disk safety checks depend on. See
+the disk safety checks depend on. The image does not check if it runs in the
+host's PID namespace. See
 [Production Setup](./docs/usage.md#production-setup) for how production runs
 differ.
 

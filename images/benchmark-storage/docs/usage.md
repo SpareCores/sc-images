@@ -34,7 +34,8 @@ test if a disk is mounted, used as swap, or held again. `fio` also runs with
 
 The mount checks read the host's mount table from `/proc/1/mountinfo` and
 unmount through `nsenter` in the host's mount namespace. Both need
-`--pid=host`.
+`--pid=host`. This benchmark does not check if it runs in the host's PID
+namespace.
 
 Note that `SC_STORAGE_UMOUNT=0` does not protect disks that are not mounted:
 this benchmark always writes to them. There is no setting for a read-only run.
@@ -47,9 +48,11 @@ Production runs the container with the following settings:
 - a timeout of 1&nbsp;hour
 - after the benchmarks that have a set priority, because this benchmark may
   unmount and overwrite free disks
+- Resource Tracker settings, so the tracker that wraps this benchmark streams
+  the run's resource usage to the Spare Cores Sentinel platform
 
-A plain `docker run` with `--privileged --pid=host` behaves the same, apart from
-host networking, which this benchmark does not use.
+A plain `docker run` with `--privileged --pid=host` runs the same tests, but
+without host networking and without the Resource Tracker settings.
 
 Production runs this benchmark on ephemeral servers, on every server type with
 bundled storage: the
