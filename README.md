@@ -28,8 +28,8 @@ output.
 | [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per second and latency against a local or remote server. |
 | [`benchmark-redis`](images/benchmark-redis) | Redis 7.4 in-memory key-value store benchmark. |
 | [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, testing each distinct disk type of the host and multi-disk groups concurrently. |
-| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeted CPUs with AVX-512. |
-| [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeted CPUs with AVX2 but no AVX-512. |
+| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX-512 and ARM64 CPUs. |
+| [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX2 but no AVX-512. |
 | [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, using the largest valid tensor-parallel size per model across all available GPUs. |
 | [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. |
 | [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory bandwidth benchmark with nvbandwidth, measuring host-to-device and device-to-device copy speeds. |
@@ -72,7 +72,7 @@ docker run --rm ghcr.io/sparecores/<image>:main
 ```
 
 **Note:** Some images, such as `stress-ng`, `dmidecode`, and `hwinfo`, have no
-default command, so append the command to run after the image name. Others
+default command, so append the command (such as `-c 'stress-ng --cpu 1'`) to run after the image name. Others
 need extra parameters, such as environment variables or Docker options. The
 command and parameters production passes to each image are in sc-inspector's
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py).
@@ -89,7 +89,7 @@ Some images need the following extra Docker options:
   `llama.cpp`, and for the GPU runs of `benchmark-llm` and `benchmark-ffmpeg`.
 - **Shared memory:** `--shm-size=4g` for the `benchmark-vllm-*` images, which
   fail with Docker's default 64&nbsp;MiB `/dev/shm`.
-- **Privileged mode:** `--privileged` for `dmidecode` and `virtualization`,
+- **Privileged mode:** `--privileged` for `dmidecode`, `hwinfo`, and `virtualization`,
   and for the images that raise their priority with `nice -n -20`:
   `benchmark`, `benchmark-passmark`, `benchmark-pgbench-postgres`,
   `benchmark-postgres-server`, `benchmark-redis`, and `benchmark-web`. Without
