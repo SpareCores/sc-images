@@ -1,0 +1,17 @@
+name: Check README
+# The Images tables of README.md list every image under its CATEGORY with its
+# DESCRIPTION; they are written by hand, so check them on every change.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  check-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Check the Images tables of README.md
+        run: python3 .github/scripts/check-readme-images.py
