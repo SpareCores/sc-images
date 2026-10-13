@@ -171,8 +171,9 @@ Each `read` and `write` result has the following fields:
 - `iops_interval` and `bw_bytes_interval`: statistics over 500&nbsp;ms windows,
   with `min`, `p5`, `p50`, `p95`, `max`, `mean`, `tail_mean`, and `samples`
 
-`tail_mean` is the mean of the second half of the run, which leaves out the
-time a drive spends draining its write buffer. Multi-job and multi-disk results
+`tail_mean` is the mean of the second half of the run. It leaves out the
+initial burst and includes the time a drive may still spend draining its write
+buffer. Multi-job and multi-disk results
 are merged: IOPS and bandwidth are summed, and latency percentiles come from
 the merged `fio` latency histograms. Preconditioning records also have
 `iops_series` and `bw_bytes_series`, averaged over 5&nbsp;s steps
