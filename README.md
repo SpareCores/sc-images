@@ -1,131 +1,112 @@
 # sc-images
 
-Spare Cores container images for hardware inspection and benchmarking workloads.
+Container images that inspect hardware and benchmark the performance of cloud
+servers. [sc-inspector](https://github.com/SpareCores/sc-inspector) runs them
+on each server type, and [Navigator](https://sparecores.com/servers) publishes
+the results for over 5,000 cloud server types.
 
-## resource-tracker
-
-Benchmark images copy the static [resource-tracker](https://github.com/SpareCores/resource-tracker-rs) binary from [`ghcr.io/sparecores/resource-tracker`](images/resource-tracker). The release version is defined in [`images/resource-tracker/RESOURCE_TRACKER_VERSION`](images/resource-tracker/RESOURCE_TRACKER_VERSION).
-
-CI publishes per-arch tags (`main-amd64`, `main-arm64`) during the build matrix; the per-level `merge` step then creates the `main` multi-arch manifest. Benchmark image builds use `RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main-<arch>` so they can resolve the binary without waiting for the merged tag.
-
-Force-rebuild all resource-tracker consumer images without registry cache: set `FORCE_REBUILD_RESOURCE_TRACKER` to `"true"` in [`.github/workflows/push.yml`](.github/workflows/push.yml), or use **Actions → Build and publish Spare Cores images → Run workflow** (`force_rebuild_resource_tracker`).
-
-### CI build tracking
-
-Every image build job runs resource-tracker in **standalone mode** (no wrapped command, no `--pid`) while `docker buildx build` runs in parallel. `docker buildx` only drives buildkitd over the API, so compiles do not appear in a shell-wrapper process tree; without a tracked PID, resource-tracker collects system-wide CPU, memory, disk, and network (see [Usage.md](https://github.com/SpareCores/resource-tracker-rs/blob/main/resource-tracker-rs-book/src/Usage.md): *"Leave unset [pid] to collect system-wide metrics only"*). Metrics are sent to [Sentinel](https://sentinel.sparecores.net) when the repo secret **`SENTINEL_API_TOKEN`** is set (Settings → Secrets and variables → Actions → Secrets). Without the token, tracking runs locally only and Sentinel upload is skipped.
-
-Job metadata (mirrors [sc-inspector](https://github.com/SpareCores/sc-inspector) benchmark runs):
-
-| Variable | CI default |
-|----------|------------|
-| `TRACKER_PROJECT_NAME` | `sc-images` |
-| `TRACKER_JOB_NAME` | matrix entry name, e.g. `benchmark-vllm-gpu (arm64)` |
-| `TRACKER_TASK_NAME` | image folder, e.g. `benchmark-vllm-gpu` |
-| `TRACKER_STAGE_NAME` | workflow name |
-| `TRACKER_EXTERNAL_RUN_ID` | `github.run_id`-`github.run_attempt` |
-| `TRACKER_CONTAINER_IMAGE` | `ghcr.io/sparecores/<folder>:main-<arch>` |
-| `TRACKER_ORCHESTRATOR` | `github-actions` |
-| `TRACKER_ENV` | `ci` |
-| `TRACKER_QUIET` | `true` (no metric spam in build logs) |
-
-Scripts: [`install-resource-tracker.sh`](.github/scripts/install-resource-tracker.sh), [`run-with-resource-tracker.sh`](.github/scripts/run-with-resource-tracker.sh), [`build-push-image.sh`](.github/scripts/build-push-image.sh).
-
-### CI runners
-
-Push builds use GitHub-hosted runners (`ubuntu-latest` for amd64, `ubuntu-24.04-arm` for arm64).
-
-Manual **Run workflow** checkboxes (default off):
-
-| Input | When enabled |
-|-------|----------------|
-| `self_hosted_x64` | amd64 → `[self-hosted, Linux, X64]` |
-| `self_hosted_arm64` | arm64 → `[self-hosted, Linux, ARM64]` |
-
-Images with a `ZRAM` metadata file run [`.github/scripts/setup-zram.sh`](.github/scripts/setup-zram.sh) before the build (`PERCENT=125` by default → compressed swap ≈ 1.25× RAM). Currently enabled for [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) (source-compiled CPU image). On **GitHub-hosted** Azure kernels, `zram` is in `linux-modules-extra-$(uname -r)` ([Launchpad #1762756](https://bugs.launchpad.net/ubuntu/bionic/+source/linux-azure/+bug/1762756)); the script installs that package when needed. If the extra-modules deb is missing from apt (kernel/image drift), it keeps the default `/swapfile`. Tune the default percent via workflow `env` `ZRAM_PERCENT`, or override per image with a numeric `ZRAM` value.
-
-[`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) compile parallelism is computed by [`.github/scripts/compute-build-parallelism.sh`](.github/scripts/compute-build-parallelism.sh) (RAM-linear on self-hosted, conservative on GitHub-hosted). GPU images use the multi-arch Hub [`vllm/vllm-openai`](https://hub.docker.com/r/vllm/vllm-openai/tags) base — no in-repo CUDA source build.
-
-### sccache (vLLM source builds)
-
-Images with a `SCCACHE` metadata file compile C++/CUDA through [sccache](https://github.com/mozilla/sccache) with an S3 backend. Infrastructure lives in [`sc-infra/prod/spare-cores/sc_images.py`](https://github.com/SpareCores/sc-infra/blob/main/prod/spare-cores/sc_images.py) (bucket in `us-west-2`, 90-day lifecycle).
-
-Repo configuration (set by Pulumi after `pulumi up`):
-
-| Name | Kind | Purpose |
-|------|------|---------|
-| `SCCACHE_BUCKET` | Actions variable | S3 bucket name |
-| `SCCACHE_REGION` | Actions variable | Bucket region (`us-west-2`) |
-| `SC_IMAGES_GHA_ROLE_ARN` | Actions secret | OIDC role for read/write on the bucket |
-
-Each build uses prefix `{folder}/{arch}/` (e.g. `vllm-cpu-base-avx2/amd64/`) via `SCCACHE_S3_KEY_PREFIX`. Docker layer cache is exported to **GHCR** (`buildcache-<arch>`) and **GitHub Actions cache** (`type=gha`, scope `{folder}-{arch}` or `{folder}-{arch}-v{VLLM_VERSION}` for source-built vLLM CPU base). sccache caches compiler objects inside the vLLM source compile steps.
-
-Coverage when enabled:
-
-| Stage | Mechanism |
-|-------|-----------|
-| `rust-build` | `RUSTC_WRAPPER=/usr/bin/sccache` for cargo; `CC`/`CXX` absolute paths for build-script C compiles (openssl-sys, etc.) |
-| `csrc-build` / `vllm-build` wheel | CMake compiler launchers via setup.py (`CMAKE_*_COMPILER_LAUNCHER=sccache`); `RUSTC_WRAPPER` unset so C++ is not double-wrapped |
-
-`sccache` v0.15.0 is installed to `/usr/bin/sccache`. `SCCACHE_IGNORE_SERVER_IO_ERROR=1` falls back to local compiles if the cache server is unreachable.
-
-Currently enabled for `vllm-cpu-base-avx2`.
-
-### Sharing the layer cache between GitHub- and self-hosted runners
-
-A slow image can be pre-warmed on a self-hosted runner and then finished quickly on a GitHub-hosted one, but only if both produce identical BuildKit cache keys. Two things break that by default, and both are handled for source-built images:
-
-- **Floating base tags and per-runner build args.** `ARG max_jobs` and `ENV CARGO_BUILD_JOBS` are baked to the 64 GiB reference values and `FROM ubuntu:22.04` is pinned by digest, so the Dockerfile is byte-identical everywhere ([`.github/scripts/tune-vllm-cpu-dockerfile.sh`](.github/scripts/tune-vllm-cpu-dockerfile.sh) prints its `sha256`). Actual parallelism is injected at build time through the `vllm_parallelism` BuildKit secret, whose *content* is excluded from the cache key.
-- **Build context ownership.** BuildKit hashes local contexts with a V1 tarsum covering name, mode, uid, gid, size and content — `mtime` is excluded, uid/gid are not. GitHub-hosted runners check out as `runner`, self-hosted ones as `ubuntu`, so identical sources would hash differently and every `COPY` (plus the entire graph below it) would miss. [`.github/scripts/normalize-context-ownership.sh`](.github/scripts/normalize-context-ownership.sh) chowns the context to a canonical `0:0` before the build; `build-level.yml` reclaims workspace ownership on persistent runners before `actions/checkout` cleans it.
-
-Changing any of the above invalidates the published `buildcache-<arch>`, so re-warm once on a self-hosted runner before relying on it from GitHub-hosted runners.
-
-## Build framework
-
-CI auto-discovers every folder under `images/` (any dir with a `Dockerfile` or `prepare.sh`) and builds it. Per-image behaviour is declared with optional metadata files — defaults cover simple single-stage images, so most folders need none:
-
-| File | Meaning | Default |
-|------|---------|---------|
-| `DEPENDS_ON` | image folder names that must be published **before** this one (one per line) | none |
-| `PLATFORMS` | arches to build | `amd64 arm64` |
-| `CONTEXT` | build context, repo-relative | `images/<folder>` |
-| `DOCKERFILE` | Dockerfile path, repo-relative | `images/<folder>/Dockerfile` |
-| `TARGET` | build target stage | none |
-| `BUILD_ARGS` | `KEY=VALUE` lines; tokens `${ARCH}`, `${VLLM_VERSION}`, `${GUIDELLM_VERSION}`, `${HAMMERDB_VERSION}`, `${BENCHBASE_VERSION}`, `${BENCHBASE_IMAGE_DIGEST}`, `${RESOURCE_TRACKER_VERSION}` | none |
-| `ZRAM` | enable compressed swap on the builder (`true`/`1`/`yes`, or a PERCENT e.g. `125`) | off |
-| `SCCACHE` | enable sccache S3 compile cache for source builds (`true`/`1`/`yes`) | off |
-| `prepare.sh` | pre-build hook (clone sources, patch Dockerfile, emit BuildKit secret + parallelism) | none |
-| `DESCRIPTION` | one-sentence summary; published as the `org.opencontainers.image.description` label and index annotation, so it shows on the GHCR package page | none (CI warns) |
-| `CATEGORY` | group name, e.g. `benchmark` or `hardware-discovery`; published as the `com.sparecores.image.category` label | none (CI warns) |
-
-[`resolve-build-plan.sh`](.github/scripts/resolve-build-plan.sh) topologically sorts folders by `DEPENDS_ON` into levels (0 = no deps). [`push.yml`](.github/workflows/push.yml) builds each level via the reusable [`build-level.yml`](.github/workflows/build-level.yml) and publishes it before the next, so a dependency is always available as a base image; [`read-image-config.sh`](.github/scripts/read-image-config.sh) resolves each folder's config at build time. No image names are hardcoded in the workflow.
-
-### Layer compression
-
-Published images use **zstd** layer compression (`oci-mediatypes=true`, `force-compression=true`) so pulls on sc-inspector VMs decompress faster than gzip (Docker’s default). Requires Docker Engine ≥ 23.0 on pull clients. Implemented in [`build-push-image.sh`](.github/scripts/build-push-image.sh); override with `BUILD_COMPRESSION=gzip` to revert to the legacy format.
-
-CI push compression runs inside BuildKit’s Go zstd encoder ([moby/buildkit#2345](https://github.com/moby/buildkit/issues/2345)); there is no `zstd -T` equivalent exposed on `docker buildx build`. It uses limited block-level concurrency (tied to `GOMAXPROCS` in the buildkitd container), not libzstd’s multi-threaded mode.
-
-Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; `benchmark-vllm-cpu-avx2` also depends on `vllm-cpu-base-avx2` (source-compiled via `prepare.sh`). `benchmark-vllm-gpu` uses Hub `vllm/vllm-openai` for amd64 and arm64. Add a new dependent image by dropping a folder in `images/` with a `DEPENDS_ON` file.
+Each folder under [`images/`](images) is published as
+`ghcr.io/sparecores/<folder>:main`, built for amd64 and arm64 unless its
+README says otherwise. Every image's GHCR package page shows this README. To
+find the docs for an image, look it up in [Images](#images) and follow its
+link to the image folder.
 
 ## Images
 
-- [benchmark](images/benchmark) - Hardware benchmarks for memory bandwidth, compression, OpenSSL crypto operations, and Geekbench tests
-- [benchmark-llm](images/benchmark-llm) - LLM inference speed benchmarks using `llama.cpp` with different models and token lengths for prompt processing and text generation
-- [vllm-common](vllm-common) - Shared vLLM pin and harness (`benchmark.py`); not a published image
-- [benchmark-vllm-gpu](images/benchmark-vllm-gpu) - vLLM GPU serving via Hub `vllm/vllm-openai` + [GuideLLM](https://github.com/vllm-project/guidellm) (amd64 + arm64, multi-GPU TP)
-- [benchmark-vllm-cpu](images/benchmark-vllm-cpu) - vLLM CPU serving on Hub image (AVX-512 amd64 + arm64)
-- [benchmark-vllm-cpu-avx2](images/benchmark-vllm-cpu-avx2) - vLLM CPU serving for AVX2-only amd64
-- [vllm-cpu-base-avx2](images/vllm-cpu-base-avx2) - amd64 AVX2 vLLM base built from upstream `Dockerfile.cpu`
-- [benchmark-passmark](images/benchmark-passmark) - PassMark Performance Test benchmarking suite for CPU and memory performance
-- [benchmark-hammerdb-postgres](images/benchmark-hammerdb-postgres) - HammerDB PostgreSQL benchmark wrapper (`tpcorg/hammerdb:v5.0-postgres` + resource-tracker)
-- [benchmark-pgbench-postgres](images/benchmark-pgbench-postgres) - `pgbench` PostgreSQL benchmark client: built-in TPC-B-like OLTP mix, and a cached CPU-heavy custom transaction spanning btree/GIN/BRIN, hash/merge join, full text search, arrays, TOAST, and statistical aggregates
-- [benchmark-postgres-server](images/benchmark-postgres-server) - PostgreSQL 18 server for multi-VM DB benchmarks (`postgres:18` + resource-tracker)
-- [benchmark-redis](images/benchmark-redis) - Redis server performance benchmarks using `memtier_benchmark`
-- [benchmark-web](images/benchmark-web) - Static web server performance benchmarks using `wrk` and `binserve`
-- [dmidecode](images/dmidecode) - Hardware information reader using `dmidecode`
-- [hwinfo](images/hwinfo) - Hardware information tools including `likwid` and `lshw`
-- [nvbandwidth](images/nvbandwidth) - NVIDIA GPU memory bandwidth measurement tool
-- [resource-tracker](images/resource-tracker) - resource-tracker binary distributed for use in benchmark images
-- [stress-ng](images/stress-ng) - Stress testing CPU using the `div16` method on variable number of virtual CPU cores
-- [stress-ng-longrun](images/stress-ng-longrun) - 24-hour stress-ng longrun benchmark
-- [virtualization](images/virtualization) - Check if virtualization is supported on the host machine via KVM
+The following tables list the images by their `CATEGORY`. Where an image has a
+README, it covers what the image measures, how to run it, and how to read its
+output.
+
+### Benchmarks
+
+| Image | Description |
+| ----- | ----------- |
+| [`benchmark`](images/benchmark) | General CPU, memory, and compression benchmarks: Geekbench, OpenSSL speed, lmbench memory bandwidth (bw_mem), and compression of the Silesia corpus. |
+| [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | FFmpeg transcoding-capacity benchmark of audio and H.264/H.265 video encoding. |
+| [`benchmark-llm`](images/benchmark-llm) | Low-concurrency LLM inference speed benchmark with llama.cpp's llama-bench, measuring prompt processing and text generation across models and token counts. |
+| [`benchmark-passmark`](images/benchmark-passmark) | PassMark PerformanceTest CPU and memory benchmark suite. |
+| [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per second and latency against a local or remote server. |
+| [`benchmark-redis`](images/benchmark-redis) | Redis 7.4 in-memory key-value store benchmark. |
+| [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, testing each distinct disk type of the host and multi-disk groups concurrently. |
+| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX-512 and ARM64 CPUs. |
+| [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX2 but no AVX-512. |
+| [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, using the largest valid tensor-parallel size per model across all available GPUs. |
+| [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. |
+| [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory bandwidth benchmark with nvbandwidth, measuring host-to-device and device-to-device copy speeds. |
+| [`stress-ng`](images/stress-ng) | CPU benchmark running stress-ng stressors and counting their operations per second. |
+| [`stress-ng-longrun`](images/stress-ng-longrun) | Pinned stress-ng version for the 24-hour long-running benchmark. |
+
+### Hardware Discovery
+
+| Image | Description |
+| ----- | ----------- |
+| [`dmidecode`](images/dmidecode) | Reads the server's DMI/SMBIOS tables with dmidecode to report hardware details such as memory modules and firmware. |
+| [`hwinfo`](images/hwinfo) | Collects CPU, memory, and topology details with hwloc, likwid, and lshw. |
+| [`virtualization`](images/virtualization) | Checks whether the server supports KVM hardware virtualization and reports the result as JSON. |
+
+### Services
+
+| Image | Description |
+| ----- | ----------- |
+| [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server running at high priority, used as the remote target of database benchmarks. |
+| [`llama.cpp`](images/llama.cpp) | llama.cpp server (llama-server) with CUDA support, built from a pinned commit. |
+
+### Base Images
+
+| Image | Description |
+| ----- | ----------- |
+| [`resource-tracker`](images/resource-tracker) | Spare Cores resource-tracker binary, copied into the other images to record resource usage while benchmarks run. |
+| [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 but no AVX-512, used as the base of benchmark-vllm-cpu-avx2. |
+
+Some images share one manual, and their READMEs cover only what differs. The
+[vLLM manual](vllm-common) in `vllm-common/`, which is not a published image,
+covers the `benchmark-vllm-*` images. `benchmark-pgbench-postgres` covers
+`benchmark-postgres-server`, and `stress-ng` covers `stress-ng-longrun`.
+
+## Usage
+
+Run an image via Docker:
+
+```shell
+docker run --rm ghcr.io/sparecores/<image>:main
+```
+
+**Note:** Some images, such as `stress-ng`, `dmidecode`, and `hwinfo`, have no
+default command, so append the command (such as `-c 'stress-ng --cpu 1'`) to run after the image name. Others
+need extra parameters, such as environment variables or Docker options. The
+command and parameters production passes to each image are in sc-inspector's
+[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py).
+
+An image's README, where it has one, lists its settings, its output, and any
+extra Docker options it needs; otherwise, see its `Dockerfile`. Benchmark
+images run their workload under
+[resource-tracker](https://github.com/SpareCores/resource-tracker-rs), which
+samples CPU, memory, disk, network, and GPU usage once per second.
+
+Some images need the following extra Docker options:
+
+- **GPUs:** `--gpus all` for `benchmark-vllm-gpu`, `nvbandwidth`, and
+  `llama.cpp`, and for the GPU runs of `benchmark-llm` and `benchmark-ffmpeg`.
+- **Shared memory:** `--shm-size=4g` for the `benchmark-vllm-*` images, which
+  fail with Docker's default 64&nbsp;MiB `/dev/shm`.
+- **Privileged mode:** `--privileged` for `dmidecode`, `hwinfo`, and `virtualization`,
+  and for the images that raise their priority with `nice -n -20`:
+  `benchmark`, `benchmark-passmark`, `benchmark-pgbench-postgres`,
+  `benchmark-postgres-server`, `benchmark-redis`, and `benchmark-web`. Without
+  it, the `nice` images run at normal priority.
+- **Disk access:** `--privileged --pid=host` for `benchmark-storage`. It
+  discards, overwrites, and unmounts the disks it tests, so do not run it on a
+  machine with data you need.
+
+## Contributing
+
+See the following pages for maintaining and extending this repo:
+
+- [Adding an Image](docs/contributors.md): the folder layout, the metadata
+  files that control each image's build, and how dependencies are ordered.
+- [CI and Build Internals](docs/ci.md): how CI builds, caches, tracks, and
+  publishes the images.
+
+## License
+
+This repo is licensed under the [Mozilla Public License 2.0](LICENSE).
