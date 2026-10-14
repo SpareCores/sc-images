@@ -103,8 +103,8 @@ all options and defaults:
 
 - `SC_DB_HOST`, `SC_DB_PORT`, `SC_DB_USER`, and `SC_DB_PASSWORD` configure a
   remote connection; leave `SC_DB_PORT` and `SC_DB_USER` unset in standalone
-  mode. `SC_DB_SSLMODE` sets the SSL ([Secure Sockets
-  Layer](https://www.postgresql.org/docs/current/ssl-tcp.html)) mode for the
+  mode. `SC_DB_SSLMODE` sets the SSL (Secure Sockets
+  Layer) mode for the
   dataset restore and dump connections and the connection that drops and
   recreates the benchmark database, not for `pgbench`.
 - `SC_DB_VCPUS` sets the database vCPU count used to derive concurrency points
@@ -158,11 +158,11 @@ For more information on available workloads, see
 
 ## Design History
 
-We first compared `sysbench`, HammerDB TPROC-C ([HammerDB's transaction
-processing workload](https://www.hammerdb.com/docs/)), BenchBase, and
+We first compared `sysbench`, HammerDB TPROC-C (HammerDB's transaction
+processing workload), BenchBase, and
 `pgbench`. The experiments showed that write-heavy workloads got bottlenecked by
 storage and WAL
-([Write-Ahead Logging](https://www.postgresql.org/docs/current/wal-intro.html)).
+(Write-Ahead Logging).
 On `tmpfs`, write-heavy OLTP (Online Transaction Processing) results improved
 by 10-25%, showing how much disk behavior could influence a score. But `tmpfs`
 was unavailable for DBaaS, and sizing by warehouse count (TPROC-C's

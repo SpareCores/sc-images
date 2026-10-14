@@ -64,8 +64,8 @@ built.
 From small instances (e.g. 1 vCPU and 2 GiB of RAM) to large nodes with hundreds
 of vCPUs, the same workload must produce meaningful, comparable numbers.
 
-HammerDB TPROC-C ([HammerDB's transaction processing
-workload](https://www.hammerdb.com/docs/)) and similar suites size their
+HammerDB TPROC-C (HammerDB's transaction processing
+workload) and similar suites size their
 datasets by warehouse count, and `pgbench` by scale factor. Neither sizing
 scheme can fulfill this purpose. Because of this, we chose a fixed-size
 workload that can run on every server type on
@@ -75,16 +75,16 @@ larger servers being taxed by concurrency rather than workload size.
 ### Engine Configuration
 
 The vendor tunes the managed engine, and the harness cannot assume superuser
-access or GUC ([Grand Unified
-Configuration](https://www.postgresql.org/docs/current/config-setting.html))
+access or GUC (Grand Unified
+Configuration)
 control on DBaaS. For this benchmark, we deliberately do not tune the DBaaS
 engine: the tuning of the managed service is part of what is being measured, so
 the score reflects the vendor's configuration.
 
 ### JIT and Parallel Query
 
-For `pgbench_ro`, the harness disables PostgreSQL's JIT ([Just-in-Time
-Compilation](https://www.postgresql.org/docs/current/jit.html)) and [parallel
+For `pgbench_ro`, the harness disables PostgreSQL's JIT (Just-in-Time
+Compilation) and [parallel
 query](https://www.postgresql.org/docs/current/parallel-query.html), and sets
 `work_mem` to `64MB`; see [Workload Settings](./usage.md#workload-settings).
 These settings are not applied to `pgbench_tpcb`.
@@ -98,8 +98,8 @@ One `SELECT` whose eight query blocks are CTEs ([Common Table
 Expressions](https://www.postgresql.org/docs/current/queries-with.html))
 combined with `UNION ALL` is deliberate: it keeps one `pgbench` transaction
 equal to one network round trip. This makes the `pgbench_ro` workload resilient
-to RTT simulated with `netem` ([Network
-Emulator](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html));
+to RTT simulated with `netem` (Network
+Emulator);
 see [Latency and pipelining](../CHANGELOG.md#latency-and-pipelining) for the
 experiments. The tradeoff is that per-block planner GUCs (e.g. forcing Merge
 Join specifically) are not possible without affecting every block.
@@ -131,8 +131,8 @@ exercised through concurrency rather than data volume.
 ### Read-Only Workload
 
 The measured `pgbench_ro` transaction writes no data, so in the steady state of
-this benchmark it generates no WAL ([Write-Ahead
-Logging](https://www.postgresql.org/docs/current/wal-intro.html)) records.
+this benchmark it generates no WAL (Write-Ahead
+Logging) records.
 
 ### CPU-Heavy Transactions
 

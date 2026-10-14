@@ -1,90 +1,53 @@
 # References
 
-Alphabetized lists of frequently used phrases and links to external
-documentation.
+Terms specific to this image, alphabetized. Common terms (e.g. AWS, CV, I/O,
+SQL) are defined in the [glossary](https://docs.sparecores.com/glossary) of the
+Spare Cores docs, which also lists the terms each image uses.
 
-## Acronyms
-
-Officially used, short-form versions for longer phrases, company and product
-names, etc.
-
-- AWS (Amazon Web Services)
-- BRIN (Block Range Index)
-- CDN (Content Delivery Network)
-- CTE (Common Table Expression)
-- CV (Coefficient of Variation)
-- DBaaS (Database as a Service)
-- GCP (Google Cloud Platform)
-- GIN (Generalized Inverted Index)
-- GUC (Grand Unified Configuration)
-- HTTPS (Hypertext Transfer Protocol Secure)
-- IaaS (Infrastructure as a Service)
-- I/O (Input/Output)
-- IOPS (Input/Output Operations Per Second)
-- JIT (Just-in-Time Compilation)
-- OLTP (Online Transaction Processing)
-- PL/pgSQL (PostgreSQL Procedural Language)
-- RDBMS (Relational Database Management System)
-- RTT (Round-Trip Time)
-- SQL (Structured Query Language)
-- SSL (Secure Sockets Layer)
-- TOAST (The Oversized-Attribute Storage Technique)
-- TPC-B (Transaction Processing Performance Council Benchmark B)
-- TPM (Transactions Per Minute)
-- TPROC-C (HammerDB's transaction processing workload)
-- VPC (Virtual Private Cloud)
-- WAL (Write-Ahead Logging)
-- YCSB (Yahoo! Cloud Serving Benchmark)
-
-## Linked Definitions
-
-Words, phrases, and expanded acronyms and abbreviations with links to explain
-their meaning or point to their documentation.
-
-### PostgreSQL Documentation
-
-- [Block Range Index](https://www.postgresql.org/docs/current/brin.html)
-- [Common Table
-  Expression](https://www.postgresql.org/docs/current/queries-with.html)
-- [Generalized Inverted Index](https://www.postgresql.org/docs/current/gin.html)
-- [Grand Unified
-  Configuration](https://www.postgresql.org/docs/current/config-setting.html)
-- [Just-in-Time Compilation](https://www.postgresql.org/docs/current/jit.html)
-- [Parallel Query](https://www.postgresql.org/docs/current/parallel-query.html)
-- [`pgbench`](https://www.postgresql.org/docs/current/pgbench.html)
-- [PostgreSQL Procedural Language](https://www.postgresql.org/docs/current/plpgsql.html)
-- [Secure Sockets Layer](https://www.postgresql.org/docs/current/ssl-tcp.html)
-- [The Oversized-Attribute Storage
-  Technique](https://www.postgresql.org/docs/current/storage-toast.html)
-- [Write-Ahead Logging](https://www.postgresql.org/docs/current/wal-intro.html)
-
-### Definitions and Additional Information
-
-- [Amazon Web Services](https://aws.amazon.com/)
-- [Coefficient of
-  Variation](https://en.wikipedia.org/wiki/Coefficient_of_variation)
-- [Content Delivery
-  Network](https://en.wikipedia.org/wiki/Content_delivery_network)
-- [Database as a Service](https://en.wikipedia.org/wiki/Cloud_database)
-- [Google Cloud Platform](https://cloud.google.com/)
-- [HammerDB TPROC-C](https://www.hammerdb.com/docs/)
-- [Hypertext Transfer Protocol Secure](https://en.wikipedia.org/wiki/HTTPS)
-- [Infrastructure as a
-  Service](https://en.wikipedia.org/wiki/Infrastructure_as_a_service)
-- [Input/Output](https://en.wikipedia.org/wiki/Input/output)
-- [Input/Output Operations Per Second](https://en.wikipedia.org/wiki/IOPS)
-- [`netem` (Network
-  Emulator)](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
-- [Online Transaction
-  Processing](https://en.wikipedia.org/wiki/Online_transaction_processing)
-- [`pgtune`](https://pgtune.leopard.in.ua/)
-- [Relational Database Management
-  System](https://en.wikipedia.org/wiki/Relational_database)
-- [Round-Trip Time](https://en.wikipedia.org/wiki/Round-trip_delay)
-- [Structured Query Language](https://en.wikipedia.org/wiki/SQL)
-- [Transaction Processing Performance Council Benchmark
-  B](https://www.tpc.org/tpcb/)
-- [Transactions Per Minute](https://en.wikipedia.org/wiki/Transactions_per_second)
-- [Virtual Private Cloud](https://en.wikipedia.org/wiki/Virtual_private_cloud)
-- [Yahoo! Cloud Serving Benchmark](https://en.wikipedia.org/wiki/YCSB)
-- [Zipfian](https://en.wikipedia.org/wiki/Zipf%27s_law)
+- **BRIN** (Block Range Index): A small PostgreSQL index summarizing ranges of
+  table blocks, for naturally ordered data such as timestamps.
+  [PostgreSQL docs](https://www.postgresql.org/docs/current/brin.html)
+- **CTE** (Common Table Expression): A named subquery of a SQL statement,
+  written with `WITH`.
+  [PostgreSQL docs](https://www.postgresql.org/docs/current/queries-with.html)
+- **GIN** (Generalized Inverted Index): A PostgreSQL index for values with
+  many elements, e.g. arrays, JSONB or full-text search.
+  [PostgreSQL docs](https://www.postgresql.org/docs/current/gin.html)
+- **GUC** (Grand Unified Configuration): The configuration settings of
+  PostgreSQL, e.g. `shared_buffers`.
+  [PostgreSQL docs](https://www.postgresql.org/docs/current/config-setting.html)
+- **JIT** (Just-in-Time Compilation): PostgreSQL compiling parts of a query
+  to machine code at run time, worth it for long analytical queries.
+  [PostgreSQL docs](https://www.postgresql.org/docs/current/jit.html)
+- **`netem`** (Network Emulator): A Linux traffic control tool to add delay or
+  packet loss to a network interface.
+  [SRT cookbook](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
+- **Parallel Query**: PostgreSQL running parts of one query on several
+  worker processes.
+  [PostgreSQL docs](https://www.postgresql.org/docs/current/parallel-query.html)
+- **`pgbench`**: The benchmark tool shipped with PostgreSQL, which this image
+  runs. [PostgreSQL docs](https://www.postgresql.org/docs/current/pgbench.html)
+- **`pgtune`**: Suggests PostgreSQL settings for the hardware and workload.
+  [pgtune](https://pgtune.leopard.in.ua/)
+- **PL/pgSQL** (PostgreSQL Procedural Language): The procedural language of
+  PostgreSQL functions.
+  [PostgreSQL docs](https://www.postgresql.org/docs/current/plpgsql.html)
+- **SSL** (Secure Sockets Layer): The encryption of client connections, TLS
+  nowadays. [PostgreSQL docs](https://www.postgresql.org/docs/current/ssl-tcp.html)
+- **TOAST** (The Oversized-Attribute Storage Technique): How PostgreSQL stores
+  large values, compressed or out of line.
+  [PostgreSQL docs](https://www.postgresql.org/docs/current/storage-toast.html)
+- **TPC-B** (Transaction Processing Performance Council Benchmark B): A
+  banking-style benchmark of short update transactions, the default script of
+  `pgbench`. [TPC](https://www.tpc.org/tpcb/)
+- **TPM** (Transactions Per Minute): The throughput this image reports.
+  [Wikipedia](https://en.wikipedia.org/wiki/Transactions_per_second)
+- **TPROC-C** (HammerDB's transaction processing workload): An OLTP workload
+  derived from TPC-C. [HammerDB docs](https://www.hammerdb.com/docs/)
+- **WAL** (Write-Ahead Logging): The log PostgreSQL writes every change to
+  before applying it, for crash recovery and replication.
+  [PostgreSQL docs](https://www.postgresql.org/docs/current/wal-intro.html)
+- **YCSB** (Yahoo! Cloud Serving Benchmark): A benchmark of key-value and
+  cloud database workloads. [Wikipedia](https://en.wikipedia.org/wiki/YCSB)
+- **Zipfian**: A skewed distribution where a few items are accessed much more
+  often than the rest. [Wikipedia](https://en.wikipedia.org/wiki/Zipf%27s_law)
