@@ -34,10 +34,10 @@ Before you run, check the following prerequisites:
 - The host has an NVIDIA GPU, the NVIDIA driver, and the
   [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html).
   The image ships no CUDA
-  ([Compute Unified Device Architecture](https://docs.nvidia.com/cuda/))
+  (Compute Unified Device Architecture)
   toolkit or driver libraries;
-  NVENC ([NVIDIA Video Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
-  and NVDEC ([NVIDIA Video Decoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
+  NVENC (NVIDIA Video Encoder)
+  and NVDEC (NVIDIA Video Decoder)
   are loaded from the host driver at run time.
 - `nvidia-smi` works inside the container. The harness uses it to find the
   GPUs; without it, the GPU scenarios are skipped.
@@ -55,7 +55,7 @@ its `skip_reason`.
 
 This benchmark sizes its worker counts to the resources the container is
 allowed to use, read from the cgroup v2
-([control groups v2](https://docs.kernel.org/admin-guide/cgroup-v2.html)) files
+(control groups v2) files
 and the CPU affinity. The following
 [Docker resource limits](https://docs.docker.com/engine/containers/resource_constraints/)
 all lower the worker counts:
@@ -94,7 +94,7 @@ processes), set in [`benchmark.py`](../benchmark.py) as follows:
 
 A worker count with a failed worker stops the search for that scenario. On
 servers with more than one NUMA
-([Non-Uniform Memory Access](https://docs.kernel.org/mm/numa.html)) node,
+(Non-Uniform Memory Access) node,
 workers are spread across the nodes in proportion to their CPUs and bound to
 them with [`numactl`](https://man7.org/linux/man-pages/man8/numactl.8.html), if
 binding works in the container. Otherwise, normal Linux scheduling applies.
@@ -136,7 +136,7 @@ started by then are reported as skipped with `overall_timeout`.
 
 Total run time therefore depends on the number of scenarios that run and the
 worker counts each one measures. A production run on a 64 vCPU AWS
-([Amazon Web Services](https://aws.amazon.com/)) `m9g.16xlarge` without GPUs
+(Amazon Web Services) `m9g.16xlarge` without GPUs
 measured every CPU and audio scenario at 1, 32, and 64 workers and took about
 10 minutes
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/ffmpeg)).
@@ -217,7 +217,7 @@ The following variables configure this benchmark. See
 | `FFMPEG_BENCH_AUDIO_SOURCE` | Path of an alternate FLAC file. It is not checksum-verified. | Bundled sample |
 | `FFMPEG_BENCH_VIDEO_SOURCE` | Path of an alternate H.264 MP4 file. It must match `FFMPEG_BENCH_VIDEO_SHA256`. | Bundled clip |
 | `FFMPEG_BENCH_VIDEO_HEVC_SOURCE` | Path of an alternate H.265 MP4 file. It must match `FFMPEG_BENCH_VIDEO_HEVC_SHA256`. | Bundled clip |
-| `FFMPEG_BENCH_VIDEO_SHA256` | Expected SHA-256 ([Secure Hash Algorithm 256](https://csrc.nist.gov/pubs/fips/180-4/upd1/final)) hash of the H.264 file; empty skips the check. | Pinned hash |
+| `FFMPEG_BENCH_VIDEO_SHA256` | Expected SHA-256 (Secure Hash Algorithm 256) hash of the H.264 file; empty skips the check. | Pinned hash |
 | `FFMPEG_BENCH_VIDEO_HEVC_SHA256` | Expected SHA-256 of the H.265 file; empty skips the check. | Pinned hash |
 | `FFMPEG_BENCH_CDN_BASE_URL` | Base URL recorded as the test media source in the output; nothing is downloaded. | `https://cdn.sparecores.net/sc-inspector/benchmark-ffmpeg` |
 | `FFMPEG`, `FFPROBE` | Alternate `ffmpeg` and `ffprobe` binaries. | `ffmpeg` and `ffprobe` on `PATH` |

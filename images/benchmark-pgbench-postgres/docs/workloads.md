@@ -36,17 +36,17 @@ statement whose eight blocks each touch a different PostgreSQL subsystem:
 - `q_idx`: B-tree index scan, nested loop, and window aggregate
 - `q_hashjoin`: hash join and hash aggregate over a time slice
 - `q_regex`: regular expressions and `md5()`
-- `q_fts`: full-text search using `tsvector` and GIN ([Generalized Inverted
-  Index](https://www.postgresql.org/docs/current/gin.html))
+- `q_fts`: full-text search using `tsvector` and GIN (Generalized Inverted
+  Index)
 - `q_array`: array containment using GIN
 - `q_stats`: ordered-set and statistical aggregates
-- `q_toast`: TOAST ([The Oversized-Attribute Storage
-  Technique](https://www.postgresql.org/docs/current/storage-toast.html)) fetch
+- `q_toast`: TOAST (The Oversized-Attribute Storage
+  Technique) fetch
   and decompression
 - `q_seqscan`: plain sequential scan and aggregate
 
-The setup also creates a BRIN ([Block Range
-Index](https://www.postgresql.org/docs/current/brin.html)) on the
+The setup also creates a BRIN (Block Range
+Index) on the
 `ro_cpu_order.ordered_at` column; the planner may use it for the time-window
 predicate.
 
@@ -61,8 +61,8 @@ published headline score.
 
 This workload is `pgbench`'s built-in `tpcb-like` script (`-b tpcb-like`) with a
 standard `pgbench -i -s N` schema. It is a standard OLTP (Online Transaction
-Processing) mix in the style of TPC-B ([Transaction Processing Performance
-Council Benchmark B](https://www.tpc.org/tpcb/)): mostly write-heavy and
+Processing) mix in the style of TPC-B (Transaction Processing Performance
+Council Benchmark B): mostly write-heavy and
 sensitive to disk, network, and locking. Because it is disk-limited, it is kept
 for possible later use but not run in production.
 
