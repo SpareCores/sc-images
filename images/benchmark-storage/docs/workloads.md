@@ -95,9 +95,10 @@ once, including read-only ones:
 - sequential reads of 1 MiB at a queue depth of 64
 
 If at least two disks of the group are writable, those disks also run
-sequential writes of 1 MiB, mixed random I/O with 70% reads at 4 KiB,
-and random writes of 4 KiB, all at the same queue depths. Group results
-add up all disks, and `per_device` holds each disk's share.
+sequential writes of 1 MiB at a queue depth of 64, mixed random I/O with 70%
+reads at 4 KiB and a queue depth of 256, and random writes of 4 KiB at a queue
+depth of 256. Group results add up all disks, and `per_device` holds each
+disk's share.
 
 ## `fio` Settings
 
