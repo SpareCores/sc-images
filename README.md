@@ -95,7 +95,7 @@ Some images need the following extra Docker options:
   `benchmark-postgres-server`, `benchmark-redis`, and `benchmark-web`. Without
   it, the `nice` images run at normal priority.
 - **Disk access:** `--privileged --pid=host` for `benchmark-storage`. It
-  discards, overwrites, and unmounts the disks it tests, so do not run it on a
+  unmounts and overwrites every disk it may write to, so do not run it on a
   machine with data you need.
 
 ## Contributing
