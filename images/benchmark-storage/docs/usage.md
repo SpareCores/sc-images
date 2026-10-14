@@ -10,10 +10,8 @@ never on production or similar systems.
 [`benchmark.py`](../benchmark.py) checks each disk in the following order:
 
 1. A disk that is read-only, used as swap, or held by another device is
-   `read_only`. Holders include LVM
-   ([Logical Volume Manager](https://man7.org/linux/man-pages/man8/lvm.8.html))
-   volumes and RAID (Redundant Array of Independent Disks) arrays built with
-   `md`.
+   `read_only`. Holders include LVM (Logical Volume Manager) volumes and RAID
+   (Redundant Array of Independent Disks) arrays built with `md`.
 2. A disk with no mounted filesystem is `read_write`.
 3. A disk with a protected mount is `read_only`. The protected mounts are `/`,
    `/boot`, `/boot/efi`, `/usr`, `/var`, `/home`, `/root`, `/etc`, `/opt`,
@@ -35,7 +33,7 @@ test if a disk is mounted, used as swap, or held again. `fio` also runs with
 The mount checks read the host's mount table from `/proc/1/mountinfo` and
 unmount through `nsenter` in the host's mount namespace. Both need
 `--pid=host`. This benchmark does not check if it runs in the host's PID
-namespace.
+(Process Identifier) namespace.
 
 Note that `SC_STORAGE_UMOUNT=0` does not protect the disks that step 2 marks
 `read_write`: this benchmark always writes to them. There is no setting for a
@@ -64,11 +62,9 @@ apart from other disks.
 
 ## Run Duration
 
-A run took about 21 minutes on GCP
-([Google Cloud Platform](https://cloud.google.com/))
-`c4a-standard-16-lssd`, with four local NVMe
-([Non-Volatile Memory Express](https://nvmexpress.org/)) drives, and about 22
-minutes on OVHcloud `i1-90`, with two NVMe drives. See
+A run took about 21 minutes on GCP (Google Cloud Platform)
+`c4a-standard-16-lssd`, with four local NVMe (Non-Volatile Memory Express)
+drives, and about 22 minutes on OVHcloud `i1-90`, with two NVMe drives. See
 [`gcp/c4a-standard-16-lssd`](https://github.com/SpareCores/sc-inspector-data/tree/main/data/gcp/c4a-standard-16-lssd/storage)
 and
 [`ovh/i1-90`](https://github.com/SpareCores/sc-inspector-data/tree/main/data/ovh/i1-90/storage)

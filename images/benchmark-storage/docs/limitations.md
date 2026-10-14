@@ -58,11 +58,10 @@ without a fill, and it skips every write and mixed test. See
 The sequential fill runs for at most 300 s in total
 (`SC_STORAGE_FILL_BUDGET_S`), split between groups. A disk that takes longer to
 write is only partly filled. On the first production runs, the fill wrote the
-following share of each NVMe
-([Non-Volatile Memory Express](https://nvmexpress.org/)) drive:
+following share of each NVMe (Non-Volatile Memory Express) drive:
 
-- GCP ([Google Cloud Platform](https://cloud.google.com/))
-  `c4a-standard-16-lssd`: 26% of each of four drives
+- GCP (Google Cloud Platform) `c4a-standard-16-lssd`: 26% of each of four
+  drives
 - OVHcloud `i1-90`: 33% of each of two drives
 
 A disk that is not fully written keeps unmapped spare area, which inflates

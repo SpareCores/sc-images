@@ -1,11 +1,11 @@
 # benchmark-storage
 
 This benchmark measures the raw block device performance of a cloud server's
-bundled disks with [`fio`](https://fio.readthedocs.io/en/latest/). It finds the
-host's disks, groups identical ones, and runs random, sequential, and mixed
-read and write tests on one disk per group. Groups of two or more disks also
-run a few tests on all their disks at once. All I/O (Input/Output) goes
-directly to the raw device, bypassing the filesystem and the page cache.
+bundled disks with `fio`. It finds the host's disks, groups identical ones, and
+runs random, sequential, and mixed read and write tests on one disk per group.
+Groups of two or more disks also run a few tests on all their disks at once.
+All I/O (Input/Output) goes directly to the raw device, bypassing the
+filesystem and the page cache.
 
 This benchmark reports IOPS (Input/Output Operations Per Second), bandwidth,
 and latency percentiles for each test, at block sizes from 512 B to
@@ -51,9 +51,9 @@ limitations:
   it finds, including any volume attached on demand. See
   [Disk Scope](./docs/limitations.md#disk-scope).
 - **Partial preconditioning:** The sequential fill is capped at 300 s in
-  total, which filled 26-33% of each NVMe
-  ([Non-Volatile Memory Express](https://nvmexpress.org/)) drive on the first
-  production servers. See [Partial Fill](./docs/limitations.md#partial-fill).
+  total, which filled 26-33% of each NVMe (Non-Volatile Memory Express) drive
+  on the first production servers. See
+  [Partial Fill](./docs/limitations.md#partial-fill).
 - **Disks in use are read-only:** The boot disk and other disks in use get
   read tests only, on whatever data they already hold. See
   [Read-Only Disks](./docs/limitations.md#read-only-disks).
@@ -80,7 +80,7 @@ Both flags are required. `--privileged` gives the container raw access to the
 host's disks. `--pid=host` lets it read the host's mount table from
 `/proc/1/mountinfo` and unmount filesystems in the host's mount namespace, which
 the disk safety checks depend on. The image does not check if it runs in the
-host's PID namespace. See
+host's PID (Process Identifier) namespace. See
 [Production Setup](./docs/usage.md#production-setup) for how production runs
 differ.
 
