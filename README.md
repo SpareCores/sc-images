@@ -9,7 +9,7 @@ Each folder under [`images/`](images) is published as
 `ghcr.io/sparecores/<folder>:main`, built for amd64 and arm64 unless its
 README says otherwise. Every image's GHCR package page shows this README. To
 find the docs for an image, look it up in [Images](#images) and follow its
-link to the image folder.
+link.
 
 ## Images
 
@@ -22,7 +22,7 @@ output.
 | Image | Description |
 | ----- | ----------- |
 | [`benchmark`](images/benchmark) | General CPU, memory, and compression benchmarks: Geekbench, OpenSSL speed, lmbench memory bandwidth (bw_mem), and compression of the Silesia corpus. |
-| [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | FFmpeg transcoding-capacity benchmark of audio and H.264/H.265 video encoding. |
+| [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | FFmpeg benchmark of aggregate transcoding throughput: frames per second for H.264/H.265 video encoding and decoding on CPUs and NVIDIA GPUs, and audio seconds processed per second for audio encoding on CPUs. |
 | [`benchmark-llm`](images/benchmark-llm) | Low-concurrency LLM inference speed benchmark with llama.cpp's llama-bench, measuring prompt processing and text generation across models and token counts. |
 | [`benchmark-passmark`](images/benchmark-passmark) | PassMark PerformanceTest CPU and memory benchmark suite. |
 | [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per second and latency against a local or remote server. |
