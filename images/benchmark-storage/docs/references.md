@@ -19,6 +19,7 @@ names, etc.
 - NVMe (Non-Volatile Memory Express)
 - RAID (Redundant Array of Independent Disks)
 - SLC (Single-Level Cell)
+- SMART (Self-Monitoring, Analysis, and Reporting Technology)
 - UTC (Coordinated Universal Time)
 
 <!--
@@ -53,5 +54,6 @@ their meaning or point to their documentation.
 - [Non-Volatile Memory Express](https://nvmexpress.org/)
 - [OVHcloud](https://www.ovhcloud.com/)
 - [Redundant Array of Independent Disks](https://en.wikipedia.org/wiki/RAID)
+- [Self-Monitoring, Analysis, and Reporting Technology](https://en.wikipedia.org/wiki/Self-Monitoring,_Analysis_and_Reporting_Technology)
 - [Single-Level Cell](https://en.wikipedia.org/wiki/Multi-level_cell)
 - [`smartctl`](https://www.smartmontools.org/)
