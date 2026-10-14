@@ -3,9 +3,14 @@
 ## Disk Discovery and Grouping
 
 [`benchmark.py`](../benchmark.py) lists the host's block devices with
-`lsblk`. It skips devices that are not disks, virtual devices (names starting
-with `zram`, `ram`, `loop`, `nbd`, `md`, `dm-`, `sr`, or `fd`, or with no real
-subsystem), and removable, empty, or zoned devices.
+`lsblk`, and skips the following devices:
+
+- devices that are not disks
+- virtual devices: names starting with `zram`, `ram`, `loop`, `nbd`, `md`,
+  `dm-`, `sr`, or `fd`, or devices with no real subsystem
+- removable devices
+- empty devices
+- zoned devices
 
 Disks with the same model, size, and subsystem form a group. One
 representative per group, the first writable disk by name, runs the full set
@@ -94,11 +99,14 @@ once, including read-only ones:
 - random reads of 4 KiB at a queue depth of 256
 - sequential reads of 1 MiB at a queue depth of 64
 
-If at least two disks of the group are writable, those disks also run
-sequential writes of 1 MiB at a queue depth of 64, mixed random I/O with 70%
-reads at 4 KiB and a queue depth of 256, and random writes of 4 KiB at a queue
-depth of 256. Group results add up all disks, and `per_device` holds each
-disk's share.
+If at least two disks of the group are writable, those disks also run the
+following write tests:
+
+- sequential writes of 1 MiB at a queue depth of 64
+- mixed random I/O with 70% reads, at 4 KiB and a queue depth of 256
+- random writes of 4 KiB at a queue depth of 256
+
+Group results add up all disks, and `per_device` holds each disk's share.
 
 ## `fio` Settings
 

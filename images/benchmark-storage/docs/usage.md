@@ -133,9 +133,14 @@ in the following fields:
 - `unmounted`: the filesystems this benchmark unmounted
 - `group`: the ID of the disk's group
 
-`excluded` lists the devices that are not tested, with a reason: devices that
-are not disks, virtual devices (such as `loop`, `zram`, `md`, or `dm-`),
-removable, empty, or zoned devices.
+`excluded` lists the devices that are not tested, each with a reason. The
+following devices are excluded:
+
+- devices that are not disks
+- virtual devices, such as `loop`, `zram`, `md`, or `dm-`
+- removable devices
+- empty devices
+- zoned devices
 
 Disks with the same model, size, and subsystem form a group. Each `groups`
 entry has its `key`, `members`, `representative` (the first writable member by
@@ -232,5 +237,3 @@ the following reasons:
 
 An empty value uses the default. `SC_STORAGE_UMOUNT` and `SC_STORAGE_PURGE`
 are off only when set to exactly `0`.
-
-See [Results](../README.md#results) for the main output fields.
