@@ -64,7 +64,8 @@ apart from other disks.
 
 ## Run Duration
 
-A run took about 21 minutes on GCP (Google Cloud Platform)
+A run took about 21 minutes on GCP
+([Google Cloud Platform](https://cloud.google.com/))
 `c4a-standard-16-lssd`, with four local NVMe
 ([Non-Volatile Memory Express](https://nvmexpress.org/)) drives, and about 22
 minutes on OVHcloud `i1-90`, with two NVMe drives. See
