@@ -55,7 +55,7 @@ profile (and env `GUIDELLM__MAX_CONCURRENCY`, sub-linear in vCPU). Sweep step
 count and throughput ramp-up are profile attributes (`sweep_size`,
 `rampup_duration`) — GuideLLM 0.7+ CLI shape.
 
-**Sweep stages** (see [GuideLLM sweep profile](https://github.com/vllm-project/guidellm/blob/main/docs/getting-started/benchmark.md)):
+**Sweep stages** (see [GuideLLM sweep profile](https://github.com/vllm-project/guidellm/blob/main/docs/en/getting-started/benchmark.md)):
 
 1. **Synchronous** — one request at a time (baseline latency / RPS)
 2. **Throughput** — as many concurrent requests as allowed (peak capacity)
