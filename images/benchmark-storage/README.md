@@ -8,8 +8,8 @@ run a few tests on all their disks at once. All I/O (Input/Output) goes
 directly to the raw device, bypassing the filesystem and the page cache.
 
 This benchmark reports IOPS (Input/Output Operations Per Second), bandwidth,
-and latency percentiles for each test, at block sizes from 512&nbsp;B to
-16&nbsp;MiB. It also records a disk inventory and before-and-after health
+and latency percentiles for each test, at block sizes from 512 B to
+16 MiB. It also records a disk inventory and before-and-after health
 snapshots. It overwrites every disk it is allowed to write to, so run it only
 on ephemeral servers.
 
@@ -48,7 +48,7 @@ filesystem or application performance. The main limitations are:
 - **Bundled storage is not detected:** The image tests every real block device
   it finds, including any volume attached on demand. See
   [Disk Scope](./docs/limitations.md#disk-scope).
-- **Partial preconditioning:** The sequential fill is capped at 300&nbsp;s in
+- **Partial preconditioning:** The sequential fill is capped at 300 s in
   total, which filled 26-33% of each NVMe
   ([Non-Volatile Memory Express](https://nvmexpress.org/)) drive on the first
   production servers. See [Partial Fill](./docs/limitations.md#partial-fill).
@@ -83,7 +83,7 @@ host's PID namespace. See
 differ.
 
 A run took about 21-22 minutes on the first production servers. This benchmark
-shortens or drops tests when its estimate exceeds 2400&nbsp;s. See
+shortens or drops tests when its estimate exceeds 2400 s. See
 [Run Duration](./docs/usage.md#run-duration) for how the time is spent.
 
 ### Settings
@@ -116,7 +116,7 @@ to stderr. Interpret the JSON document's main fields as follows:
   `scope` is `single` or `group`.
 - `read` and `write` hold `iops`, `bw_bytes` (bytes per second), and `lat_ns`,
   whose `percentiles` are latencies in nanoseconds. `iops_interval` and
-  `bw_bytes_interval` summarize 500&nbsp;ms windows, including `tail_mean`, the
+  `bw_bytes_interval` summarize 500 ms windows, including `tail_mean`, the
   mean of the second half of the run.
 - `preconditioning` holds the fill and random-write steps. `filled_fraction`
   shows how much of each disk the fill wrote.
@@ -147,8 +147,8 @@ For more information on test order and `fio` settings, see
 The first version measured disks without preconditioning them. Partial fills
 and short write runs measured the drives' write-buffer burst rather than their
 sustained performance. The current version discards and fills each writable
-disk, runs write tests for longer than read tests (30&nbsp;s compared with
-10&nbsp;s), and records best-effort health snapshots, so that results are
+disk, runs write tests for longer than read tests (30 s compared with
+10 s), and records best-effort health snapshots, so that results are
 comparable across vendors.
 
 The fill is still capped by time. On the first production servers, it wrote

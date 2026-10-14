@@ -55,7 +55,7 @@ without a fill, and it skips every write and mixed test. See
 
 ### Partial Fill
 
-The sequential fill runs for at most 300&nbsp;s in total
+The sequential fill runs for at most 300 s in total
 (`SC_STORAGE_FILL_BUDGET_S`), split between groups. A disk that takes longer to
 write is only partly filled. On the first production runs, the fill wrote the
 following share of each NVMe

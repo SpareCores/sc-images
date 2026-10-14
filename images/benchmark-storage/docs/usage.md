@@ -46,7 +46,7 @@ this benchmark always writes to them. There is no setting for a read-only run.
 Production runs the container with the following settings:
 
 - `--privileged`, `--pid=host`, and host networking
-- a timeout of 1&nbsp;hour
+- a timeout of 1 hour
 - after the benchmarks that have a set priority, because this benchmark may
   unmount and overwrite free disks
 - Resource Tracker settings, so the tracker that wraps this benchmark streams
@@ -75,18 +75,18 @@ for the run outputs.
 
 The following settings make up most of the time:
 
-- each read test: 10&nbsp;s measured plus a 2&nbsp;s ramp
-- each write or mixed test: 30&nbsp;s measured plus a 2&nbsp;s ramp
-- the sequential fill: up to 300&nbsp;s in total, split evenly between the
+- each read test: 10 s measured plus a 2 s ramp
+- each write or mixed test: 30 s measured plus a 2 s ramp
+- the sequential fill: up to 300 s in total, split evenly between the
   groups that have writable disks
-- the random-write precondition: 120&nbsp;s per group with writable disks
+- the random-write precondition: 120 s per group with writable disks
 
-Before running, this benchmark estimates the total test time, counting 2&nbsp;s
+Before running, this benchmark estimates the total test time, counting 2 s
 of `fio` overhead per test. If the estimate exceeds `SC_STORAGE_BUDGET_S`
-(2400&nbsp;s), it takes the following steps until the plan fits:
+(2400 s), it takes the following steps until the plan fits:
 
-1. Shorten read tests, down to `SC_STORAGE_MIN_RUNTIME_S` (5&nbsp;s).
-2. Shorten write tests, down to `SC_STORAGE_MIN_WRITE_RUNTIME_S` (15&nbsp;s).
+1. Shorten read tests, down to `SC_STORAGE_MIN_RUNTIME_S` (5 s).
+2. Shorten write tests, down to `SC_STORAGE_MIN_WRITE_RUNTIME_S` (15 s).
 3. Drop the low-priority tests: `randread_512`, `randwrite_512`,
    `randread_16m`, `randwrite_16m`, `randrw70_64k`, and `randrw70_1m`.
 
@@ -172,7 +172,7 @@ Each `read` and `write` result has the following fields:
 - `lat_ns`: end-to-end latency per I/O in nanoseconds, with `min`, `max`,
   `mean`, `stddev`, `samples`, and `percentiles` at 1, 5, 10, 25, 50, 75, 90,
   95, 99, 99.9, and 99.99, keyed as strings such as `"99"`
-- `iops_interval` and `bw_bytes_interval`: statistics over 500&nbsp;ms windows,
+- `iops_interval` and `bw_bytes_interval`: statistics over 500 ms windows,
   with `min`, `p5`, `p50`, `p95`, `max`, `mean`, `tail_mean`, and `samples`
 
 `tail_mean` is the mean of the second half of the run. It leaves out the
@@ -180,7 +180,7 @@ initial burst and includes the time a drive may still spend draining its write
 buffer. Multi-job and multi-disk results
 are merged: IOPS and bandwidth are summed, and latency percentiles come from
 the merged `fio` latency histograms. Preconditioning records also have
-`iops_series` and `bw_bytes_series`, averaged over 5&nbsp;s steps
+`iops_series` and `bw_bytes_series`, averaged over 5 s steps
 (`series_step_ms`).
 
 ### Health Snapshots
