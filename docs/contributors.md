@@ -21,3 +21,18 @@ CI auto-discovers every folder under `images/` (any dir with a `Dockerfile` or `
 Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; `benchmark-vllm-cpu-avx2` also depends on `vllm-cpu-base-avx2` (source-compiled via `prepare.sh`). `benchmark-vllm-gpu` uses Hub `vllm/vllm-openai` for amd64 and arm64. Add a new dependent image by dropping a folder in `images/` with a `DEPENDS_ON` file.
 
 See [CI and Build Internals](ci.md) for how CI builds, caches, tracks, and publishes the images.
+
+## Acronyms and References
+
+Spell out an acronym on its first use in each page, as `CRF (Constant Rate Factor)` or `Constant Rate Factor (CRF)`, without linking the expansion: put the link in the term's glossary entry instead. On [docs.sparecores.com](https://docs.sparecores.com/glossary), a term spelled out like this gets a tooltip with its glossary entry, and the docs build warns when the expansion differs from the glossary, links to a URL its glossary entry has already, or an image's docs never spell out a term they use.
+
+Common terms (e.g. AWS, vCPU, SMT) are defined in the docs site's glossary. Define the terms specific to an image in its `docs/references.md`, one bullet per term, alphabetized, with wrapped lines indented:
+
+```md
+- **CRF** (Constant Rate Factor): The quality-based rate control of x264 and x265.
+  [FFmpeg wiki](https://trac.ffmpeg.org/wiki/Encode/H.264#crf)
+- **`netem`** (Network Emulator): A Linux tool to add delay to a network interface.
+  [SRT cookbook](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
+```
+
+The expansion, the description and the trailing links are each optional, but an entry needs at least one of them; write commands and tools as inline code. The docs site replaces the page with one listing every glossary term the image's docs use, so the file itself only needs the image's own terms.

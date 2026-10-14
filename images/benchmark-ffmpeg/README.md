@@ -40,7 +40,7 @@ following limitations:
 - **Fixed media and settings:** Every job uses the same short video clip or
   music sample with fixed codec settings. Other resolutions, settings, and
   codecs are not covered, for example AV1
-  ([AOMedia Video 1](https://aomedia.org/specifications/av1/)). See
+  (AOMedia Video 1). See
   [A Specific Media Pipeline](./docs/limitations.md#a-specific-media-pipeline).
 - **GPUs:** Only NVIDIA GPUs are used, for video only; audio always runs on the
   CPU. A GPU scenario that cannot start on a given GPU is skipped. See
@@ -73,7 +73,7 @@ Production runs the container privileged and with host networking; a plain
 [Production Setup](./docs/usage.md#production-setup) before you compare your
 results with production runs.
 
-A production run on an AWS ([Amazon Web Services](https://aws.amazon.com/))
+A production run on an AWS (Amazon Web Services)
 `m9g.16xlarge` took about 10 minutes. Run time grows with the number of
 worker counts measured, and with GPU scenarios. See
 [Run Duration](./docs/usage.md#run-duration) for the steps and timeouts.
@@ -126,16 +126,16 @@ check `skipped`, `skip_reason`, and `failed_workers` in the output.
 All scenarios run by default, in the following groups:
 
 - [Audio encoding](./docs/workloads.md#audio-encoding): Vorbis, Opus, AAC
-  ([Advanced Audio Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)), MP3,
-  and FLAC ([Free Lossless Audio Codec](https://xiph.org/flac/)) encodes of one
+  (Advanced Audio Coding), MP3,
+  and FLAC (Free Lossless Audio Codec) encodes of one
   music sample, on the CPU.
 - [CPU video](./docs/workloads.md#cpu-video): H.264 and H.265 encoding and
   decoding of one film clip, with one codec thread per job.
 - [NVIDIA video](./docs/workloads.md#nvidia-video): the same H.264 and H.265
   encoding and decoding on NVIDIA GPUs, with NVENC
-  ([NVIDIA Video Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html))
+  (NVIDIA Video Encoder)
   and NVDEC
-  ([NVIDIA Video Decoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)).
+  (NVIDIA Video Decoder).
 
 See [How Measurement Works](./docs/workloads.md#how-measurement-works) for the
 worker counts, timing, and repetitions.

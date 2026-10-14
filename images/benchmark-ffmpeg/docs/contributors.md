@@ -27,8 +27,8 @@ this benchmark needs:
 
 - CPU codecs: `libx264`, `libx265`, `libvorbis`, `libopus`, `libmp3lame`, and
   FFmpeg's native AAC
-  ([Advanced Audio Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)) and FLAC
-  ([Free Lossless Audio Codec](https://xiph.org/flac/)) encoders.
+  (Advanced Audio Coding) and FLAC
+  (Free Lossless Audio Codec) encoders.
 - NVIDIA video: `--enable-cuvid --enable-nvenc --enable-ffnvcodec`, built
   against `nv-codec-headers`. The NVIDIA libraries are loaded from the host
   driver at run time.
@@ -75,12 +75,12 @@ To regenerate the files, complete the following steps:
    [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Entre-dos-aguas-laucke-version-sample.flac)
    and save it as `source.flac`; no script fetches it.
 4. [`upload-fixtures.sh`](../upload-fixtures.sh) uploads all three files to the
-   S3 ([Simple Storage Service](https://aws.amazon.com/s3/)) bucket
+   S3 (Simple Storage Service) bucket
    `sc-cdn-cae3awai`, under the prefix `sc-inspector/benchmark-ffmpeg`, with
-   the AWS ([Amazon Web Services](https://aws.amazon.com/)) profile `sc`.
+   the AWS (Amazon Web Services) profile `sc`.
 
 The prepare scripts check their output against the pinned SHA-256
-([Secure Hash Algorithm 256](https://csrc.nist.gov/pubs/fips/180-4/upd1/final))
+(Secure Hash Algorithm 256)
 hashes. If you change a file's content, update its hash in every place it is
 pinned:
 

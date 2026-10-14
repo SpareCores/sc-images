@@ -3,9 +3,9 @@
 ## Audio Encoding
 
 Every audio job decodes the bundled FLAC
-([Free Lossless Audio Codec](https://xiph.org/flac/)) music sample, resamples
+(Free Lossless Audio Codec) music sample, resamples
 it when needed, and encodes stereo output with one codec thread, using Vorbis,
-Opus, AAC ([Advanced Audio Coding](https://ffmpeg.org/ffmpeg-codecs.html#aac)),
+Opus, AAC (Advanced Audio Coding),
 MP3, or FLAC. The audio scenarios run on the CPU only; see
 [Audio on the CPU Only](./limitations.md#audio-on-the-cpu-only).
 
@@ -37,7 +37,7 @@ job for both decoding and encoding:
 
 The encode scenarios also decode their H.264 input on the CPU, so they measure
 a full transcode. CRF
-([Constant Rate Factor](https://trac.ffmpeg.org/wiki/Encode/H.264#crf)) 18 is a
+(Constant Rate Factor) 18 is a
 quality target; no `-preset` is set, so `libx264` and `libx265` use their
 default preset (medium).
 
@@ -48,7 +48,7 @@ wall time, across all workers.
 
 The NVIDIA video scenarios decode on the GPU and, for encodes, keep the frames
 in GPU memory for NVENC
-([NVIDIA Video Encoder](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)):
+(NVIDIA Video Encoder):
 
 | Scenario | Operation | Input | Decoder | Encoder and settings |
 | --- | --- | --- | --- | --- |
@@ -65,7 +65,7 @@ setting was chosen to approximately match the CPU encodes at CRF 18; see
 
 The image build downloads the test media from the Spare Cores CDN (Content
 Delivery Network) and checks each file's SHA-256
-([Secure Hash Algorithm 256](https://csrc.nist.gov/pubs/fips/180-4/upd1/final))
+(Secure Hash Algorithm 256)
 checksum. At run time, the H.264 and H.265 clips are checked again; the audio
 file is not. The files are the following:
 
@@ -73,7 +73,7 @@ file is not. The files are the following:
   Foundation's open movie [Tears of Steel](https://mango.blender.org/), cut at
   60 s from the 1080p release with stream copy. It is 1920x800 pixels at
   24 fps. License: CC BY 3.0
-  ([Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/)),
+  (Creative Commons Attribution 3.0),
   as stated on the
   [Tears of Steel sharing page](https://mango.blender.org/sharing/).
 - **H.265 clip** (`source-hevc.mp4`): the same excerpt, transcoded with
@@ -81,7 +81,7 @@ file is not. The files are the following:
   frame size, frame rate, and duration.
 - **Music sample** (`source.flac`): the "Entre dos Aguas" sample performed by
   Michael Laucke, about 85 s at 44.1 kHz. License: CC0 1.0
-  ([Creative Commons Zero 1.0](https://creativecommons.org/publicdomain/zero/1.0/)).
+  (Creative Commons Zero 1.0).
 
 Each job loops its input (`-stream_loop -1`) and stops after the media length
 set for that worker count (`-t`), so the length of a job does not depend on the

@@ -93,8 +93,8 @@ dominance.
 ## Initial Custom Workload: V1
 
 Plain `pgbench -S` (one primary-key `SELECT`) was too cheap per transaction to
-measure CPU behavior under network latency. With `netem` ([Network
-Emulator](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html))
+measure CPU behavior under network latency. With `netem` (Network
+Emulator)
 simulating RTT (Round-Trip Time), its throughput fell by about 98% at one
 connection with an additional 5 ms of one-way delay, while the CPU-heavy
 transaction barely changed.
