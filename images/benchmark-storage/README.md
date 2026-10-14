@@ -22,8 +22,8 @@ benchmark adds storage performance: Navigator will publish bandwidth and IOPS
 at different block sizes, both per disk and for each group of identical disks.
 
 This benchmark focuses on a server type's bundled storage: the disk or disks
-provisioned with the server type by default, regardless of whether HDDs (Hard
-Disk Drives), SSDs, or network-attached storage back them. Results reflect the
+provisioned with the server type by default, regardless of whether an HDD (Hard
+Disk Drive), an SSD, or network-attached storage backs them. Results reflect the
 storage as provisioned, including any provider-imposed IOPS or bandwidth limit.
 Network storage attached on demand is out of scope, because its performance is
 not a property of the server type. See

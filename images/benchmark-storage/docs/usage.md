@@ -3,9 +3,9 @@
 ## Disk Safety
 
 This benchmark decides for each disk whether it may write to it. Disks it may
-write to (`read_write`) are discarded, filled, and overwritten. Their previous
-data is lost. Run it only on ephemeral servers, never on production or similar
-systems.
+write to (`read_write`) are filled and overwritten, and discarded first if they
+support it. Their previous data is lost. Run it only on ephemeral servers,
+never on production or similar systems.
 
 [`benchmark.py`](../benchmark.py) checks each disk in the following order:
 

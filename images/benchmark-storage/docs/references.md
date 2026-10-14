@@ -1,59 +1,41 @@
 # References
 
-Alphabetized lists of frequently used phrases and links to external
-documentation.
+Terms specific to this image, alphabetized. Common terms (e.g. GCP, I/O, IOPS,
+PID) are defined in the [glossary](https://docs.sparecores.com/glossary) of the
+Spare Cores docs, which also lists the terms each image uses.
 
-## Acronyms
-
-Officially used, short-form versions for longer phrases, company and product
-names, etc.
-
-- DRAM (Dynamic Random-Access Memory)
-- FTL (Flash Translation Layer)
-- GCP (Google Cloud Platform)
-- HDD (Hard Disk Drive)
-- I/O (Input/Output)
-- IOPS (Input/Output Operations Per Second)
-- LLM (Large Language Model)
-- LVM (Logical Volume Manager)
-- NVMe (Non-Volatile Memory Express)
-- RAID (Redundant Array of Independent Disks)
-- SLC (Single-Level Cell)
-- SMART (Self-Monitoring, Analysis, and Reporting Technology)
-- UTC (Coordinated Universal Time)
-
-<!--
-## Custom Abbreviations
-
-Non-official or less-used abbreviations, contractions, and stand-ins.
-
--
--->
-
-## Linked Definitions
-
-Words, phrases, and expanded acronyms and abbreviations with links to explain
-their meaning or point to their documentation.
-
-### `fio` Documentation
-
-- [`fio`](https://fio.readthedocs.io/en/latest/)
-
-### Definitions and Additional Information
-
-- [`blkdiscard`](https://man7.org/linux/man-pages/man8/blkdiscard.8.html)
-- [Coordinated Universal Time](https://en.wikipedia.org/wiki/Coordinated_Universal_Time)
-- [Dynamic Random-Access Memory](https://en.wikipedia.org/wiki/Dynamic_random-access_memory)
-- [Flash Translation Layer](https://en.wikipedia.org/wiki/Flash_memory_controller#Flash_translation_layer_(FTL)_and_mapping)
-- [Google Cloud Platform](https://cloud.google.com/)
-- [Hard Disk Drive](https://en.wikipedia.org/wiki/Hard_disk_drive)
-- [Input/Output](https://en.wikipedia.org/wiki/Input/output)
-- [Input/Output Operations Per Second](https://en.wikipedia.org/wiki/IOPS)
-- [Large Language Model](https://en.wikipedia.org/wiki/Large_language_model)
-- [Logical Volume Manager](https://man7.org/linux/man-pages/man8/lvm.8.html)
-- [Non-Volatile Memory Express](https://nvmexpress.org/)
-- [OVHcloud](https://www.ovhcloud.com/)
-- [Redundant Array of Independent Disks](https://en.wikipedia.org/wiki/RAID)
-- [Self-Monitoring, Analysis, and Reporting Technology](https://en.wikipedia.org/wiki/Self-Monitoring,_Analysis_and_Reporting_Technology)
-- [Single-Level Cell](https://en.wikipedia.org/wiki/Multi-level_cell)
-- [`smartctl`](https://www.smartmontools.org/)
+- **`blkdiscard`**: A Linux command that discards (trims) all blocks of a
+  device, so an SSD treats them as unwritten.
+  [man page](https://man7.org/linux/man-pages/man8/blkdiscard.8.html)
+- **DRAM** (Dynamic Random-Access Memory): Fast, volatile memory, which many
+  SSDs use as a cache.
+  [Wikipedia](https://en.wikipedia.org/wiki/Dynamic_random-access_memory)
+- **`fio`**: The storage benchmark tool this image runs.
+  [fio docs](https://fio.readthedocs.io/en/latest/)
+- **FTL** (Flash Translation Layer): The part of an SSD controller that maps
+  logical blocks to physical flash pages and runs garbage collection.
+  [Wikipedia](https://en.wikipedia.org/wiki/Flash_memory_controller#Flash_translation_layer_(FTL)_and_mapping)
+- **HDD** (Hard Disk Drive): A storage device that reads and writes data on
+  spinning magnetic disks.
+  [Wikipedia](https://en.wikipedia.org/wiki/Hard_disk_drive)
+- **LVM** (Logical Volume Manager): The Linux tool that pools disks into volume
+  groups and divides them into logical volumes.
+  [man page](https://man7.org/linux/man-pages/man8/lvm.8.html)
+- **NVMe** (Non-Volatile Memory Express): The protocol of SSDs attached
+  directly over PCI Express. [NVM Express](https://nvmexpress.org/)
+- **OVHcloud**: A European cloud provider.
+  [OVHcloud](https://www.ovhcloud.com/)
+- **RAID** (Redundant Array of Independent Disks): Several disks combined into
+  one device for redundancy or speed, on Linux often with `md`.
+  [Wikipedia](https://en.wikipedia.org/wiki/RAID)
+- **SLC** (Single-Level Cell): Flash memory that stores one bit per cell. SSDs
+  run part of their flash in SLC mode as a fast write cache.
+  [Wikipedia](https://en.wikipedia.org/wiki/Multi-level_cell)
+- **SMART** (Self-Monitoring, Analysis, and Reporting Technology): The health
+  and error counters that disks report about themselves.
+  [Wikipedia](https://en.wikipedia.org/wiki/Self-Monitoring,_Analysis_and_Reporting_Technology)
+- **`smartctl`**: The command of `smartmontools` that reads SMART data from
+  disks. [smartmontools](https://www.smartmontools.org/)
+- **UTC** (Coordinated Universal Time): The time standard of the timestamps in
+  the output, without a time zone offset.
+  [Wikipedia](https://en.wikipedia.org/wiki/Coordinated_Universal_Time)

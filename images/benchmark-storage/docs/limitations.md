@@ -27,8 +27,8 @@ benchmark does *not* test the `io_uring` engine.
 ### Disk Scope
 
 This benchmark focuses on a server type's bundled storage: the disk or disks
-provisioned with the server type by default. These can be locally attached SSDs
-or HDDs (Hard Disk Drives), or network-attached storage. Network storage
+provisioned with the server type by default. These can be a locally attached
+SSD or HDD (Hard Disk Drive), or network-attached storage. Network storage
 attached on demand is out of scope, because its performance is not a property
 of the server type.
 
@@ -73,7 +73,7 @@ region of each disk.
 
 ### Destructive Runs
 
-This benchmark discards and overwrites every disk it may write to, and does not
+This benchmark overwrites every disk it may write to, and does not
 remount the filesystems it unmounts. Run it only on ephemeral servers, never on
 production or similar systems. `SC_STORAGE_UMOUNT=0` leaves mounted disks
 alone, but disks that are not in use are always overwritten. See
