@@ -20,7 +20,8 @@ network-attached block storage, provisioned independently of the server type and
 entirely up to the user, so it says little about the server itself.
 
 Deploying volumes with high-enough IOPS to never bottleneck across the more than
-5,000 server types on [Navigator](https://sparecores.com/servers) would also be
+5,000 server types in the
+[Spare Cores Navigator Web UI](https://sparecores.com/servers) would also be
 prohibitively expensive. Because of this, we exclude disk speed from the
 measurement and score the database engine's CPU and memory performance.
 
@@ -68,9 +69,9 @@ HammerDB TPROC-C (HammerDB's transaction processing
 workload) and similar suites size their
 datasets by warehouse count, and `pgbench` by scale factor. Neither sizing
 scheme can fulfill this purpose. Because of this, we chose a fixed-size
-workload that can run on every server type on
-[Navigator](https://sparecores.com/servers) with at least 2 GiB of RAM, with
-larger servers being taxed by concurrency rather than workload size.
+workload that can run on every server type in the
+[Navigator's Web UI](https://sparecores.com/servers) with at least 2 GiB of RAM,
+with larger servers being taxed by concurrency rather than workload size.
 
 ### Engine Configuration
 
