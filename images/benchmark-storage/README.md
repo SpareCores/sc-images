@@ -10,8 +10,8 @@ directly to the raw device, bypassing the filesystem and the page cache.
 This benchmark reports IOPS (Input/Output Operations Per Second), bandwidth,
 and latency percentiles for each test, at block sizes from 512&nbsp;B to
 16&nbsp;MiB. It also records a disk inventory and before-and-after health
-snapshots. It overwrites every disk it can claim, so run it only on ephemeral
-servers.
+snapshots. It overwrites every disk it is allowed to write to, so run it only
+on ephemeral servers.
 
 ## Purpose
 

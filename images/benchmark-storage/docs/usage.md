@@ -107,8 +107,8 @@ in microseconds.
 
 The JSON document has the following top-level fields:
 
-- `schema_version` (`1`), and the versions of `fio`, `lsblk`, `smartctl`, and
-  `nvme-cli`
+- `schema_version` (`1`), and the versions of `fio`, `lsblk`, `smartctl` (drive
+  health queries), and `nvme-cli` (NVMe health logs)
 - `started_at` and `finished_at`, as UTC (Coordinated Universal Time)
   timestamps
 - `host`: kernel, architecture, CPU count (`nproc`), and memory (`mem_bytes`)

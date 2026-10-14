@@ -26,9 +26,9 @@ benchmark does *not* test the `io_uring` engine.
 
 ### Disk Scope
 
-This benchmark targets a server type's bundled storage: the disk or disks that
-come with the server type by default. These can be locally attached SSDs or
-HDDs (Hard Disk Drives), or a network drive behind the scenes. Network storage
+This benchmark focuses on a server type's bundled storage: the disk or disks
+provisioned with the server type by default. These can be locally attached SSDs
+or HDDs (Hard Disk Drives), or network-attached storage. Network storage
 attached on demand is out of scope, because its performance is not a property
 of the server type.
 
@@ -65,7 +65,7 @@ following share of each NVMe
   drives
 - OVHcloud `i1-90`: 33% of each of two drives
 
-A disk that is not fully written keeps unmapped spare area, which flatters
+A disk that is not fully written keeps unmapped spare area, which inflates
 random-write results. The fill record's `filled_fraction` shows how much of
 each disk the fill wrote. Setting
 `SC_STORAGE_WS_TARGET_BYTES` limits the fill, and all later tests, to a smaller
