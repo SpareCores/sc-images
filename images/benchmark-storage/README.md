@@ -40,9 +40,10 @@ These results describe raw block devices under synthetic `fio` load, not
 filesystem or application performance. The following are the main
 limitations:
 
-- **Destructive:** This benchmark discards and overwrites every disk that is
-  not in use, and unmounts and overwrites disks whose mounts are not protected.
-  It never remounts them. See [Disk Safety](./docs/usage.md#disk-safety).
+- **Destructive:** This benchmark overwrites every disk that is not in use, and
+  unmounts and overwrites disks whose mounts are not protected and can be
+  unmounted. It never remounts them. See
+  [Disk Safety](./docs/usage.md#disk-safety).
 - **Raw devices only:** Tests bypass the filesystem and the page cache, so
   results exclude filesystem overhead and caching. See
   [Raw Block I/O](./docs/limitations.md#raw-block-io).
