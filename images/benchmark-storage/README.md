@@ -69,9 +69,9 @@ docker run --rm --privileged --pid=host ghcr.io/sparecores/benchmark-storage:mai
 ```
 
 **Warning:** Every filesystem this benchmark unmounts is destroyed, together
-with the data on every disk that is not mounted. Never run it on production or
+with the data on every disk that is not in use. Never run it on production or
 similar systems. Set `SC_STORAGE_UMOUNT=0` to leave mounted disks alone; disks
-that are not mounted are still overwritten. See
+that are not in use are still overwritten. See
 [Disk Safety](./docs/usage.md#disk-safety) for which disks this benchmark
 writes to.
 
@@ -127,8 +127,8 @@ See [Output](./docs/usage.md#output) for every field and its unit.
 
 ## Workloads
 
-[`benchmark.py`](./benchmark.py) runs the following steps for each group of
-identical disks, in this order:
+[`benchmark.py`](./benchmark.py) runs the following kinds of tests for each
+group of identical disks:
 
 - [Preconditioning](./docs/workloads.md#preconditioning) discards and fills
   each writable disk sequentially, and later writes it randomly before the

@@ -37,8 +37,9 @@ unmount through `nsenter` in the host's mount namespace. Both need
 `--pid=host`. This benchmark does not check if it runs in the host's PID
 namespace.
 
-Note that `SC_STORAGE_UMOUNT=0` does not protect disks that are not mounted:
-this benchmark always writes to them. There is no setting for a read-only run.
+Note that `SC_STORAGE_UMOUNT=0` does not protect the disks that step 2 marks
+`read_write`: this benchmark always writes to them. There is no setting for a
+read-only run.
 
 ## Production Setup
 
