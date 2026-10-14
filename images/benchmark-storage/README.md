@@ -37,7 +37,8 @@ disk before measuring it, and runs write tests for longer than read tests. See
 ## Limitations
 
 These results describe raw block devices under synthetic `fio` load, not
-filesystem or application performance. The main limitations are:
+filesystem or application performance. The following are the main
+limitations:
 
 - **Destructive:** This benchmark discards and overwrites every disk that is
   not in use, and unmounts and overwrites disks whose mounts are not protected.
@@ -88,7 +89,7 @@ shortens or drops tests when its estimate exceeds 2400 s. See
 
 ### Settings
 
-Common settings are listed here; see the
+The following are the common settings; see the
 [full environment-variable reference](./docs/usage.md#environment-variables)
 for all options and defaults:
 

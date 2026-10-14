@@ -124,7 +124,8 @@ The JSON document has the following top-level fields:
 Each `inventory` entry describes one disk, with `lsblk` and `sysfs` fields such
 as `model`, `serial`, `size` (bytes), `tran` (transport), `rota` (rotational),
 `log_sec` and `phy_sec` (sector sizes), `write_cache`, and `disc_max` (discard
-support). It also records how the disk was used and the decision made for it:
+support). It also records how the disk was used and the decision made for it,
+in the following fields:
 
 - `mountpoints`, `swap`, and `holders`
 - `mode` (`read_write` or `read_only`) and `mode_reason`
@@ -199,8 +200,8 @@ query is recorded as `{"error": "..."}` and does not fail the run.
 
 ### Skipped Tests
 
-Each `skipped` entry has `group`, `scope`, `test`, and `reason`. The reasons
-are:
+Each `skipped` entry has `group`, `scope`, `test`, and `reason`, with one of
+the following reasons:
 
 - `bs < log_sec (<n>)`: the block size is below the disk's logical sector size
 - `read_only: <mode_reason>`: write tests on a disk this benchmark may not
