@@ -54,7 +54,7 @@ limitations:
   total, which filled 26-33% of each NVMe
   ([Non-Volatile Memory Express](https://nvmexpress.org/)) drive on the first
   production servers. See [Partial Fill](./docs/limitations.md#partial-fill).
-- **Disks in use are read only:** The boot disk and other disks in use get
+- **Disks in use are read-only:** The boot disk and other disks in use get
   read tests only, on whatever data they already hold. See
   [Read-Only Disks](./docs/limitations.md#read-only-disks).
 - **No single score:** The output has one record per test, and no headline

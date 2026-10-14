@@ -145,7 +145,7 @@ following devices are excluded:
 
 Disks with the same model, size, and subsystem form a group. Each `groups`
 entry has its `key`, `members`, `representative` (the first writable member by
-name), and `mode`.
+name, or the first member if none is writable), and `mode`.
 
 ### Test Records
 
