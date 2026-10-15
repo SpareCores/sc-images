@@ -1,1 +1,1 @@
-CPU benchmark running stress-ng stressors and counting their operations per second.
+CPU, memory, and kernel-heavy workload benchmark with stress-ng, measuring bogo ops/s for 85 stressors on one and on all CPUs, and the multi-core scaling of the cpu stressor.
