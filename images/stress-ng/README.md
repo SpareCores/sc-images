@@ -29,9 +29,12 @@ SCore, a relative performance score for comparing the speed of server types.
 See [CPU Scaling Loop](./docs/workloads.md#cpu-scaling-loop).
 
 The [`stress-ng-longrun`](../stress-ng-longrun) image pins an older
-`stress-ng` version for an experimental 24-hour run on a few server types. It
-shows sustained CPU throughput over time, throttling on shared-core server
-types, and noisy-neighbor variance by time of day.
+`stress-ng` version for an experimental 24-hour run on a few server types. The
+run shows the following:
+
+- sustained CPU throughput over time
+- throttling on shared-core server types
+- noisy-neighbor variance by time of day
 
 ## Limitations
 
