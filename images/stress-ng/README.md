@@ -120,10 +120,10 @@ For more information on stressor categories and run order, see
 
 The CPU scaling loop uses the `div16` method of the `cpu` stressor. We ran
 every `--cpu-method` on selected x86_64 and Arm servers, with and without SMT
-(Simultaneous Multithreading). Other methods scaled more or
-less than expected: on a 2 vCPU server with SMT, some reached up to 1.8 times
-the single-worker throughput with two workers, while `div16` stayed at about
-the single-worker throughput.
+(Simultaneous Multithreading). Other methods scaled more or less than
+expected: on a 2 vCPU server with SMT, some reached up to 1.8 times the
+single-worker throughput with two workers, while `div16` stayed at about the
+single-worker throughput.
 
 The stressor suite came with an upgrade from `stress-ng` 0.17.08 to 0.20.01.
 At first, only a subset of 23 stressors also ran with all CPUs; now every
