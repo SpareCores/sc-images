@@ -10,8 +10,9 @@ stressor suite as follows:
 2. It runs each stressor with one worker, then with one worker per logical CPU
    available to the container, if there is more than one. Stressors run one
    at a time.
-3. Each run is `stress-ng --metrics --metrics-brief --<stressor> <workers>
-   -t <seconds>`, for 5 s, or 15 s for `stream`.
+3. Each run is
+   `stress-ng --metrics --metrics-brief --<stressor> <workers> -t <seconds>`,
+   for 5 s, or 15 s for `stream`.
 4. It reads bogo ops/s (bogus operations per second) in real time from the
    `metrc` line of the run's output.
 

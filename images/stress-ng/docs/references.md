@@ -32,7 +32,7 @@ Spare Cores docs, which also lists the terms each image uses.
   [Wikipedia](https://en.wikipedia.org/wiki/Second_Level_Address_Translation)
 - **`nice`**: A Unix command that runs a program with a changed scheduling
   priority, from -20 (highest) to 19 (lowest). Raising a process's priority
-  above the default needs root privileges.
+  above the default needs the `CAP_SYS_NICE` capability, which root has.
   [man page](https://man7.org/linux/man-pages/man1/nice.1.html)
 - **`psutil`**: A cross-platform Python library for retrieving information on
   running processes and system utilization, such as CPU, memory, disks, and

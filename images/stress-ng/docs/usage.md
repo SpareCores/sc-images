@@ -26,8 +26,8 @@ command, such as `-c 'stress-ng --cpu 1 -t 10 --metrics'`.
 
 The Navigator's Inspector runs this image in two production tasks, each with
 `--privileged` and `--network host`, and with the command under
-`nice -n -20`. `nice -n -20` needs `--privileged`; a plain run without either
-runs at normal priority. The image itself does not set a priority.
+`nice -n -20`. `nice -n -20` needs `--privileged`; a plain run, without
+`nice`, runs at normal priority. The image itself does not set a priority.
 
 The stressor suite runs as follows:
 
