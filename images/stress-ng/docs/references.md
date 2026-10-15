@@ -70,4 +70,3 @@ Spare Cores docs, which also lists the terms each image uses.
   hypervisor, triggered by an operation the hypervisor has to handle, such as
   some privileged instructions, I/O, or interrupts. Each exit and return costs
   CPU time, so workloads that cause many exits run slower in a VM.
-  [Wikipedia](https://en.wikipedia.org/wiki/Hardware-assisted_virtualization)
