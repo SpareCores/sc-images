@@ -1,9 +1,10 @@
 # sc-images
 
 Container images that inspect hardware and benchmark the performance of cloud
-servers. [sc-inspector](https://github.com/SpareCores/sc-inspector) runs them
-on each server type, and [Navigator](https://sparecores.com/servers) publishes
-the results for over 5,000 cloud server types.
+servers for [Spare Cores Navigator](https://docs.sparecores.com/overview). Its
+[Inspector](https://github.com/SpareCores/sc-inspector) runs them on each server
+type, and the Navigator publishes the results for over 5,000 cloud server
+types.
 
 Each folder under [`images/`](images) is published as
 `ghcr.io/sparecores/<folder>:main`, built for amd64 and arm64 unless its
@@ -55,7 +56,7 @@ output.
 
 | Image | Description |
 | ----- | ----------- |
-| [`resource-tracker`](images/resource-tracker) | Spare Cores resource-tracker binary, copied into the other images to record resource usage while benchmarks run. |
+| [`resource-tracker`](images/resource-tracker) | The resource-tracker binary of Spare Cores Navigator, copied into the other images to record resource usage while benchmarks run. |
 | [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 but no AVX-512, used as the base of benchmark-vllm-cpu-avx2. |
 
 Some images share one manual, and their READMEs cover only what differs. The

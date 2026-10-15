@@ -15,11 +15,12 @@ on ephemeral servers.
 
 ## Purpose
 
-Our [Navigator](https://sparecores.com/servers) project publishes empirical
-performance measurements for over 5,000 cloud server types, such as raw CPU
-speed, memory bandwidth, and LLM (Large Language Model) inference speed. This
-benchmark adds storage performance: Navigator will publish bandwidth and IOPS
-at different block sizes, both per disk and for each group of identical disks.
+[Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
+empirical performance measurements for over 5,000 cloud server types, such as
+raw CPU speed, memory bandwidth, and LLM (Large Language Model) inference
+speed. This benchmark adds storage performance: the Navigator will publish
+bandwidth and IOPS at different block sizes, both per disk and for each group
+of identical disks.
 
 This benchmark focuses on a server type's bundled storage: the disk or disks
 provisioned with the server type by default, regardless of whether an HDD (Hard

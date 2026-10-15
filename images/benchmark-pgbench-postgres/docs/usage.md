@@ -183,8 +183,9 @@ figures come from the BenchBase Wikipedia and `pgbench -S` runs, not from
 
 ## Production Setup
 
-Spare Cores runs this image through `sc-inspector` orchestration with the
-following setup. A plain `docker run` differs from it as noted below.
+The Inspector of Spare Cores Navigator
+([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs this image
+with the following setup. A plain `docker run` differs from it as noted below.
 
 ### Container Settings
 

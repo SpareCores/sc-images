@@ -12,10 +12,10 @@ synthetic `fio` load, not what an application will see through a filesystem.
 ### A Single Score
 
 The output has one record per test and does *not* combine them into a single
-number. Navigator will publish bandwidth and IOPS (Input/Output Operations Per
-Second) at different block sizes, per disk and for each group of identical
-disks. The rest of the output, including any headline metric, is not decided
-yet.
+number. Spare Cores Navigator will publish bandwidth and IOPS (Input/Output
+Operations Per Second) at different block sizes, per disk and for each group of
+identical disks. The rest of the output, including any headline metric, is not
+decided yet.
 
 ### Other `fio` I/O Engines
 
@@ -37,7 +37,7 @@ regardless of the underlying medium. A result may therefore be bounded by a
 constraint outside the drive itself, such as a provider-imposed IOPS or
 bandwidth limit on network-attached storage, or the mechanical limits of an
 HDD. This benchmark does not attribute results to a specific cause: it reports
-performance as measured, and Navigator publishes those measurements.
+performance as measured, and the Navigator publishes those measurements.
 
 The image does *not* detect which disks are bundled. It tests every real block
 device that passes
