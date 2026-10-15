@@ -35,4 +35,4 @@ Common terms (e.g. AWS, vCPU, SMT) are defined in the docs site's glossary. Defi
   [SRT cookbook](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
 ```
 
-The expansion, the description and the trailing links are each optional, but an entry needs at least one of them; write commands and tools as inline code. The docs site replaces the page with one listing every glossary term the image's docs use, so the file itself only needs the image's own terms.
+The expansion, the description and the trailing links are each optional, but an entry needs at least one of them; write commands and tools as inline code. The docs site replaces the page with one listing every glossary term the image's docs use, so the file itself only needs the image's own terms. Describe each term in itself, in one paragraph of 1–5 sentences, like a short encyclopedia entry: the docs site adds which images use it, so don't describe the term in relation to an image.
