@@ -4,11 +4,11 @@
 
 ### Bogo Ops Units
 
-In `stress-ng`, bogo ops/s (bogus operations per second) count how many times
-a stressor completes its own unit of work per second. Each stressor defines
-that unit differently, so results are *not* comparable across stressors:
-compare a stressor only with itself, on the same `stress-ng` version. The
-image pins `stress-ng` 0.20.01 through the tag of its base image.
+The stress-ng bogo ops/s (bogus operations per second) metric counts how many
+times a stress-ng stressor completes its own unit of work per second. Each
+stressor defines that unit differently, so results are *not* comparable across
+stressors: compare a stressor only with itself, on the same `stress-ng`
+version. The image pins `stress-ng` 0.20.01 through the tag of its base image.
 
 ### A Single Score
 

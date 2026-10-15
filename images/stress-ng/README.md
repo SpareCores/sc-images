@@ -6,10 +6,9 @@ each for 5 s (15 s for `stream`), first with one worker and then with one
 worker per available CPU. A second mode runs the `cpu` stressor at increasing
 worker counts to trace how throughput scales across cores.
 
-This benchmark reports bogo ops/s (bogus operations per second), the
-`stress-ng` throughput metric, for each stressor and worker count, as one JSON
-document. The scaling mode prints one `<workers>,<bogo ops/s>` line per worker
-count.
+This benchmark reports stress-ng bogo ops/s (bogus operations per second) for
+each stress-ng stressor and worker count, as one JSON document. The scaling
+mode prints one `<workers>,<bogo ops/s>` line per worker count.
 
 ## Purpose
 
@@ -110,8 +109,8 @@ This benchmark runs the following workloads:
   stressors in seven categories, each with one worker and then one worker per
   CPU.
 - [CPU scaling loop](./docs/workloads.md#cpu-scaling-loop): the `cpu` stressor
-  with the `div16` method runs for 10 s at each worker count from 1 up to the
-  CPU count, with [`count.awk`](./count.awk) picking the counts.
+  with the stress-ng div16 method runs for 10 s at each worker count from 1 up
+  to the CPU count, with [`count.awk`](./count.awk) picking the counts.
 
 For more information on stressor categories and run order, see
 [Workloads](./docs/workloads.md).
