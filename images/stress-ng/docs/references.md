@@ -1,8 +1,8 @@
 # References
 
-Terms specific to this image, alphabetized. Common terms (e.g. I/O, SMT, vCPU)
-are defined in the [glossary](https://docs.sparecores.com/glossary) of the
-Spare Cores docs, which also lists the terms each image uses.
+Terms specific to this image, alphabetized. Common terms (e.g. `nice`, SMT,
+vCPU) are defined in the [glossary](https://docs.sparecores.com/glossary) of
+the Spare Cores docs, which also lists the terms each image uses.
 
 - **bogo ops/s** (bogus operations per second): The throughput metric of
   `stress-ng`: how many times a stressor completes its own unit of work per
@@ -30,18 +30,13 @@ Spare Cores docs, which also lists the terms each image uses.
   TLB miss then needs more memory lookups. Intel calls it Extended Page Tables
   and AMD Rapid Virtualization Indexing.
   [Wikipedia](https://en.wikipedia.org/wiki/Second_Level_Address_Translation)
-- **`nice`**: A Unix command that runs a program with a changed scheduling
-  priority, from -20 (highest) to 19 (lowest). Raising a process's priority
-  above the default needs the `CAP_SYS_NICE` capability, which root has.
-  [man page](https://man7.org/linux/man-pages/man1/nice.1.html)
 - **`psutil`**: A cross-platform Python library for retrieving information on
   running processes and system utilization, such as CPU, memory, disks, and
   network. It can count both logical CPUs and physical cores.
   [psutil docs](https://psutil.readthedocs.io/)
-- **SCore**: The relative performance score of Spare Cores Navigator for a
-  server type, used to compare the speed of server types. It is derived from
-  how the throughput of the `stress-ng` `cpu` stressor scales with the number
-  of workers.
+- **SCore**: The raw multi-core CPU speed of a server type in Spare Cores
+  Navigator, used to compare the speed of server types. It is measured with
+  the `cpu` stressor of `stress-ng`.
 - **shared-core**: Describes a cloud server type whose vCPUs share physical
   cores with other servers, often with a guaranteed baseline of only a
   fraction of a core. Such server types are cheaper, but their CPU performance
