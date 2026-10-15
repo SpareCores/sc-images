@@ -9,10 +9,19 @@ Spare Cores docs, which also lists the terms each image uses.
   second. Each stressor defines that unit differently, so the values compare
   only within one stressor and one `stress-ng` version.
   [stress-ng man page](https://manpages.ubuntu.com/manpages/noble/man1/stress-ng.1.html)
+- **CPU-credit throttling**: A limit on burstable cloud server types, which
+  earn CPU credits while they run below a baseline CPU usage and spend them to
+  run above it. When the credits run out, the provider throttles the server to
+  its baseline, so sustained load runs slower than a short burst.
+  [AWS burstable instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/burstable-performance-instances.html)
 - **`div16`**: A method of the `stress-ng` `cpu` stressor, selected with
   `--cpu-method div16`, in which each operation runs 50,000 16-bit unsigned
   integer divisions. Integer division takes many CPU cycles and depends little
   on memory, so it loads the core's arithmetic units directly.
+  [stress-ng man page](https://manpages.ubuntu.com/manpages/noble/man1/stress-ng.1.html)
+- **`metrc`**: The tag of the lines in which `stress-ng --metrics` prints each
+  stressor's results when the run ends: the bogo ops count, the real, user,
+  and system time, and the bogo ops/s, among other columns.
   [stress-ng man page](https://manpages.ubuntu.com/manpages/noble/man1/stress-ng.1.html)
 - **nested paging**: Hardware support for memory virtualization, in which the
   CPU translates a guest's virtual addresses through the guest's page tables
@@ -33,6 +42,11 @@ Spare Cores docs, which also lists the terms each image uses.
   server type, used to compare the speed of server types. It is derived from
   how the throughput of the `stress-ng` `cpu` stressor scales with the number
   of workers.
+- **shared-core**: Describes a cloud server type whose vCPUs share physical
+  cores with other servers, often with a guaranteed baseline of only a
+  fraction of a core. Such server types are cheaper, but their CPU performance
+  can vary with the load of neighboring servers or be limited by CPU credits.
+  [Google Cloud shared-core machine types](https://cloud.google.com/compute/docs/general-purpose-machines#sharedcore)
 - **SIMD** (Single Instruction, Multiple Data): A form of parallel processing
   in which one CPU instruction applies the same operation to several data
   elements at once. CPUs implement it with vector instruction set extensions,

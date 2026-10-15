@@ -100,7 +100,7 @@ See [Output](./docs/usage.md#output) for every field.
 
 ## Workloads
 
-This image runs the following workloads:
+This benchmark runs the following workloads:
 
 - [Stressor suite](./docs/workloads.md#stressor-suite):
   [`run_stressng_benchmarks.py`](./run_stressng_benchmarks.py) runs 85
@@ -115,9 +115,9 @@ For more information on stressor categories and run order, see
 
 ## Design History
 
-The CPU scaling loop uses the `div16` method of the `cpu` stressor. The Spare
-Cores team ran every `--cpu-method` on selected x86_64 and Arm servers, with
-and without SMT (Simultaneous Multithreading). Other methods scaled more or
+The CPU scaling loop uses the `div16` method of the `cpu` stressor. We ran
+every `--cpu-method` on selected x86_64 and Arm servers, with and without SMT
+(Simultaneous Multithreading). Other methods scaled more or
 less than expected: on a 2 vCPU server with SMT, some reached up to 1.8 times
 the single-worker throughput with two workers, while `div16` stayed at about
 the single-worker throughput.
