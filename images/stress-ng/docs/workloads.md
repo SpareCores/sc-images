@@ -40,8 +40,9 @@ Data) vector work.
 ### Hypervisor Stressors
 
 The `hypervisor` stressors are the ones whose throughput on a VM is dominated
-by hypervisor overhead, such as VM exits, nested page-table walks, timer
-emulation, and trap injection. They fall into the following groups:
+by hypervisor overhead, such as the cost of each VM exit, the extra
+page-table lookups of nested paging, and the emulation of timers and traps.
+They fall into the following groups:
 
 - context switching and process creation: `context`, `switch`, `clone`,
   `fork`, `vfork`

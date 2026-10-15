@@ -9,6 +9,18 @@ Spare Cores docs, which also lists the terms each image uses.
   second. Each stressor defines that unit differently, so the values compare
   only within one stressor and one `stress-ng` version.
   [stress-ng man page](https://manpages.ubuntu.com/manpages/noble/man1/stress-ng.1.html)
+- **`div16`**: A method of the `stress-ng` `cpu` stressor, selected with
+  `--cpu-method div16`, in which each operation runs 50,000 16-bit unsigned
+  integer divisions. Integer division takes many CPU cycles and depends little
+  on memory, so it loads the core's arithmetic units directly.
+  [stress-ng man page](https://manpages.ubuntu.com/manpages/noble/man1/stress-ng.1.html)
+- **nested paging**: Hardware support for memory virtualization, in which the
+  CPU translates a guest's virtual addresses through the guest's page tables
+  and then through a second set of page tables kept by the hypervisor. It
+  removes the need for the hypervisor to maintain shadow page tables, but a
+  TLB miss then needs more memory lookups. Intel calls it Extended Page Tables
+  and AMD Rapid Virtualization Indexing.
+  [Wikipedia](https://en.wikipedia.org/wiki/Second_Level_Address_Translation)
 - **`nice`**: A Unix command that runs a program with a changed scheduling
   priority, from -20 (highest) to 19 (lowest). Raising a process's priority
   above the default needs root privileges.
