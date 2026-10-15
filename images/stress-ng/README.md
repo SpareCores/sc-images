@@ -21,8 +21,8 @@ floating-point math to sorting, hashing, and memory bandwidth.
 
 It also includes a `hypervisor` category: stressors such as context switches,
 page faults, system calls, and timers, whose throughput on a VM is dominated by
-hypervisor overhead. Comparing them across providers shows differences in
-virtualization quality.
+hypervisor overhead. These stressors are meant to expose differences in
+virtualization overhead across providers.
 
 The Navigator's Inspector uses the scaling mode to determine a server type's
 SCore, a relative performance score for comparing the speed of server types.
@@ -70,8 +70,8 @@ Production also runs the command under `nice -n -20`, which needs
 `--privileged`. See [Production Setup](./docs/usage.md#production-setup) for
 the production commands, including the CPU scaling loop.
 
-The stressor suite took 7 to 66 minutes in production, 15 minutes at the
-median. See [Run Duration](./docs/usage.md#run-duration).
+The stressor suite took about 7 to 66 minutes in production, about 15 minutes
+at the median. See [Run Duration](./docs/usage.md#run-duration).
 
 ### Settings
 

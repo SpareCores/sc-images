@@ -5,9 +5,8 @@
 [`run_stressng_benchmarks.py`](../run_stressng_benchmarks.py) runs the
 stressor suite as follows:
 
-1. It lists the stressors that this `stress-ng` build supports
-   (`stress-ng --stressors`), and keeps the curated stressors on that list, in
-   alphabetical order.
+1. It gets the list of stressors from `stress-ng --stressors`, and keeps the
+   curated stressors on that list, in alphabetical order.
 2. It runs each stressor with one worker, then with one worker per logical CPU
    available to the container, if there is more than one. Stressors run one
    at a time.

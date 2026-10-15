@@ -70,7 +70,7 @@ indented with two spaces. It has the following fields:
 | `stressors.<name>."1"` | object or `null` | Result with one worker |
 | `stressors.<name>."<N>"` | object or `null` | Result with N workers, where N is `meta.physical_cpus`; present only when N is greater than 1 |
 | `stressors.<name>.<workers>.bogo_ops_per_sec` | float | Throughput in bogo ops/s (bogus operations per second), in real time, the total across all workers |
-| `categories.<category>` | list of strings | The stressors of each category that this `stress-ng` build supports, in category order |
+| `categories.<category>` | list of strings | The stressors of each category that `stress-ng --stressors` lists, in category order |
 | `meta.timeout_sec_per_stressor` | integer | Seconds per stressor run: `5`, or `2` with `STRESSNG_QUICK=1`; does not reflect the 15 s of `stream` |
 | `meta.physical_cpus` | integer | Worker count of the multi-worker runs: the number of logical CPUs available to the container |
 | `meta.stressor_count` | integer | Number of stressors run, after `STRESSNG_LIMIT` |

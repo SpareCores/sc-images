@@ -49,7 +49,7 @@ output field is named `physical_cpus`.
 
 A stressor run that fails, takes 30 s longer than its duration, or prints no
 result is recorded as `null`, and the script still exits with code 0. The
-following stressors are often `null` in production:
+following stressors are `null` in some or all production runs:
 
 - `ipsec-mb` has been `null` in every successful production run so far.
 - `tsc`, `usersyscall`, and `x86syscall` are x86-only. On Arm servers,
