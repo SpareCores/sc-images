@@ -13,10 +13,10 @@ headline score.
 
 ## Purpose
 
-Our [Navigator](https://sparecores.com/servers) project publishes empirical
-performance measurements for more than 5,000 cloud server types. Media
-businesses often run video and audio transcoding and similar tasks in the
-cloud, because their compute needs change over time. Navigator previously
+[Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
+empirical performance measurements for more than 5,000 cloud server types.
+Media businesses often run video and audio transcoding and similar tasks in the
+cloud, because their compute needs change over time. The Navigator previously
 covered this kind of work only through proxies from the Geekbench suite: photo
 editing, ray tracing, and document rendering.
 

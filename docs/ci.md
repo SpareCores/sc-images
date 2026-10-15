@@ -101,10 +101,8 @@ The following subsections apply only to source-built vLLM images, currently
 ### sccache
 
 Images with a `SCCACHE` metadata file compile C++/CUDA through
-[sccache](https://github.com/mozilla/sccache) with an S3 backend. Infrastructure
-lives in
-[`sc-infra/prod/spare-cores/sc_images.py`](https://github.com/SpareCores/sc-infra/blob/main/prod/spare-cores/sc_images.py)
-(bucket in `us-west-2`, 90-day lifecycle).
+[sccache](https://github.com/mozilla/sccache) with an S3 backend (bucket in
+`us-west-2`, 90-day lifecycle).
 
 Repo configuration (set by Pulumi after `pulumi up`):
 

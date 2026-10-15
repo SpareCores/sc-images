@@ -1,1 +1,1 @@
-Raw block device benchmark with fio, testing each distinct disk type of the host and multi-disk groups concurrently.
+Raw block device benchmark with fio, measuring the IOPS (Input/Output Operations Per Second), bandwidth, and latency of a server's bundled disks, per disk type and across identical disks at once.

@@ -1,15 +1,16 @@
 # sc-images
 
 Container images that inspect hardware and benchmark the performance of cloud
-servers. [sc-inspector](https://github.com/SpareCores/sc-inspector) runs them
-on each server type, and [Navigator](https://sparecores.com/servers) publishes
-the results for over 5,000 cloud server types.
+servers for [Spare Cores Navigator](https://docs.sparecores.com/overview). Its
+[Inspector](https://github.com/SpareCores/sc-inspector) runs them on each server
+type, and the Navigator publishes the results for over 5,000 cloud server
+types.
 
 Each folder under [`images/`](images) is published as
 `ghcr.io/sparecores/<folder>:main`, built for amd64 and arm64 unless its
 README says otherwise. Every image's GHCR package page shows this README. To
 find the docs for an image, look it up in [Images](#images) and follow its
-link to the image folder.
+link.
 
 ## Images
 
@@ -22,12 +23,12 @@ output.
 | Image | Description |
 | ----- | ----------- |
 | [`benchmark`](images/benchmark) | General CPU, memory, and compression benchmarks: Geekbench, OpenSSL speed, lmbench memory bandwidth (bw_mem), and compression of the Silesia corpus. |
-| [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | FFmpeg transcoding-capacity benchmark of audio and H.264/H.265 video encoding. |
+| [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | FFmpeg benchmark of aggregate transcoding throughput: frames per second for H.264/H.265 video encoding and decoding on CPUs and NVIDIA GPUs, and audio seconds processed per second for audio encoding on CPUs. |
 | [`benchmark-llm`](images/benchmark-llm) | Low-concurrency LLM inference speed benchmark with llama.cpp's llama-bench, measuring prompt processing and text generation across models and token counts. |
 | [`benchmark-passmark`](images/benchmark-passmark) | PassMark PerformanceTest CPU and memory benchmark suite. |
 | [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per second and latency against a local or remote server. |
 | [`benchmark-redis`](images/benchmark-redis) | Redis 7.4 in-memory key-value store benchmark. |
-| [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, testing each distinct disk type of the host and multi-disk groups concurrently. |
+| [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, measuring the IOPS (Input/Output Operations Per Second), bandwidth, and latency of a server's bundled disks, per disk type and across identical disks at once. |
 | [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX-512 and ARM64 CPUs. |
 | [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX2 but no AVX-512. |
 | [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, using the largest valid tensor-parallel size per model across all available GPUs. |
@@ -55,7 +56,7 @@ output.
 
 | Image | Description |
 | ----- | ----------- |
-| [`resource-tracker`](images/resource-tracker) | Spare Cores resource-tracker binary, copied into the other images to record resource usage while benchmarks run. |
+| [`resource-tracker`](images/resource-tracker) | The resource-tracker binary of Spare Cores Navigator, copied into the other images to record resource usage while benchmarks run. |
 | [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 but no AVX-512, used as the base of benchmark-vllm-cpu-avx2. |
 
 Some images share one manual, and their READMEs cover only what differs. The
@@ -95,7 +96,7 @@ Some images need the following extra Docker options:
   `benchmark-postgres-server`, `benchmark-redis`, and `benchmark-web`. Without
   it, the `nice` images run at normal priority.
 - **Disk access:** `--privileged --pid=host` for `benchmark-storage`. It
-  discards, overwrites, and unmounts the disks it tests, so do not run it on a
+  unmounts and overwrites every disk it may write to, so do not run it on a
   machine with data you need.
 
 ## Contributing

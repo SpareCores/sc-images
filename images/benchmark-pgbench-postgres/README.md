@@ -13,13 +13,13 @@ hardware.
 
 ## Purpose
 
-Our [Navigator](https://sparecores.com/servers) project publishes empirical
-performance measurements for more than 5,000 cloud server types. We needed an
-RDBMS (Relational Database Management System) benchmark that measures database
-throughput and latency directly rather than relying on proxies. Navigator
-previously relied on stand-ins: PassMark database operations, which do not scale
-to 32+ vCPUs; Redis, which is not relational; and raw CPU speed and memory
-bandwidth, which are useful proxies but not database workloads.
+[Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
+empirical performance measurements for more than 5,000 cloud server types. We
+needed an RDBMS (Relational Database Management System) benchmark that measures
+database throughput and latency directly rather than relying on proxies. The
+Navigator previously relied on stand-ins: PassMark database operations, which
+do not scale to 32+ vCPUs; Redis, which is not relational; and raw CPU speed
+and memory bandwidth, which are useful proxies but not database workloads.
 
 The main design goal is one methodology that scales across instance sizes, from
 small instances (e.g. 1 vCPU and 2 GiB of RAM) to large nodes with hundreds of
@@ -79,7 +79,7 @@ Production runs the container privileged, which lets the harness start
 `postgres` at a higher priority (`nice -n -20`); with a plain `docker run`, it
 runs at normal priority. See [Production
 Setup](./docs/usage.md#production-setup) before you compare your scores with
-Navigator's.
+the Navigator's.
 
 Set `SC_DB_HOST` to benchmark a remote PostgreSQL server instead. A remote run
 needs more setup: database privileges, a disposable benchmark database, and the
