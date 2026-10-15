@@ -126,8 +126,8 @@ the single-worker throughput with two workers, while `div16` stayed at about
 the single-worker throughput.
 
 The stressor suite came with an upgrade from `stress-ng` 0.17.08 to 0.20.01.
-At first, only a 23-stressor subset also ran with all CPUs; now every stressor
-does.
+At first, only a subset of 23 stressors also ran with all CPUs; now every
+stressor does.
 
 See the [changelog](./CHANGELOG.md) for the changes to this benchmark.
 

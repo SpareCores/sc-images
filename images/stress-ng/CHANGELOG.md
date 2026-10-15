@@ -24,5 +24,5 @@ methods showed either lower or higher scaling than expected:
 - On a 2 vCPU server with SMT, `div16` gave about 1x the single-worker
   throughput with two workers; other methods gave up to 1.8x.
 - On SMT servers with many cores, other methods gave either very low scaling
-  (about 50x the single-worker throughput on a 64-core server) or very high
+  (about 50x the single-worker throughput on a server with 64 cores) or very high
   scaling (about 130x on a server with 64 cores and 128 threads).
