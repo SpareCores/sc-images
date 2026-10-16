@@ -28,6 +28,10 @@ Moved from the previous README:
 > within \~±15%, so they did not separate instances. The suite now covers
 > distinct lossy codecs professionals actually choose, plus FLAC.
 
+Source: peak rates on `aws/g5g.16xlarge` (64 workers; inspector-data commit
+`47523b5`, harness 3.0.0) and a corroborating `aws/g6.24xlarge` run under
+`sc-scratch/attila/ffmpeg-evaluation/results/g6.24xlarge/`.
+
 ## Output Version 3: Raw Repetitions Only
 
 Moved from the previous README:
@@ -85,14 +89,16 @@ bitrate. The GPU encode scenarios therefore use `-cq 22`.
 
 ### Why 5 Seconds
 
-A localhost study ran every available CPU codec for five repetitions at 2, 5,
-and 10 second targets. At 5 seconds, the median coefficient of
-variation was 2.2%; seven of eight codecs were within 10% after the first three
-repetitions, and only H.264 decode requested extra runs. At 2 seconds only
-six of eight were within 10%. Runs of 10 seconds were less stable because
-ambient host load drift dominated, demonstrating that a longer sample does not
-fix an uncontrolled machine. NVIDIA scenarios were discovered but skipped
-because the study host had no CUDA GPU.
+A study on a developer workstation (Intel Core i9-14900K, 24 cores / 32
+threads, 62 GiB RAM, amd64, no NVIDIA GPU) ran every available CPU codec for
+five repetitions at 2, 5, and 10 second targets. At 5 seconds, the median coefficient of variation was 2.2%; seven of
+eight codecs were within 10% after the first three repetitions, and only H.264
+decode requested extra runs. At 2 seconds only six of eight were within 10%.
+Runs of 10 seconds were less stable because ambient host load drift dominated,
+demonstrating that a longer sample does not fix an uncontrolled machine.
+NVIDIA scenarios were discovered but skipped because the study host had no
+CUDA GPU. The `/tmp/ffmpeg-study-{2,5,10}.json` outputs were not checked into
+the repo; only the summary above was kept.
 
 A target of 5 seconds is therefore the shortest reliable default observed
 on the test host. Large machines do not automatically need longer runs: the
@@ -103,11 +109,15 @@ duration only for especially noisy or externally shared hosts.
 ### Worker Scaling on Large Instances
 
 The worker ladder is built from **physical cores** (SMT siblings collapsed via
-`thread_siblings_list`), not `nproc`. On this class of instance that is 48
-cores rather than 96 hyperthreads. CPU scenarios measure **1, P/2, and P**. If
-aggregate throughput at P is still at least 8% above P/2, one SMT probe at
-`min(2P, logical)` is added. Memory-bound work (H.264 decode) typically peaks
-at P/2 and skips the SMT point; compute-bound encode may keep the extra sample.
+`thread_siblings_list`), not `nproc`. The design host was `aws/g6.24xlarge`
+(48 physical cores / 96 hyperthreads, 4× L4); formal results are under
+`sc-scratch/attila/ffmpeg-evaluation/results/g6.24xlarge/`. CPU scenarios
+measure **1, P/2, and P**. If aggregate throughput at P is still at least 8%
+above P/2, one SMT probe at `min(2P, logical)` is added. Memory-bound work
+(H.264 decode) typically peaks at P/2 and skips the SMT point; that peak came
+from a dense worker sweep on the same host (best at 24 workers / ~11.2k fps),
+not from the saved `[1, 48, 96]` ladder. Compute-bound encode may keep the
+extra sample.
 
 GPU scenarios measure **1 and G** (one session per GPU), then **double** (2G,
 4G, ...) until throughput falls or a session ceiling is hit. That finds the
