@@ -26,7 +26,7 @@ See [CI and Build Internals](ci.md) for how CI builds, caches, tracks, and publi
 
 Spell out an acronym on its first use in each page, as `CRF (Constant Rate Factor)` or `Constant Rate Factor (CRF)`, without linking the expansion: put the link in the term's glossary entry instead. On [docs.sparecores.com](https://docs.sparecores.com/glossary), a term spelled out like this gets a tooltip with its glossary entry, and the docs build warns when the expansion differs from the glossary, links to a URL its glossary entry has already, or an image's docs never spell out a term they use.
 
-Common terms (e.g. AWS, vCPU, SMT) are defined in the docs site's glossary. Define the terms specific to an image in its `docs/references.md`, one bullet per term, alphabetized, with wrapped lines indented:
+Common terms (e.g. AWS, vCPU, SMT) are defined in the docs site's glossary, `glossary.yaml` in [sc-docusaurus](https://github.com/SpareCores/sc-docusaurus): terms used in several sections or images, and general computing, cloud, and Spare Cores Navigator terms even if one image uses them. Define the terms of an image's own tool or method in its `docs/references.md`, one bullet per term, alphabetized, with wrapped lines indented:
 
 ```md
 - **CRF** (Constant Rate Factor): The quality-based rate control of x264 and x265.
