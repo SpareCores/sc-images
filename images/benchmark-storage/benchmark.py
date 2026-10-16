@@ -13,6 +13,8 @@ area and never trigger garbage collection.
 
 Needs a privileged container with the host PID namespace (`--privileged --pid=host`):
 host mounts are read from /proc/1/mountinfo and unmounts run via nsenter.
+Refuses to run if PID 1 shares this container's mount namespace (missing `--pid=host`),
+unless SC_STORAGE_ALLOW_NO_HOST_PID=1.
 """
 
 import bisect
@@ -54,6 +56,7 @@ RAND_PRECOND_S = env_int("SC_STORAGE_RAND_PRECOND_S", 120)
 BUDGET_S = env_int("SC_STORAGE_BUDGET_S", 2400)
 UMOUNT = os.environ.get("SC_STORAGE_UMOUNT", "1") != "0"
 PURGE = os.environ.get("SC_STORAGE_PURGE", "1") != "0"
+ALLOW_NO_HOST_PID = os.environ.get("SC_STORAGE_ALLOW_NO_HOST_PID", "0") == "1"
 PURGE_TIMEOUT_S = 300
 HEALTH_TIMEOUT_S = 60
 
@@ -177,6 +180,53 @@ def host_info() -> dict:
 
 def fio_version() -> str:
     return run(["fio", "--version"]).stdout.strip()
+
+
+def in_container() -> bool:
+    if os.path.exists("/.dockerenv") or os.environ.get("container"):
+        return True
+    try:
+        with open("/proc/1/cgroup") as f:
+            return "docker" in f.read() or "containerd" in f.read() or "libpod" in f.read()
+    except OSError:
+        return False
+
+
+def shares_mount_table_with_pid1() -> bool:
+    """True when /proc/1 sees the same mounts we do (no host PID ns in a container)."""
+    try:
+        return os.readlink("/proc/1/ns/mnt") == os.readlink("/proc/self/ns/mnt")
+    except OSError:
+        pass
+    # /proc/1/ns/mnt is often unreadable for non-root; mountinfo is world-readable
+    try:
+        with open("/proc/1/mountinfo") as f:
+            pid1 = f.read()
+        with open("/proc/self/mountinfo") as f:
+            mine = f.read()
+    except OSError as e:
+        raise SystemExit(f"cannot verify host PID namespace ({e}); refusing to run") from e
+    return pid1 == mine
+
+
+def require_host_pid_ns() -> None:
+    """Abort in a container unless /proc/1 is outside this mount namespace (--pid=host).
+
+    Without the host PID namespace, /proc/1/mountinfo is the container's own table, so
+    host mounts are invisible and in-use disks can be classified read_write. Bare-metal
+    (same mount table as PID 1, not a container) is fine: that table is the host's.
+    """
+    if not shares_mount_table_with_pid1() or not in_container():
+        return
+    msg = (
+        "container without host PID namespace: /proc/1/mountinfo is not the host mount "
+        "table, so in-use disks may look free. Re-run with --pid=host (and --privileged), "
+        "or set SC_STORAGE_ALLOW_NO_HOST_PID=1 to override."
+    )
+    if ALLOW_NO_HOST_PID:
+        log(f"WARNING: {msg}")
+        return
+    raise SystemExit(msg)
 
 
 def lsblk_version() -> str:
@@ -898,6 +948,7 @@ def main() -> int:
     if "--version" in sys.argv[1:]:
         print(fio_version())
         return 0
+    require_host_pid_ns()
     started_at = now_iso()
     output = {
         "schema_version": SCHEMA_VERSION,
