@@ -4,9 +4,8 @@
 
 ### Disk and Network Performance
 
-The scripts measure CPU and memory only. The compression benchmark reads its
-input into memory before it starts timing, and no script reads from or writes
-to disk during a measurement or sends traffic outside the container.
+The scripts measure CPU and memory, not disk or network performance. The
+compression benchmark reads its input into memory before it starts timing.
 
 ### Application Performance
 
