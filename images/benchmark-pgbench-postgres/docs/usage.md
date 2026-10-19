@@ -149,7 +149,7 @@ follows, excluding dataset preparation:
 For example, a production run on a 96 vCPU AWS (Amazon Web
 Services) `m9g.24xlarge` measured 1, 48, 96, and 192 clients, with 25 minutes of warmup
 and measurement ([recorded
-output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m9g.24xlarge/pgbench_postgres_ro_durable/stdout)).
+output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m9g.24xlarge/0/pgbench_postgres_ro_durable/stdout)).
 Preparing the dataset and starting the server add to the total run time.
 
 The following settings also change the number of concurrency points, and so the
