@@ -56,7 +56,8 @@ lists the block sizes in bytes, and the `+F:` line the matching speeds in bytes
 per second.
 
 Production parses this output into a list of `algo`, `block_size`, and `speed`
-entries, and the Navigator publishes `speed` in bytes per second.
+entries, and [Spare Cores Navigator](https://docs.sparecores.com/overview)
+publishes `speed` in bytes per second.
 
 ### `bw_mem.sh`
 
