@@ -70,7 +70,7 @@ Manual **Run workflow** checkboxes (default off):
 | Input | When enabled |
 |-------|----------------|
 | `self_hosted_x64` | amd64 → `[self-hosted, Linux, X64]` |
-| `self_hosted_arm64` | arm64 → `[self-hosted, Linux, ARM64]` |
+| `self_hosted_arm64` | arm64 → `[self-hosted, Linux, Arm64]` |
 
 Images with a `ZRAM` metadata file run
 [`.github/scripts/setup-zram.sh`](../.github/scripts/setup-zram.sh) before the

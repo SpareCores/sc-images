@@ -97,7 +97,7 @@ same data, not one multithreaded compressor working on shared data.
 [`geekbench.sh`](../geekbench.sh) runs Geekbench 6.7.1 once with its default
 settings. Geekbench runs its own Single-Core and Multi-Core suites, each made
 up of several workloads; the image configures no workload, iteration count, or
-duration. The image ships both the `x86_64` build and the ARM preview build for
+duration. The image ships both the `x86_64` build and the Arm preview build for
 `aarch64`, and the script picks one by the machine architecture.
 
 Geekbench runs with `--upload`, but the result never reaches the Geekbench
