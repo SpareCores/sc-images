@@ -26,11 +26,15 @@ other data types.
 
 ### Geekbench Server Range
 
-Production runs Geekbench only on servers with at most 32 vCPUs, because (based
-on our empirical experience after running benchmarks on thousands of server
-SKUs) Geekbench does not scale beyond 32 cores, and with at least 2.1 GiB of
-memory. The image enforces neither limit, so `geekbench.sh` also runs on larger
-and smaller servers.
+Production runs Geekbench only on servers within two limits:
+
+- **At most 32 vCPUs:** based on our experience running benchmarks on
+  thousands of server SKUs, Geekbench does not scale beyond 32 cores.
+- **At least 2.1 GiB of memory:** smaller servers run out of memory during the
+  benchmark.
+
+The image enforces neither limit, so `geekbench.sh` also runs on larger and
+smaller servers.
 
 ### Tool Versions
 
