@@ -108,3 +108,8 @@ The image runs the following benchmarks, one per script:
 
 For the full parameter matrix of each benchmark, see
 [Workloads](./docs/workloads.md).
+
+## References
+
+See the full list of [references](./docs/references.md) used in this
+documentation.

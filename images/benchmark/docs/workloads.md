@@ -74,8 +74,9 @@ Each combination runs with one thread and with `NUMCPUS` threads, where
 process may run on. On a server with one core, only the single-thread case
 runs.
 
-Each combination runs in its own worker process, so the kernel's out-of-memory
-killer stops only that measurement. A measurement works as follows:
+Each combination runs in its own worker process, so the kernel's
+out-of-memory killer stops only that measurement. A measurement works as
+follows:
 
 1. Compresses the input once on one thread to compute the ratio, then
    decompresses it and checks that the result matches the input byte for byte.
