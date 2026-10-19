@@ -32,7 +32,7 @@ not disk, network, or application throughput. The main limitations are:
   while the compression benchmark runs at most one process per physical core.
   See [CPU Counts](./docs/limitations.md#cpu-counts).
 - **Geekbench above 32 vCPUs:** Production runs Geekbench only on servers with
-  up to 32 vCPUs and at least 2.1 GB of memory. The image enforces neither. See
+  up to 32 vCPUs and at least 2.1 GiB of memory. The image enforces neither. See
   [Geekbench Server Range](./docs/limitations.md#geekbench-server-range).
 - **Tool versions:** The image builds OpenSSL 3.4.0 with many algorithms
   disabled and installs the Python compression libraries unpinned, so library

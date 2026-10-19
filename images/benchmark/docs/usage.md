@@ -125,14 +125,14 @@ The `geekbench` task also sets the following:
 
 - a memory limit, including swap, of 85% of available memory
 - swappiness 0
-- a minimum of 2.1 GB of memory and a maximum of 32 vCPUs
+- a minimum of 2.1 GiB of memory and a maximum of 32 vCPUs
 
 ### Server Coverage
 
 Production runs every task on every server type except the following:
 
-- `geekbench`: servers with more than 32 vCPUs or less than 2.1 GB of memory
-- `compression_text` (`compress.py`): servers with less than 1 GB of memory
+- `geekbench`: servers with more than 32 vCPUs or less than 2.1 GiB of memory
+- `compression_text` (`compress.py`): servers with less than 1 GiB of memory
 - `bw_mem`: the OVH `a10-180` and `l4-360` server types, where it crashes or
   hangs
 
