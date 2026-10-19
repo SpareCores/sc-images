@@ -69,9 +69,9 @@ See [Run Duration](./docs/usage.md#run-duration) for the measured medians.
 ### Settings
 
 The scripts take no arguments, and all benchmark settings are fixed in the
-scripts. The only setting is `BENCHMARK_SECRETS_PASSPHRASE`, which is optional:
-it decrypts a Geekbench license shipped in the image, and Geekbench runs
-without a license if it is unset. See the
+scripts. The only benchmark setting is `BENCHMARK_SECRETS_PASSPHRASE`, which
+is optional: it decrypts a Geekbench license shipped in the image, and
+Geekbench runs without a license if it is unset. See the
 [environment-variable reference](./docs/usage.md#environment-variables) for
 all variables.
 
@@ -102,7 +102,8 @@ The image runs the following benchmarks, one per script:
   measures read, write, and read-write bandwidth over 11 buffer sizes from
   `16k` to `512M`, with one process per logical CPU.
 - [Compression](./docs/workloads.md#compression) (`compress.py`) measures
-  eight compressors at several levels on one thread and on all physical cores.
+  eight compressors at several levels on one thread and with at most one
+  process per physical core.
 - [Geekbench](./docs/workloads.md#geekbench) (`geekbench.sh`) runs Geekbench
   6.7.1's own Single-Core and Multi-Core suites.
 

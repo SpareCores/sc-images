@@ -10,9 +10,9 @@ compression benchmark reads its input into memory before it starts timing.
 ### Application Performance
 
 Each script runs a fixed, synthetic workload: one hash or cipher at a time,
-one memory access pattern, or one compressor on one file. The results compare
-server types on these workloads; they do not predict the throughput of a
-specific application.
+one memory access pattern, one compressor on one file, or Geekbench's fixed
+suite. The results compare server types on these workloads; they do not
+predict the throughput of a specific application.
 
 ## Scope Decisions
 
