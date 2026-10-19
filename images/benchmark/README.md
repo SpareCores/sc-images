@@ -109,8 +109,8 @@ The image runs the following benchmarks, one per script:
 - [Geekbench](./docs/workloads.md#geekbench) (`geekbench.sh`) runs Geekbench
   6.7.1's own Single-Core and Multi-Core suites.
 
-For the full parameter matrix of each benchmark, see
-[Workloads](./docs/workloads.md).
+See [Workloads](./docs/workloads.md) for the full parameter matrix of each
+benchmark.
 
 ## References
 
