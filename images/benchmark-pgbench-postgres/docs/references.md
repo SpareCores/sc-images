@@ -70,7 +70,9 @@ Spare Cores docs, which also lists the terms each image uses.
   modeled on it. [TPC](https://www.tpc.org/tpcb/)
 - **TPM** (Transactions Per Minute): A throughput measure of transaction
   processing systems: the number of transactions they complete per minute.
-  Database benchmarks such as TPC-C and its derivatives report it.
+  TPC-C reports a variant of it, tpmC, which counts only new-order
+  transactions, while tools such as `pgbench` report transactions per second
+  (TPS), which is 1/60 of TPM.
   [Wikipedia](https://en.wikipedia.org/wiki/Transactions_per_second)
 - **TPROC-C** (HammerDB's transaction processing workload): The OLTP workload
   of the HammerDB benchmark tool, derived from the TPC-C specification of an
