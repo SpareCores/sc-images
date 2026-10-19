@@ -26,6 +26,9 @@ container. It works as follows:
 1. Decrypts the Geekbench license shipped in the image, if
    `BENCHMARK_SECRETS_PASSPHRASE` is set. Without the variable, decryption
    fails, the script continues, and Geekbench runs without a license.
+   Production sets the variable, so the `x86_64` build runs with the Pro
+   license; the Arm preview build does not support a license. According to
+   the Geekbench documentation, this makes no difference to the scores.
 2. Points `browser.geekbench.com` at `127.0.0.1` in `/etc/hosts`.
 3. Starts [`geekbench_capture.py`](../geekbench_capture.py), a local HTTPS
    (Hypertext Transfer Protocol Secure) server on `127.0.0.1:443`, with a

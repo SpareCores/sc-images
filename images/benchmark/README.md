@@ -82,7 +82,8 @@ See [Run Duration](./docs/usage.md#run-duration) for the measured medians.
 The scripts take no arguments, and all benchmark settings are fixed in the
 scripts. The only benchmark setting is `BENCHMARK_SECRETS_PASSPHRASE`, which
 is optional: it decrypts a Geekbench license shipped in the image, and
-Geekbench runs without a license if it is unset. See the
+Geekbench runs without a license if it is unset. According to Geekbench, the
+license does not affect the scores. See the
 [environment-variable reference](./docs/usage.md#environment-variables) for
 all variables.
 
@@ -121,6 +122,25 @@ The image runs the following benchmarks, one per script:
 
 See [Workloads](./docs/workloads.md) for the full parameter matrix of each
 benchmark.
+
+## Design History
+
+The way production collects Geekbench results changed several times, without
+affecting the scores:
+
+1. Production first used Geekbench Pro, which can save results locally in a
+   machine-readable format, for easy data ingestion.
+2. Geekbench Pro does not support the Arm preview build, so production
+   uploaded the results to the Geekbench Browser and parsed them from the
+   result page, first on Arm, then on all servers.
+3. When the Geekbench Browser added Cloudflare bot detection, production
+   switched to parsing the results Geekbench prints locally, as a backfill
+   for results it could not parse.
+4. The image now captures the upload on a local HTTPS server inside the
+   container; see [Geekbench](./docs/usage.md#geekbench).
+
+Production still runs the `x86_64` build with the Pro license, and the Arm
+preview build without a license.
 
 ## References
 
