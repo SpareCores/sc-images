@@ -63,8 +63,9 @@ Geekbench's upload on a local HTTPS (Hypertext Transfer Protocol Secure) server
 inside the container. See [Geekbench](./docs/usage.md#geekbench) for how the
 capture works.
 
-In production, the median run takes about 4 minutes for `openssl.sh` and
-`bw_mem.sh`, 6 minutes for `geekbench.sh`, and 11 minutes for `compress.py`.
+In production, the median run takes \~4 minutes for `openssl.sh` and
+`bw_mem.sh`, \~6 minutes for `geekbench.sh`, and \~11 minutes for
+`compress.py`.
 See [Run Duration](./docs/usage.md#run-duration) for the measured medians.
 
 ### Settings

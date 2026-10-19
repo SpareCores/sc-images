@@ -31,7 +31,7 @@ container. It works as follows:
    (Hypertext Transfer Protocol Secure) server on `127.0.0.1:443`, with a
    self-signed certificate for `browser.geekbench.com` that it installs as
    trusted. The script exits with status 1 if the server does not start within
-   about 10 seconds.
+   \~10 seconds.
 4. Runs Geekbench with `--upload`. The capture server saves the uploaded result
    document and answers as the Geekbench Browser would, so Geekbench reports a
    successful upload. Nothing is sent to the real Geekbench Browser.
@@ -120,7 +120,7 @@ as a separate task. A plain `docker run` differs from it as noted below.
 
 ### Container Settings
 
-All four tasks run privileged with host networking, and each has a 1-hour
+All four tasks run privileged with host networking, and each has a 1 hour
 timeout. Production runs `compress.py` and `geekbench.sh` under
 `nice -n -20` from its own command line; `openssl.sh` and `bw_mem.sh` set it
 themselves. A plain `docker run` without `--privileged` cannot raise the
@@ -145,7 +145,7 @@ The image enforces none of these limits.
 
 ### Run Duration
 
-The median production run, across about 3,400 to 3,800 runs per task, takes
+The median production run, across \~3400-3800 runs per task, takes
 the following time:
 
 | Script | Production task | Median duration |

@@ -32,9 +32,9 @@ of the Spare Cores docs, which also lists the terms each image uses.
   processed per second. With `-multi`, it runs several processes in parallel
   and reports their total.
   [`openssl speed` manual](https://docs.openssl.org/3.4/man1/openssl-speed/)
-- **Silesia corpus**: A set of 12 files, about 211 MB in total, compiled by
+- **Silesia corpus**: A set of 12 files, \~211 MB in total, compiled by
   Sebastian Deorowicz at the Silesian University of Technology to test
   lossless compression on a mix of data types: text, executables, databases,
   images, and XML (Extensible Markup Language). Its `dickens` file holds the
-  collected works of Charles Dickens, about 10 MB of English text.
+  collected works of Charles Dickens, \~10 MB of English text.
   [Silesia corpus](https://sun.aei.polsl.pl/~sdeor/index.php?page=silesia)

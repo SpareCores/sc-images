@@ -53,7 +53,7 @@ does not run; `rd`, `wr`, and `rdwr` allocate one buffer of the given size.
 ## Compression
 
 [`compress.py`](../compress.py) measures how well and how fast Python
-compression libraries handle one input: `dickens`, a text file of about 10 MB
+compression libraries handle one input: `dickens`, a text file of \~10 MB
 from the Silesia corpus. The script reads it into memory once.
 
 It runs every compressor at the following levels and extra arguments:
