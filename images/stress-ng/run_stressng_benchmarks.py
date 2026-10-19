@@ -65,7 +65,7 @@ HYPERVISOR = [
     "hrtimers", "clock",
     # Scheduling
     "yield", "resched",
-    # Privileged / arch-specific  (direct VM-exit / vDSO paths, x86 only → None on ARM)
+    # Privileged / arch-specific  (direct VM-exit / vDSO paths, x86 only → None on Arm)
     "vdso", "usersyscall", "priv-instr", "tsc", "x86syscall",
     "cpu-sched", "timermix", "mtx",
 ]

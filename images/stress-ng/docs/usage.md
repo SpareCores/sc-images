@@ -86,7 +86,7 @@ The following is an excerpt from a production run on a 2 vCPU server:
 
 The value is the bogo ops/s (real time) column of the stress-ng metrc line
 that `stress-ng --metrics-brief` prints for each stress-ng stressor. See
-[`data/hcloud/ccx13/stressng_benchmarks/stdout`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/ccx13/stressng_benchmarks/stdout)
+[`data/hcloud/ccx13/0/stressng_benchmarks/stdout`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/ccx13/0/stressng_benchmarks/stdout)
 for a full document.
 
 The script exits with code 0 even when some stressors fail. If `stress-ng`
@@ -104,7 +104,7 @@ for example:
 ```
 
 See
-[`data/hcloud/ccx13/stressngfull/stdout`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/ccx13/stressngfull/stdout)
+[`data/hcloud/ccx13/0/stressngfull/stdout`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/ccx13/0/stressngfull/stdout)
 for a production example.
 
 ## Environment Variables

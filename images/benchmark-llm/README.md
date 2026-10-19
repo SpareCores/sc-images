@@ -38,7 +38,7 @@ to save compute resources. If you want to allow longer runs, use the
 
 ### Usage
 
-CPU-only (available on AMD64 and ARM64):
+CPU-only (available on AMD64 and Arm64):
 
 ```sh
 docker run --rm --init ghcr.io/sparecores/benchmark-llm:main

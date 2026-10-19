@@ -139,7 +139,7 @@ worker counts each one measures. A production run on a 64 vCPU AWS
 (Amazon Web Services) `m9g.16xlarge` without GPUs
 measured every CPU and audio scenario at 1, 32, and 64 workers and took about
 10 minutes
-([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/ffmpeg)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/0/ffmpeg)).
 Across 372 production runs of harness version 3.2.1, run time ranged from about
 3 minutes on servers with 2 vCPUs to about 17 minutes on GPU
 servers, with a median of about 9.5 minutes.

@@ -22,14 +22,14 @@ output.
 
 | Image | Description |
 | ----- | ----------- |
-| [`benchmark`](images/benchmark) | General CPU, memory, and compression benchmarks: Geekbench, OpenSSL speed, lmbench memory bandwidth (bw_mem), and compression of the Silesia corpus. |
+| [`benchmark`](images/benchmark) | General CPU, memory, and compression benchmarks: Geekbench 6 scores, OpenSSL speed throughput, LMbench bw_mem memory bandwidth, and compression ratio and throughput on a Silesia corpus text file. |
 | [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | FFmpeg benchmark of aggregate transcoding throughput: frames per second for H.264/H.265 video encoding and decoding on CPUs and NVIDIA GPUs, and audio seconds processed per second for audio encoding on CPUs. |
 | [`benchmark-llm`](images/benchmark-llm) | Low-concurrency LLM inference speed benchmark with llama.cpp's llama-bench, measuring prompt processing and text generation across models and token counts. |
 | [`benchmark-passmark`](images/benchmark-passmark) | PassMark PerformanceTest CPU and memory benchmark suite. |
 | [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per second and latency against a local or remote server. |
 | [`benchmark-redis`](images/benchmark-redis) | Redis 7.4 in-memory key-value store benchmark. |
 | [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, measuring the IOPS (Input/Output Operations Per Second), bandwidth, and latency of a server's bundled disks, per disk type and across identical disks at once. |
-| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX-512 and ARM64 CPUs. |
+| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX-512 and Arm64 CPUs. |
 | [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX2 but no AVX-512. |
 | [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, using the largest valid tensor-parallel size per model across all available GPUs. |
 | [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. |
