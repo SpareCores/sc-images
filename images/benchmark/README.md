@@ -23,7 +23,8 @@ on its own, so a result from one script does not depend on the others.
 ## Limitations
 
 These results compare CPU and memory performance on fixed, synthetic workloads,
-not disk, network, or application throughput. The main limitations are:
+not disk, network, or application throughput. The main limitations are the
+following:
 
 - **Compression input:** The compression benchmark uses one text file of the
   Silesia corpus, not the whole corpus, so its results describe text only. See
@@ -31,7 +32,7 @@ not disk, network, or application throughput. The main limitations are:
 - **Parallelism:** OpenSSL speed and `bw_mem` run one process per logical CPU,
   while the compression benchmark runs at most one process per physical core.
   See [CPU Counts](./docs/limitations.md#cpu-counts).
-- **Geekbench above 32 vCPUs:** Production runs Geekbench only on servers with
+- **Geekbench server range:** Production runs Geekbench only on servers with
   up to 32 vCPUs and at least 2.1 GiB of memory. The image enforces neither. See
   [Geekbench Server Range](./docs/limitations.md#geekbench-server-range).
 - **Tool versions:** The image builds OpenSSL 3.4.0 with many algorithms
