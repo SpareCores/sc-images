@@ -1,0 +1,110 @@
+# benchmark
+
+This benchmark measures general CPU and memory performance with four
+independent tools: Geekbench 6, OpenSSL's `openssl speed`, lmbench's `bw_mem`
+(memory bandwidth tool), and a set of Python compression libraries. Each tool
+has its own script, and each run of the image runs one script.
+
+This benchmark reports Geekbench Single-Core and Multi-Core scores, OpenSSL
+throughput in bytes per second per algorithm and block size, memory bandwidth
+in MB/s per operation and buffer size, and compression ratio and throughput per
+compressor, level, and thread count.
+
+## Purpose
+
+[Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
+empirical performance measurements for more than 5,000 cloud server types. This
+image provides several of the Navigator's general-purpose measurements:
+Geekbench scores, OpenSSL speed, memory bandwidth, and compression algorithms.
+
+Each script is a separate production task that the Navigator's Inspector runs
+on its own, so a result from one script does not depend on the others.
+
+## Limitations
+
+These results compare CPU and memory performance on fixed, synthetic workloads,
+not disk, network, or application throughput. The main limitations are:
+
+- **Compression input:** The compression benchmark uses one text file of the
+  Silesia corpus, not the whole corpus, so its results describe text only. See
+  [One Text File](./docs/limitations.md#one-text-file).
+- **Parallelism:** OpenSSL speed and `bw_mem` run one process per logical CPU,
+  while the compression benchmark runs at most one process per physical core.
+  See [CPU Counts](./docs/limitations.md#cpu-counts).
+- **Geekbench above 32 vCPUs:** Production runs Geekbench only on servers with
+  up to 32 vCPUs and at least 2.1 GB of memory. The image enforces neither. See
+  [Geekbench Server Range](./docs/limitations.md#geekbench-server-range).
+- **Tool versions:** The image builds OpenSSL 3.4.0 with many algorithms
+  disabled and installs the Python compression libraries unpinned, so library
+  versions can change between builds. See
+  [Tool Versions](./docs/limitations.md#tool-versions).
+
+## Usage
+
+Run the image via Docker with the script to run as the command; the image has
+no default command:
+
+```shell
+docker run --rm --privileged ghcr.io/sparecores/benchmark:main openssl.sh
+docker run --rm --privileged ghcr.io/sparecores/benchmark:main bw_mem.sh
+docker run --rm --privileged ghcr.io/sparecores/benchmark:main python /usr/local/bin/compress.py
+docker run --rm --privileged ghcr.io/sparecores/benchmark:main geekbench.sh
+```
+
+`openssl.sh` and `bw_mem.sh` run their tools under `nice -n -20`, which needs
+`--privileged`. Production also runs `compress.py` and `geekbench.sh` under
+`nice -n -20`, from its own command line. See
+[Production Setup](./docs/usage.md#production-setup) before you compare your
+results with the Navigator's.
+
+`geekbench.sh` does not upload results to the Geekbench Browser: it captures
+Geekbench's upload on a local HTTPS (Hypertext Transfer Protocol Secure) server
+inside the container. See [Geekbench](./docs/usage.md#geekbench) for how the
+capture works.
+
+In production, the median run takes about 4 minutes for `openssl.sh` and
+`bw_mem.sh`, 6 minutes for `geekbench.sh`, and 11 minutes for `compress.py`.
+See [Run Duration](./docs/usage.md#run-duration) for the measured medians.
+
+### Settings
+
+The scripts take no arguments, and all benchmark settings are fixed in the
+scripts. The only setting is `BENCHMARK_SECRETS_PASSPHRASE`, which is optional:
+it decrypts a Geekbench license shipped in the image, and Geekbench runs
+without a license if it is unset. See the
+[environment-variable reference](./docs/usage.md#environment-variables) for
+all variables.
+
+### Results
+
+Each script prints its results to stdout in its own format:
+
+- `openssl.sh` prints raw `openssl speed -mr` output for each algorithm, after
+  a delimiter line `ALGO: <args> ---...`.
+- `bw_mem.sh` prints one line per run, `<op> <size> <bandwidth>`, with the
+  buffer size in MB and the bandwidth in MB/s summed over all processes.
+- `compress.py` prints one JSON object with `ratio`, `compress`, and
+  `decompress` per compressor, level, thread count, and extra arguments.
+- `geekbench.sh` prints Geekbench's console report to stdout, and the full
+  result document as JSON to stderr.
+
+See [Outputs](./docs/usage.md#outputs) for the fields and units of each
+format.
+
+## Workloads
+
+The image runs the following benchmarks, one per script:
+
+- [OpenSSL speed](./docs/workloads.md#openssl-speed) (`openssl.sh`) measures
+  the throughput of 11 hash and cipher algorithms with one process per logical
+  CPU.
+- [Memory bandwidth](./docs/workloads.md#memory-bandwidth) (`bw_mem.sh`)
+  measures read, write, and read-write bandwidth over 11 buffer sizes from
+  `16k` to `512M`, with one process per logical CPU.
+- [Compression](./docs/workloads.md#compression) (`compress.py`) measures
+  eight compressors at several levels on one thread and on all physical cores.
+- [Geekbench](./docs/workloads.md#geekbench) (`geekbench.sh`) runs Geekbench
+  6.7.1's own Single-Core and Multi-Core suites.
+
+For the full parameter matrix of each benchmark, see
+[Workloads](./docs/workloads.md).
