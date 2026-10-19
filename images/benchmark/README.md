@@ -1,21 +1,21 @@
 # benchmark
 
 This benchmark measures general CPU and memory performance with four
-independent tools: Geekbench 6, OpenSSL's `openssl speed`, lmbench's `bw_mem`
-(memory bandwidth tool), and a set of Python compression libraries. Each tool
-has its own script, and each run of the image runs one script.
+independent tools: OpenSSL's `openssl speed`, lmbench's `bw_mem` (memory
+bandwidth tool), a set of Python compression libraries, and Geekbench 6. Each
+tool has its own script, and each run of the image runs one script.
 
-This benchmark reports Geekbench Single-Core and Multi-Core scores, OpenSSL
-throughput in bytes per second per algorithm and block size, memory bandwidth
-in MB/s per operation and buffer size, and compression ratio and throughput per
-compressor, level, and thread count.
+This benchmark reports OpenSSL throughput in bytes per second per algorithm and
+block size, memory bandwidth in MB/s per operation and buffer size, compression
+ratio and throughput per compressor, level, and thread count, and Geekbench
+Single-Core and Multi-Core scores.
 
 ## Purpose
 
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
 empirical performance measurements for more than 5,000 cloud server types. This
 image provides several of the Navigator's general-purpose measurements:
-Geekbench scores, OpenSSL speed, memory bandwidth, and compression algorithms.
+OpenSSL speed, memory bandwidth, compression algorithms, and Geekbench scores.
 
 Each script is a separate production task that the Navigator's Inspector runs
 on its own, so a result from one script does not depend on the others.
@@ -83,8 +83,9 @@ Each script prints its results to stdout in its own format:
 
 - `openssl.sh` prints raw `openssl speed -mr` output for each algorithm, after
   a delimiter line `ALGO: <args> ---...`.
-- `bw_mem.sh` prints one line per run, `<op> <size> <bandwidth>`, with the
-  buffer size in MB and the bandwidth in MB/s summed over all processes.
+- `bw_mem.sh` prints one line per successful run, `<op> <size> <bandwidth>`,
+  with the buffer size in MB and the bandwidth in MB/s summed over all
+  processes.
 - `compress.py` prints one JSON object with `ratio`, `compress`, and
   `decompress` per compressor, level, thread count, and extra arguments.
 - `geekbench.sh` prints Geekbench's console report to stdout, and the full

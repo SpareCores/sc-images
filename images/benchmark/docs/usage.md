@@ -130,7 +130,6 @@ The `geekbench` task also sets the following:
 
 - a memory limit, including swap, of 85% of available memory
 - swappiness 0
-- a minimum of 2.1 GiB of memory and a maximum of 32 vCPUs
 
 ### Server Coverage
 
