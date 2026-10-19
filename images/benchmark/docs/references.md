@@ -4,7 +4,7 @@ Terms specific to this image, alphabetized. Common terms (e.g. HTTPS, PyPI,
 SMT, zstd) are defined in the [glossary](https://docs.sparecores.com/glossary)
 of the Spare Cores docs, which also lists the terms each image uses.
 
-- **`bw_mem`**: The memory bandwidth tool of lmbench. It moves data through a
+- **`bw_mem`**: The memory bandwidth tool of LMbench. It moves data through a
   buffer of a given size in one of several modes, such as `rd` (read and sum
   an array), `wr` (write a constant to each element), `rdwr` (read, then write
   the same location), and the copy modes `cp`, `fcp`, and `bcopy`. It reports
@@ -21,11 +21,11 @@ of the Spare Cores docs, which also lists the terms each image uses.
   Primate Labs. The free version of Geekbench uploads every result there, where
   it is public; the paid Pro version can also keep results offline.
   [Geekbench Browser](https://browser.geekbench.com/)
-- **lmbench**: A suite of portable micro-benchmarks for Unix-like systems,
+- **LMbench**: A suite of portable micro-benchmarks for Unix-like systems,
   written by Larry McVoy and Carl Staelin. Its tools each measure one basic
   operation, such as memory bandwidth and latency, context switches, or system
   call overhead.
-  [lmbench](https://lmbench.sourceforge.net/)
+  [LMbench](https://lmbench.sourceforge.net/)
 - **`openssl speed`**: The OpenSSL command that measures the throughput of
   cryptographic algorithms, such as hashes and ciphers. It runs each algorithm
   for a fixed time on each of several block sizes and reports the bytes

@@ -16,7 +16,7 @@ predict the throughput of a specific application.
 
 ## Scope Decisions
 
-### One Text File
+### Compression Input
 
 The compression benchmark uses only `dickens`, a text file of the Silesia
 corpus, although the image ships the whole corpus. We needed one large-enough,
@@ -40,7 +40,7 @@ The image pins some tool versions but not all of them:
   are measured.
 - **Geekbench:** pinned to 6.7.1.
 - **`bw_mem`:** from Ubuntu 24.04's `lmbench` package, whose version may differ
-  from the upstream lmbench source.
+  from the upstream LMbench source.
 - **Python compression libraries:** installed unpinned from PyPI (Python
   Package Index) at build time, except `pyzpaq`, which is pinned to one commit.
   A rebuilt image can measure newer library versions.

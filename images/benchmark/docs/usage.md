@@ -147,12 +147,12 @@ The image enforces none of these limits.
 The median production run, across \~3400-3800 runs per task, takes
 the following time:
 
-| Script | Production task | Median duration |
+| Script | Production task | Median duration (minutes) |
 | --- | --- | --- |
-| `openssl.sh` | `openssl` | \~230 s |
-| `bw_mem.sh` | `bw_mem` | \~240 s |
-| `geekbench.sh` | `geekbench` | \~350 s |
-| `compress.py` | `compression_text` | \~640 s |
+| `openssl.sh` | `openssl` | \~3.8 |
+| `bw_mem.sh` | `bw_mem` | \~4.0 |
+| `geekbench.sh` | `geekbench` | \~5.8 |
+| `compress.py` | `compression_text` | \~10.7 |
 
 ## Environment Variables
 

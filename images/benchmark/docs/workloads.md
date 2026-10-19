@@ -29,7 +29,7 @@ certificate.
 
 ## Memory Bandwidth
 
-[`bw_mem.sh`](../bw_mem.sh) runs lmbench's `bw_mem`, from Ubuntu's `lmbench`
+[`bw_mem.sh`](../bw_mem.sh) runs LMbench's `bw_mem`, from Ubuntu's `lmbench`
 package, in three of its modes:
 
 - `rd` reads data into the processor, computing the sum of an array.
@@ -47,8 +47,8 @@ reported bandwidth is the total across all processes.
 
 The [`bw_mem` manual](https://github.com/intel/lmbench/blob/master/doc/bw_mem.8)
 opens by describing a buffer twice the given size that is copied from one half
-to the other. That description applies to the copy modes, which this benchmark
-does not run; `rd`, `wr`, and `rdwr` allocate one buffer of the given size.
+to the other. That description applies to the copy modes, which the image does
+not run; `rd`, `wr`, and `rdwr` allocate one buffer of the given size.
 
 ## Compression
 

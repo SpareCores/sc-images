@@ -1,14 +1,19 @@
 # benchmark
 
-This benchmark measures general CPU and memory performance with four
-independent tools: OpenSSL's `openssl speed`, lmbench's `bw_mem` (memory
-bandwidth tool), a set of Python compression libraries, and Geekbench 6. Each
-tool has its own script, and each run of the image runs one script.
+This image bundles four independent benchmarking tools that measure general
+CPU and memory performance: OpenSSL's `openssl speed`, LMbench's `bw_mem`
+(memory bandwidth tool), a set of Python compression libraries, and
+Geekbench 6. Each tool has its own script, and each run of the image runs one
+script.
 
-This benchmark reports OpenSSL throughput in bytes per second per algorithm and
-block size, memory bandwidth in MB/s per operation and buffer size, compression
-ratio and throughput per compressor, level, and thread count, and Geekbench
-Single-Core and Multi-Core scores.
+The tools report the following:
+
+- **OpenSSL speed:** Throughput in bytes per second per algorithm and block
+  size.
+- **`bw_mem`:** Memory bandwidth in MB/s per operation and buffer size.
+- **Compression:** Ratio and throughput per compressor, level, and thread
+  count.
+- **Geekbench:** Single-Core and Multi-Core scores.
 
 ## Purpose
 
@@ -28,7 +33,7 @@ following:
 
 - **Compression input:** The compression benchmark uses one text file of the
   Silesia corpus, not the whole corpus, so its results describe text only. See
-  [One Text File](./docs/limitations.md#one-text-file).
+  [Compression Input](./docs/limitations.md#compression-input).
 - **Parallelism:** OpenSSL speed and `bw_mem` run one process per logical CPU,
   while the compression benchmark runs at most one process per physical core.
   See [CPU Counts](./docs/limitations.md#cpu-counts).
@@ -63,9 +68,13 @@ Geekbench's upload on a local HTTPS (Hypertext Transfer Protocol Secure) server
 inside the container. See [Geekbench](./docs/usage.md#geekbench) for how the
 capture works.
 
-In production, the median run takes \~4 minutes for `openssl.sh` and
-`bw_mem.sh`, \~6 minutes for `geekbench.sh`, and \~11 minutes for
-`compress.py`.
+In production, the median run takes the following time:
+
+- `openssl.sh`: \~4 minutes
+- `bw_mem.sh`: \~4 minutes
+- `geekbench.sh`: \~6 minutes
+- `compress.py`: \~11 minutes
+
 See [Run Duration](./docs/usage.md#run-duration) for the measured medians.
 
 ### Settings
