@@ -1,6 +1,6 @@
 # benchmark-redis
 
-This benchmark measures Redis 7.4 write throughput and latency with
+This benchmark measures Redis 7.4 SET throughput and latency with
 `memtier_benchmark`. It starts one `redis-server` and one `memtier_benchmark`
 client for each CPU, all in the same container and connected over loopback,
 and runs every configuration for 10 s.
@@ -18,17 +18,15 @@ This benchmark shows how fast a server type serves a simple in-memory
 key-value workload, and how throughput and latency change as each client
 connection sends more requests at once.
 
-This benchmark starts one Redis server per CPU, each with its own
-`memtier_benchmark` client running one thread; with one pair per CPU, more
-client threads do not improve performance. Because servers and clients share
-the same CPUs, the code records their CPU time separately, so the servers'
-share of the work can be separated from the clients' share. See
-[Results](#results) for how the Navigator uses it.
+Because each Redis server shares its CPU with its `memtier_benchmark` client,
+this benchmark records their CPU time separately, so the servers' share of the
+work can be separated from the clients' share. See [Results](#results) for how
+the Navigator uses it.
 
 ## Limitations
 
 These results compare Redis SET performance on one host, not the throughput of
-a production Redis deployment. The main limitations are:
+a production Redis deployment. The main limitations are the following:
 
 - **Shared CPUs:** Each Redis server shares its CPU with a client, so `rps` is
   not the maximum a dedicated Redis server would reach. See
@@ -90,7 +88,7 @@ besides Redis data under `/data` in the container.
 "operation","threads","pipeline","rps","latency","server_usr","server_sys","client_usr","client_sys"
 ```
 
-Interpret the columns as follows:
+The columns mean the following:
 
 - `operation` is always `"SET"`, and `threads` is always `1`, the
   `memtier_benchmark` thread count per client.
