@@ -9,7 +9,7 @@ It reports the total operations per second and the average latency of the
 Redis SET command at six pipeline depths, from 1 to 512, together with the CPU
 time the Redis servers and the clients used.
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes these
-as Redis server+client speed, extrapolated Redis server speed, and Redis
+as Redis server+client speed, Redis server (extrapolated) speed, and Redis
 latency.
 
 ## Purpose
@@ -22,7 +22,7 @@ This benchmark starts one Redis server per CPU, each with its own
 `memtier_benchmark` client running one thread; with one pair per CPU, more
 client threads do not improve performance. Because servers and clients share
 the same CPUs, the code records their CPU time separately, so the servers'
-share of the work can be told apart from the clients' share. See
+share of the work can be separated from the clients' share. See
 [Results](#results) for how the Navigator uses it.
 
 ## Limitations
@@ -46,7 +46,7 @@ a production Redis deployment. The main limitations are:
   and no repetitions.
 - **CPU count:** The number of server and client pairs follows the CPUs the
   container may run on. Docker's `--cpuset-cpus` changes it, but `--cpus` does
-  not: with `--cpus`, the benchmark still starts one pair per host CPU.
+  not: with `--cpus`, this benchmark still starts one pair per host CPU.
 - **Error checks:** The harness does not check `memtier_benchmark` exit codes,
   and it continues even if some servers do not answer the flush before a
   configuration. A client that prints no result adds nothing to `rps` but still
@@ -63,10 +63,10 @@ docker run --rm --privileged ghcr.io/sparecores/benchmark-redis:main
 The harness runs the Redis servers and clients at the highest scheduling
 priority (`nice -n -20`), which needs the `CAP_SYS_NICE` capability that
 `--privileged` grants. Production runs the container the same way and also
-sets host networking (`--network host`); the benchmark traffic itself stays on
-loopback inside the container.
+sets host networking (`--network host`); this benchmark's traffic itself stays
+on loopback inside the container.
 
-The entrypoint runs the benchmark under `resource-tracker`, which samples
+The entrypoint runs this benchmark under `resource-tracker`, which samples
 resource usage during the run. Its data is not published.
 
 Measurement takes 60 s (six configurations of 10 s each), plus server startup
@@ -82,7 +82,7 @@ number of server and client pairs, limit the container's CPUs with
 
 ### Results
 
-The benchmark prints a comma-separated table to stdout: a header row with
+This benchmark prints a comma-separated table to stdout: a header row with
 quoted column names, then one row per pipeline depth. Nothing else is written
 besides Redis data under `/data` in the container.
 
