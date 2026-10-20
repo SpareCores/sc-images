@@ -106,7 +106,7 @@ The columns mean the following:
 For example, on an `aws/m5.large` (2 vCPUs), `rps` rises from 69,962 at
 pipeline 1 to 685,686 at pipeline 512, while `latency` rises from 1.43 ms to
 74.36 ms
-([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/redis/stdout)).
+([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/redis/stdout)).
 
 The Navigator publishes the following three scores for each pipeline depth:
 
@@ -153,7 +153,7 @@ An earlier version of the harness also ran each pipeline depth with two and four
 We cut it to one thread in August 2024: with one server and client pair per
 CPU, more threads do not improve performance. A few published results still
 come from the earlier version, for example
-[`aws/c6g.16xlarge`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c6g.16xlarge/redis/stdout).
+[`aws/c6g.16xlarge`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c6g.16xlarge/0/redis/stdout).
 For each pipeline depth, the Navigator keeps the row with the highest `rps`,
 regardless of the thread count.
 
