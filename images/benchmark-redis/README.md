@@ -154,5 +154,4 @@ regardless of the thread count.
 
 ## References
 
-See the full list of [references](./docs/references.md) used in this
-documentation.
+See [References](./docs/references.md) for the terms specific to this image.
