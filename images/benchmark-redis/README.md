@@ -103,8 +103,9 @@ The columns mean the following:
 - `client_usr` and `client_sys` are the user and system CPU seconds of the
   `memtier_benchmark` clients of the configuration.
 
-For example, on an `aws/m5.large` (2 vCPUs), `rps` rises from 69,962 at pipeline 1 to 685,686 at
-pipeline 512, while `latency` rises from 1.43 ms to 74.36 ms
+For example, on an `aws/m5.large` (2 vCPUs), `rps` rises from 69,962 at
+pipeline 1 to 685,686 at pipeline 512, while `latency` rises from 1.43 ms to
+74.36 ms
 ([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/redis/stdout)).
 
 The Navigator publishes the following three scores for each pipeline depth:
@@ -134,9 +135,13 @@ harness runs the following steps:
 1. Flush every server with `redis-cli flushall`, retrying up to 10 times, 1 s
    apart, until all servers answer. This is also the only wait for the servers
    to start.
-2. Record the CPU times of the servers and of the finished clients.
+2. Record the CPU times of the servers and the clients' running totals.
 3. Start one client per server, all at once:
-   `memtier_benchmark -4 -p <port> --ratio=1:0 --test-time=10 --hide-histogram -t 1 --pipeline=<depth>`.
+
+   ```bash
+   memtier_benchmark -4 -p <port> --ratio=1:0 --test-time=10 --hide-histogram -t 1 --pipeline=<depth>
+   ```
+
    `--ratio=1:0` sends SET operations only.
 4. Wait for every client to exit, read the SET results from each client's
    summary table, and record the CPU times again.
