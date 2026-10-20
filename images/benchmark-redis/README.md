@@ -35,7 +35,8 @@ a production Redis deployment. The main limitations are:
   [Results](#results) for the CPU-time-adjusted score the Navigator publishes.
 - **Workload:** Only the SET command is measured, with `memtier_benchmark`'s
   default key pattern, key range, value size, and connection count. GET and
-  mixed workloads are not measured. See [Workloads](#workloads).
+  mixed workloads are not measured. See [Workloads](#workloads) for the
+  `memtier_benchmark` command.
 - **Loopback only:** Clients and servers run on the same host and talk over
   loopback, so this benchmark does not measure network throughput or latency.
 - **Untuned servers:** Each `redis-server` starts with only a data directory
@@ -59,10 +60,11 @@ Run the image via Docker:
 docker run --rm --privileged ghcr.io/sparecores/benchmark-redis:main
 ```
 
-`--privileged` is required: the harness runs the Redis servers and clients at
-the highest scheduling priority (`nice -n -20`). Production runs the container
-the same way and also sets host networking (`--network host`); the benchmark
-traffic itself stays on loopback inside the container.
+The harness runs the Redis servers and clients at the highest scheduling
+priority (`nice -n -20`), which needs the `CAP_SYS_NICE` capability that
+`--privileged` grants. Production runs the container the same way and also
+sets host networking (`--network host`); the benchmark traffic itself stays on
+loopback inside the container.
 
 The entrypoint runs the benchmark under `resource-tracker`, which samples
 resource usage during the run. Its data is not published.
@@ -116,8 +118,10 @@ The Navigator publishes the following three scores for each pipeline depth:
 - **Redis latency:** `latency`, in milliseconds; lower is better.
 
 Each score carries a note with the server and client CPU seconds. Production
-records the Redis version from `redis-server -v`; the `memtier_benchmark`
-version is not recorded.
+records the Redis version from `redis-server -v`. `memtier_benchmark` is
+installed from the Redis package repository without a version pin, so a
+rebuild of the image can change it, and production does not record its
+version.
 
 ## Workloads
 
