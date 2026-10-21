@@ -31,10 +31,9 @@ a production Redis deployment. The main limitations are the following:
 - **Shared CPUs:** Each Redis server shares its CPU with a client, so `rps` is
   not the maximum a dedicated Redis server would reach. See
   [Results](#results) for the CPU-time-adjusted score the Navigator publishes.
-- **Workload:** Only the SET command is measured, with `memtier_benchmark`'s
-  default key pattern, key range, value size, and connection count. GET and
-  mixed workloads are not measured. See [Workload](#workload) for the
-  `memtier_benchmark` command.
+- **[Workload](#workload):** Only the SET command is measured, with
+  `memtier_benchmark`'s default key pattern, key range, value size, and
+  connection count. GET and mixed workloads are not measured.
 - **Loopback only:** Clients and servers run on the same host and talk over
   loopback, so this benchmark does not measure network throughput or latency.
 - **Untuned servers:** Each `redis-server` starts with only a data directory
