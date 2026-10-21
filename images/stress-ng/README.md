@@ -43,7 +43,7 @@ performance. The following are the main limitations:
 - **Not comparable across stressors:** Each stressor counts its own kind of
   operation, so compare bogo ops/s only for the same stressor and the same
   `stress-ng` version. See
-  [Bogo Ops Units](./docs/limitations.md#bogo-ops-units).
+  [Cross-Stressor Comparison](./docs/limitations.md#cross-stressor-comparison).
 - **No single score:** The stressor suite reports one value per stressor and
   worker count, and does not combine them. See
   [A Single Score](./docs/limitations.md#a-single-score).

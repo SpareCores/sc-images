@@ -2,13 +2,13 @@
 
 ## Disclaimer: What This Benchmark Does *Not* Deliver
 
-### Bogo Ops Units
+### Cross-Stressor Comparison
 
-The stress-ng bogo ops/s (bogus operations per second) metric counts how many
-times a stress-ng stressor completes its own unit of work per second. Each
-stressor defines that unit differently, so results are *not* comparable across
-stressors: compare a stressor only with itself, on the same `stress-ng`
-version. The image pins `stress-ng` 0.20.01 through the tag of its base image.
+Bogo ops/s (bogus operations per second) results are *not* comparable
+across stressors. Each stress-ng stressor counts how many times it completes
+its own unit of work per second, and defines that unit differently. Compare
+a stressor only with itself, on the same `stress-ng` version. The image pins
+`stress-ng` 0.20.01 through the tag of its base image.
 
 ### A Single Score
 
