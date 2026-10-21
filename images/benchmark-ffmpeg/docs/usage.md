@@ -148,8 +148,10 @@ servers, with a median of about 9.5 minutes.
 
 Each repetition targets 5 s of wall time by default. Because the pilot
 scales the media to that target, larger servers process more media in the same
-time instead of running longer. The default comes from a study on a developer workstation (i9-14900K) of 2,
-5, and 10 s targets (raw JSON not retained); see
+time instead of running longer. The default comes from a study that compared
+2, 5, and 10 s targets on one developer workstation, a 24-core Intel Core
+i9-14900K desktop CPU without an NVIDIA GPU, so GPU scenarios were not part of
+it. Only the study's summary was kept; see
 [Why 5 Seconds](../CHANGELOG.md#why-5-seconds).
 
 ### Shorter Test Runs
