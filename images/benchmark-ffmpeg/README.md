@@ -151,9 +151,9 @@ lower throughput, especially for decoding.
 
 GPU encodes were later calibrated against the CPU encodes: NVENC has no direct
 equivalent of the CPU encoders' quality setting, so we compared several NVENC
-quality levels on the test clip and picked the closest match. In version 3.3.0,
-the image also started requesting the NVIDIA driver's video libraries itself,
-which many earlier GPU runs could not load.
+quality levels on the test clip and picked the closest match. In harness
+version 3.3.0, the image also started requesting the NVIDIA driver's video
+libraries itself, which many earlier GPU runs could not load.
 
 The remaining limits are that this benchmark checks no output quality at run
 time, that CPU and GPU encode quality match only approximately, and that GPU

@@ -113,7 +113,9 @@ missing GPU result therefore means the scenario could not run in that
 environment.
 
 GPU scenarios also need the NVIDIA driver's video libraries inside the
-container. Since version 3.3.0, the image requests them itself; earlier
+container. Since
+[harness version 3.3.0](../CHANGELOG.md#nvenc-quality-matched-to-cpu-encodes-and-gpu-driver-libraries-mounted),
+the image requests them itself; earlier
 production runs on many GPU servers skipped all GPU scenarios because these
 libraries were missing. Production results for GPUs are therefore incomplete
 until those servers are measured again.
