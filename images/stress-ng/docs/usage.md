@@ -50,7 +50,7 @@ Both tasks run on every server type that the Inspector benchmarks.
 
 The stressor suite took the following times in production:
 
-- about 7 minutes at the shortest, on a 1 vCPU server
+- about 7 minutes at the shortest, on a server with 1 vCPU
 - about 15 minutes at the median
 - about 66 minutes at the longest
 
@@ -78,7 +78,7 @@ indented with two spaces. It has the following fields:
 `categories` is not shortened by `STRESSNG_LIMIT`, so it can list stressors
 that did not run.
 
-The following is an excerpt from a production run on a 2 vCPU server:
+The following is an excerpt from a production run on a server with 2 vCPUs:
 
 ```json
 "atomic": {"1": {"bogo_ops_per_sec": 869.33}, "2": {"bogo_ops_per_sec": 868.79}}
