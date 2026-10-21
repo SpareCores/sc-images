@@ -64,18 +64,20 @@ limitations:
 
 ## Usage
 
-Run the image via Docker on an ephemeral server that you can afford to wipe:
+Run the image via Docker on an ephemeral server that you can afford to wipe.
+
+> [!CAUTION]
+> Every filesystem this benchmark unmounts is destroyed, together with the
+> data on every disk that is not in use. Never run it on production or
+> similar systems.
+>
+> Set `SC_STORAGE_UMOUNT=0` to leave mounted disks alone; disks that are not
+> in use are still overwritten. See [Disk Safety](./docs/usage.md#disk-safety)
+> for which disks this benchmark writes to.
 
 ```bash
 docker run --rm --privileged --pid=host ghcr.io/sparecores/benchmark-storage:main > storage.json
 ```
-
-**Warning:** Every filesystem this benchmark unmounts is destroyed, together
-with the data on every disk that is not in use. Never run it on production or
-similar systems. Set `SC_STORAGE_UMOUNT=0` to leave mounted disks alone; disks
-that are not in use are still overwritten. See
-[Disk Safety](./docs/usage.md#disk-safety) for which disks this benchmark
-writes to.
 
 Both flags are required. `--privileged` gives the container raw access to the
 host's disks. `--pid=host` lets it read the host's mount table from
