@@ -81,9 +81,9 @@ you run, check the following prerequisites:
   Secure). The image restores a cached dataset dump from there and builds the
   dataset itself only when no dump exists for it; the run fails if the CDN
   (Content Delivery Network) is unreachable.
-- You know the database server's vCPU count. Set it in `SC_DB_VCPUS`, because
-  the default is the client host's logical CPU count, and on a separate client
-  VM that produces the wrong concurrency points.
+- `SC_DB_VCPUS` is set to the database server's vCPU count. Without it, the
+  image uses the logical CPU count of the machine it runs on, so on a separate
+  client machine it picks concurrency points for the wrong server size.
 
 Set the host, credentials, and server size:
 
@@ -121,7 +121,7 @@ including the standalone `pgtune` settings. `pgbench_tpcb` changes no settings.
 ## Run Duration
 
 A run prepares the dataset, then measures throughput at a series of concurrency
-points (client counts) in the following steps:
+points in the following steps:
 
 1. Restore the dataset from a cached dump on the CDN, or build it if no dump
    exists for it.
@@ -234,7 +234,7 @@ region.
 | `SC_WARMUP_SECONDS` | Initial warmup duration. | `120` |
 | `SC_SETTLE_SECONDS` | Settle duration between concurrency points. | `60` |
 | `SC_WARMUP_ONCE` | Use one full warmup, then settle between concurrency points. | `true` |
-| `SC_DB_VCPUS` | Database vCPU count used for concurrency anchors and local tuning. Set it for remote databases: the default is the client host's logical CPU count. | `os.cpu_count()` or `2` |
+| `SC_DB_VCPUS` | Database vCPU count used for concurrency points and local tuning. Set it for remote databases: the default is the client host's logical CPU count. | `os.cpu_count()` or `2` |
 | `SC_CLIENT_VCPUS` | Client vCPU count recorded in output. | `os.cpu_count()` or `2` |
 | `SC_DB_MEM_GIB` | Database memory in GiB recorded in output. Set it for remote databases. | Detected locally; unset for remote databases |
 | `SC_DURABILITY` | Local server durability; `async` disables `synchronous_commit`. | `durable` |

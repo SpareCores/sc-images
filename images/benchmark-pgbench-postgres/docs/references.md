@@ -14,6 +14,11 @@ Spare Cores docs, which also lists the terms each image uses.
   query like a table. CTEs make complex queries easier to read, and recursive
   CTEs can walk hierarchies such as trees.
   [PostgreSQL docs](https://www.postgresql.org/docs/current/queries-with.html)
+- **concurrency points**: The client counts at which a database benchmark
+  measures throughput and latency, each with that number of connections open
+  for a fixed time. Measuring several concurrency points, from one client up
+  to a count derived from the server's size, shows how throughput and latency
+  change with load.
 - **GIN** (Generalized Inverted Index): A PostgreSQL index type that maps each
   element of a composite value, such as an array item, a JSONB key or a word of
   a document, to the rows that contain it. It speeds up containment and
