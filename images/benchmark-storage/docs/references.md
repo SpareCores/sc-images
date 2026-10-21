@@ -25,21 +25,11 @@ Spare Cores docs, which also lists the terms each image uses.
   new data to free pages, and runs garbage collection and wear leveling in the
   background.
   [Wikipedia](https://en.wikipedia.org/wiki/Flash_memory_controller#Flash_translation_layer_(FTL)_and_mapping)
-- **HDD** (Hard Disk Drive): A storage device that reads and writes data with
-  magnetic heads on spinning platters. It offers cheap capacity, but each
-  random access waits for a head to move and a platter to turn, so it completes
-  far fewer random operations per second than an SSD.
-  [Wikipedia](https://en.wikipedia.org/wiki/Hard_disk_drive)
 - **LVM** (Logical Volume Manager): The Linux tool that pools disks or
   partitions into volume groups and divides these into logical volumes, which
   can be resized while in use. It also supports snapshots, and striping or
   mirroring across disks.
   [man page](https://man7.org/linux/man-pages/man8/lvm.8.html)
-- **NVMe** (Non-Volatile Memory Express): The interface specification for
-  accessing non-volatile storage, most often SSDs, over PCI Express. It is
-  designed for the parallelism of flash memory, with many deep command queues,
-  and NVMe over Fabrics extends it to network transports.
-  [NVM Express](https://nvmexpress.org/)
 - **OVHcloud**: A French cloud provider, founded in 1999, with data centers in
   Europe, North America and Asia-Pacific. It offers dedicated (bare-metal)
   servers, public cloud instances based on OpenStack, and private cloud.
@@ -63,8 +53,3 @@ Spare Cores docs, which also lists the terms each image uses.
   reads SMART data, self-test logs and device information from ATA, SCSI and
   NVMe disks, and can start self-tests.
   [smartmontools](https://www.smartmontools.org/)
-- **UTC** (Coordinated Universal Time): The primary time standard by which the
-  world sets its clocks, the successor of Greenwich Mean Time. It has no time
-  zone offset or daylight saving time, so UTC timestamps compare directly
-  across regions.
-  [Wikipedia](https://en.wikipedia.org/wiki/Coordinated_Universal_Time)
