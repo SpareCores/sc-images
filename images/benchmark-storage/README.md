@@ -30,9 +30,10 @@ Network storage attached on demand is out of scope, because its performance is
 not a property of the server type. See
 [Disk Scope](./docs/limitations.md#disk-scope).
 
-SSDs absorb short bursts of writes in their own caches and spare area. To make
-results comparable across vendors, this benchmark preconditions each writable
-disk before measuring it, and runs write tests for longer than read tests. See
+SSDs handle short bursts of writes faster than sustained writes, because they
+first write to fast caches and to flash that holds no data yet. To make results
+comparable across vendors, this benchmark preconditions each writable disk
+before measuring it, and runs write tests for longer than read tests. See
 [Preconditioning](./docs/workloads.md#preconditioning) for the steps.
 
 ## Limitations
@@ -110,7 +111,7 @@ for all options and defaults:
 
 This benchmark prints one JSON document to stdout when the run ends, and a
 timestamped progress log with per-test IOPS, MiB/s, and 99th-percentile latency
-to stderr. Interpret the JSON document's main fields as follows:
+to stderr. The JSON document's main fields are the following:
 
 - `inventory` lists each disk with its model, size, and transport. `mode` is
   `read_write` or `read_only`, and `mode_reason` says why.

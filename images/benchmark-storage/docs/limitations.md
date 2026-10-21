@@ -64,9 +64,9 @@ following share of each NVMe (Non-Volatile Memory Express) drive:
   drives
 - OVHcloud `i1-90`: 33% of each of two drives
 
-A disk that is not fully written keeps unmapped spare area, which inflates
-random-write results. The fill record's `filled_fraction` shows how much of
-each disk the fill wrote. Setting
+A disk that is not fully written still has spare area, flash that holds no
+data yet, which inflates random-write results. The fill record's
+`filled_fraction` shows how much of each disk the fill wrote. Setting
 `SC_STORAGE_WS_TARGET_BYTES` limits the fill, and all later tests, to a smaller
 region of each disk.
 
