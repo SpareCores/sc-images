@@ -5,14 +5,10 @@
 ### Output Quality
 
 This benchmark measures throughput, not the quality of the encoded output. It
-computes no quality metric, such as PSNR
-(Peak Signal-to-Noise Ratio),
-SSIM
-(Structural Similarity Index Measure),
-or VMAF
-(Video Multimethod Assessment Fusion). The
-encode settings are fixed per scenario, so the quality target stays the same
-across server types; see
+computes no quality metric, such as PSNR (Peak Signal-to-Noise Ratio), SSIM
+(Structural Similarity Index Measure), or VMAF (Video Multimethod Assessment
+Fusion). The encode settings are fixed per scenario, so the quality target
+stays the same across server types; see
 [CPU and GPU Encode Quality](#cpu-and-gpu-encode-quality) for how CPU and GPU
 settings relate.
 
