@@ -22,8 +22,8 @@ package, in three of its modes:
   a running sum before assigning a new constant value.
 
 Each mode accesses every fourth word of an array of integers. The script runs
-each mode over the following 11 sizes, 33 runs in sequence:
-`16k 256k 1M 2M 4M 8M 16M 32M 64M 256M 512M`.
+each mode over the following 11 sizes, 33 runs in sequence: `16k`, `256k`,
+`1M`, `2M`, `4M`, `8M`, `16M`, `32M`, `64M`, `256M`, and `512M`.
 
 Each run is `nice -n -20 bw_mem -P $(nproc) <size> <op>`. With `-P`, each of
 the `nproc` processes allocates its own buffer of the given size, and the
