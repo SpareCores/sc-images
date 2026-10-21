@@ -29,22 +29,21 @@ server type processes at once, rather than how fast a single job finishes.
 These results compare transcoding throughput across server types. Note the
 following limitations:
 
-- **Output quality:** This benchmark measures speed, not output quality, and
-  computes no quality metric. GPU encode settings are calibrated to
-  approximately match the CPU encode quality, but the match is not exact. See
-  [Output Quality](./docs/limitations.md#output-quality) and
+- **[Output quality](./docs/limitations.md#output-quality):** This benchmark
+  measures speed, not output quality, and computes no quality metric. GPU
+  encode settings are calibrated to approximately match the CPU encode quality,
+  but the match is not exact. See also
   [CPU and GPU Encode Quality](./docs/limitations.md#cpu-and-gpu-encode-quality).
-- **Storage:** Encoded output is discarded through FFmpeg's null muxer, so file,
-  disk, and object-storage writes are not measured. See
-  [Storage and Output](./docs/limitations.md#storage-and-output).
-- **Fixed media and settings:** Every job uses the same short video clip or
-  music sample with fixed codec settings. Other resolutions, settings, and
-  codecs are not covered, for example AV1
-  (AOMedia Video 1). See
-  [A Specific Media Pipeline](./docs/limitations.md#a-specific-media-pipeline).
-- **GPUs:** Only NVIDIA GPUs are used, for video only; audio always runs on the
-  CPU. A GPU scenario that cannot start on a given GPU is skipped. See
-  [GPU Coverage](./docs/limitations.md#gpu-coverage).
+- **[Storage](./docs/limitations.md#storage-and-output):** Encoded output is
+  discarded through FFmpeg's null muxer, so file, disk, and object-storage
+  writes are not measured.
+- **[Fixed media and settings](./docs/limitations.md#a-specific-media-pipeline):**
+  Every job uses the same short video clip or music sample with fixed codec
+  settings. Other resolutions, settings, and codecs are not covered, for
+  example AV1 (AOMedia Video 1).
+- **[GPUs](./docs/limitations.md#gpu-coverage):** Only NVIDIA GPUs are used, for
+  video only; audio always runs on the CPU. A GPU scenario that cannot start on
+  a given GPU is skipped.
 
 ## Usage
 
