@@ -33,7 +33,7 @@ a production Redis deployment. The main limitations are the following:
   [Results](#results) for the CPU-time-adjusted score the Navigator publishes.
 - **Workload:** Only the SET command is measured, with `memtier_benchmark`'s
   default key pattern, key range, value size, and connection count. GET and
-  mixed workloads are not measured. See [Workloads](#workloads) for the
+  mixed workloads are not measured. See [Workload](#workload) for the
   `memtier_benchmark` command.
 - **Loopback only:** Clients and servers run on the same host and talk over
   loopback, so this benchmark does not measure network throughput or latency.
@@ -74,7 +74,7 @@ and a flush of all servers before each configuration.
 
 This benchmark reads no environment variables or command-line options. The
 operation, pipeline depths, run time, and ports are fixed in
-[`benchmark.py`](./benchmark.py); see [Workloads](#workloads). To change the
+[`benchmark.py`](./benchmark.py); see [Workload](#workload). To change the
 number of server and client pairs, limit the container's CPUs with
 `--cpuset-cpus`.
 
@@ -122,7 +122,7 @@ installed from the Redis package repository without a version pin, so a
 rebuild of the image can change it, and production does not record its
 version.
 
-## Workloads
+## Workload
 
 This benchmark runs one workload: a sweep of Redis pipelining depths for SET
 operations. [`benchmark.py`](./benchmark.py) starts one `redis-server` per
