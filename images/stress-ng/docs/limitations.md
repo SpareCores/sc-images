@@ -21,7 +21,8 @@ as the hypervisor or the CPU.
 
 The stressors are synthetic loops. Results show how fast a server runs each
 loop, *not* how fast a given application runs. This benchmark does not
-measure disk or network performance.
+measure disk or network performance. For disk performance, see the
+[`benchmark-storage`](../../benchmark-storage) image.
 
 ## Scope Decisions
 
