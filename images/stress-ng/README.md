@@ -40,23 +40,20 @@ run shows the following:
 These results are synthetic `stress-ng` throughput figures, not application
 performance. The following are the main limitations:
 
-- **Not comparable across stressors:** Each stressor counts its own kind of
-  operation, so compare bogo ops/s only for the same stressor and the same
-  `stress-ng` version. See
-  [Cross-Stressor Comparison](./docs/limitations.md#cross-stressor-comparison).
-- **No single score:** The stressor suite reports one value per stressor and
-  worker count, and does not combine them. See
-  [A Single Score](./docs/limitations.md#a-single-score).
-- **Short, single runs:** Each stressor runs once for 5 s (15 s for `stream`),
-  with no warm-up and no repetitions. See
-  [Run Length](./docs/limitations.md#run-length).
-- **Logical CPUs, not physical cores:** The multi-worker run uses one worker
-  per logical CPU available to the container, even though the output field is
-  named `physical_cpus`. See
-  [Worker Count](./docs/limitations.md#worker-count).
-- **Missing results are `null`:** A stressor that fails, times out, or is not
-  supported on the CPU architecture is recorded as `null`, and the run still
-  succeeds. See [Missing Results](./docs/limitations.md#missing-results).
+- **[Not comparable across stressors](./docs/limitations.md#cross-stressor-comparison):**
+  Each stressor counts its own kind of operation, so compare bogo ops/s only
+  for the same stressor and the same `stress-ng` version.
+- **[No single score](./docs/limitations.md#a-single-score):** The stressor
+  suite reports one value per stressor and worker count, and does not combine
+  them.
+- **[Short, single runs](./docs/limitations.md#run-length):** Each stressor
+  runs once for 5 s (15 s for `stream`), with no warm-up and no repetitions.
+- **[Logical CPUs, not physical cores](./docs/limitations.md#worker-count):**
+  The multi-worker run uses one worker per logical CPU available to the
+  container, even though the output field is named `physical_cpus`.
+- **[Missing results are `null`](./docs/limitations.md#missing-results):** A
+  stressor that fails, times out, or is not supported on the CPU architecture
+  is recorded as `null`, and the run still succeeds.
 
 ## Usage
 

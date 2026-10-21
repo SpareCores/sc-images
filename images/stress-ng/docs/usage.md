@@ -54,8 +54,12 @@ The stressor suite took the following times in production:
 - about 15 minutes at the median
 - about 66 minutes at the longest
 
-The CPU scaling loop took about 19 s at the shortest, 2.8 minutes at the
-median, and 50 minutes at the longest with `stress-ng` 0.20.01.
+The CPU scaling loop took the following times in production with
+`stress-ng` 0.20.01:
+
+- about 19 s at the shortest
+- about 2.8 minutes at the median
+- about 50 minutes at the longest
 
 ## Output
 
