@@ -191,7 +191,9 @@ noted below:
 - Production skips servers with less than 1 GiB of memory. The image does
   not enforce this minimum.
 
-Failed production runs are investigated and then run again.
+We investigate failed production runs, manually or semi-automatically, and
+then run them again. Until then, a server type's latest result in
+`sc-inspector-data` can be a failed or partial run.
 
 ## Environment Variables
 
