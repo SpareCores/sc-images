@@ -18,7 +18,8 @@ categories and prints bogo ops/s as JSON.
 
 The CPU scaling loop runs the `cpu` stressor with the `div16` method. After
 running every `--cpu-method` on selected x86_64 and Arm servers, with and
-without SMT, `div16` was the method whose scaling matched expectations. Other
+without SMT (Simultaneous Multithreading), `div16` was the method whose
+scaling matched expectations. Other
 methods showed either lower or higher scaling than expected:
 
 - On a 2 vCPU server with SMT, `div16` gave about 1x the single-worker
