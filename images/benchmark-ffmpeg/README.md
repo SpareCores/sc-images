@@ -74,8 +74,8 @@ Production runs the container privileged and with host networking; a plain
 results with production runs.
 
 A production run on an AWS (Amazon Web Services)
-`m9g.16xlarge` took about 10 minutes. Run time grows with the number of
-worker counts measured, and with GPU scenarios. See
+`m9g.16xlarge` took about 10 minutes. Run time grows with each worker count
+measured, and with GPU scenarios. See
 [Run Duration](./docs/usage.md#run-duration) for the steps and timeouts.
 
 ### Settings
@@ -97,7 +97,7 @@ for all options and defaults:
 ### Results
 
 The process prints one compact JSON line to stdout when the run ends; logs go to
-stderr. Interpret the main fields as follows:
+stderr. The main fields of the JSON line are the following:
 
 - `scenarios[]` has one entry per scenario, with its `name`, `backend` (`cpu`
   or `gpu`), `operation` (`encode` or `decode`), and `codec`. A scenario that

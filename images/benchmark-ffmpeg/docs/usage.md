@@ -135,8 +135,8 @@ run past it count as failed. The whole run stops after
 started by then are reported as skipped with `overall_timeout`.
 
 Total run time therefore depends on the number of scenarios that run and the
-worker counts each one measures. A production run on a 64 vCPU AWS
-(Amazon Web Services) `m9g.16xlarge` without GPUs
+worker counts each one measures. A production run on an AWS
+(Amazon Web Services) `m9g.16xlarge` with 64 vCPUs and no GPUs
 measured every CPU and audio scenario at 1, 32, and 64 workers and took about
 10 minutes
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/0/ffmpeg)).
