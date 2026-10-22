@@ -4,6 +4,11 @@ Terms specific to this image, alphabetized. Common terms (e.g. AWS, CV, I/O,
 SQL) are defined in the [glossary](https://docs.sparecores.com/glossary) of the
 Spare Cores docs, which also lists the terms each image uses.
 
+- **BenchBase**: A framework that benchmarks SQL databases, the successor to
+  OLTPBench. It runs workloads such as YCSB and a Wikipedia workload against
+  any relational database with a JDBC (Java Database Connectivity) driver, and
+  collects per-transaction-type latency and throughput logs.
+  [GitHub](https://github.com/cmu-db/benchbase)
 - **BRIN** (Block Range Index): A PostgreSQL index type that stores only a
   summary, such as the minimum and maximum value, of each range of consecutive
   table blocks. It is tiny compared to a B-tree, and works well on large tables
@@ -30,6 +35,11 @@ Spare Cores docs, which also lists the terms each image uses.
   `shared_buffers` or `work_mem`. A setting can be set in `postgresql.conf`, on
   the command line, per database or role, or per session with `SET`.
   [PostgreSQL docs](https://www.postgresql.org/docs/current/config-setting.html)
+- **HammerDB**: An open-source database benchmark engine. It runs standardized
+  workloads, such as TPROC-C, with the same test definitions on SQL Server,
+  Db2, Oracle, PostgreSQL, MariaDB, and MySQL, so that results are comparable
+  across database systems. Runs can be scripted and repeated automatically.
+  [HammerDB](https://www.hammerdb.com/)
 - **JIT** (Just-in-Time Compilation): A PostgreSQL feature that compiles parts
   of a query, such as its expressions, to machine code with LLVM at run time.
   It speeds up long, CPU-bound analytical queries, but on short queries the
@@ -64,6 +74,11 @@ Spare Cores docs, which also lists the terms each image uses.
   certificates. TLS has replaced it, but SSL is still the common name for both,
   including in PostgreSQL's settings.
   [PostgreSQL docs](https://www.postgresql.org/docs/current/ssl-tcp.html)
+- **`sysbench`**: A scriptable, multi-threaded benchmark tool built on LuaJIT.
+  Its tests cover CPU, memory, file I/O, threads, and mutexes, and its Lua
+  scripts run transactional database workloads against MySQL and PostgreSQL.
+  It reports rates and latency percentiles.
+  [GitHub](https://github.com/akopytov/sysbench)
 - **TOAST** (The Oversized-Attribute Storage Technique): The mechanism with
   which PostgreSQL stores values too large for a regular 8 kB page, by
   compressing them, moving them out of line into a separate table, or both. It

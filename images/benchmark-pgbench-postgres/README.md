@@ -18,8 +18,10 @@ empirical performance measurements for more than 5,000 cloud server types. We
 needed an RDBMS (Relational Database Management System) benchmark that measures
 database throughput and latency directly rather than relying on proxies. The
 Navigator previously relied on stand-ins: PassMark database operations, which
-do not scale to 32+ vCPUs; Redis, which is not relational; and raw CPU speed
-and memory bandwidth, which are useful proxies but not database workloads.
+do not scale above 32 vCPUs; [Redis](../benchmark-redis/README.md), which is not
+relational; and raw CPU speed and
+[memory bandwidth](../benchmark/docs/bw-mem.md), which are useful proxies but
+not database workloads.
 
 The main design goal is one methodology that scales across instance sizes, from
 small instances (e.g. 1 vCPU and 2 GiB of RAM) to large nodes with hundreds of
