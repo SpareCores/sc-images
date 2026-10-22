@@ -41,8 +41,8 @@ performance. The main limitations are the following:
   change the PassMark build that produces the scores.
 - **[Default Test Settings](#settings):** This benchmark passes no test
   duration or iteration options, so PassMark's defaults apply: in production
-  output, one iteration at the `Medium` test duration. It reads no environment
-  variables or command-line options, and runs once, with no repetitions.
+  output, one iteration at the `Medium` test duration. This benchmark runs it
+  once, with no repetitions.
 - **[Number of Test Processes](#results):** PassMark chooses how many test
   processes to run; this benchmark does not set it. On `aws/a1.2xlarge`
   (8 vCPUs), PassMark ran eight processes.
