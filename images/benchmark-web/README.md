@@ -14,9 +14,9 @@ size and number of connections per vCPU.
 
 ## Purpose
 
-This benchmark shows how fast a server type serves static files over HTTP, and
-how throughput and latency change with the file size and the number of
-concurrent connections.
+This benchmark shows how fast static files can be served over HTTP on a server
+type, and how throughput and latency change with the file size and the number
+of concurrent connections.
 
 We serve the files with `binserve` because it is a single binary that needs no
 tuning. nginx and other web servers have many settings, some of them best set
@@ -42,8 +42,8 @@ are the following:
 - **Large servers:** This benchmark does not scale well on servers with 100 or
   more vCPUs, because of a listener bottleneck in the single `binserve`
   process.
-- **[Workload](#workload):** Measures five static files, filled with zero
-  bytes and served from `binserve`'s in-memory file cache over plain HTTP, not
+- **[Workload](#workload):** Measures serving five static files, filled
+  with zero bytes, from `binserve`'s in-memory file cache over plain HTTP, not
   dynamic content or HTTPS (Hypertext Transfer Protocol Secure).
 - **Loopback only:** Client and server run on the same host and talk over
   loopback, so this benchmark does not measure network throughput or latency.
