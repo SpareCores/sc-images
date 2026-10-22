@@ -31,7 +31,7 @@ These results compare servers on PassMark's synthetic CPU and memory tests,
 not on application throughput, and they exclude disk, network, and GPU
 performance. The main limitations are the following:
 
-- **[Scaling](#results):** Many PassMark tests do not scale well above 32
+- **[Scaling](#scaling):** Many PassMark tests do not scale well above 32
   vCPUs. Memory Mark does not scale well above 16 vCPUs: its scores plateau and
   may even degrade as the vCPU count increases. Production runs this benchmark
   only on servers with at most 32 vCPUs; the image does not enforce this limit
@@ -126,6 +126,8 @@ and `ME_THREADED`, are in the output but not published.
 For example, on `aws/a1.2xlarge` (8 vCPUs), `SUMM_CPU` is \~3170 and `SUMM_ME`
 is \~1418
 ([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/a1.2xlarge/0/passmark/stdout)).
+
+### Scaling
 
 Read the following results with their scaling in mind:
 
