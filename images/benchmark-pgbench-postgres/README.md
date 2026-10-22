@@ -38,23 +38,21 @@ This benchmark measures two deployment models:
 These results compare PostgreSQL server CPU and memory performance, not
 application throughput. The main limitations are:
 
-- **Workload:** `pgbench_ro` uses synthetic transactions and uniform data; the
-  results do not specifically predict any given application's throughput, but
-  aim to provide meaningful comparisons across different server types. See the
-  [workload
-  limitations](./docs/limitations.md#disclaimer-what-this-benchmark-does-not-deliver).
-- **Disk and network:** The score excludes disk I/O (Input/Output) performance
-  and does not measure network throughput or latency. See [Disk I/O
-  Speed](./docs/limitations.md#disk-io-speed) and [Network
-  Performance](./docs/limitations.md#network-performance).
-- **Memory:** The dataset takes about 303 MiB, and production runs this
-  benchmark only on servers with at least 2 GiB of RAM. The image enforces no
-  minimum, so on smaller hosts disk reads can influence the score. See
-  [Memory-Fit, Small Dataset](./docs/limitations.md#memory-fit-small-dataset).
-- **Engine tuning:** When `SC_DB_HOST` is unset, the image starts PostgreSQL
-  locally and tunes it with `pgtune`. A remote `SC_DB_HOST` target is not tuned
-  by this benchmark. See [Standalone Mode](./docs/usage.md#standalone-mode) for
-  the tuning and
+- **[Workload](./docs/limitations.md#disclaimer-what-this-benchmark-does-not-deliver):**
+  `pgbench_ro` uses synthetic transactions and uniform data; the results do not
+  specifically predict any given application's throughput, but aim to provide
+  meaningful comparisons across different server types.
+- **[Disk and network](./docs/limitations.md#disk-io-speed):** The score
+  excludes disk I/O (Input/Output) performance and does not measure network
+  throughput or latency. See also
+  [Network Performance](./docs/limitations.md#network-performance).
+- **[Memory](./docs/limitations.md#memory-fit-small-dataset):** The dataset
+  takes about 303 MiB, and production runs this benchmark only on servers with
+  at least 2 GiB of RAM. The image enforces no minimum, so on smaller hosts disk
+  reads can influence the score.
+- **[Engine tuning](./docs/usage.md#standalone-mode):** When `SC_DB_HOST` is
+  unset, the image starts PostgreSQL locally and tunes it with `pgtune`. A
+  remote `SC_DB_HOST` target is not tuned by this benchmark. See also
   [Engine Configuration](./docs/limitations.md#engine-configuration) for why
   managed engines are left untuned.
 
