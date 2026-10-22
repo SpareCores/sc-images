@@ -168,9 +168,9 @@ no timeout.
 ### Why 5 Minutes
 
 This is deliberately not a long-running benchmark. We tested 5-, 10-, 15-, and
-30-minute measurement windows with five interleaved trials each, using BenchBase
-Wikipedia on three GCP (Google Cloud Platform)
-server types and `pgbench -S` on a fourth. Longer windows moved mean throughput
+30-minute measurement windows with five interleaved trials each, using BenchBase's
+Wikipedia workload on three GCP (Google Cloud Platform) server types and
+`pgbench -S` on a fourth. Longer windows moved mean throughput
 by less than 2% and did not reduce run-to-run variation, which comes from load,
 OS, and noisy-neighbor effects rather than from too short an average. See
 [Measurement duration](../CHANGELOG.md#measurement-duration) for the results.
@@ -178,8 +178,8 @@ OS, and noisy-neighbor effects rather than from too short an average. See
 As a result, each score is a single 5-minute sample. Repeated runs on the same
 server type varied by a CV (Coefficient of Variation) of about 0.5-4% in these
 tests, so treat smaller differences between server types as noise. These
-figures come from the BenchBase Wikipedia and `pgbench -S` runs, not from
-`pgbench_ro`.
+figures come from runs of BenchBase's Wikipedia workload and `pgbench -S`, not
+from `pgbench_ro`.
 
 ## Production Setup
 
