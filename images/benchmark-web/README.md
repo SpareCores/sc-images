@@ -59,8 +59,8 @@ are the following:
   [`binserve.json`](./binserve/binserve.json) and its defaults otherwise.
   Results do not show how nginx or another tuned web server would perform on
   the same server type.
-- **Single, Short Runs:** Each configuration runs once for 10 s, with no warmup
-  and no repetitions.
+- **Single, Short Runs:** Each configuration runs once for 10 seconds, with no
+  warmup and no repetitions.
 - **CPU Count:** The thread and connection counts follow the CPUs the
   container may run on. Docker's `--cpuset-cpus` changes them, but `--cpus`
   does not: with `--cpus`, this benchmark still uses the host's CPU count.
@@ -94,8 +94,8 @@ stays on loopback inside the container.
 The entrypoint runs this benchmark under `resource-tracker`, which samples
 resource usage during the run. Its data is not published.
 
-Measurement takes about 12 min: 69 configurations of 10 s each, plus server
-startup. A production run on an `aws/m5.large` took 11 min 42 s
+Measurement takes about 12 minutes: 69 configurations of 10 seconds each, plus
+server startup. A production run on an `aws/m5.large` took 11 minutes 42 seconds
 ([run metadata](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/static_web/meta.json)).
 
 The run metadata also records the tool versions in its `version` field, as one
