@@ -121,7 +121,7 @@ The process prints nothing until the run ends, then prints one JSON object to
 stdout; a default run can stay silent for about 25 minutes. Errors go to
 stderr. In standalone mode, the PostgreSQL server log is written to
 `/tmp/pg-server.log` inside the container, so drop `--rm` if you need it after
-the run. Interpret the JSON object's main fields as follows:
+the run. The JSON object's main fields are the following:
 
 - `score` is the highest TPM result; `score_unit` is `tpm`, and
   `peak_concurrency` is the client count for that result.
@@ -172,8 +172,8 @@ for a cross-provider benchmark.
 
 Early `pgbench -S` runs were dominated by network latency, and profiling found
 that the first custom transaction over-weighted regex work. A set of 21
-PostgreSQL configuration experiments on a 32 vCPU host showed that tuning could
-improve throughput by about 20%. The `pgbench_ro` redesign uses a fixed,
+PostgreSQL configuration experiments on a host with 32 vCPUs showed that tuning
+could improve throughput by about 20%. The `pgbench_ro` redesign uses a fixed,
 cache-resident schema and spreads CPU work across PostgreSQL subsystems.
 `pgbench_tpcb` is kept as a conventional reference workload, but it is
 disk-limited and unused in production.
