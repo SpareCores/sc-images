@@ -72,7 +72,8 @@ docker run --rm --privileged ghcr.io/sparecores/benchmark-web:main
 
 The harness runs `binserve` and `wrk` at the highest scheduling priority
 (`nice -n -20`), which needs the `CAP_SYS_NICE` capability that `--privileged`
-grants. It also raises its open-file limit to 1,048,576 before starting them.
+grants. Without it, they run at normal priority. The harness also raises its
+open-file limit to 1,048,576 before starting them.
 
 Production runs the container the same way and also sets host networking
 (`--network host`). With host networking, `binserve` listens on port 8080 of
@@ -117,8 +118,8 @@ The columns mean the following:
 - `failed` is the number of responses with a status other than 2xx or 3xx.
 - `server_usr` and `server_sys` are the user and system CPU seconds that
   `binserve` used during the configuration.
-- `client_usr` and `client_sys` are the user and system CPU seconds of `wrk`
-  during the configuration.
+- `client_usr` and `client_sys` are the user and system CPU seconds that
+  `wrk` used during the configuration.
 
 For example, on an `aws/m5.large` (2 vCPUs), serving the `1k` file with two
 threads, `rps` rises from 43,808 with two connections to 64,606 with 32
