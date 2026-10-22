@@ -6,8 +6,8 @@ container and talk over loopback. This benchmark sweeps five file sizes, from
 1 KiB to 512 KiB, and the number of `wrk` threads and connections, which scale
 with the number of CPUs, and runs each of the 69 configurations once for 10 s.
 
-It reports the throughput in requests per second and the average latency of
-each configuration, together with the CPU time the server and the client used.
+It reports the requests per second and the average latency of each
+configuration, together with the CPU time the server and the client used.
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
 requests per second, throughput in bytes per second, and latency for each file
 size and number of connections per vCPU.
@@ -72,8 +72,7 @@ docker run --rm --privileged ghcr.io/sparecores/benchmark-web:main
 
 The harness runs `binserve` and `wrk` at the highest scheduling priority
 (`nice -n -20`), which needs the `CAP_SYS_NICE` capability that `--privileged`
-grants. It also raises its open-file limit (`RLIMIT_NOFILE`) to 1,048,576
-before starting them.
+grants. It also raises its open-file limit to 1,048,576 before starting them.
 
 Production runs the container the same way and also sets host networking
 (`--network host`). With host networking, `binserve` listens on port 8080 of
