@@ -141,11 +141,11 @@ Read the following results with their scaling in mind:
 ### PassMark Version
 
 PassMark publishes no versioned download URLs, so the image downloads the
-current release from `passmark.com` at build time, and the image is rebuilt
-rarely. Production results come from two builds of PassMark PerformanceTest
-for Linux 11.0, `1002` and `1004`; check `Version.Build` in the output to see
-which build produced a result. Production does not record the PassMark
-version separately.
+current release from `passmark.com` at build time. The image is rebuilt
+rarely, so the PassMark build seldom changes. Production results come from
+two builds of PassMark PerformanceTest for Linux 11.0, `1002` and `1004`;
+check `Version.Build` in the output to see which build produced a result.
+Production does not record the PassMark version separately.
 
 We treat scores from these two builds as comparable. The
 [PerformanceTest version history](https://www.passmark.com/products/performancetest/history.php)
