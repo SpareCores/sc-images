@@ -166,7 +166,7 @@ first runs the following steps:
 Then, for each file size from the smallest to the largest, the harness runs
 `wrk` once for each combination of the following counts:
 
-- **Threads:** one, two, or four per CPU.
+- **Threads:** 1, 2, or 4 per CPU.
 - **Connections:** 1, 2, 4, 8, 16, or 32 per CPU, but at most 16 per CPU for
   the 256 KiB and 512 KiB files. A comment in `benchmark.py` says smaller files
   likely need more connections to saturate the machine.
