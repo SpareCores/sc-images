@@ -41,6 +41,18 @@ the Spare Cores docs, which also lists the terms each image uses.
   Foundation. It compresses audio without discarding any information, so
   decoding restores the original samples bit for bit.
   [FLAC](https://xiph.org/flac/)
+- **H.264**: A lossy video codec standardized in 2003, also called AVC. It is
+  the most widely supported video format, used in Blu-ray, broadcast,
+  streaming, and video calls. Common encoders are x264 and hardware encoders
+  such as NVENC.
+  [Specification](https://www.itu.int/rec/T-REC-H.264)
+- **H.265**: Another name for HEVC, from the number of its standard.
+  [Specification](https://www.itu.int/rec/T-REC-H.265)
+- **HEVC** (High Efficiency Video Coding): A lossy video codec standardized in
+  2013 as the successor of H.264, also called H.265. It compresses about twice
+  as well as H.264 at the same quality, at the cost of slower encoding, and is
+  used for 4K video and streaming. Common encoders are x265 and NVENC.
+  [Specification](https://www.itu.int/rec/T-REC-H.265)
 - **NVDEC** (NVIDIA Video Decoder): The hardware video decoder of NVIDIA GPUs,
   a dedicated unit next to the CUDA cores. It decodes codecs such as H.264,
   HEVC, VP9 and, on newer GPUs, AV1, leaving the CPU and the CUDA cores free.
@@ -56,6 +68,10 @@ the Spare Cores docs, which also lists the terms each image uses.
   measure decoding, filtering or encoding speed, or to run analysis filters,
   without the cost of writing to disk.
   [FFmpeg formats](https://ffmpeg.org/ffmpeg-formats.html#null)
+- **Opus**: A royalty-free, lossy audio codec standardized by the IETF in 2012.
+  It covers speech and music from low to high bitrates with low delay, which
+  makes it common in voice and video calls and web streaming.
+  [Opus](https://opus-codec.org/)
 - **PSNR** (Peak Signal-to-Noise Ratio): A quality metric that compares a
   processed image or video to its source by the mean squared error of their
   pixels, in decibels. Higher values mean a closer match. It is simple and
@@ -75,3 +91,7 @@ the Spare Cores docs, which also lists the terms each image uses.
   learning model trained on human ratings. It scores from 0 to 100, and is
   widely used to tune and compare video encoders.
   [GitHub](https://github.com/Netflix/vmaf)
+- **Vorbis**: A royalty-free, lossy audio codec by the Xiph.Org Foundation,
+  usually stored in Ogg files. It was designed as a free alternative to MP3 and
+  AAC, and is used in games and streaming; Opus has largely replaced it for new
+  uses. [Vorbis](https://xiph.org/vorbis/)

@@ -31,19 +31,27 @@ These results compare CPU and memory performance on fixed, synthetic workloads,
 not disk, network, or application throughput. The main limitations are the
 following:
 
-- **Compression input:** The compression benchmark uses one text file of the
-  Silesia corpus, not the whole corpus, so its results describe text only. See
-  [Compression Input](./docs/limitations.md#compression-input).
-- **Parallelism:** OpenSSL speed and `bw_mem` run one process per logical CPU,
-  while the compression benchmark runs at most one process per physical core.
-  See [CPU Counts](./docs/limitations.md#cpu-counts).
-- **Geekbench server range:** Production runs Geekbench only on servers with
-  up to 32 vCPUs and at least 2.1 GiB of memory. The image enforces neither. See
-  [Geekbench Server Range](./docs/limitations.md#geekbench-server-range).
-- **Tool versions:** The image builds OpenSSL 3.4.0 with many algorithms
-  disabled and installs the Python compression libraries unpinned, so library
-  versions can change between builds. See
-  [Tool Versions](./docs/limitations.md#tool-versions).
+- **Disk and network:** The scripts measure CPU and memory, not disk or
+  network performance. The compression benchmark reads its input into memory
+  before it starts timing.
+- **Application performance:** Each script runs a fixed, synthetic workload:
+  one hash or cipher at a time, one memory access pattern, one compressor on
+  one file, or Geekbench's fixed suite. The results compare server types on
+  these workloads; they do not predict the throughput of a specific
+  application.
+- **[Compression input](./docs/compression.md#compression-input):** The
+  compression benchmark uses one text file of the Silesia corpus, not the whole
+  corpus, so its results describe text only.
+- **[Parallelism](./docs/compression.md#cpu-count):** OpenSSL speed and
+  `bw_mem` run one process per logical CPU, while the compression benchmark
+  runs at most one process per physical core.
+- **[Geekbench server range](./docs/geekbench.md#server-range):** Production
+  runs Geekbench only on servers with up to 32 vCPUs and at least 2.1 GiB of
+  memory. The image enforces neither.
+- **[Tool versions](./docs/compression.md#library-versions):** The image builds
+  OpenSSL 3.4.0 with many algorithms disabled and installs the Python
+  compression libraries unpinned, so library versions can change between
+  builds. See also [OpenSSL Build](./docs/openssl.md#openssl-build).
 
 ## Usage
 
@@ -65,8 +73,8 @@ results with the Navigator's.
 
 `geekbench.sh` does not upload results to the Geekbench Browser: it captures
 Geekbench's upload on a local HTTPS (Hypertext Transfer Protocol Secure) server
-inside the container. See [Geekbench](./docs/usage.md#geekbench) for how the
-capture works.
+inside the container. See [Upload Capture](./docs/geekbench.md#upload-capture)
+for how the capture works.
 
 In production, the median run takes the following time:
 
@@ -91,37 +99,34 @@ all variables.
 
 Each script prints its results to stdout in its own format:
 
-- `openssl.sh` prints raw `openssl speed -mr` output for each algorithm, after
-  a delimiter line `ALGO: <args> ---...`.
-- `bw_mem.sh` prints one line per successful run, `<op> <size> <bandwidth>`,
-  with the buffer size in MB and the bandwidth in MB/s summed over all
-  processes.
-- `compress.py` prints one JSON object with `ratio`, `compress`, and
-  `decompress` per compressor, level, thread count, and extra arguments.
-- `geekbench.sh` prints Geekbench's console report to stdout, and the full
-  result document as JSON to stderr.
+- [`openssl.sh`](./docs/openssl.md#output) prints raw `openssl speed -mr`
+  output for each algorithm, after a delimiter line `ALGO: <args> ---...`.
+- [`bw_mem.sh`](./docs/bw-mem.md#output) prints one line per successful run,
+  `<op> <size> <bandwidth>`, with the buffer size in MB and the bandwidth in
+  MB/s summed over all processes.
+- [`compress.py`](./docs/compression.md#output) prints one JSON object with
+  `ratio`, `compress`, and `decompress` per compressor, level, thread count,
+  and extra arguments.
+- [`geekbench.sh`](./docs/geekbench.md#output) prints Geekbench's console
+  report to stdout, and the full result document as JSON to stderr.
 
-See [Outputs](./docs/usage.md#outputs) for the fields and units of each
-format.
+Each link leads to the fields and units of that format.
 
 ## Workloads
 
-The image runs the following benchmarks, one per script:
+The image runs the following benchmarks, one per script, each with its own
+page:
 
-- [OpenSSL speed](./docs/workloads.md#openssl-speed) (`openssl.sh`) measures
-  the throughput of 11 hash and cipher algorithms with one process per logical
-  CPU.
-- [Memory bandwidth](./docs/workloads.md#memory-bandwidth) (`bw_mem.sh`)
-  measures read, write, and read-write bandwidth over 11 buffer sizes from
-  `16k` to `512M`, with one process per logical CPU.
-- [Compression](./docs/workloads.md#compression) (`compress.py`) measures
-  eight compressors at several levels on one thread and with at most one
-  process per physical core.
-- [Geekbench](./docs/workloads.md#geekbench) (`geekbench.sh`) runs Geekbench
-  6.7.1's own Single-Core and Multi-Core suites.
-
-See [Workloads](./docs/workloads.md) for the full parameter matrix of each
-benchmark.
+- [OpenSSL speed](./docs/openssl.md) (`openssl.sh`) measures the throughput
+  of 11 hash and cipher algorithms with one process per logical CPU.
+- [Memory bandwidth](./docs/bw-mem.md) (`bw_mem.sh`) measures read, write,
+  and read-write bandwidth over 11 buffer sizes from `16k` to `512M`, with one
+  process per logical CPU.
+- [Compression](./docs/compression.md) (`compress.py`) measures eight
+  compressors at several levels on one thread and with at most one process per
+  physical core.
+- [Geekbench](./docs/geekbench.md) (`geekbench.sh`) runs Geekbench 6.7.1's
+  own Single-Core and Multi-Core suites.
 
 ## Design History
 
@@ -137,7 +142,7 @@ affecting the scores:
    switched to parsing the results Geekbench prints locally, as a backfill
    for results it could not parse.
 4. The image now captures the upload on a local HTTPS server inside the
-   container; see [Geekbench](./docs/usage.md#geekbench).
+   container; see [Upload Capture](./docs/geekbench.md#upload-capture).
 
 Production still runs the `x86_64` build with the Pro license, and the Arm
 preview build without a license.

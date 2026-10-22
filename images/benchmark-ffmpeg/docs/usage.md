@@ -135,8 +135,8 @@ run past it count as failed. The whole run stops after
 started by then are reported as skipped with `overall_timeout`.
 
 Total run time therefore depends on the number of scenarios that run and the
-worker counts each one measures. A production run on a 64 vCPU AWS
-(Amazon Web Services) `m9g.16xlarge` without GPUs
+worker counts each one measures. A production run on an AWS
+(Amazon Web Services) `m9g.16xlarge` with 64 vCPUs and no GPUs
 measured every CPU and audio scenario at 1, 32, and 64 workers and took about
 10 minutes
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/0/ffmpeg)).
@@ -148,8 +148,10 @@ servers, with a median of about 9.5 minutes.
 
 Each repetition targets 5 s of wall time by default. Because the pilot
 scales the media to that target, larger servers process more media in the same
-time instead of running longer. The default comes from a study on a developer workstation (i9-14900K) of 2,
-5, and 10 s targets (raw JSON not retained); see
+time instead of running longer. The default comes from a study that compared
+2, 5, and 10 s targets on one developer workstation, a 24-core Intel Core
+i9-14900K desktop CPU without an NVIDIA GPU, so GPU scenarios were not part of
+it. Only the study's summary was kept; see
 [Why 5 Seconds](../CHANGELOG.md#why-5-seconds).
 
 ### Shorter Test Runs
@@ -189,7 +191,9 @@ noted below:
 - Production skips servers with less than 1 GiB of memory. The image does
   not enforce this minimum.
 
-Failed production runs are investigated and then run again.
+We investigate failed production runs, manually or semi-automatically, and
+then run them again. Until then, a server type's latest result in
+`sc-inspector-data` can be a failed or partial run.
 
 ## Environment Variables
 

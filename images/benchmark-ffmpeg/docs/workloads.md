@@ -96,10 +96,15 @@ This benchmark runs its 13 scenarios in a fixed order, as defined in
 five audio scenarios. Each repetition measures one group of parallel workers in
 the following steps:
 
-1. The harness starts every worker as a separate process, held back by a shared
-   pipe.
-2. It reads a monotonic clock and closes the pipe, which releases all workers
-   at once.
+1. The harness starts every worker as a separate process. Each worker first
+   waits to read from one shared pipe, so `ffmpeg` has not started yet
+   when the last worker is ready.
+2. The harness records the start time, then closes the pipe. Closing it
+   ends every worker's wait at the same moment, and each worker starts its
+   `ffmpeg` command. The start time comes from a monotonic clock, which only
+   moves forward and is not changed by system time adjustments such as NTP
+   (Network Time Protocol) corrections, so the measured wall time cannot
+   jump.
 3. It records each worker's exit time and exit code. The wall time is the time
    from the release to the last exit, so process startup and teardown are
    included.

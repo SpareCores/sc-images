@@ -5,14 +5,10 @@
 ### Output Quality
 
 This benchmark measures throughput, not the quality of the encoded output. It
-computes no quality metric, such as PSNR
-(Peak Signal-to-Noise Ratio),
-SSIM
-(Structural Similarity Index Measure),
-or VMAF
-(Video Multimethod Assessment Fusion). The
-encode settings are fixed per scenario, so the quality target stays the same
-across server types; see
+computes no quality metric, such as PSNR (Peak Signal-to-Noise Ratio), SSIM
+(Structural Similarity Index Measure), or VMAF (Video Multimethod Assessment
+Fusion). The encode settings are fixed per scenario, so the quality target
+stays the same across server types; see
 [CPU and GPU Encode Quality](#cpu-and-gpu-encode-quality) for how CPU and GPU
 settings relate.
 
@@ -117,7 +113,9 @@ missing GPU result therefore means the scenario could not run in that
 environment.
 
 GPU scenarios also need the NVIDIA driver's video libraries inside the
-container. Since version 3.3.0, the image requests them itself; earlier
+container. Since
+[harness version 3.3.0](../CHANGELOG.md#nvenc-quality-matched-to-cpu-encodes-and-gpu-driver-libraries-mounted),
+the image requests them itself; earlier
 production runs on many GPU servers skipped all GPU scenarios because these
 libraries were missing. Production results for GPUs are therefore incomplete
 until those servers are measured again.
