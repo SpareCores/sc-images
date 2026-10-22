@@ -4,7 +4,7 @@ This benchmark measures how fast one `binserve` process serves static files
 over HTTP, with `wrk` as the load generator. Server and client run in the same
 container and talk over loopback. It sweeps five file sizes, from 1 KiB to
 512 KiB, and the number of `wrk` threads and connections, which scale with the
-number of CPUs. Each of the 69 configurations runs once for 10 s.
+number of CPUs. Each of the 69 configurations runs once for 10 seconds.
 
 It reports the requests per second and the average latency of each
 configuration, together with the CPU time the server and the client used.
@@ -23,11 +23,17 @@ tuning. nginx and other web servers have many settings, some of them best set
 per server type, which would make a like-for-like comparison across server
 types hard.
 
-Server and client run in one container over loopback. This keeps provisioning
-simple and benchmarking costs lower, lets this benchmark run on a single
-machine without a separate client, and avoids network latency. Because the
-client takes CPU time away from the server, this benchmark records the CPU
-time of both. See [Results](#results) for how the Navigator uses it.
+The web server and the load generator run side by side in the same
+container: `wrk` sends its requests to `binserve` at `localhost:8080`, over
+the loopback interface. Loopback is a virtual network interface that the
+operating system provides for traffic between programs on the same machine,
+so the requests never reach a network card or leave the server. This keeps
+provisioning simple and benchmarking costs lower, because a run needs only
+the server under test and no separate client machine, and it keeps network
+latency out of the results. The trade-off is that `wrk` uses CPU time that
+`binserve` could otherwise use. This benchmark records the CPU time of both,
+so the Navigator can estimate how fast `binserve` would serve with the CPUs
+to itself; see [Results](#results).
 
 ## Limitations
 
@@ -40,18 +46,20 @@ are the following:
   reach. See [Results](#results) for the CPU-time-adjusted scores the Navigator
   publishes.
 - **Large servers:** This benchmark does not scale well on servers with 100 or
-  more vCPUs, because of a listener bottleneck in the single `binserve`
+  more vCPUs because of a listener bottleneck in the single `binserve`
   process.
 - **[Static Files Over HTTP](#workload):** Measures serving five static files,
   filled with zero bytes, from `binserve`'s in-memory file cache over plain
   HTTP, not dynamic content or HTTPS (Hypertext Transfer Protocol Secure).
-- **Loopback only:** Client and server run on the same host and talk over
-  loopback, so this benchmark does not measure network throughput or latency.
+- **[Loopback Only](#purpose):** `wrk` and `binserve` exchange requests over
+  the loopback interface of the same machine, so no traffic crosses a network
+  card or a real network. Results do not include network throughput or
+  latency, and a server type's network performance does not affect them.
 - **Untuned server:** `binserve` runs with the settings in
   [`binserve.json`](./binserve/binserve.json) and its defaults otherwise.
   Results do not show how nginx or another tuned web server would perform on
   the same server type.
-- **Single short run:** Each configuration runs once for 10 s, with no warmup
+- **Single, Short Runs:** Each configuration runs once for 10 s, with no warmup
   and no repetitions.
 - **CPU count:** The thread and connection counts follow the CPUs the
   container may run on. Docker's `--cpuset-cpus` changes them, but `--cpus`
@@ -77,8 +85,10 @@ open-file limit to 1,048,576 before starting them.
 
 Production runs the container the same way and also sets host networking
 (`--network host`). With host networking, `binserve` listens on port 8080 of
-the host's loopback interface, so that port must be free. Without it, the
-traffic stays on loopback inside the container.
+the host's loopback interface, so that port must be free. If it is not,
+`binserve` cannot listen on it, and this benchmark usually stops with
+`Couldn't start server` and exit code 1. Without host networking, the traffic
+stays on loopback inside the container.
 
 The entrypoint runs this benchmark under `resource-tracker`, which samples
 resource usage during the run. Its data is not published.
@@ -153,7 +163,7 @@ This benchmark runs one workload: a sweep of file sizes, `wrk` threads, and
 connections against one `binserve` process. [`benchmark.py`](./benchmark.py)
 first runs the following steps:
 
-1. Create five files in `/usr/local/binserve/data/`, of 1, 16, 64, 256, and
+1. Create five files in `/usr/local/binserve/data/`, with sizes of 1, 16, 64, 256, and
    512 KiB, filled with zero bytes.
 2. Start one `binserve` process with
    [`binserve.json`](./binserve/binserve.json), which listens on
