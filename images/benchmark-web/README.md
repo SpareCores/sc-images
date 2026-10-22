@@ -1,0 +1,189 @@
+# benchmark-web
+
+This benchmark measures how fast one `binserve` process serves static files
+over HTTP, with `wrk` as the load generator. Server and client run in the same
+container and talk over loopback. This benchmark sweeps five file sizes, from
+1 KiB to 512 KiB, and the number of `wrk` threads and connections, which scale
+with the number of CPUs, and runs each of the 69 configurations once for 10 s.
+
+It reports the throughput in requests per second and the average latency of
+each configuration, together with the CPU time the server and the client used.
+[Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
+requests per second, throughput in bytes per second, and latency for each file
+size and number of connections per vCPU.
+
+## Purpose
+
+This benchmark shows how fast a server type serves static files over HTTP, and
+how throughput and latency change with the file size and the number of
+concurrent connections.
+
+We serve the files with `binserve` because it is a single binary that needs no
+tuning. nginx and other web servers have many settings, some of them best set
+per server type, which would make a like-for-like comparison across server
+types hard.
+
+Server and client run in one container over loopback. This keeps provisioning
+simple and benchmarking costs lower, lets this benchmark run on a single
+machine without a separate client, and avoids network latency. Because the
+client takes CPU time away from the server, this benchmark records the CPU
+time of both. See [Results](#results) for how the Navigator uses it.
+
+## Limitations
+
+These results compare static file serving by one `binserve` process on one
+host, not the capacity of a tuned production web server. The main limitations
+are the following:
+
+- **Shared CPUs:** `binserve` and `wrk` share the same CPUs, and `wrk` runs up
+  to four threads per CPU, so `rps` is not the maximum a dedicated server would
+  reach. See [Results](#results) for the CPU-time-adjusted scores the Navigator
+  publishes.
+- **Large servers:** This benchmark does not scale well on servers with 100 or
+  more vCPUs, because of a listener bottleneck in the single `binserve`
+  process.
+- **[Workload](#workload):** Measures five static files, filled with zero
+  bytes and served from `binserve`'s in-memory file cache over plain HTTP, not
+  dynamic content or HTTPS (Hypertext Transfer Protocol Secure).
+- **Loopback only:** Client and server run on the same host and talk over
+  loopback, so this benchmark does not measure network throughput or latency.
+- **Untuned server:** `binserve` runs with the settings in
+  [`binserve.json`](./binserve/binserve.json) and its defaults otherwise.
+  Results do not show how nginx or another tuned web server would perform on
+  the same server type.
+- **Single short run:** Each configuration runs once for 10 s, with no warmup
+  and no repetitions.
+- **CPU count:** The thread and connection counts follow the CPUs the
+  container may run on. Docker's `--cpuset-cpus` changes them, but `--cpus`
+  does not: with `--cpus`, this benchmark still uses the host's CPU count.
+- **Error checks:** `failed` counts only responses with a status other than
+  2xx or 3xx, and `wrk`'s connect, read, write, and timeout errors are not
+  recorded. If `wrk`'s output cannot be parsed, the row gets `rps` 0 (with the
+  error on stderr) and the run still exits with code 0; the Navigator publishes
+  such a row only if every thread count in its group returned zero.
+
+## Usage
+
+Run the image via Docker:
+
+```bash
+docker run --rm --privileged ghcr.io/sparecores/benchmark-web:main
+```
+
+The harness runs `binserve` and `wrk` at the highest scheduling priority
+(`nice -n -20`), which needs the `CAP_SYS_NICE` capability that `--privileged`
+grants. It also raises its open-file limit (`RLIMIT_NOFILE`) to 1,048,576
+before starting them.
+
+Production runs the container the same way and also sets host networking
+(`--network host`). With host networking, `binserve` listens on port 8080 of
+the host's loopback interface, so that port must be free. Without it, the
+traffic stays on loopback inside the container.
+
+The entrypoint runs this benchmark under `resource-tracker`, which samples
+resource usage during the run. Its data is not published.
+
+Measurement takes about 12 min: 69 configurations of 10 s each, plus server
+startup. A production run on an `aws/m5.large` took 11 min 42 s
+([run metadata](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/static_web/meta.json)).
+
+### Settings
+
+This benchmark reads no environment variables or command-line options. The
+file sizes, thread and connection counts, and run time are fixed in
+[`benchmark.py`](./benchmark.py); see [Workload](#workload). To change the
+thread and connection counts, limit the container's CPUs with
+`--cpuset-cpus`.
+
+### Results
+
+This benchmark prints a comma-separated table to stdout: a header row with
+quoted column names, then one row per configuration.
+
+```text
+"size","threads","connections","rps","latency","failed","server_usr","server_sys","client_usr","client_sys"
+```
+
+The columns mean the following:
+
+- `size` is the label of the served file, in KiB, such as `"1k"`.
+- `threads` and `connections` are the `wrk` thread count and the number of
+  open connections.
+- `rps` is the requests per second that `wrk` reports, as an integer.
+- `latency` is the average latency from `wrk`'s thread statistics, in seconds.
+- `failed` is the number of responses with a status other than 2xx or 3xx.
+- `server_usr` and `server_sys` are the user and system CPU seconds that
+  `binserve` used during the configuration.
+- `client_usr` and `client_sys` are the user and system CPU seconds of `wrk`
+  during the configuration.
+
+For example, on an `aws/m5.large` (2 vCPUs), serving the `1k` file with two
+threads, `rps` rises from 43,808 with two connections to 64,606 with 32
+connections, while `latency` rises from 0.05 ms to 0.55 ms
+([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/static_web/stdout)).
+
+The Navigator groups the rows by file size and by connections per vCPU
+(`connections` divided by the server's vCPU count), so that servers with
+different vCPU counts can be compared. In each group, it keeps the row with the
+highest `rps`, whatever its thread count, and publishes the following five
+scores from it:
+
+- **`static_web:rps`:** `rps`, in requests per second.
+- **`static_web:rps-extrapolated`:** `rps` multiplied by the ratio of all CPU
+  time (server and client) to the server's CPU time, in requests per second.
+- **`static_web:throughput` and `static_web:throughput-extrapolated`:** the
+  two scores above multiplied by the file size, in bytes per second.
+- **`static_web:latency`:** `latency` of the same row, in seconds; lower is
+  better.
+
+In the `aws/m5.large` example, for the `1k` file at 16 connections per vCPU,
+the row with two threads (64,606 requests per second) is kept over those with
+four and eight threads. Note that the published latency is the one of the
+highest-`rps` row, not the lowest latency in the group. The Navigator's Web UI
+shows these scores with charts on each server type's page, for example
+[`aws/g5g.xlarge`](https://sparecores.com/server/aws/g5g.xlarge).
+
+Production records the tool versions, such as `binserve 0.2.1, wrk 4.2.0`.
+The image builds `binserve` from commit `1e32f94` and `wrk` from version
+4.2.0.
+
+## Workload
+
+This benchmark runs one workload: a sweep of file sizes, `wrk` threads, and
+connections against one `binserve` process. [`benchmark.py`](./benchmark.py)
+first runs the following steps:
+
+1. Create five files in `/usr/local/binserve/data/`, of 1, 16, 64, 256, and
+   512 KiB, filled with zero bytes.
+2. Start one `binserve` process with
+   [`binserve.json`](./binserve/binserve.json), which listens on
+   `127.0.0.1:8080`, routes `/1k` to `/512k` to the files, and turns on the
+   in-memory file cache and off logging. This process serves every
+   configuration.
+3. Send `HEAD /1k` up to 10 times, 1 s apart, until `binserve` answers with
+   status 200. If it never does, print `Couldn't start server` and exit with
+   code 1.
+
+Then, for each file size from the smallest to the largest, the harness runs
+`wrk` once for each combination of the following counts:
+
+- **Threads:** one, two, or four per CPU.
+- **Connections:** 1, 2, 4, 8, 16, or 32 per CPU, but at most 16 per CPU for
+  the 256 KiB and 512 KiB files. A comment in `benchmark.py` says smaller files
+  likely need more connections to saturate the machine.
+
+Combinations with fewer connections than threads are skipped. This leaves 15
+configurations for each of the three smaller files and 12 for each of the two
+larger ones, 69 in all, whatever the CPU count. Each configuration runs the
+following command, one after another, with no warmup:
+
+```bash
+wrk -d 10 -t <threads> -c <connections> http://localhost:8080/<size>
+```
+
+Before and after each run, the harness records the CPU times of `binserve` and
+of `wrk`, which give the CPU columns of the row.
+
+## References
+
+See [References](./docs/references.md) for the terms specific to this image.
