@@ -2,9 +2,9 @@
 
 This benchmark measures how fast one `binserve` process serves static files
 over HTTP, with `wrk` as the load generator. Server and client run in the same
-container and talk over loopback. This benchmark sweeps five file sizes, from
-1 KiB to 512 KiB, and the number of `wrk` threads and connections, which scale
-with the number of CPUs, and runs each of the 69 configurations once for 10 s.
+container and talk over loopback. It sweeps five file sizes, from 1 KiB to
+512 KiB, and the number of `wrk` threads and connections, which scale with the
+number of CPUs. Each of the 69 configurations runs once for 10 s.
 
 It reports the requests per second and the average latency of each
 configuration, together with the CPU time the server and the client used.
@@ -137,7 +137,7 @@ scores from it:
 
 In the `aws/m5.large` example, for the `1k` file at 16 connections per vCPU,
 the row with two threads (64,606 requests per second) is kept over those with
-four and eight threads. Note that the published latency is the one of the
+four and eight threads. Note that the published latency is that of the
 highest-`rps` row, not the lowest latency in the group. The Navigator's Web UI
 shows these scores with charts on each server type's page, for example
 [`aws/g5g.xlarge`](https://sparecores.com/server/aws/g5g.xlarge).
@@ -157,7 +157,7 @@ first runs the following steps:
 2. Start one `binserve` process with
    [`binserve.json`](./binserve/binserve.json), which listens on
    `127.0.0.1:8080`, routes `/1k` to `/512k` to the files, and turns on the
-   in-memory file cache and off logging. This process serves every
+   in-memory file cache and turns off logging. This process serves every
    configuration.
 3. Send `HEAD /1k` up to 10 times, 1 s apart, until `binserve` answers with
    status 200. If it never does, print `Couldn't start server` and exit with
