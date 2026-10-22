@@ -42,9 +42,9 @@ are the following:
 - **Large servers:** This benchmark does not scale well on servers with 100 or
   more vCPUs, because of a listener bottleneck in the single `binserve`
   process.
-- **[Workload](#workload):** Measures serving five static files, filled
-  with zero bytes, from `binserve`'s in-memory file cache over plain HTTP, not
-  dynamic content or HTTPS (Hypertext Transfer Protocol Secure).
+- **[Static Files Over HTTP](#workload):** Measures serving five static files,
+  filled with zero bytes, from `binserve`'s in-memory file cache over plain
+  HTTP, not dynamic content or HTTPS (Hypertext Transfer Protocol Secure).
 - **Loopback only:** Client and server run on the same host and talk over
   loopback, so this benchmark does not measure network throughput or latency.
 - **Untuned server:** `binserve` runs with the settings in
@@ -85,6 +85,10 @@ resource usage during the run. Its data is not published.
 Measurement takes about 12 min: 69 configurations of 10 s each, plus server
 startup. A production run on an `aws/m5.large` took 11 min 42 s
 ([run metadata](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/static_web/meta.json)).
+
+The run metadata also records the tool versions, such as
+`binserve 0.2.1, wrk 4.2.0`. The image builds `binserve` from commit `1e32f94`
+and `wrk` from version 4.2.0.
 
 ### Settings
 
@@ -141,10 +145,6 @@ four and eight threads. Note that the published latency is that of the
 highest-`rps` row, not the lowest latency in the group. The Navigator's Web UI
 shows these scores with charts on each server type's page, for example
 [`aws/g5g.xlarge`](https://sparecores.com/server/aws/g5g.xlarge).
-
-Production records the tool versions, such as `binserve 0.2.1, wrk 4.2.0`.
-The image builds `binserve` from commit `1e32f94` and `wrk` from version
-4.2.0.
 
 ## Workload
 
