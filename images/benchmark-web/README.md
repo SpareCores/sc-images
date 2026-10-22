@@ -19,9 +19,9 @@ type, and how throughput and latency change with the file size and the number
 of concurrent connections.
 
 We serve the files with `binserve` because it is a single binary that needs no
-tuning. nginx and other web servers have many settings, some of them best set
-per server type, which would make a like-for-like comparison across server
-types hard.
+tuning. Widely used web servers, such as nginx, have many settings, some of
+them best set per server type, which would make a like-for-like comparison
+across server types hard.
 
 The web server and the load generator run side by side in the same
 container: `wrk` sends its requests to `binserve` at `localhost:8080`, over
@@ -57,7 +57,7 @@ are the following:
   latency, and a server type's network performance does not affect them.
 - **Untuned Server:** `binserve` runs with the settings in
   [`binserve.json`](./binserve/binserve.json) and its defaults otherwise.
-  Results do not show how nginx or another tuned web server would perform on
+  Results do not show how a tuned web server, such as nginx, would perform on
   the same server type.
 - **Single, Short Runs:** Each configuration runs once for 10 seconds, with no
   warmup and no repetitions.
