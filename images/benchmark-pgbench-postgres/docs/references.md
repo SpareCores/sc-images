@@ -20,9 +20,10 @@ Spare Cores docs, which also lists the terms each image uses.
   to a count derived from the server's size, shows how throughput and latency
   change with load.
 - **GIN** (Generalized Inverted Index): A PostgreSQL index type that maps each
-  element of a composite value, such as an array item, a JSONB key or a word of
-  a document, to the rows that contain it. It speeds up containment and
-  full-text searches, at the cost of slower writes than a B-tree.
+  element of a composite value, such as an array item, a key of a JSON
+  document, or a word of a text, to the rows that contain it. It speeds up
+  containment and full-text searches, at the cost of slower writes than a
+  B-tree.
   [PostgreSQL docs](https://www.postgresql.org/docs/current/gin.html)
 - **GUC** (Grand Unified Configuration): The configuration system of
   PostgreSQL, and by extension its individual settings, such as
@@ -66,7 +67,7 @@ Spare Cores docs, which also lists the terms each image uses.
 - **TOAST** (The Oversized-Attribute Storage Technique): The mechanism with
   which PostgreSQL stores values too large for a regular 8 kB page, by
   compressing them, moving them out of line into a separate table, or both. It
-  applies automatically to large values, such as long texts or JSONB documents.
+  applies automatically to large values, such as long texts or JSON documents.
   [PostgreSQL docs](https://www.postgresql.org/docs/current/storage-toast.html)
 - **TPC-B** (Transaction Processing Performance Council Benchmark B): A
   database benchmark of short, update-heavy banking transactions, each
