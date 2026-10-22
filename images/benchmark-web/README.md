@@ -48,9 +48,9 @@ are the following:
 - **Large servers:** This benchmark does not scale well on servers with 100 or
   more vCPUs because of a listener bottleneck in the single `binserve`
   process.
-- **[Static Files Over HTTP](#workload):** Measures serving five static files,
-  filled with zero bytes, from `binserve`'s in-memory file cache over plain
-  HTTP, not dynamic content or HTTPS (Hypertext Transfer Protocol Secure).
+- **[Static Files Over HTTP](#workload):** This benchmark serves five static
+  files, filled with zero bytes, from `binserve`'s in-memory file cache over
+  plain HTTP. It does not measure dynamic content or HTTPS.
 - **[Loopback Only](#purpose):** `wrk` and `binserve` exchange requests over
   the loopback interface of the same machine, so no traffic crosses a network
   card or a real network. Results do not include network throughput or
@@ -66,9 +66,10 @@ are the following:
   does not: with `--cpus`, this benchmark still uses the host's CPU count.
 - **Error checks:** `failed` counts only responses with a status other than
   2xx or 3xx, and `wrk`'s connect, read, write, and timeout errors are not
-  recorded. If `wrk`'s output cannot be parsed, the row gets `rps` 0 (with the
-  error on stderr) and the run still exits with code 0; the Navigator publishes
-  such a row only if every thread count in its group returned zero.
+  recorded. If `wrk`'s output cannot be parsed, this benchmark prints the error
+  to stderr, writes the row with an `rps` of 0, and still exits with code 0, as
+  if the run had succeeded. The Navigator publishes such a row only if every
+  thread count in its group returned zero.
 
 ## Usage
 
@@ -97,9 +98,9 @@ Measurement takes about 12 min: 69 configurations of 10 s each, plus server
 startup. A production run on an `aws/m5.large` took 11 min 42 s
 ([run metadata](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/static_web/meta.json)).
 
-The run metadata also records the tool versions, such as
-`binserve 0.2.1, wrk 4.2.0`. The image builds `binserve` from commit `1e32f94`
-and `wrk` from version 4.2.0.
+The run metadata also records the tool versions in its `version` field, as one
+string, for example `binserve 0.2.1, wrk 4.2.0`. The image builds `binserve`
+from commit `1e32f94` and `wrk` from version 4.2.0.
 
 ### Settings
 
@@ -170,9 +171,9 @@ first runs the following steps:
    `127.0.0.1:8080`, routes `/1k` to `/512k` to the files, and turns on the
    in-memory file cache and turns off logging. This process serves every
    configuration.
-3. Send `HEAD /1k` up to 10 times, 1 s apart, until `binserve` answers with
-   status 200. If it never does, print `Couldn't start server` and exit with
-   code 1.
+3. Wait for `binserve` to be ready: send a `HEAD /1k` request up to 10 times,
+   1 second apart, until it answers `200 OK`. If it never does, print
+   `Couldn't start server` and exit with code 1.
 
 Then, for each file size from the smallest to the largest, the harness runs
 `wrk` once for each combination of the following counts:
