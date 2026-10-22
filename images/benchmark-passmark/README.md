@@ -13,7 +13,8 @@ marks and 14 of the individual test results.
 
 ## Purpose
 
-This benchmark compares server types on PassMark's fixed set of tests:
+This benchmark compares server types on the following PassMark tests, which
+the Navigator publishes:
 
 - **CPU tests:** integer and floating-point math, prime numbers, string
   sorting, encryption, compression, physics, extended instructions, and a
@@ -128,7 +129,9 @@ is \~1418
 
 Read the following results with their scaling in mind:
 
-- Database Operations, like Memory Mark, does not scale well above 32 vCPUs.
+- The Database Operations test behaves like the Memory Mark test, but above 32 vCPUs
+  rather than 16: its scores plateau and may even degrade as the vCPU count
+  increases.
 - CPU Single Threaded Test measures single-threaded performance only, so its
   score does not increase with the vCPU count.
 - Memory Read Cached, Memory Read Uncached, Memory Write, and Memory Latency
