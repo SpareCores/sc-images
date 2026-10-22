@@ -36,17 +36,17 @@ performance. The main limitations are the following:
   may even degrade as the vCPU count increases. Production runs this benchmark
   only on servers with at most 32 vCPUs; the image does not enforce this limit
   and runs on any server.
-- **[PassMark version](#passmark-version):** The image downloads the latest
+- **[PassMark Version](#passmark-version):** The image downloads the latest
   PassMark release when it is built, without a version pin, so a rebuild can
   change the PassMark build that produces the scores.
-- **Default test settings:** This benchmark passes no test duration or
-  iteration options, so PassMark's defaults apply: in production output, one
-  iteration at the `Medium` test duration. It reads no environment variables
-  or command-line options, and runs once, with no repetitions.
-- **Number of test processes:** PassMark chooses how many test processes to
-  run; this benchmark does not set it. On `aws/a1.2xlarge` (8 vCPUs), PassMark
-  ran eight processes.
-- **Exit status:** The exit status is that of printing the results file, not
+- **[Default Test Settings](#settings):** This benchmark passes no test
+  duration or iteration options, so PassMark's defaults apply: in production
+  output, one iteration at the `Medium` test duration. It reads no environment
+  variables or command-line options, and runs once, with no repetitions.
+- **[Number of Test Processes](#results):** PassMark chooses how many test
+  processes to run; this benchmark does not set it. On `aws/a1.2xlarge`
+  (8 vCPUs), PassMark ran eight processes.
+- **Exit Status:** The exit status is that of printing the results file, not
   of PassMark. A run that writes no results file exits with an error, but a
   failed PassMark run that still writes the file exits with status 0.
 
@@ -174,5 +174,5 @@ directory.
 
 ## References
 
-See [References](./docs/references.md) for the terms specific to this image,
-and the [contributor guide](./docs/contributors.md) for building the image.
+See [References](./docs/references.md) for the terms specific to this image.
+See the [contributor guide](./docs/contributors.md) for building the image.
