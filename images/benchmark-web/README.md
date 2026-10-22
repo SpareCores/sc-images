@@ -41,11 +41,11 @@ These results compare static file serving by one `binserve` process on one
 host, not the capacity of a tuned production web server. The main limitations
 are the following:
 
-- **Shared CPUs:** `binserve` and `wrk` share the same CPUs, and `wrk` runs up
-  to four threads per CPU, so `rps` is not the maximum a dedicated server would
-  reach. See [Results](#results) for the CPU-time-adjusted scores the Navigator
-  publishes.
-- **Large servers:** This benchmark does not scale well on servers with 100 or
+- **[Shared CPUs](#results):** `binserve` and `wrk` share the same CPUs, and
+  `wrk` runs up to four threads per CPU, so `rps` is not the maximum a
+  dedicated server would reach. The Navigator also publishes CPU-time-adjusted
+  scores.
+- **Large Servers:** This benchmark does not scale well on servers with 100 or
   more vCPUs because of a listener bottleneck in the single `binserve`
   process.
 - **[Static Files Over HTTP](#workload):** This benchmark serves five static
@@ -55,16 +55,16 @@ are the following:
   the loopback interface of the same machine, so no traffic crosses a network
   card or a real network. Results do not include network throughput or
   latency, and a server type's network performance does not affect them.
-- **Untuned server:** `binserve` runs with the settings in
+- **Untuned Server:** `binserve` runs with the settings in
   [`binserve.json`](./binserve/binserve.json) and its defaults otherwise.
   Results do not show how nginx or another tuned web server would perform on
   the same server type.
 - **Single, Short Runs:** Each configuration runs once for 10 s, with no warmup
   and no repetitions.
-- **CPU count:** The thread and connection counts follow the CPUs the
+- **CPU Count:** The thread and connection counts follow the CPUs the
   container may run on. Docker's `--cpuset-cpus` changes them, but `--cpus`
   does not: with `--cpus`, this benchmark still uses the host's CPU count.
-- **Error checks:** `failed` counts only responses with a status other than
+- **Error Checks:** `failed` counts only responses with a status other than
   2xx or 3xx, and `wrk`'s connect, read, write, and timeout errors are not
   recorded. If `wrk`'s output cannot be parsed, this benchmark prints the error
   to stderr, writes the row with an `rps` of 0, and still exits with code 0, as
