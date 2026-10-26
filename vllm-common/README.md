@@ -30,7 +30,7 @@ When `BENCHMARK_VLLM_AUTOCONFIG=1` (default), the harness derives GuideLLM load 
 | `max_concurrency` | sub-linear (~vCPU^0.55–0.65), floored by DP replicas | `GUIDELLM__MAX_CONCURRENCY` env override |
 | `max_seconds` per strategy | workload ctx (2048 vs 4096) + budget / sweep | rag gets ≥2× chat floor before sweep shrink; **only** per-stage limit in autoconfig |
 | `--rampup` | **not** vCPU — 15% of `max_seconds`, cap 8s | must leave ≥25s of the throughput stage at peak concurrency |
-| `sweep_size` | log(vCPU) capped at 4 on CPU, then **shrunk** to fit `per_run_budget` | `per_run_budget_sec` (45–240 s); fewer steps for rag/long ctx |
+| `sweep_size` | log(vCPU) capped at 4 on CPU, then **shrunk** to fit `per_run_budget` | `per_run_budget_sec` (45–240s); fewer steps for rag/long ctx |
 | CPU TP / DP | NUMA + model size (small models get more DP replicas) | `MAX_CPU_DP`, RAM for weight copies, `BENCHMARK_VLLM_CPU_TP` / `_DP` |
 | `max_num_seqs`, KV fraction | sub-linear + model RAM | available memory |
 | dtype (CPU) | model + arch | gemma / arm64 → bfloat16 |

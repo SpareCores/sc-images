@@ -35,9 +35,8 @@ computes the composite scores.
 
 These results compare servers on PassMark's synthetic CPU and memory tests,
 not on application throughput, and they exclude
-[disk](../benchmark-storage/README.md), network, and
-[GPU](../nvbandwidth/README.md) performance. The main limitations are the
-following:
+[disk](../benchmark-storage/README.md), network, and GPU performance. The main
+limitations are the following:
 
 - **Scaling:** Many PassMark tests, including Database Operations, do not
   scale well above 32 vCPUs. Memory Mark does not scale well above 16 vCPUs:
