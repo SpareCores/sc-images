@@ -153,8 +153,9 @@ failed data check prints `Invalid value when checking the pattern at ...`
 before the JSON and also exits with code 1.
 
 The Navigator stores the following metrics from each run, computed only from
-test cases with `"status": "Passed"`, but does not show them on its website
-yet. The table uses the following terms:
+test cases with `"status": "Passed"`. Its Web UI shows them in the GPU
+Bandwidth and Latency card of each server type's page. The table uses the
+following terms:
 
 - CE (Copy Engine) and SM (Streaming Multiprocessor) name the copy method; see
   [Workload](#workload).
@@ -175,7 +176,7 @@ yet. The table uses the following terms:
 | `nvbandwidth:p2p:gather` | Rate into one GPU when all other GPUs write to it at once (CE) | GB/s | `all_to_one_write_ce`, averaged |
 | `nvbandwidth:efficiency:sm_ce_ratio` | SM copy speed relative to CE copy speed, capped at 1 | Ratio | `host_to_device_memcpy_sm` `sum` divided by `host_to_device_memcpy_ce` `sum` |
 
-Each stored result also records the following:
+The card also shows the following, which each stored result records:
 
 - driver version
 - CUDA runtime version
