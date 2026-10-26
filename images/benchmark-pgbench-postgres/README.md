@@ -44,7 +44,7 @@ application throughput. The main limitations are:
   `pgbench_ro` uses synthetic transactions and uniform data; the results do not
   specifically predict any given application's throughput, but aim to provide
   meaningful comparisons across different server types.
-- **[Disk and network](./docs/limitations.md#disk-io-speed):** The score
+- **[Disk and Network](./docs/limitations.md#disk-io-speed):** The score
   excludes disk I/O (Input/Output) performance and does not measure network
   throughput or latency. See also
   [Network Performance](./docs/limitations.md#network-performance).
@@ -52,7 +52,7 @@ application throughput. The main limitations are:
   takes about 303 MiB, and production runs this benchmark only on servers with
   at least 2 GiB of RAM. The image enforces no minimum, so on smaller hosts disk
   reads can influence the score.
-- **[Engine tuning](./docs/usage.md#standalone-mode):** When `SC_DB_HOST` is
+- **[Engine Tuning](./docs/usage.md#standalone-mode):** When `SC_DB_HOST` is
   unset, the image starts PostgreSQL locally and tunes it with `pgtune`. A
   remote `SC_DB_HOST` target is not tuned by this benchmark. See also
   [Engine Configuration](./docs/limitations.md#engine-configuration) for why
@@ -86,9 +86,8 @@ needs more setup: database privileges, a disposable benchmark database, and the
 server's vCPU count. Follow [Remote Mode](./docs/usage.md#remote-mode) for more
 details and settings.
 
-Both modes need outbound HTTPS (Hypertext Transfer Protocol Secure) access to
-the Spare Cores CDN (Content Delivery Network) to download the dataset; the run
-fails if the CDN is unreachable.
+Both modes need outbound HTTPS access to the Spare Cores CDN (Content Delivery
+Network) to download the dataset; the run fails if the CDN is unreachable.
 
 A default run takes about 25 minutes on servers with 4 or more vCPUs: a 2-minute
 warmup, 1-minute settle periods, and 5 minutes of measurement at each of four

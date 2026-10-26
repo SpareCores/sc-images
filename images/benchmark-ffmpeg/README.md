@@ -29,7 +29,7 @@ server type processes at once, rather than how fast a single job finishes.
 These results compare transcoding throughput across server types. Note the
 following limitations:
 
-- **[Output quality](./docs/limitations.md#output-quality):** This benchmark
+- **[Output Quality](./docs/limitations.md#output-quality):** This benchmark
   measures speed, not output quality, and computes no quality metric. GPU
   encode settings are calibrated to approximately match the CPU encode quality,
   but the match is not exact. See also
@@ -37,7 +37,7 @@ following limitations:
 - **[Storage](./docs/limitations.md#storage-and-output):** Encoded output is
   discarded through FFmpeg's null muxer, so file, disk, and object-storage
   writes are not measured.
-- **[Fixed media and settings](./docs/limitations.md#a-specific-media-pipeline):**
+- **[Fixed Media and Settings](./docs/limitations.md#a-specific-media-pipeline):**
   Every job uses the same short video clip or music sample with fixed codec
   settings. Other resolutions, settings, and codecs are not covered, for
   example AV1 (AOMedia Video 1).
@@ -84,14 +84,14 @@ The following settings are the most common; see the
 for all options and defaults:
 
 - `FFMPEG_BENCH_TARGET_SECONDS` sets the wall time of each measured repetition
-  (default 5 s).
+  (default 5s).
 - `FFMPEG_BENCH_REPETITIONS` and `FFMPEG_BENCH_MAX_REPETITIONS` set how many
   repetitions run at each worker count (default three, up to five).
 - `FFMPEG_BENCH_WORKERS` replaces the automatic worker counts with an explicit,
   comma-separated list.
 - `FFMPEG_BENCH_MAX_WORKERS` caps the number of parallel workers.
 - `FFMPEG_BENCH_TIMEOUT_SECONDS` sets the deadline for the whole run (default
-  7,200 s).
+  7,200s).
 
 ### Results
 

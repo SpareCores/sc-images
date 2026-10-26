@@ -3,7 +3,7 @@
 This benchmark measures Redis 7.4 SET throughput and latency with
 `memtier_benchmark`. It starts one `redis-server` and one `memtier_benchmark`
 client for each CPU, all in the same container and connected over loopback,
-and runs every configuration for 10 s.
+and runs every configuration for 10 seconds.
 
 It reports the total operations per second and the average latency of the
 Redis SET command at six pipeline depths, from 1 to 512, together with the CPU
@@ -34,17 +34,17 @@ a production Redis deployment. The main limitations are the following:
 - **[Workload](#workload):** Only the SET command is measured, with
   `memtier_benchmark`'s default key pattern, key range, value size, and
   connection count. GET and mixed workloads are not measured.
-- **Loopback only:** Clients and servers run on the same host and talk over
+- **Loopback Only:** Clients and servers run on the same host and talk over
   loopback, so this benchmark does not measure network throughput or latency.
-- **Untuned servers:** Each `redis-server` starts with only a data directory
+- **Untuned Servers:** Each `redis-server` starts with only a data directory
   and a port, so Redis 7.4.0 defaults apply, including persistence, memory, and
   threading settings.
-- **Single short run:** Each configuration runs once for 10 s, with no warmup
+- **Single Short Run:** Each configuration runs once for 10s, with no warmup
   and no repetitions.
-- **CPU count:** The number of server and client pairs follows the CPUs the
+- **CPU Count:** The number of server and client pairs follows the CPUs the
   container may run on. Docker's `--cpuset-cpus` changes it, but `--cpus` does
   not: with `--cpus`, this benchmark still starts one pair per host CPU.
-- **Error checks:** The harness does not check `memtier_benchmark` exit codes,
+- **Error Checks:** The harness does not check `memtier_benchmark` exit codes,
   and it continues even if some servers do not answer the flush before a
   configuration. A client that prints no result adds nothing to `rps` but still
   counts in the `latency` average.
@@ -66,8 +66,8 @@ on loopback inside the container.
 The entrypoint runs this benchmark under `resource-tracker`, which samples
 resource usage during the run. Its data is not published.
 
-Measurement takes 60 s (six configurations of 10 s each), plus server startup
-and a flush of all servers before each configuration.
+Measurement takes 60 seconds (six configurations of 10 seconds each), plus
+server startup and a flush of all servers before each configuration.
 
 ### Settings
 
@@ -131,9 +131,9 @@ servers run until the container exits.
 For each pipeline depth (1, 4, 16, 64, 256, and 512), in this order, the
 harness runs the following steps:
 
-1. Flush every server with `redis-cli flushall`, retrying up to 10 times, 1 s
-   apart, until all servers answer. This is also the only wait for the servers
-   to start.
+1. Flush every server with `redis-cli flushall`, retrying up to 10 times,
+   1 second apart, until all servers answer. This is also the only wait for
+   the servers to start.
 2. Record the CPU times of the servers and the clients' running totals.
 3. Start one client per server, all at once:
 

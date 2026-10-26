@@ -12,14 +12,14 @@ build downloads and verifies them; runtime needs no network access.
 
 ## Audio
 
-“Entre dos Aguas” sample, performed by Michael Laucke (FLAC, ~85 s, CC0 1.0).
+“Entre dos Aguas” sample, performed by Michael Laucke (FLAC, ~85s, CC0 1.0).
 Original: [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Entre-dos-aguas-laucke-version-sample.flac).
 
 ## Video
 
 30-second H.264 excerpt from the Blender Foundation open movie **Tears of Steel**
 ([1080p release](https://mango.blender.org/download/)): 1920×800, 24 fps, cut at
-60–90 s with stream copy → `source.mp4`. Upstream mirror:
+60–90 seconds with stream copy → `source.mp4`. Upstream mirror:
 `ftp.halifax.rwth-aachen.de/.../tears_of_steel_1080p.mov` (zip-wrapped MOV).
 License: [CC BY 3.0](https://mango.blender.org/sharing/).
 

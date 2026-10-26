@@ -2,9 +2,9 @@
 
 This benchmark measures the throughput of CPU, memory, and kernel-heavy
 workloads with `stress-ng`. It runs 85 curated stressors in seven categories,
-each for 5 s (15 s for `stream`), first with one worker and then with one
-worker per available CPU. A second mode runs the `cpu` stressor at increasing
-worker counts to trace how throughput scales across cores.
+each for 5 seconds (15 seconds for `stream`), first with one worker and then
+with one worker per available CPU. A second mode runs the `cpu` stressor at
+increasing worker counts to trace how throughput scales across cores.
 
 This benchmark reports stress-ng bogo ops/s (bogus operations per second) for
 each stress-ng stressor and worker count, as one JSON document. The scaling
@@ -41,18 +41,18 @@ run shows the following:
 These results are synthetic `stress-ng` throughput figures, not application
 performance. The following are the main limitations:
 
-- **[Not comparable across stressors](./docs/limitations.md#cross-stressor-comparison):**
+- **[Not Comparable Across Stressors](./docs/limitations.md#cross-stressor-comparison):**
   Each stressor counts its own kind of operation, so compare bogo ops/s only
   for the same stressor and the same `stress-ng` version.
-- **[No single score](./docs/limitations.md#a-single-score):** The stressor
+- **[No Single Score](./docs/limitations.md#a-single-score):** The stressor
   suite reports one value per stressor and worker count, and does not combine
   them.
-- **[Short, single runs](./docs/limitations.md#run-length):** Each stressor
-  runs once for 5 s (15 s for `stream`), with no warm-up and no repetitions.
-- **[Logical CPUs, not physical cores](./docs/limitations.md#worker-count):**
+- **[Short, Single Runs](./docs/limitations.md#run-length):** Each stressor
+  runs once for 5s (15s for `stream`), with no warm-up and no repetitions.
+- **[Logical CPUs, Not Physical Cores](./docs/limitations.md#worker-count):**
   The multi-worker run uses one worker per logical CPU available to the
   container, even though the output field is named `physical_cpus`.
-- **[Missing results are `null`](./docs/limitations.md#missing-results):** A
+- **[Missing Results Are `null`](./docs/limitations.md#missing-results):** A
   stressor that fails, times out, or is not supported on the CPU architecture
   is recorded as `null`, and the run still succeeds.
 
@@ -79,8 +79,8 @@ The following settings shorten a run, for example for a quick check; see the
 [full environment-variable reference](./docs/usage.md#environment-variables)
 for details:
 
-- `STRESSNG_QUICK=1` runs each stressor for 2 s instead of 5 s (`stream`
-  still runs for 15 s).
+- `STRESSNG_QUICK=1` runs each stressor for 2 seconds instead of 5 seconds
+  (`stream` still runs for 15 seconds).
 - `STRESSNG_LIMIT=<N>` runs only the first N stressors in alphabetical order.
 
 ### Results
@@ -107,8 +107,8 @@ This benchmark runs the following workloads:
   stressors in seven categories, each with one worker and then one worker per
   CPU.
 - [CPU scaling loop](./docs/workloads.md#cpu-scaling-loop): the `cpu` stressor
-  with the stress-ng div16 method runs for 10 s at each worker count from 1 up
-  to the CPU count, with [`count.awk`](./count.awk) picking the counts.
+  with the stress-ng div16 method runs for 10 seconds at each worker count from
+  1 up to the CPU count, with [`count.awk`](./count.awk) picking the counts.
 
 For more information on stressor categories and run order, see
 [Workloads](./docs/workloads.md).

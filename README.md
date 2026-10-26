@@ -25,7 +25,7 @@ output.
 | [`benchmark`](images/benchmark) | General CPU, memory, and compression benchmarks: Geekbench 6 scores, OpenSSL speed throughput, LMbench bw_mem memory bandwidth, and compression ratio and throughput on a Silesia corpus text file. |
 | [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | FFmpeg benchmark of aggregate transcoding throughput: frames per second for H.264/H.265 video encoding and decoding on CPUs and NVIDIA GPUs, and audio seconds processed per second for audio encoding on CPUs. |
 | [`benchmark-llm`](images/benchmark-llm) | Low-concurrency LLM inference speed benchmark with llama.cpp's llama-bench, measuring prompt processing and text generation across models and token counts. |
-| [`benchmark-passmark`](images/benchmark-passmark) | PassMark PerformanceTest CPU and memory benchmark suite. |
+| [`benchmark-passmark`](images/benchmark-passmark) | PassMark PerformanceTest benchmark of CPU and memory performance, reporting the CPU Mark and Memory Mark composite scores and the individual test results behind them. |
 | [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per second and latency against a local or remote server. |
 | [`benchmark-redis`](images/benchmark-redis) | Redis 7.4 SET throughput and latency benchmark with memtier_benchmark, one server and client pair per CPU. |
 | [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, measuring the IOPS (Input/Output Operations Per Second), bandwidth, and latency of a server's bundled disks, per disk type and across identical disks at once. |
@@ -101,7 +101,8 @@ Some images need the following extra Docker options:
 
 ## Contributing
 
-See the following pages for maintaining and extending this repo:
+See the following pages for maintaining and extending the
+[`sc-images`](https://github.com/SpareCores/sc-images) repository:
 
 - [Adding an Image](docs/contributors.md): the folder layout, the metadata
   files that control each image's build, and how dependencies are ordered.
@@ -110,4 +111,5 @@ See the following pages for maintaining and extending this repo:
 
 ## License
 
-This repo is licensed under the [Mozilla Public License 2.0](LICENSE).
+The `sc-images` repository is licensed under the
+[Mozilla Public License 2.0](LICENSE).

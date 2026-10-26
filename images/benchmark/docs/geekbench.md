@@ -36,10 +36,9 @@ container. It works as follows:
    the Geekbench documentation, this makes no difference to the scores.
 2. Points `browser.geekbench.com` at `127.0.0.1` in `/etc/hosts`.
 3. Starts [`geekbench_capture.py`](../geekbench_capture.py), a local HTTPS
-   (Hypertext Transfer Protocol Secure) server on `127.0.0.1:443`, with a
-   self-signed certificate for `browser.geekbench.com` that it installs as
-   trusted. The script exits with status 1 if the server does not start within
-   \~10 seconds.
+   server on `127.0.0.1:443`, with a self-signed certificate for
+   `browser.geekbench.com` that it installs as trusted. The script exits with
+   status 1 if the server does not start within \~10 seconds.
 4. Runs Geekbench with `--upload`. The capture server saves the uploaded result
    document and answers as the Geekbench Browser would, so Geekbench reports a
    successful upload. Nothing is sent to the real Geekbench Browser.

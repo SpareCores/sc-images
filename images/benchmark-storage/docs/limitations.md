@@ -55,7 +55,7 @@ without a fill, and it skips every write and mixed test. See
 
 ### Partial Fill
 
-The sequential fill runs for at most 300 s in total
+The sequential fill runs for at most 300 seconds in total
 (`SC_STORAGE_FILL_BUDGET_S`), split between groups. A disk that takes longer to
 write is only partly filled. On the first production runs, the fill wrote the
 following share of each NVMe (Non-Volatile Memory Express) drive:
@@ -80,6 +80,6 @@ alone, but disks that are not in use are always overwritten. See
 
 ### Time Budget
 
-This benchmark targets an estimated 2400 s of tests. When the estimate exceeds
-that, it shortens tests and then drops low-priority ones to fit. See
+This benchmark targets an estimated 2400 seconds of tests. When the estimate
+exceeds that, it shortens tests and then drops low-priority ones to fit. See
 [Run Duration](./usage.md#run-duration) for the order.

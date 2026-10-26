@@ -72,18 +72,18 @@ for the run outputs.
 
 The following settings make up most of the time:
 
-- each read test: 10 s measured plus a 2 s ramp
-- each write or mixed test: 30 s measured plus a 2 s ramp
-- the sequential fill: up to 300 s in total, split evenly between the
+- each read test: 10s measured plus a 2s ramp
+- each write or mixed test: 30s measured plus a 2s ramp
+- the sequential fill: up to 300s in total, split evenly between the
   groups that have writable disks
-- the random-write precondition: 120 s per group with writable disks
+- the random-write precondition: 120s per group with writable disks
 
-Before running, this benchmark estimates the total test time, counting 2 s
+Before running, this benchmark estimates the total test time, counting 2 seconds
 of `fio` overhead per test. If the estimate exceeds `SC_STORAGE_BUDGET_S`
-(2400 s), it takes the following steps until the plan fits:
+(2400s), it takes the following steps until the plan fits:
 
-1. Shorten read tests, down to `SC_STORAGE_MIN_RUNTIME_S` (5 s).
-2. Shorten write tests, down to `SC_STORAGE_MIN_WRITE_RUNTIME_S` (15 s).
+1. Shorten read tests, down to `SC_STORAGE_MIN_RUNTIME_S` (5s).
+2. Shorten write tests, down to `SC_STORAGE_MIN_WRITE_RUNTIME_S` (15s).
 3. Drop the low-priority tests: `randread_512`, `randwrite_512`,
    `randread_16m`, `randwrite_16m`, `randrw70_64k`, and `randrw70_1m`.
 
@@ -183,7 +183,7 @@ initial burst and includes the time a drive may still spend draining its write
 buffer. Multi-job and multi-disk results
 are merged: IOPS and bandwidth are summed, and latency percentiles come from
 the merged `fio` latency histograms. Preconditioning records also have
-`iops_series` and `bw_bytes_series`, averaged over 5 s steps
+`iops_series` and `bw_bytes_series`, averaged over steps of 5 seconds
 (`series_step_ms`).
 
 ### Health Snapshots

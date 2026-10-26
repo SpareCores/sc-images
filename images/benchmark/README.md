@@ -31,24 +31,24 @@ These results compare CPU and memory performance on fixed, synthetic workloads,
 not disk, network, or application throughput. The main limitations are the
 following:
 
-- **Disk and network:** The scripts measure CPU and memory, not disk or
+- **Disk and Network:** The scripts measure CPU and memory, not disk or
   network performance. The compression benchmark reads its input into memory
   before it starts timing.
-- **Application performance:** Each script runs a fixed, synthetic workload:
+- **Application Performance:** Each script runs a fixed, synthetic workload:
   one hash or cipher at a time, one memory access pattern, one compressor on
   one file, or Geekbench's fixed suite. The results compare server types on
   these workloads; they do not predict the throughput of a specific
   application.
-- **[Compression input](./docs/compression.md#compression-input):** The
+- **[Compression Input](./docs/compression.md#compression-input):** The
   compression benchmark uses one text file of the Silesia corpus, not the whole
   corpus, so its results describe text only.
 - **[Parallelism](./docs/compression.md#cpu-count):** OpenSSL speed and
   `bw_mem` run one process per logical CPU, while the compression benchmark
   runs at most one process per physical core.
-- **[Geekbench server range](./docs/geekbench.md#server-range):** Production
+- **[Geekbench Server Range](./docs/geekbench.md#server-range):** Production
   runs Geekbench only on servers with up to 32 vCPUs and at least 2.1 GiB of
   memory. The image enforces neither.
-- **[Tool versions](./docs/compression.md#library-versions):** The image builds
+- **[Tool Versions](./docs/compression.md#library-versions):** The image builds
   OpenSSL 3.4.0 with many algorithms disabled and installs the Python
   compression libraries unpinned, so library versions can change between
   builds. See also [OpenSSL Build](./docs/openssl.md#openssl-build).
@@ -72,9 +72,8 @@ docker run --rm --privileged ghcr.io/sparecores/benchmark:main geekbench.sh
 results with the Navigator's.
 
 `geekbench.sh` does not upload results to the Geekbench Browser: it captures
-Geekbench's upload on a local HTTPS (Hypertext Transfer Protocol Secure) server
-inside the container. See [Upload Capture](./docs/geekbench.md#upload-capture)
-for how the capture works.
+Geekbench's upload on a local HTTPS server inside the container. See
+[Upload Capture](./docs/geekbench.md#upload-capture) for how the capture works.
 
 In production, the median run takes the following time:
 

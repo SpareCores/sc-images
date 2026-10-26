@@ -28,12 +28,12 @@ measure disk or network performance. For disk performance, see the
 
 ### Run Length
 
-Each stressor runs once, for 5 s (15 s for `stream`), with no warm-up and no
-repetitions. A full run took about 15 minutes at the median in production. A
-single short run does not show variance between runs or effects that build up
-over time, such as CPU-credit throttling on shared-core server types. The
-[`stress-ng-longrun`](../../stress-ng-longrun) image covers sustained load in
-an experimental 24-hour run.
+Each stressor runs once, for 5 seconds (15 seconds for `stream`), with no
+warm-up and no repetitions. A full run took about 15 minutes at the median in
+production. A single short run does not show variance between runs or effects
+that build up over time, such as CPU-credit throttling on shared-core server
+types. The [`stress-ng-longrun`](../../stress-ng-longrun) image covers sustained
+load in an experimental 24-hour run.
 
 ### Worker Count
 
@@ -48,9 +48,9 @@ output field is named `physical_cpus`.
 
 ### Missing Results
 
-A stressor run that fails, takes 30 s longer than its duration, or prints no
-result is recorded as `null`, and the script still exits with code 0. The
-following stressors are `null` in some or all production runs:
+A stressor run that fails, takes 30 seconds longer than its duration, or
+prints no result is recorded as `null`, and the script still exits with code 0.
+The following stressors are `null` in some or all production runs:
 
 - `ipsec-mb` has been `null` in every successful production run so far.
 - `tsc`, `usersyscall`, and `x86syscall` are x86-only. On Arm servers,

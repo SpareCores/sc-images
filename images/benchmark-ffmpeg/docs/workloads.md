@@ -69,9 +69,9 @@ Delivery Network) and checks each file's SHA-256
 checksum. At run time, the H.264 and H.265 clips are checked again; the audio
 file is not. The files are the following:
 
-- **H.264 clip** (`source.mp4`): an excerpt of 30 s from the Blender
+- **H.264 clip** (`source.mp4`): an excerpt of 30 seconds from the Blender
   Foundation's open movie [Tears of Steel](https://mango.blender.org/), cut at
-  60 s from the 1080p release with stream copy. It is 1920x800 pixels at
+  60 seconds from the 1080p release with stream copy. It is 1920x800 pixels at
   24 fps. License: CC BY 3.0
   (Creative Commons Attribution 3.0),
   as stated on the
@@ -80,7 +80,7 @@ file is not. The files are the following:
   `libx265 -crf 18 -preset medium`, so the H.265 decode scenarios get the same
   frame size, frame rate, and duration.
 - **Music sample** (`source.flac`): the "Entre dos Aguas" sample performed by
-  Michael Laucke, about 85 s at 44.1 kHz. License: CC0 1.0
+  Michael Laucke, about 85 seconds at 44.1 kHz. License: CC0 1.0
   (Creative Commons Zero 1.0).
 
 Each job loops its input (`-stream_loop -1`) and stops after the media length
