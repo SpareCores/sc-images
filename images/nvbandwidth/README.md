@@ -8,7 +8,7 @@ GPU, between GPUs, and within the memory of a single GPU. The image runs
 every `nvbandwidth` test case in sequence, with the tool's default settings,
 on all GPUs passed to the container with `--gpus all`.
 
-It reports one bandwidth matrix per testcase, in GB/s, or a latency matrix in
+It reports one bandwidth matrix per test case, in GB/s, or a latency matrix in
 nanoseconds, plus the matrix sum. The image adds no harness and no score: the
 output is the unchanged `nvbandwidth` report.
 
@@ -40,7 +40,7 @@ application performance. The main limitations are the following:
 - **Single Server:** `nvbandwidth` is built without its multinode mode, so
   only the CPU and GPUs of one host are measured, not links between servers or
   network throughput.
-- **[No Peer Access](#results):** The 17 testcases between GPUs need P2P
+- **[No Peer Access](#results):** The 17 test cases between GPUs need P2P
   (Peer-to-Peer) access between at least two GPUs. On a server with one GPU,
   or with GPUs that cannot access each other, they report
   `"status": "Waived"` and no matrix.
@@ -94,9 +94,9 @@ following:
 | Option | Meaning | Default |
 | ------ | ------- | ------- |
 | `-j` | Print JSON instead of plain text | Off |
-| `-t <name or index>` | Run only the given testcases | All |
-| `-p <prefix>` | Run only the testcases whose names start with the prefix | All |
-| `-l` | List the testcases and exit | Off |
+| `-t <name or index>` | Run only the given test cases | All |
+| `-p <prefix>` | Run only the test cases whose names start with the prefix | All |
+| `-l` | List the test cases and exit | Off |
 | `-b <MiB>` | Copy buffer size | 512 |
 | `-i <count>` | Iterations per measurement | 3 |
 | `-m` | Report the mean instead of the median of the iterations | Off |
@@ -106,7 +106,7 @@ following:
 
 See the
 [`nvbandwidth` v0.8 README](https://github.com/NVIDIA/nvbandwidth/blob/v0.8/README.md)
-for all options and testcases.
+for all options and test cases.
 
 ### Results
 
@@ -131,15 +131,15 @@ A test case that ran has `"status": "Passed"` and the following fields:
   columns as the description says. Pairs that were not measured hold `N/A`.
 - `sum` is the sum of the matrix cells, as a number.
 
-The 17 testcases between GPUs need P2P access between at least two GPUs.
+The 17 test cases between GPUs need P2P access between at least two GPUs.
 Without it, on a server with one GPU or with GPUs that cannot access each
 other, they report `"status": "Waived"` and have no matrix. In production,
 16 of 27 runs with `nvbandwidth` v0.8 on servers with two to four GPUs waived
-all 17. An interrupted run can end with a testcase still `Running`.
+all 17. An interrupted run can end with a test case still `Running`.
 
 For example, on an `alicloud/ecs.gn5-c4g1.xlarge` with one Tesla P100 GPU,
 `host_to_device_memcpy_ce` measured 11.06 GB/s, `host_device_latency_sm`
-799 ns, and `device_local_copy` 268.75 GB/s, while all 17 testcases between
+799 ns, and `device_local_copy` 268.75 GB/s, while all 17 test cases between
 GPUs were waived
 ([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/alicloud/ecs.gn5-c4g1.xlarge/0/nvbandwidth/stdout)).
 
@@ -149,7 +149,7 @@ failed data check prints `Invalid value when checking the pattern at ...`
 before the JSON and also exits with code 1.
 
 The Navigator stores the following metrics from each run, computed only from
-testcases with `"status": "Passed"`, but does not show them on its website
+test cases with `"status": "Passed"`, but does not show them on its website
 yet. The table uses the following terms:
 
 - CE (Copy Engine) and SM (Streaming Multiprocessor) name the copy method; see
@@ -157,8 +157,8 @@ yet. The table uses the following terms:
 - P2P means direct copies between GPUs.
 - "Averaged" means the `sum` divided by the number of cells that are not `N/A`.
 
-| Metric | Meaning | Unit | Source testcase |
-| ------ | ------- | ---- | --------------- |
+| Metric | Meaning | Unit | Computed from |
+| ------ | ------- | ---- | ------------- |
 | `nvbandwidth:all:host_to_gpu` | Total rate when the CPU copies to all GPUs at once (CE) | GB/s | `host_to_all_memcpy_ce` `sum` |
 | `nvbandwidth:all:gpu_to_host` | Total rate when all GPUs copy to the CPU at once (CE) | GB/s | `all_to_host_memcpy_ce` `sum` |
 | `nvbandwidth:all:duplex` | Per-direction rate when copying both ways at once, the lower of the two directions (CE) | GB/s | Lower `sum` of `host_to_all_bidirectional_memcpy_ce` and `all_to_host_bidirectional_memcpy_ce` |
@@ -222,7 +222,7 @@ automatically.
 ## Design History
 
 This benchmark has no harness of its own: the image runs the upstream
-`nvbandwidth` binary, so the testcases and their settings are NVIDIA's. The
+`nvbandwidth` binary, so the test cases and their settings are NVIDIA's. The
 image first shipped `nvbandwidth` v0.5 and moved to v0.8 in 2026. Production
 records the version of each run, and many server types measured before the
 update still have v0.5 results.
