@@ -1,7 +1,7 @@
 # nvbandwidth
 
 This benchmark measures GPU memory copy bandwidth and latency with NVIDIA's
-`nvbandwidth` tool, version v0.8: between the host CPU and each GPU, between
+`nvbandwidth` tool, v0.8: between the host CPU and each GPU, between
 GPUs, and within one GPU. It runs every `nvbandwidth` testcase in sequence on
 all GPUs passed to the container (`--gpus all`), with the tool's default
 settings.
