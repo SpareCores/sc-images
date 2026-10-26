@@ -45,19 +45,19 @@ limitations:
 - **[Destructive](./docs/usage.md#disk-safety):** This benchmark overwrites
   every disk that is not in use, and unmounts and overwrites disks whose mounts
   are not protected and can be unmounted. It never remounts them.
-- **[Raw devices only](./docs/limitations.md#raw-block-io):** Tests bypass the
+- **[Raw Devices Only](./docs/limitations.md#raw-block-io):** Tests bypass the
   filesystem and the page cache, so results exclude filesystem overhead and
   caching.
-- **[Bundled storage is not detected](./docs/limitations.md#disk-scope):** The
+- **[Bundled Storage Is Not Detected](./docs/limitations.md#disk-scope):** The
   image tests every real block device it finds, including any volume attached on
   demand.
-- **[Partial preconditioning](./docs/limitations.md#partial-fill):** The
+- **[Partial Preconditioning](./docs/limitations.md#partial-fill):** The
   sequential fill is capped at 300 s in total, which filled 26-33% of each NVMe
   (Non-Volatile Memory Express) drive on the first production servers.
-- **[Disks in use are read-only](./docs/limitations.md#read-only-disks):** The
+- **[Disks in Use Are Read-Only](./docs/limitations.md#read-only-disks):** The
   boot disk and other disks in use get read tests only, on whatever data they
   already hold.
-- **[No single score](./docs/limitations.md#a-single-score):** The output has
+- **[No Single Score](./docs/limitations.md#a-single-score):** The output has
   one record per test, and no headline metric is defined yet.
 
 ## Usage

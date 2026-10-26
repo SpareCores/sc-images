@@ -34,17 +34,17 @@ a production Redis deployment. The main limitations are the following:
 - **[Workload](#workload):** Only the SET command is measured, with
   `memtier_benchmark`'s default key pattern, key range, value size, and
   connection count. GET and mixed workloads are not measured.
-- **Loopback only:** Clients and servers run on the same host and talk over
+- **Loopback Only:** Clients and servers run on the same host and talk over
   loopback, so this benchmark does not measure network throughput or latency.
-- **Untuned servers:** Each `redis-server` starts with only a data directory
+- **Untuned Servers:** Each `redis-server` starts with only a data directory
   and a port, so Redis 7.4.0 defaults apply, including persistence, memory, and
   threading settings.
-- **Single short run:** Each configuration runs once for 10 s, with no warmup
+- **Single Short Run:** Each configuration runs once for 10 s, with no warmup
   and no repetitions.
-- **CPU count:** The number of server and client pairs follows the CPUs the
+- **CPU Count:** The number of server and client pairs follows the CPUs the
   container may run on. Docker's `--cpuset-cpus` changes it, but `--cpus` does
   not: with `--cpus`, this benchmark still starts one pair per host CPU.
-- **Error checks:** The harness does not check `memtier_benchmark` exit codes,
+- **Error Checks:** The harness does not check `memtier_benchmark` exit codes,
   and it continues even if some servers do not answer the flush before a
   configuration. A client that prints no result adds nothing to `rps` but still
   counts in the `latency` average.
