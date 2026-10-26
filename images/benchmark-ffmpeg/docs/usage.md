@@ -116,11 +116,11 @@ The following settings change the worker counts:
 
 Each scenario runs the following steps:
 
-1. A one-worker probe with 1 s of video or 5 s of audio checks that
-   the scenario can run and estimates its speed. A scenario whose probe fails is
-   skipped.
+1. A one-worker probe with 1 second of video or 5 seconds of audio checks
+   that the scenario can run and estimates its speed. A scenario whose probe
+   fails is skipped.
 2. At each worker count, a pilot run sizes the media for each worker so that
-   one repetition takes about `FFMPEG_BENCH_TARGET_SECONDS` (default 5 s)
+   one repetition takes about `FFMPEG_BENCH_TARGET_SECONDS` (default 5s)
    of wall time. Faster servers therefore process more media in the same time.
    A successful pilot is not reported; a pilot that still fails after up to four
    attempts is reported as a failed repetition and ends the scenario.
@@ -129,9 +129,9 @@ Each scenario runs the following steps:
    repetition with a failed worker ends the worker count.
 
 Each repetition, including pilots, times out after
-`FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` (default 30 s), and workers that
+`FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` (default 30s), and workers that
 run past it count as failed. The whole run stops after
-`FFMPEG_BENCH_TIMEOUT_SECONDS` (default 7,200 s); scenarios that have not
+`FFMPEG_BENCH_TIMEOUT_SECONDS` (default 7,200s); scenarios that have not
 started by then are reported as skipped with `overall_timeout`.
 
 Total run time therefore depends on the number of scenarios that run and the
@@ -146,12 +146,12 @@ servers, with a median of about 9.5 minutes.
 
 ### Repetition Length
 
-Each repetition targets 5 s of wall time by default. Because the pilot
+Each repetition targets 5 seconds of wall time by default. Because the pilot
 scales the media to that target, larger servers process more media in the same
 time instead of running longer. The default comes from a study that compared
-2, 5, and 10 s targets on one developer workstation, a 24-core Intel Core
-i9-14900K desktop CPU without an NVIDIA GPU, so GPU scenarios were not part of
-it. Only the study's summary was kept; see
+targets of 2, 5, and 10 seconds on one developer workstation, a 24-core Intel
+Core i9-14900K desktop CPU without an NVIDIA GPU, so GPU scenarios were not
+part of it. Only the study's summary was kept; see
 [Why 5 Seconds](../CHANGELOG.md#why-5-seconds).
 
 ### Shorter Test Runs
