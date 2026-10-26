@@ -45,10 +45,11 @@ application performance. The main limitations are the following:
 - **NVIDIA Only:** `nvbandwidth` uses CUDA (Compute Unified Device
   Architecture), so it needs NVIDIA GPUs. The image does not check for one;
   production skips servers without NVIDIA GPUs.
-- **[Fixed Settings](#workload):** The image passes no options, so the
+- **[Fixed Settings](#settings):** The image passes no options, so the
   upstream defaults apply: a 512 MiB copy buffer, four untimed warmup copies
   before the timed copies, and the median of three iterations per measurement.
-  The image adds no warmup or repetitions of its own.
+  The image adds no warmup or repetitions of its own. See also
+  [Workload](#workload).
 - **Host Driver:** The host provides the NVIDIA driver, so its version varies
   between runs. The image fixes only the `nvbandwidth` version and the CUDA
   12.6.1 toolkit it is built with.
@@ -82,9 +83,11 @@ was on a server with eight GPUs.
 
 ### Settings
 
-This benchmark reads no environment variables. To change a setting, pass
-`nvbandwidth` options after the image name, as in the JSON example above. The
-most common options are the following:
+This benchmark has no settings of its own in environment variables. The image
+sets only `TRACKER_QUIET=true`, which silences the output of
+`resource-tracker`. To change a setting, pass `nvbandwidth` options after the
+image name, as in the JSON example above. The most common options are the
+following:
 
 | Option | Meaning | Default |
 | ------ | ------- | ------- |
@@ -109,7 +112,9 @@ With `-j`, `nvbandwidth` prints one JSON object to stdout, with the following
 fields under its top-level `nvbandwidth` key:
 
 - `CUDA Runtime Version` and `Driver Version` record the CUDA runtime and the
-  host's NVIDIA driver, for example `13000` and `580.126.09`.
+  host's NVIDIA driver, for example `13000` (CUDA 13.0) and `580.126.09`. The
+  reported runtime version can differ from the CUDA 12.6.1 toolkit that the
+  image is built with.
 - `GPU Device list` names each GPU, with its index, name, bus address, and
   hostname.
 - `version` is the `nvbandwidth` version (`v0.8`). `git_version` is empty,
@@ -158,9 +163,9 @@ yet. The table uses the following terms:
 | `nvbandwidth:slot:host_to_gpu` | Average PCIe slot speed per GPU, CPU to GPU (CE) | GB/s | `host_to_device_memcpy_ce`, averaged |
 | `nvbandwidth:slot:gpu_to_host` | Average PCIe slot speed per GPU, GPU to CPU (CE) | GB/s | `device_to_host_memcpy_ce`, averaged |
 | `nvbandwidth:slot:latency` | Average CPU-GPU round-trip time (SM); lower is better | ns | `host_device_latency_sm`, averaged |
-| `nvbandwidth:p2p:single` | Write speed between two GPUs over NVLink or P2P (CE) | GB/s | `device_to_device_memcpy_write_ce`, averaged |
+| `nvbandwidth:p2p:single` | Write speed between two GPUs with P2P copies (CE) | GB/s | `device_to_device_memcpy_write_ce`, averaged |
 | `nvbandwidth:p2p:duplex` | Speed between two GPUs copying both ways at once (CE) | GB/s | `device_to_device_bidirectional_memcpy_write_ce`, averaged |
-| `nvbandwidth:p2p:latency` | Latency between GPU pairs over NVLink or P2P (SM); lower is better | ns | `device_to_device_latency_sm`, averaged |
+| `nvbandwidth:p2p:latency` | Latency between GPU pairs with P2P access (SM); lower is better | ns | `device_to_device_latency_sm`, averaged |
 | `nvbandwidth:p2p:gather` | Rate into one GPU when all other GPUs write to it at once (CE) | GB/s | `all_to_one_write_ce`, averaged |
 | `nvbandwidth:efficiency:sm_ce_ratio` | SM copy speed relative to CE copy speed, capped at 1 | Ratio | `host_to_device_memcpy_sm` `sum` divided by `host_to_device_memcpy_ce` `sum` |
 
