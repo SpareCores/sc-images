@@ -1,13 +1,12 @@
 # benchmark-passmark
 
-This benchmark measures CPU and memory performance with PassMark
-PerformanceTest for Linux (`pt_linux`). It runs PassMark's CPU and memory test
-suites unattended, with PassMark's default test duration and iteration count,
-and passes PassMark's own results file through unchanged.
+This benchmark measures CPU and memory performance with PassMark's
+`pt_linux` (PerformanceTest for Linux). It runs PassMark's CPU and memory
+test suites unattended, with PassMark's default test duration and iteration
+count, and passes PassMark's own results file through unchanged.
 
 It reports the CPU Mark and Memory Mark composite scores, together with the
-individual CPU and memory test results behind them, as a YAML (YAML Ain't
-Markup Language) document.
+individual CPU and memory test results behind them, as a YAML document.
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
 both marks and 14 of the individual test results; its
 [Benchmark Workloads](https://sparecores.com/navigator/benchmark-workloads)
