@@ -84,12 +84,9 @@ other data types.
 
 ## CPU Count
 
-The compression benchmark starts at most one process per physical core, and
-no more than the CPUs the process may run on, while OpenSSL speed and
-`bw_mem` start one process per logical CPU (`nproc`). On a server with SMT
-(Simultaneous Multithreading), the compression benchmark therefore runs fewer
-processes than those two, and its multi-thread results do not use every
-logical CPU.
+The multi-thread case starts one process per physical core, not per logical
+CPU (see [Workload](#workload)). On a server with SMT (Simultaneous
+Multithreading), its results therefore do not use every logical CPU.
 
 ## Library Versions
 
