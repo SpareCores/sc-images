@@ -1,10 +1,12 @@
 # nvbandwidth
 
-This benchmark measures GPU memory copy bandwidth and latency with NVIDIA's
-`nvbandwidth` tool, v0.8: between the host CPU and each GPU, between
-GPUs, and within one GPU. It runs every `nvbandwidth` testcase in sequence on
-all GPUs passed to the container (`--gpus all`), with the tool's default
-settings.
+This benchmark measures how fast data moves between the host CPU and its
+NVIDIA GPUs, and between the GPUs themselves. It runs `nvbandwidth` v0.8, an
+open-source NVIDIA tool that times memory copies to measure bandwidth and
+memory access to measure latency. The copies run between the CPU and each
+GPU, between GPUs, and within the memory of a single GPU. The image runs
+every `nvbandwidth` test case in sequence, with the tool's default settings,
+on all GPUs passed to the container with `--gpus all`.
 
 It reports one bandwidth matrix per testcase, in GB/s, or a latency matrix in
 nanoseconds, plus the matrix sum. The image adds no harness and no score: the
@@ -21,18 +23,18 @@ GPUs.
 
 The results depend on the following properties of the host:
 
-- the GPU model and count
-- the links between the CPU and the GPUs and between GPUs, such as PCIe
+- GPU model and count
+- links between the CPU and the GPUs and between GPUs, such as PCIe
   (Peripheral Component Interconnect Express) or NVLink
-- the host CPU and memory
-- the NVIDIA driver version, which each run records
+- host CPU and memory
+- NVIDIA driver version, recorded by each run
 
 ## Limitations
 
-These results compare data movement on one server, not GPU compute speed or
+This benchmark's results compare data movement on one server, not GPU compute speed or
 application performance. The main limitations are the following:
 
-- **Copies Only:** Every testcase copies memory or measures memory access
+- **Copies Only:** Every test case copies memory or measures memory access
   latency. Compute throughput, GPU memory capacity, and real workloads are not
   measured.
 - **Single Server:** `nvbandwidth` is built without its multinode mode, so
@@ -119,9 +121,9 @@ fields under its top-level `nvbandwidth` key:
   hostname.
 - `version` is the `nvbandwidth` version (`v0.8`). `git_version` is empty,
   because the image builds `nvbandwidth` from a release archive.
-- `testcases[]` has one entry per testcase, with its `name` and `status`.
+- `testcases[]` has one entry per test case, with its `name` and `status`.
 
-A testcase that ran has `"status": "Passed"` and the following fields:
+A test case that ran has `"status": "Passed"` and the following fields:
 
 - `bandwidth_description` says what the matrix holds and in which unit, for
   example `memcpy CE CPU(row) -> GPU(column) bandwidth (GB/s)`.
@@ -171,30 +173,30 @@ yet. The table uses the following terms:
 
 Each stored result also records the following:
 
-- the driver version
-- the CUDA runtime version
-- the `nvbandwidth` version
-- the GPU count
+- driver version
+- CUDA runtime version
+- `nvbandwidth` version
+- GPU count
 - whether P2P is supported, that is, whether any `device_to_device_*`
-  testcase passed
+  test case passed
 
 ## Workload
 
 This benchmark runs one workload: the image's default command,
-`nvbandwidth` with no options, which runs all 35 testcases in sequence. The
+`nvbandwidth` with no options, which runs all 35 test cases in sequence. The
 [`Dockerfile`](./Dockerfile) builds `nvbandwidth` v0.8 from NVIDIA's release
 archive with the CUDA 12.6.1 toolkit.
 
-Each nvbandwidth testcase uses one of the following copy methods, named by its
+Each nvbandwidth test case uses one of the following copy methods, named by its
 suffix:
 
-- **CE:** `_ce` testcases copy with the GPU's copy engines, through CUDA's
+-- **CE:** `_ce` test cases copy with the GPU's copy engines, through CUDA's
   `memcpy` functions.
-- **SM:** `_sm` testcases copy with a kernel that runs on the GPU's
+-- **SM:** `_sm` test cases copy with a kernel that runs on the GPU's
   streaming multiprocessors, with 512 threads per block. The copy size is
   rounded down so that it divides evenly across the SMs.
 
-The 16 CE and 16 SM testcases cover the following copy directions:
+The 16 CE and 16 SM test cases cover the following copy directions:
 
 - `host_to_device_*` and `device_to_host_*`: between the CPU and each GPU, one
   GPU at a time.
@@ -205,7 +207,7 @@ The 16 CE and 16 SM testcases cover the following copy directions:
 - `all_to_one_*` and `one_to_all_*`: from all GPUs to one, and from one GPU to
   all others, with a read and a write variant each.
 
-Three more testcases complete the set: `host_device_latency_sm` and
+Three more test cases complete the set: `host_device_latency_sm` and
 `device_to_device_latency_sm` measure memory access latency between the CPU
 and each GPU and between GPUs, and `device_local_copy` measures copies within
 each GPU's own memory.
