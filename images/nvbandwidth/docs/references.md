@@ -1,8 +1,10 @@
 # References
 
-Terms specific to this image, alphabetized. Common terms (e.g. CUDA, GPU,
-NVLink, PCIe) are defined in the [glossary](https://docs.sparecores.com/glossary)
-of the Spare Cores docs, which also lists the terms each image uses.
+Terms specific to this image, alphabetized. Common terms, such as CUDA (Compute
+Unified Device Architecture), GPU, NVLink, and PCIe (Peripheral Component
+Interconnect Express), are defined in the
+[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs, which
+also lists the terms each image uses.
 
 - **`nvbandwidth`**: An open-source NVIDIA tool that measures memory copy
   bandwidth and latency between the CPU and NVIDIA GPUs, between GPUs, and
