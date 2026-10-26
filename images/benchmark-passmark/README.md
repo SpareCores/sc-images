@@ -31,11 +31,11 @@ These results compare servers on PassMark's synthetic CPU and memory tests,
 not on application throughput, and they exclude disk, network, and GPU
 performance. The main limitations are the following:
 
-- **[Scaling](#scaling):** Many PassMark tests do not scale well above 32
-  vCPUs. Memory Mark does not scale well above 16 vCPUs: its scores plateau and
-  may even degrade as the vCPU count increases. Production runs this benchmark
-  only on servers with at most 32 vCPUs; the image does not enforce this limit
-  and runs on any server.
+- **Scaling:** Many PassMark tests, including Database Operations, do not
+  scale well above 32 vCPUs. Memory Mark does not scale well above 16 vCPUs:
+  its scores plateau and may even degrade as the vCPU count increases.
+  Production runs this benchmark only on servers with at most 32 vCPUs; the
+  image does not enforce this limit and runs on any server.
 - **[PassMark Version](#passmark-version):** The image downloads the latest
   PassMark release when it is built, without a version pin, so a rebuild can
   change the PassMark build that produces the scores.
@@ -120,6 +120,10 @@ the others, higher is better:
 | `ME_WRITE` | Memory Write | MB/s |
 | `ME_LATENCY` | Memory Latency | ns |
 
+Memory Read Cached, Memory Read Uncached, Memory Write, and Memory Latency
+are largely independent of the vCPU count within an instance family; they
+mainly reflect the hardware generation and memory characteristics.
+
 The other `Results` fields, such as `CPU_avx`, `m_CPU_enc_AES`, `ME_LARGE`,
 and `ME_THREADED`, are in the output but not published.
 
@@ -127,27 +131,13 @@ For example, on `aws/a1.2xlarge` (8 vCPUs), `SUMM_CPU` is \~3170 and `SUMM_ME`
 is \~1418
 ([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/a1.2xlarge/0/passmark/stdout)).
 
-### Scaling
-
-Read the following results with their scaling in mind:
-
-- The Database Operations test behaves like the Memory Mark test, but above 32 vCPUs
-  rather than 16: its scores plateau and may even degrade as the vCPU count
-  increases.
-- CPU Single Threaded Test measures single-threaded performance only, so its
-  score does not increase with the vCPU count.
-- Memory Read Cached, Memory Read Uncached, Memory Write, and Memory Latency
-  are largely independent of the vCPU count within an instance family; they
-  mainly reflect the hardware generation and memory characteristics.
-
 ### PassMark Version
 
 PassMark publishes no versioned download URLs, so the image downloads the
-current release from `passmark.com` at build time. The image is rebuilt
-rarely, so the PassMark build seldom changes. Production results come from
-two builds of PassMark PerformanceTest for Linux 11.0, `1002` and `1004`;
-check `Version.Build` in the output to see which build produced a result.
-Production does not record the PassMark version separately.
+current release from `passmark.com` at build time. Production results come
+from two builds of PassMark PerformanceTest for Linux 11.0, `1002` and
+`1004`; check `Version.Build` in the output to see which build produced a
+result.
 
 We treat scores from these two builds as comparable. The
 [PerformanceTest version history](https://www.passmark.com/products/performancetest/history.php)
