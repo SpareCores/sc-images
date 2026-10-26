@@ -30,9 +30,10 @@ Network storage attached on demand is out of scope, because its performance is
 not a property of the server type. See
 [Disk Scope](./docs/limitations.md#disk-scope).
 
-SSDs absorb short bursts of writes in their own caches and spare area. To make
-results comparable across vendors, this benchmark preconditions each writable
-disk before measuring it, and runs write tests for longer than read tests. See
+SSDs handle short bursts of writes faster than sustained writes, because they
+first write to fast caches and to flash that holds no data yet. To make results
+comparable across vendors, this benchmark preconditions each writable disk
+before measuring it, and runs write tests for longer than read tests. See
 [Preconditioning](./docs/workloads.md#preconditioning) for the steps.
 
 ## Limitations
@@ -41,41 +42,40 @@ These results describe raw block devices under synthetic `fio` load, not
 filesystem or application performance. The following are the main
 limitations:
 
-- **Destructive:** This benchmark overwrites every disk that is not in use, and
-  unmounts and overwrites disks whose mounts are not protected and can be
-  unmounted. It never remounts them. See
-  [Disk Safety](./docs/usage.md#disk-safety).
-- **Raw devices only:** Tests bypass the filesystem and the page cache, so
-  results exclude filesystem overhead and caching. See
-  [Raw Block I/O](./docs/limitations.md#raw-block-io).
-- **Bundled storage is not detected:** The image tests every real block device
-  it finds, including any volume attached on demand. See
-  [Disk Scope](./docs/limitations.md#disk-scope).
-- **Partial preconditioning:** The sequential fill is capped at 300 s in
-  total, which filled 26-33% of each NVMe (Non-Volatile Memory Express) drive
-  on the first production servers. See
-  [Partial Fill](./docs/limitations.md#partial-fill).
-- **Disks in use are read-only:** The boot disk and other disks in use get
-  read tests only, on whatever data they already hold. See
-  [Read-Only Disks](./docs/limitations.md#read-only-disks).
-- **No single score:** The output has one record per test, and no headline
-  metric is defined yet. See
-  [A Single Score](./docs/limitations.md#a-single-score).
+- **[Destructive](./docs/usage.md#disk-safety):** This benchmark overwrites
+  every disk that is not in use, and unmounts and overwrites disks whose mounts
+  are not protected and can be unmounted. It never remounts them.
+- **[Raw devices only](./docs/limitations.md#raw-block-io):** Tests bypass the
+  filesystem and the page cache, so results exclude filesystem overhead and
+  caching.
+- **[Bundled storage is not detected](./docs/limitations.md#disk-scope):** The
+  image tests every real block device it finds, including any volume attached on
+  demand.
+- **[Partial preconditioning](./docs/limitations.md#partial-fill):** The
+  sequential fill is capped at 300 s in total, which filled 26-33% of each NVMe
+  (Non-Volatile Memory Express) drive on the first production servers.
+- **[Disks in use are read-only](./docs/limitations.md#read-only-disks):** The
+  boot disk and other disks in use get read tests only, on whatever data they
+  already hold.
+- **[No single score](./docs/limitations.md#a-single-score):** The output has
+  one record per test, and no headline metric is defined yet.
 
 ## Usage
 
-Run the image via Docker on an ephemeral server that you can afford to wipe:
+Run the image via Docker on an ephemeral server that you can afford to wipe.
+
+> [!CAUTION]
+> Every filesystem this benchmark unmounts is destroyed, together with the
+> data on every disk that is not in use. Never run it on production or
+> similar systems.
+>
+> Set `SC_STORAGE_UMOUNT=0` to leave mounted disks alone; disks that are not
+> in use are still overwritten. See [Disk Safety](./docs/usage.md#disk-safety)
+> for which disks this benchmark writes to.
 
 ```bash
 docker run --rm --privileged --pid=host ghcr.io/sparecores/benchmark-storage:main > storage.json
 ```
-
-**Warning:** Every filesystem this benchmark unmounts is destroyed, together
-with the data on every disk that is not in use. Never run it on production or
-similar systems. Set `SC_STORAGE_UMOUNT=0` to leave mounted disks alone; disks
-that are not in use are still overwritten. See
-[Disk Safety](./docs/usage.md#disk-safety) for which disks this benchmark
-writes to.
 
 Both flags are required. `--privileged` gives the container raw access to the
 host's disks. `--pid=host` lets it read the host's mount table from
@@ -108,7 +108,7 @@ for all options and defaults:
 
 This benchmark prints one JSON document to stdout when the run ends, and a
 timestamped progress log with per-test IOPS, MiB/s, and 99th-percentile latency
-to stderr. Interpret the JSON document's main fields as follows:
+to stderr. The JSON document's main fields are the following:
 
 - `inventory` lists each disk with its model, size, and transport. `mode` is
   `read_write` or `read_only`, and `mode_reason` says why.

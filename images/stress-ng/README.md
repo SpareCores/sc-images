@@ -24,8 +24,9 @@ hypervisor overhead. These stressors are meant to expose differences in
 virtualization overhead across providers.
 
 The Navigator's Inspector uses the scaling mode to determine a server type's
-SCore: its raw multi-core CPU speed, for comparing the speed of server types.
-See [CPU Scaling Loop](./docs/workloads.md#cpu-scaling-loop).
+SCore (Spare Cores score): its raw multi-core CPU speed, for comparing the
+speed of server types. See
+[CPU Scaling Loop](./docs/workloads.md#cpu-scaling-loop).
 
 The [`stress-ng-longrun`](../stress-ng-longrun) image pins an older
 `stress-ng` version for an experimental 24-hour run on a few server types. The
@@ -40,23 +41,20 @@ run shows the following:
 These results are synthetic `stress-ng` throughput figures, not application
 performance. The following are the main limitations:
 
-- **Not comparable across stressors:** Each stressor counts its own kind of
-  operation, so compare bogo ops/s only for the same stressor and the same
-  `stress-ng` version. See
-  [Bogo Ops Units](./docs/limitations.md#bogo-ops-units).
-- **No single score:** The stressor suite reports one value per stressor and
-  worker count, and does not combine them. See
-  [A Single Score](./docs/limitations.md#a-single-score).
-- **Short, single runs:** Each stressor runs once for 5 s (15 s for `stream`),
-  with no warm-up and no repetitions. See
-  [Run Length](./docs/limitations.md#run-length).
-- **Logical CPUs, not physical cores:** The multi-worker run uses one worker
-  per logical CPU available to the container, even though the output field is
-  named `physical_cpus`. See
-  [Worker Count](./docs/limitations.md#worker-count).
-- **Missing results are `null`:** A stressor that fails, times out, or is not
-  supported on the CPU architecture is recorded as `null`, and the run still
-  succeeds. See [Missing Results](./docs/limitations.md#missing-results).
+- **[Not comparable across stressors](./docs/limitations.md#cross-stressor-comparison):**
+  Each stressor counts its own kind of operation, so compare bogo ops/s only
+  for the same stressor and the same `stress-ng` version.
+- **[No single score](./docs/limitations.md#a-single-score):** The stressor
+  suite reports one value per stressor and worker count, and does not combine
+  them.
+- **[Short, single runs](./docs/limitations.md#run-length):** Each stressor
+  runs once for 5 s (15 s for `stream`), with no warm-up and no repetitions.
+- **[Logical CPUs, not physical cores](./docs/limitations.md#worker-count):**
+  The multi-worker run uses one worker per logical CPU available to the
+  container, even though the output field is named `physical_cpus`.
+- **[Missing results are `null`](./docs/limitations.md#missing-results):** A
+  stressor that fails, times out, or is not supported on the CPU architecture
+  is recorded as `null`, and the run still succeeds.
 
 ## Usage
 
@@ -120,7 +118,7 @@ For more information on stressor categories and run order, see
 The CPU scaling loop uses the `div16` method of the `cpu` stressor. We ran
 every `--cpu-method` on selected x86_64 and Arm servers, with and without SMT
 (Simultaneous Multithreading). Other methods scaled more or less than
-expected: on a 2 vCPU server with SMT, some reached up to 1.8 times the
+expected: on a server with 2 vCPUs and SMT, some reached up to 1.8 times the
 single-worker throughput with two workers, while `div16` stayed at about the
 single-worker throughput.
 

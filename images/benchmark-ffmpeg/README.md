@@ -29,22 +29,21 @@ server type processes at once, rather than how fast a single job finishes.
 These results compare transcoding throughput across server types. Note the
 following limitations:
 
-- **Output quality:** This benchmark measures speed, not output quality, and
-  computes no quality metric. GPU encode settings are calibrated to
-  approximately match the CPU encode quality, but the match is not exact. See
-  [Output Quality](./docs/limitations.md#output-quality) and
+- **[Output quality](./docs/limitations.md#output-quality):** This benchmark
+  measures speed, not output quality, and computes no quality metric. GPU
+  encode settings are calibrated to approximately match the CPU encode quality,
+  but the match is not exact. See also
   [CPU and GPU Encode Quality](./docs/limitations.md#cpu-and-gpu-encode-quality).
-- **Storage:** Encoded output is discarded through FFmpeg's null muxer, so file,
-  disk, and object-storage writes are not measured. See
-  [Storage and Output](./docs/limitations.md#storage-and-output).
-- **Fixed media and settings:** Every job uses the same short video clip or
-  music sample with fixed codec settings. Other resolutions, settings, and
-  codecs are not covered, for example AV1
-  (AOMedia Video 1). See
-  [A Specific Media Pipeline](./docs/limitations.md#a-specific-media-pipeline).
-- **GPUs:** Only NVIDIA GPUs are used, for video only; audio always runs on the
-  CPU. A GPU scenario that cannot start on a given GPU is skipped. See
-  [GPU Coverage](./docs/limitations.md#gpu-coverage).
+- **[Storage](./docs/limitations.md#storage-and-output):** Encoded output is
+  discarded through FFmpeg's null muxer, so file, disk, and object-storage
+  writes are not measured.
+- **[Fixed media and settings](./docs/limitations.md#a-specific-media-pipeline):**
+  Every job uses the same short video clip or music sample with fixed codec
+  settings. Other resolutions, settings, and codecs are not covered, for
+  example AV1 (AOMedia Video 1).
+- **[GPUs](./docs/limitations.md#gpu-coverage):** Only NVIDIA GPUs are used, for
+  video only; audio always runs on the CPU. A GPU scenario that cannot start on
+  a given GPU is skipped.
 
 ## Usage
 
@@ -74,8 +73,8 @@ Production runs the container privileged and with host networking; a plain
 results with production runs.
 
 A production run on an AWS (Amazon Web Services)
-`m9g.16xlarge` took about 10 minutes. Run time grows with the number of
-worker counts measured, and with GPU scenarios. See
+`m9g.16xlarge` took about 10 minutes. Run time grows with each worker count
+measured, and with GPU scenarios. See
 [Run Duration](./docs/usage.md#run-duration) for the steps and timeouts.
 
 ### Settings
@@ -97,7 +96,7 @@ for all options and defaults:
 ### Results
 
 The process prints one compact JSON line to stdout when the run ends; logs go to
-stderr. Interpret the main fields as follows:
+stderr. The main fields of the JSON line are the following:
 
 - `scenarios[]` has one entry per scenario, with its `name`, `backend` (`cpu`
   or `gpu`), `operation` (`encode` or `decode`), and `codec`. A scenario that
@@ -152,9 +151,9 @@ lower throughput, especially for decoding.
 
 GPU encodes were later calibrated against the CPU encodes: NVENC has no direct
 equivalent of the CPU encoders' quality setting, so we compared several NVENC
-quality levels on the test clip and picked the closest match. In version 3.3.0,
-the image also started requesting the NVIDIA driver's video libraries itself,
-which many earlier GPU runs could not load.
+quality levels on the test clip and picked the closest match. In harness
+version 3.3.0, the image also started requesting the NVIDIA driver's video
+libraries itself, which many earlier GPU runs could not load.
 
 The remaining limits are that this benchmark checks no output quality at run
 time, that CPU and GPU encode quality match only approximately, and that GPU

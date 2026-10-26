@@ -18,8 +18,10 @@ empirical performance measurements for more than 5,000 cloud server types. We
 needed an RDBMS (Relational Database Management System) benchmark that measures
 database throughput and latency directly rather than relying on proxies. The
 Navigator previously relied on stand-ins: PassMark database operations, which
-do not scale to 32+ vCPUs; Redis, which is not relational; and raw CPU speed
-and memory bandwidth, which are useful proxies but not database workloads.
+do not scale above 32 vCPUs; [Redis](../benchmark-redis/README.md), which is not
+relational; and raw CPU speed and
+[memory bandwidth](../benchmark/docs/bw-mem.md), which are useful proxies but
+not database workloads.
 
 The main design goal is one methodology that scales across instance sizes, from
 small instances (e.g. 1 vCPU and 2 GiB of RAM) to large nodes with hundreds of
@@ -38,23 +40,21 @@ This benchmark measures two deployment models:
 These results compare PostgreSQL server CPU and memory performance, not
 application throughput. The main limitations are:
 
-- **Workload:** `pgbench_ro` uses synthetic transactions and uniform data; the
-  results do not specifically predict any given application's throughput, but
-  aim to provide meaningful comparisons across different server types. See the
-  [workload
-  limitations](./docs/limitations.md#disclaimer-what-this-benchmark-does-not-deliver).
-- **Disk and network:** The score excludes disk I/O (Input/Output) performance
-  and does not measure network throughput or latency. See [Disk I/O
-  Speed](./docs/limitations.md#disk-io-speed) and [Network
-  Performance](./docs/limitations.md#network-performance).
-- **Memory:** The dataset takes about 303 MiB, and production runs this
-  benchmark only on servers with at least 2 GiB of RAM. The image enforces no
-  minimum, so on smaller hosts disk reads can influence the score. See
-  [Memory-Fit, Small Dataset](./docs/limitations.md#memory-fit-small-dataset).
-- **Engine tuning:** When `SC_DB_HOST` is unset, the image starts PostgreSQL
-  locally and tunes it with `pgtune`. A remote `SC_DB_HOST` target is not tuned
-  by this benchmark. See [Standalone Mode](./docs/usage.md#standalone-mode) for
-  the tuning and
+- **[Workload](./docs/limitations.md#disclaimer-what-this-benchmark-does-not-deliver):**
+  `pgbench_ro` uses synthetic transactions and uniform data; the results do not
+  specifically predict any given application's throughput, but aim to provide
+  meaningful comparisons across different server types.
+- **[Disk and network](./docs/limitations.md#disk-io-speed):** The score
+  excludes disk I/O (Input/Output) performance and does not measure network
+  throughput or latency. See also
+  [Network Performance](./docs/limitations.md#network-performance).
+- **[Memory](./docs/limitations.md#memory-fit-small-dataset):** The dataset
+  takes about 303 MiB, and production runs this benchmark only on servers with
+  at least 2 GiB of RAM. The image enforces no minimum, so on smaller hosts disk
+  reads can influence the score.
+- **[Engine tuning](./docs/usage.md#standalone-mode):** When `SC_DB_HOST` is
+  unset, the image starts PostgreSQL locally and tunes it with `pgtune`. A
+  remote `SC_DB_HOST` target is not tuned by this benchmark. See also
   [Engine Configuration](./docs/limitations.md#engine-configuration) for why
   managed engines are left untuned.
 
@@ -121,7 +121,7 @@ The process prints nothing until the run ends, then prints one JSON object to
 stdout; a default run can stay silent for about 25 minutes. Errors go to
 stderr. In standalone mode, the PostgreSQL server log is written to
 `/tmp/pg-server.log` inside the container, so drop `--rm` if you need it after
-the run. Interpret the JSON object's main fields as follows:
+the run. The JSON object's main fields are the following:
 
 - `score` is the highest TPM result; `score_unit` is `tpm`, and
   `peak_concurrency` is the client count for that result.
@@ -172,8 +172,8 @@ for a cross-provider benchmark.
 
 Early `pgbench -S` runs were dominated by network latency, and profiling found
 that the first custom transaction over-weighted regex work. A set of 21
-PostgreSQL configuration experiments on a 32 vCPU host showed that tuning could
-improve throughput by about 20%. The `pgbench_ro` redesign uses a fixed,
+PostgreSQL configuration experiments on a host with 32 vCPUs showed that tuning
+could improve throughput by about 20%. The `pgbench_ro` redesign uses a fixed,
 cache-resident schema and spreads CPU work across PostgreSQL subsystems.
 `pgbench_tpcb` is kept as a conventional reference workload, but it is
 disk-limited and unused in production.

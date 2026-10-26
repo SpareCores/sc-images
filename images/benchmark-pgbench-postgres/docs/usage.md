@@ -81,9 +81,9 @@ you run, check the following prerequisites:
   Secure). The image restores a cached dataset dump from there and builds the
   dataset itself only when no dump exists for it; the run fails if the CDN
   (Content Delivery Network) is unreachable.
-- You know the database server's vCPU count. Set it in `SC_DB_VCPUS`, because
-  the default is the client host's logical CPU count, and on a separate client
-  VM that produces the wrong concurrency points.
+- `SC_DB_VCPUS` is set to the database server's vCPU count. Without it, the
+  image uses the logical CPU count of the machine it runs on, so on a separate
+  client machine it picks concurrency points for the wrong server size.
 
 Set the host, credentials, and server size:
 
@@ -121,7 +121,7 @@ including the standalone `pgtune` settings. `pgbench_tpcb` changes no settings.
 ## Run Duration
 
 A run prepares the dataset, then measures throughput at a series of concurrency
-points (client counts) in the following steps:
+points in the following steps:
 
 1. Restore the dataset from a cached dump on the CDN, or build it if no dump
    exists for it.
@@ -146,8 +146,8 @@ follows, excluding dataset preparation:
 | 3 | 1, 3, 6 | 19 minutes (120 + 2 × 60 + 3 × 300 s) |
 | 4 or more | 1, V/2, V, 2·V | 25 minutes (120 + 3 × 60 + 4 × 300 s) |
 
-For example, a production run on a 96 vCPU AWS (Amazon Web
-Services) `m9g.24xlarge` measured 1, 48, 96, and 192 clients, with 25 minutes of warmup
+For example, a production run on an AWS (Amazon Web Services) `m9g.24xlarge` server
+with 96 vCPUs measured 1, 48, 96, and 192 clients, with 25 minutes of warmup
 and measurement ([recorded
 output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m9g.24xlarge/0/pgbench_postgres_ro_durable/stdout)).
 Preparing the dataset and starting the server add to the total run time.
@@ -168,9 +168,9 @@ no timeout.
 ### Why 5 Minutes
 
 This is deliberately not a long-running benchmark. We tested 5-, 10-, 15-, and
-30-minute measurement windows with five interleaved trials each, using BenchBase
-Wikipedia on three GCP (Google Cloud Platform)
-server types and `pgbench -S` on a fourth. Longer windows moved mean throughput
+30-minute measurement windows with five interleaved trials each, using BenchBase's
+Wikipedia workload on three GCP (Google Cloud Platform) server types and
+`pgbench -S` on a fourth. Longer windows moved mean throughput
 by less than 2% and did not reduce run-to-run variation, which comes from load,
 OS, and noisy-neighbor effects rather than from too short an average. See
 [Measurement duration](../CHANGELOG.md#measurement-duration) for the results.
@@ -178,8 +178,8 @@ OS, and noisy-neighbor effects rather than from too short an average. See
 As a result, each score is a single 5-minute sample. Repeated runs on the same
 server type varied by a CV (Coefficient of Variation) of about 0.5-4% in these
 tests, so treat smaller differences between server types as noise. These
-figures come from the BenchBase Wikipedia and `pgbench -S` runs, not from
-`pgbench_ro`.
+figures come from runs of BenchBase's Wikipedia workload and `pgbench -S`, not
+from `pgbench_ro`.
 
 ## Production Setup
 
@@ -234,7 +234,7 @@ region.
 | `SC_WARMUP_SECONDS` | Initial warmup duration. | `120` |
 | `SC_SETTLE_SECONDS` | Settle duration between concurrency points. | `60` |
 | `SC_WARMUP_ONCE` | Use one full warmup, then settle between concurrency points. | `true` |
-| `SC_DB_VCPUS` | Database vCPU count used for concurrency anchors and local tuning. Set it for remote databases: the default is the client host's logical CPU count. | `os.cpu_count()` or `2` |
+| `SC_DB_VCPUS` | Database vCPU count used for concurrency points and local tuning. Set it for remote databases: the default is the client host's logical CPU count. | `os.cpu_count()` or `2` |
 | `SC_CLIENT_VCPUS` | Client vCPU count recorded in output. | `os.cpu_count()` or `2` |
 | `SC_DB_MEM_GIB` | Database memory in GiB recorded in output. Set it for remote databases. | Detected locally; unset for remote databases |
 | `SC_DURABILITY` | Local server durability; `async` disables `synchronous_commit`. | `durable` |

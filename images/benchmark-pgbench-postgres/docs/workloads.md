@@ -14,9 +14,13 @@ PostgreSQL 18:
 - 250,000 orders
 - 750,000 order items
 
-![Entity-relationship diagram of the four pgbench_ro tables: ro_cpu_customer,
-ro_cpu_order, ro_cpu_order_item, and ro_cpu_product, with their columns, types,
-and foreign keys](pgbench-workload-schema-output.webp)
+<p align="center">
+  <img
+    width="600"
+    title="pgbench_ro schema"
+    alt="Entity-relationship diagram of the four pgbench_ro tables: ro_cpu_customer, ro_cpu_order, ro_cpu_order_item, and ro_cpu_product, with their columns, types, and foreign keys"
+    src="pgbench-workload-schema-output.webp"/>
+</p>
 
 The harness invokes `pgbench` with `-D scale=N` and `-f`
 [`ro_cpu_txn.sql`](../ro_cpu_txn.sql). `-D scale=N` multiplies most block widths

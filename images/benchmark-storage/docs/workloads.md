@@ -40,10 +40,11 @@ the disks already hold.
 
 ## Preconditioning
 
-SSDs absorb writes in their own DRAM (Dynamic Random-Access Memory) or SLC
-(Single-Level Cell) caches and in unmapped spare area. Writes to a partly
-written drive land on spare area and never trigger garbage collection, so
-short tests on such a drive report burst speeds rather than sustained ones.
+SSDs first write incoming data to fast storage: a DRAM (Dynamic Random-Access
+Memory) or SLC (Single-Level Cell) cache, and spare area, which is flash that
+holds no data yet. On a drive that is only partly written, new writes keep
+finding spare area, so the drive never has to run garbage collection, and short
+tests report burst speeds rather than sustained ones.
 This benchmark prepares each writable disk in the following steps:
 
 1. **Discard:** `blkdiscard` trims the whole disk, so every run starts from the
@@ -129,7 +130,7 @@ The queue depths above are the nominal number of I/Os in flight per disk.
   across all its jobs and disks.
 
 Because of this cap, large block sizes run at a lower queue depth. The test
-name shows the effective queue depth. For example, on a 16 vCPU server,
+name shows the effective queue depth. For example, on a server with 16 vCPUs,
 4 MiB random reads run as `randread_4m_qd64` and 16 MiB random reads
 as `randread_16m_qd16`.
 

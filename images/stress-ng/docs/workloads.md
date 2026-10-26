@@ -177,8 +177,8 @@ Inspector; [Production Setup](./usage.md#production-setup) shows it in full.
 - otherwise, 1, N, and the even counts below N that are divisible by N / 32
   (rounded down)
 
-The Inspector uses this loop to determine a server type's SCore: its raw
-multi-core CPU speed, for comparing the speed of server types. The `div16`
-method was chosen because it scaled as expected across x86_64 and Arm servers,
-with and without SMT (Simultaneous Multithreading). See
+The Inspector uses this loop to determine a server type's SCore (Spare Cores
+score): its raw multi-core CPU speed, for comparing the speed of server types.
+The `div16` method was chosen because it scaled as expected across x86_64 and
+Arm servers, with and without SMT (Simultaneous Multithreading). See
 [Design History](../README.md#design-history).
