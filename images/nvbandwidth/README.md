@@ -169,9 +169,14 @@ yet. The table uses the following terms:
 | `nvbandwidth:p2p:gather` | Rate into one GPU when all other GPUs write to it at once (CE) | GB/s | `all_to_one_write_ce`, averaged |
 | `nvbandwidth:efficiency:sm_ce_ratio` | SM copy speed relative to CE copy speed, capped at 1 | Ratio | `host_to_device_memcpy_sm` `sum` divided by `host_to_device_memcpy_ce` `sum` |
 
-Each stored result also records the driver version, the CUDA runtime version,
-the `nvbandwidth` version, the GPU count, and whether P2P is supported, that
-is, whether any `device_to_device_*` testcase passed.
+Each stored result also records the following:
+
+- the driver version
+- the CUDA runtime version
+- the `nvbandwidth` version
+- the GPU count
+- whether P2P is supported, that is, whether any `device_to_device_*`
+  testcase passed
 
 ## Workload
 
