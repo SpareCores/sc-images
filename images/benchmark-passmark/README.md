@@ -23,6 +23,11 @@ the Navigator publishes:
 - **[Memory tests](https://sparecores.com/servers?benchmark=eyJpZCI6InBhc3NtYXJrOm1lbW9yeV9tYXJrIiwiY29uZmlnIjoie30ifQ%3D%3D&order_by=selected_benchmark_score&order_dir=desc):**
   database operations, cached and uncached reads, writes, and latency.
 
+The Navigator already publishes other CPU and memory benchmarks. It adds
+PassMark because a run is short (2 to 3 minutes), the self-hosting community
+uses PassMark widely, and some of its tests, such as Database Operations,
+cover workloads that the other benchmarks do not.
+
 It runs PassMark's tests without changing them, so PassMark, not Spare Cores,
 computes the composite scores.
 
