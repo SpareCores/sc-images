@@ -13,9 +13,9 @@ output is the unchanged `nvbandwidth` report.
 ## Purpose
 
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
-empirical performance measurements for more than 5,000 cloud server types,
-such as raw CPU speed, memory bandwidth, and LLM (Large Language Model)
-inference speed. This benchmark adds measured raw GPU performance: how fast
+empirical performance measurements, such as raw CPU speed, memory bandwidth,
+and LLM (Large Language Model) inference speed, for more than 5,000 cloud
+server types. This benchmark adds measured raw GPU performance: how fast
 data moves between the CPU and the GPUs of a server type, and between its
 GPUs.
 
@@ -43,7 +43,7 @@ application performance. The main limitations are the following:
   or with GPUs that cannot access each other, they report
   `"status": "Waived"` and no matrix.
 - **NVIDIA Only:** `nvbandwidth` uses CUDA (Compute Unified Device
-  Architecture), so it needs NVIDIA GPUs. The image does not check for one;
+  Architecture), so it needs NVIDIA GPUs. The image does not check for them;
   production skips servers without NVIDIA GPUs.
 - **[Fixed Settings](#settings):** The image passes no options, so the
   upstream defaults apply: a 512 MiB copy buffer, four untimed warmup copies
