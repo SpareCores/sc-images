@@ -8,19 +8,21 @@ and passes PassMark's own results file through unchanged.
 It reports the CPU Mark and Memory Mark composite scores, together with the
 individual CPU and memory test results behind them, as a YAML (YAML Ain't
 Markup Language) document.
-[Spare Cores Navigator](https://docs.sparecores.com/overview) publishes both
-marks and 14 of the individual test results.
+[Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
+both marks and 14 of the individual test results; its
+[Benchmark Workloads](https://sparecores.com/navigator/benchmark-workloads)
+page describes each test and shows its score distribution.
 
 ## Purpose
 
 This benchmark compares server types on the following PassMark tests, which
 the Navigator publishes:
 
-- **CPU tests:** integer and floating-point math, prime numbers, string
-  sorting, encryption, compression, physics, extended instructions, and a
-  single-threaded test.
-- **Memory tests:** database operations, cached and uncached reads, writes,
-  and latency.
+- **[CPU tests](https://sparecores.com/servers?benchmark=eyJpZCI6InBhc3NtYXJrOmNwdV9tYXJrIiwiY29uZmlnIjoie30ifQ%3D%3D&order_by=selected_benchmark_score&order_dir=desc):**
+  integer and floating-point math, prime numbers, string sorting, encryption,
+  compression, physics, extended instructions, and a single-threaded test.
+- **[Memory tests](https://sparecores.com/servers?benchmark=eyJpZCI6InBhc3NtYXJrOm1lbW9yeV9tYXJrIiwiY29uZmlnIjoie30ifQ%3D%3D&order_by=selected_benchmark_score&order_dir=desc):**
+  database operations, cached and uncached reads, writes, and latency.
 
 It runs PassMark's tests without changing them, so PassMark, not Spare Cores,
 computes the composite scores.
@@ -28,8 +30,10 @@ computes the composite scores.
 ## Limitations
 
 These results compare servers on PassMark's synthetic CPU and memory tests,
-not on application throughput, and they exclude disk, network, and GPU
-performance. The main limitations are the following:
+not on application throughput, and they exclude
+[disk](../benchmark-storage/README.md), network, and
+[GPU](../nvbandwidth/README.md) performance. The main limitations are the
+following:
 
 - **Scaling:** Many PassMark tests, including Database Operations, do not
   scale well above 32 vCPUs. Memory Mark does not scale well above 16 vCPUs:

@@ -29,8 +29,10 @@ with browser-like request headers, and installs the binary as
 
 These URLs always serve the latest release, so the PassMark build is not
 pinned, and a rebuild can change it. PassMark publishes no versioned download
-URLs; pinning would need a copy of the archive in this repo. See
-[PassMark Version](../README.md#passmark-version) for how this affects results.
+URLs, so pinning a build would mean keeping a copy of its archive in the
+[`sc-images`](https://github.com/SpareCores/sc-images) repository. See
+[PassMark Version](../README.md#passmark-version) for how this affects
+results.
 
 ## Terminal Libraries
 
