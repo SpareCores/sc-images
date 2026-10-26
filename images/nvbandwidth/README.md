@@ -38,15 +38,17 @@ application performance. The main limitations are the following:
 - **Single Server:** `nvbandwidth` is built without its multinode mode, so
   only the CPU and GPUs of one host are measured, not links between servers or
   network throughput.
-- **[Single-GPU Servers](#results):** On a server with one GPU, the 13
-  testcases that need two GPUs report `"status": "Waived"` and no matrix.
+- **[No Peer Access](#results):** The 17 testcases between GPUs need P2P
+  (Peer-to-Peer) access between at least two GPUs. On a server with one GPU,
+  or with GPUs that cannot access each other, they report
+  `"status": "Waived"` and no matrix.
 - **NVIDIA Only:** `nvbandwidth` uses CUDA (Compute Unified Device
   Architecture), so it needs NVIDIA GPUs. The image does not check for one;
   production skips servers without NVIDIA GPUs.
 - **[Fixed Settings](#workload):** The image passes no options, so the
-  upstream defaults apply: a 512 MiB copy buffer and the median of three
-  iterations per measurement, with no warmup. The image adds no repetitions of
-  its own.
+  upstream defaults apply: a 512 MiB copy buffer, four untimed warmup copies
+  before the timed copies, and the median of three iterations per measurement.
+  The image adds no warmup or repetitions of its own.
 - **Host Driver:** The host provides the NVIDIA driver, so its version varies
   between runs. The image fixes only the `nvbandwidth` version and the CUDA
   12.6.1 toolkit it is built with.
@@ -122,14 +124,16 @@ A testcase that ran has `"status": "Passed"` and the following fields:
   columns as the description says. Pairs that were not measured hold `N/A`.
 - `sum` is the sum of the matrix cells, as a number.
 
-A testcase that needs more GPUs than the server has reports
-`"status": "Waived"` and has no matrix. An interrupted run can end with a
-testcase still `Running`.
+The 17 testcases between GPUs need P2P access between at least two GPUs.
+Without it, on a server with one GPU or with GPUs that cannot access each
+other, they report `"status": "Waived"` and have no matrix. In production,
+16 of 27 runs with `nvbandwidth` v0.8 on servers with two to four GPUs waived
+all 17. An interrupted run can end with a testcase still `Running`.
 
 For example, on an `alicloud/ecs.gn5-c4g1.xlarge` with one Tesla P100 GPU,
 `host_to_device_memcpy_ce` measured 11.06 GB/s, `host_device_latency_sm`
-799 ns, and `device_local_copy` 268.75 GB/s, while all 13 testcases that need
-two GPUs were waived
+799 ns, and `device_local_copy` 268.75 GB/s, while all 17 testcases between
+GPUs were waived
 ([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/alicloud/ecs.gn5-c4g1.xlarge/0/nvbandwidth/stdout)).
 
 On a fatal error, such as a GPU that CUDA cannot initialize, the JSON has an
@@ -143,7 +147,7 @@ yet. The table uses the following terms:
 
 - CE (Copy Engine) and SM (Streaming Multiprocessor) name the copy method; see
   [Workload](#workload).
-- P2P (Peer-to-Peer) means direct copies between GPUs.
+- P2P means direct copies between GPUs.
 - "Averaged" means the `sum` divided by the number of cells that are not `N/A`.
 
 | Metric | Meaning | Unit | Source testcase |
@@ -197,7 +201,8 @@ and each GPU and between GPUs, and `device_local_copy` measures copies within
 each GPU's own memory.
 
 Each measurement times a fixed number of copies between start and stop
-events, repeats three times, and reports the median. `nvbandwidth` queues all
+events, repeats three times, and reports the median. Four warmup copies run
+before the timed copies, outside the timed interval. `nvbandwidth` queues all
 copies before releasing them, so the time spent queuing them is not measured.
 It checks the copied data after each copy and sets CPU affinity
 automatically.

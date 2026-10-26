@@ -14,6 +14,8 @@ of the Spare Cores docs, which also lists the terms each image uses.
 - **nvbandwidth testcase**: One named measurement of the `nvbandwidth` tool,
   such as `host_to_device_memcpy_ce`, defined by its copy direction, the GPUs
   taking part, and its copy method, given by the `_ce` or `_sm` suffix. A
-  testcase that needs more GPUs than the system has is waived rather than run.
+  testcase between GPUs is waived rather than run when no two GPUs of the
+  system have P2P (Peer-to-Peer) access to each other, as on a system with
+  one GPU.
   `nvbandwidth -l` lists the testcases of a build.
   [nvbandwidth README](https://github.com/NVIDIA/nvbandwidth/blob/main/README.md)
