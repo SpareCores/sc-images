@@ -78,7 +78,7 @@ data is not published.
 
 Production also runs the container privileged and with host networking, with a
 30-minute timeout. Production runs with `nvbandwidth` v0.8 took between 55
-seconds and about 20 minutes, with a median of about 3.5 minutes; the slowest
+seconds and \~20 minutes, with a median of \~3.5 minutes; the slowest
 was on a server with eight GPUs.
 
 ### Settings
