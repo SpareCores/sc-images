@@ -33,7 +33,7 @@ output.
 | [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX2 but no AVX-512. |
 | [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, using the largest valid tensor-parallel size per model across all available GPUs. |
 | [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. |
-| [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory bandwidth benchmark with nvbandwidth, measuring host-to-device and device-to-device copy speeds. |
+| [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory copy bandwidth and latency benchmark with nvbandwidth, measuring copies between the host CPU and each GPU, between GPUs, and within one GPU. |
 | [`stress-ng`](images/stress-ng) | CPU, memory, and kernel-heavy workload benchmark with stress-ng, measuring bogo ops/s for 85 stressors on one and on all CPUs, and the multi-core scaling of the cpu stressor. |
 | [`stress-ng-longrun`](images/stress-ng-longrun) | Pinned stress-ng version for the 24-hour long-running benchmark. |
 
