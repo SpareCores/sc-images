@@ -77,10 +77,9 @@ you run, check the following prerequisites:
   drops and recreates its benchmark tables.
 - The `SC_DB_USER` role owns the benchmark database or is a superuser, so it can
   set the `pgbench_ro` [workload settings](#workload-settings).
-- The client can reach `SC_CDN_BASE_URL` over HTTPS (Hypertext Transfer Protocol
-  Secure). The image restores a cached dataset dump from there and builds the
-  dataset itself only when no dump exists for it; the run fails if the CDN
-  (Content Delivery Network) is unreachable.
+- The client can reach `SC_CDN_BASE_URL` over HTTPS. The image restores a cached
+  dataset dump from there and builds the dataset itself only when no dump exists
+  for it; the run fails if the CDN (Content Delivery Network) is unreachable.
 - `SC_DB_VCPUS` is set to the database server's vCPU count. Without it, the
   image uses the logical CPU count of the machine it runs on, so on a separate
   client machine it picks concurrency points for the wrong server size.

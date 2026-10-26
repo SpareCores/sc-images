@@ -72,9 +72,8 @@ docker run --rm --privileged ghcr.io/sparecores/benchmark:main geekbench.sh
 results with the Navigator's.
 
 `geekbench.sh` does not upload results to the Geekbench Browser: it captures
-Geekbench's upload on a local HTTPS (Hypertext Transfer Protocol Secure) server
-inside the container. See [Upload Capture](./docs/geekbench.md#upload-capture)
-for how the capture works.
+Geekbench's upload on a local HTTPS server inside the container. See
+[Upload Capture](./docs/geekbench.md#upload-capture) for how the capture works.
 
 In production, the median run takes the following time:
 

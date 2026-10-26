@@ -86,9 +86,8 @@ needs more setup: database privileges, a disposable benchmark database, and the
 server's vCPU count. Follow [Remote Mode](./docs/usage.md#remote-mode) for more
 details and settings.
 
-Both modes need outbound HTTPS (Hypertext Transfer Protocol Secure) access to
-the Spare Cores CDN (Content Delivery Network) to download the dataset; the run
-fails if the CDN is unreachable.
+Both modes need outbound HTTPS access to the Spare Cores CDN (Content Delivery
+Network) to download the dataset; the run fails if the CDN is unreachable.
 
 A default run takes about 25 minutes on servers with 4 or more vCPUs: a 2-minute
 warmup, 1-minute settle periods, and 5 minutes of measurement at each of four
