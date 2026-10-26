@@ -124,11 +124,11 @@ points in the following steps:
 
 1. Restore the dataset from a cached dump on the CDN, or build it if no dump
    exists for it.
-2. Warm up once for `SC_WARMUP_SECONDS` (default 120 s) at the first concurrency
+2. Warm up once for `SC_WARMUP_SECONDS` (default 120s) at the first concurrency
    point. Before each later point, run a settle period of `SC_SETTLE_SECONDS`
-   (default 60 s) at that point's client count. Neither is measured. With
+   (default 60s) at that point's client count. Neither is measured. With
    `SC_WARMUP_ONCE=false`, every point gets the full warmup.
-3. Measure each concurrency point for `SC_RUN_SECONDS` (default 300 s), sampling
+3. Measure each concurrency point for `SC_RUN_SECONDS` (default 300s), sampling
    1% of transaction latencies.
 4. Report the highest TPM (Transactions Per Minute) of all concurrency points
    (and scale factors) as the score.
@@ -140,10 +140,10 @@ follows, excluding dataset preparation:
 
 | `V` | Concurrency points | Duration |
 | --- | --- | --- |
-| 1 | 1, 2 | 13 minutes (120 + 60 + 2 × 300 s) |
-| 2 | 1, 2, 4 | 19 minutes (120 + 2 × 60 + 3 × 300 s) |
-| 3 | 1, 3, 6 | 19 minutes (120 + 2 × 60 + 3 × 300 s) |
-| 4 or more | 1, V/2, V, 2·V | 25 minutes (120 + 3 × 60 + 4 × 300 s) |
+| 1 | 1, 2 | 13 minutes (120 + 60 + 2 × 300s) |
+| 2 | 1, 2, 4 | 19 minutes (120 + 2 × 60 + 3 × 300s) |
+| 3 | 1, 3, 6 | 19 minutes (120 + 2 × 60 + 3 × 300s) |
+| 4 or more | 1, V/2, V, 2·V | 25 minutes (120 + 3 × 60 + 4 × 300s) |
 
 For example, a production run on an AWS (Amazon Web Services) `m9g.24xlarge` server
 with 96 vCPUs measured 1, 48, 96, and 192 clients, with 25 minutes of warmup
