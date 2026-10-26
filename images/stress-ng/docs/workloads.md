@@ -12,13 +12,13 @@ stressor suite as follows:
    Stressors run one at a time.
 3. Each run is
    `stress-ng --metrics --metrics-brief --<stressor> <workers> -t <seconds>`,
-   for 5 s, or 15 s for `stream`.
+   for 5 seconds, or 15 seconds for `stream`.
 4. It reads stress-ng bogo ops/s (bogus operations per second) in real time
    from the stress-ng metrc line of the run's output.
 
 There is no warm-up and no repetition. A run that exits with an error, takes
-30 s longer than its duration, or prints no `metrc` line for the stressor is
-recorded as `null`.
+30 seconds longer than its duration, or prints no `metrc` line for the stressor
+is recorded as `null`.
 
 ### Stressor Categories
 
@@ -167,7 +167,7 @@ page-table lookups of nested paging, and the emulation of timers and traps:
 ## CPU Scaling Loop
 
 The CPU scaling loop runs the `cpu` stressor with the stress-ng div16 method
-(`--cpu-method div16`) for 10 s at each worker count that
+(`--cpu-method div16`) for 10 seconds at each worker count that
 [`count.awk`](../count.awk) prints, and prints bogo ops/s for each. The loop itself is a shell command in the Navigator's
 Inspector; [Production Setup](./usage.md#production-setup) shows it in full.
 

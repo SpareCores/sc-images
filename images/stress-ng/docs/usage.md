@@ -11,7 +11,7 @@ docker run --rm ghcr.io/sparecores/stress-ng:main \
 ```
 
 The stressor suite needs no environment variables. For a quick check, the
-following command runs the first five stressors for 2 s each:
+following command runs the first five stressors for 2 seconds each:
 
 ```bash
 docker run --rm -e STRESSNG_QUICK=1 -e STRESSNG_LIMIT=5 \
@@ -57,7 +57,7 @@ The stressor suite took the following times in production:
 The CPU scaling loop took the following times in production with
 `stress-ng` 0.20.01:
 
-- about 19 s at the shortest
+- about 19 seconds at the shortest
 - about 2.8 minutes at the median
 - about 50 minutes at the longest
 
@@ -75,7 +75,7 @@ indented with two spaces. It has the following fields:
 | `stressors.<name>."<N>"` | object or `null` | Result with N workers, where N is `meta.physical_cpus`; present only when N is greater than 1 |
 | `stressors.<name>.<workers>.bogo_ops_per_sec` | float | Throughput in stress-ng bogo ops/s (bogus operations per second), in real time, the total across all workers |
 | `categories.<category>` | list of strings | The stressors of each category that `stress-ng --stressors` lists, in category order |
-| `meta.timeout_sec_per_stressor` | integer | Seconds per stressor run: `5`, or `2` with `STRESSNG_QUICK=1`; does not reflect the 15 s of `stream` |
+| `meta.timeout_sec_per_stressor` | integer | Seconds per stressor run: `5`, or `2` with `STRESSNG_QUICK=1`; does not reflect the 15s of `stream` |
 | `meta.physical_cpus` | integer | Worker count of the multi-worker runs: the number of logical CPUs available to the container |
 | `meta.stressor_count` | integer | Number of stressors run, after `STRESSNG_LIMIT` |
 
@@ -115,6 +115,6 @@ for a production example.
 
 | Variable | Meaning | Default |
 | -------- | ------- | ------- |
-| `STRESSNG_QUICK` | `1` runs each stressor for 2 s instead of 5 s; `stream` still runs for 15 s. Any other value keeps 5 s. | unset |
+| `STRESSNG_QUICK` | `1` runs each stressor for 2s instead of 5s; `stream` still runs for 15s. Any other value keeps 5s. | unset |
 | `STRESSNG_LIMIT` | Runs only the first N stressors in alphabetical order. A value that is not an integer is ignored. | unset (all stressors) |
 | `TRACKER_QUIET` | Set in the image to quiet `resource-tracker`. | `true` |
