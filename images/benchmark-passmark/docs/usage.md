@@ -36,7 +36,7 @@ Lower is better for Memory Latency; for the others, higher is better:
 | `CPU_PHYSICS` | CPU Physics Test | fps (Frames Per Second) |
 | `CPU_MATRIX_MULT_SSE` | CPU Extended Instructions Test | Mmat/s (Million Matrices/s) |
 | `SUMM_ME` | Memory Mark | composite score, no unit |
-| `ME_ALLOC_S` | Database Operations | Kops/s |
+| `ME_ALLOC_S` | Database Operations | Kops/s (Thousand Operations/s) |
 | `ME_READ_S` | Memory Read Cached | MB/s |
 | `ME_READ_L` | Memory Read Uncached | MB/s |
 | `ME_WRITE` | Memory Write | MB/s |

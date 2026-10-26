@@ -11,6 +11,9 @@ also lists the terms each image uses.
   test, into one unitless number, where higher is better. PassMark Software
   publishes CPU Mark results submitted by users for thousands of processors.
   [PassMark CPU Benchmarks](https://www.cpubenchmark.net/)
+- **Kops/s** (Thousand Operations/s): The throughput unit of the PassMark
+  database operations test: thousands of operations per second, where higher is
+  better.
 - **Kstrings/s** (Thousand Strings/s): The throughput unit of the PassMark
   string sorting test: thousands of strings sorted per second, where higher is
   better.
