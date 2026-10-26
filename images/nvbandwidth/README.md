@@ -54,7 +54,7 @@ application performance. The main limitations are the following:
   [Workload](#workload).
 - **Host Driver:** The host provides the NVIDIA driver, so its version varies
   between runs. The image fixes only the `nvbandwidth` version and the CUDA
-  12.6.1 toolkit it is built with.
+  Toolkit 12.6.1 it is built with.
 
 ## Usage
 
@@ -115,7 +115,7 @@ fields under its top-level `nvbandwidth` key:
 
 - `CUDA Runtime Version` and `Driver Version` record the CUDA runtime and the
   host's NVIDIA driver, for example `13000` (CUDA 13.0) and `580.126.09`. The
-  reported runtime version can differ from the CUDA 12.6.1 toolkit that the
+  reported runtime version can differ from CUDA Toolkit 12.6.1, which the
   image is built with.
 - `GPU Device list` names each GPU, with its index, name, bus address, and
   hostname.
@@ -185,7 +185,7 @@ Each stored result also records the following:
 This benchmark runs one workload: the image's default command,
 `nvbandwidth` with no options, which runs all 35 test cases in sequence. The
 [`Dockerfile`](./Dockerfile) builds `nvbandwidth` v0.8 from NVIDIA's release
-archive with the CUDA 12.6.1 toolkit.
+archive with CUDA Toolkit 12.6.1.
 
 Each nvbandwidth test case uses one of the following copy methods, named by its
 suffix:
