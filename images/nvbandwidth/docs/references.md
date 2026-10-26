@@ -20,4 +20,4 @@ also lists the terms each image uses.
   system have P2P (Peer-to-Peer) access to each other, as on a system with
   one GPU.
   `nvbandwidth -l` lists the test cases of a build.
-  [nvbandwidth README](https://github.com/NVIDIA/nvbandwidth/blob/main/README.md)
+  [Official documentation](https://github.com/NVIDIA/nvbandwidth/blob/v0.8/README.md)

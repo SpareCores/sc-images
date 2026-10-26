@@ -15,9 +15,12 @@ output is the unchanged `nvbandwidth` report.
 ## Purpose
 
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
-empirical performance measurements, such as raw CPU speed, memory bandwidth,
-and LLM (Large Language Model) inference speed, for more than 5,000 cloud
-server types. This benchmark adds measured raw GPU performance: how fast
+empirical performance measurements, such as
+[raw CPU speed](../stress-ng/README.md),
+[memory bandwidth](../benchmark/docs/bw-mem.md), and
+[LLM (Large Language Model) inference speed](../benchmark-llm/README.md),
+for more than 5,000 cloud server types. This benchmark adds measured raw GPU
+performance: how fast
 data moves between the CPU and the GPUs of a server type, and between its
 GPUs.
 
@@ -88,8 +91,8 @@ was on a server with eight GPUs.
 This benchmark has no settings of its own in environment variables. The image
 sets only `TRACKER_QUIET=true`, which silences the output of
 `resource-tracker`. To change a setting, pass `nvbandwidth` options after the
-image name, as in the JSON example above. The most common options are the
-following:
+image name, as in the JSON example under [Usage](#usage). The most common
+options are the following:
 
 | Option | Meaning | Default |
 | ------ | ------- | ------- |
@@ -105,7 +108,7 @@ following:
 | `-v` | Verbose output | Off |
 
 See the
-[`nvbandwidth` v0.8 README](https://github.com/NVIDIA/nvbandwidth/blob/v0.8/README.md)
+[official `nvbandwidth` v0.8 documentation](https://github.com/NVIDIA/nvbandwidth/blob/v0.8/README.md)
 for all options and test cases.
 
 ### Results
@@ -137,10 +140,11 @@ other, they report `"status": "Waived"` and have no matrix. In production,
 16 of 27 runs with `nvbandwidth` v0.8 on servers with two to four GPUs waived
 all 17. An interrupted run can end with a test case still `Running`.
 
-For example, on an `alicloud/ecs.gn5-c4g1.xlarge` with one Tesla P100 GPU,
-`host_to_device_memcpy_ce` measured 11.06 GB/s, `host_device_latency_sm`
-799 ns, and `device_local_copy` 268.75 GB/s, while all 17 test cases between
-GPUs were waived
+For example, on an
+[`alicloud/ecs.gn5-c4g1.xlarge`](https://sparecores.com/server/alicloud/ecs.gn5-c4g1.xlarge#nvbandwidth)
+with one Tesla P100 GPU, `host_to_device_memcpy_ce` measured 11.06 GB/s,
+`host_device_latency_sm` 799 ns, and `device_local_copy` 268.75 GB/s, while all
+17 test cases between GPUs were waived
 ([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/alicloud/ecs.gn5-c4g1.xlarge/0/nvbandwidth/stdout)).
 
 On a fatal error, such as a GPU that CUDA cannot initialize, the JSON has an
