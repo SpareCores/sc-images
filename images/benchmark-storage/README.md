@@ -52,7 +52,7 @@ limitations:
   image tests every real block device it finds, including any volume attached on
   demand.
 - **[Partial Preconditioning](./docs/limitations.md#partial-fill):** The
-  sequential fill is capped at 300 s in total, which filled 26-33% of each NVMe
+  sequential fill is capped at 300s in total, which filled 26-33% of each NVMe
   (Non-Volatile Memory Express) drive on the first production servers.
 - **[Disks in Use Are Read-Only](./docs/limitations.md#read-only-disks):** The
   boot disk and other disks in use get read tests only, on whatever data they
@@ -86,7 +86,7 @@ host's PID (Process Identifier) namespace. See
 differ.
 
 A run took about 21-22 minutes on the first production servers. This benchmark
-shortens or drops tests when its estimate exceeds 2400 s. See
+shortens or drops tests when its estimate exceeds 2400 seconds. See
 [Run Duration](./docs/usage.md#run-duration) for how the time is spent.
 
 ### Settings
@@ -150,8 +150,8 @@ For more information on test order and `fio` settings, see
 The first version measured disks without preconditioning them. Partial fills
 and short write runs measured the drives' write-buffer burst rather than their
 sustained performance. The current version discards and fills each writable
-disk, runs write tests for longer than read tests (30 s compared with
-10 s), and records best-effort health snapshots, so that results are
+disk, runs write tests for longer than read tests (30 seconds compared with
+10 seconds), and records best-effort health snapshots, so that results are
 comparable across vendors.
 
 The fill is still capped by time. On the first production servers, it wrote

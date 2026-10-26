@@ -53,23 +53,23 @@ This benchmark prepares each writable disk in the following steps:
 2. **Sequential fill:** one `fio` job per disk writes it sequentially in
    1 MiB blocks at a queue depth of 64, until the disk is full, the fill
    reaches `SC_STORAGE_WS_TARGET_BYTES`, or the fill time runs out. The fill
-   time is `SC_STORAGE_FILL_BUDGET_S` (300 s), split evenly between the
+   time is `SC_STORAGE_FILL_BUDGET_S` (300s), split evenly between the
    groups with writable disks.
 3. **Random-write precondition:** after the read and sequential write tests,
    4 KiB random writes at a queue depth of 256 run for
-   `SC_STORAGE_RAND_PRECOND_S` (120 s).
+   `SC_STORAGE_RAND_PRECOND_S` (120s).
 
 Both preconditioning steps are reported under `preconditioning`, not
 `benchmarks`, with IOPS (Input/Output Operations Per Second) and bandwidth time
-series in 5 s steps.
+series in steps of 5 seconds.
 
 After the fill, every later test on the disk uses only the region the fill
 wrote. If the fill fails or writes nothing, every later test on that disk is
 skipped, because reads would hit unmapped blocks. Read-only disks always use
 the whole disk.
 
-Write and mixed tests run for 30 s, compared with 10 s for read tests,
-to get past the drive's DRAM or SLC write buffer.
+Write and mixed tests run for 30 seconds, compared with 10 seconds for read
+tests, to get past the drive's DRAM or SLC write buffer.
 
 ## Single-Disk Tests
 
@@ -114,10 +114,10 @@ Group results add up all disks, and `per_device` holds each disk's share.
 ## `fio` Settings
 
 All tests use the `libaio` I/O engine with `direct=1`, so I/O bypasses the page
-cache. Each test runs for a fixed time (`time_based=1`) after a 2 s ramp.
-The sequential fill instead runs until it has written its target (the whole
-disk by default) or its time runs out, and neither preconditioning step has a
-ramp.
+cache. Each test runs for a fixed time (`time_based=1`) after a ramp of
+2 seconds. The sequential fill instead runs until it has written its target
+(the whole disk by default) or its time runs out, and neither preconditioning
+step has a ramp.
 
 The queue depths above are the nominal number of I/Os in flight per disk.
 [`benchmark.py`](../benchmark.py) splits them across jobs as follows:
