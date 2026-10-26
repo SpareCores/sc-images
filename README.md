@@ -101,7 +101,8 @@ Some images need the following extra Docker options:
 
 ## Contributing
 
-See the following pages for maintaining and extending this repo:
+See the following pages for maintaining and extending the
+[`sc-images`](https://github.com/SpareCores/sc-images) repository:
 
 - [Adding an Image](docs/contributors.md): the folder layout, the metadata
   files that control each image's build, and how dependencies are ordered.
@@ -110,4 +111,5 @@ See the following pages for maintaining and extending this repo:
 
 ## License
 
-This repo is licensed under the [Mozilla Public License 2.0](LICENSE).
+The `sc-images` repository is licensed under the
+[Mozilla Public License 2.0](LICENSE).
