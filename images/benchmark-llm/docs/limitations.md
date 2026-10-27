@@ -60,8 +60,8 @@ it always runs on the CPU.
 When a model does not fit in GPU memory, this benchmark offloads fewer of its
 layers to the GPUs, and the remaining layers stay on the CPU. Such a score
 depends on both, and `n_gpu_layers` in the output shows how many layers were
-offloaded. See
-[GPU Layers](./workloads.md#gpu-layers).
+offloaded.
+See [GPU Layers](./workloads.md#gpu-layers).
 
 ## Design Constraints
 

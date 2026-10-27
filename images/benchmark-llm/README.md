@@ -50,8 +50,8 @@ Note the following limitations:
   `b4753`. Other models, quantization levels, and builds are not covered.
 - **[CPU or GPU Results](./docs/limitations.md#cpu-or-gpu-results):**
   On a GPU server, a score can come from the GPU or from the CPU fallback, and
-  the Navigator does not mark which. Only NVIDIA GPUs are used, and only on AMD64. See also
-  [GPU Coverage](./docs/limitations.md#gpu-coverage).
+ the Navigator does not mark which. Only NVIDIA GPUs are used, and only on
+  AMD64. See also [GPU Coverage](./docs/limitations.md#gpu-coverage).
 - **[Missing Results](./docs/limitations.md#missing-results):** On slow
   servers, timeouts skip larger token counts and models, and the run still
   exits with code 0. The Navigator shows "no data" for the skipped results.
