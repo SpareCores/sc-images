@@ -1,8 +1,9 @@
 # References
 
-Terms specific to this image, alphabetized. Common terms (e.g. CUDA, GGUF,
-LLM, token) are defined in the [glossary](https://docs.sparecores.com/glossary)
-of the Spare Cores docs, which also lists the terms each image uses.
+Terms specific to this image, alphabetized. Common terms, such as CUDA (Compute
+Unified Device Architecture), GGUF, LLM (Large Language Model), and token, are
+defined in the [glossary](https://docs.sparecores.com/glossary) of the Spare
+Cores docs, which also lists the terms each image uses.
 
 - **`-b`**: The llama.cpp option that sets the logical batch size: the maximum
   number of prompt tokens passed to the model in one call. llama.cpp splits
