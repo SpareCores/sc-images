@@ -61,7 +61,7 @@ Every `llama-bench` measurement uses the following settings, set in
   them; recorded as `n_threads`.
 - **Split mode:** `layer` (`-sm layer`).
 - **Flash attention:** on (`-fa 1`).
-- **Batch sizes:** a logical batch size of 2048 (`-b`) and a physical batch
+- **Batch sizes:** a logical batch size of 2,048 (`-b`) and a physical batch
   size of 512 (`-ub`).
 - **Repetitions:** the harness does not set `-r`, so `llama-bench`'s default
   applies; production output has five repetitions per line.
@@ -85,9 +85,9 @@ count, and the expected speed for that task and token count:
 timeout = round((model_GiB / 0.25 + 1 + 5 × tokens / expected_speed) × scale)
 ```
 
-The formula allows 4 seconds per GiB to load the model, 1 second of overhead,
-and five repetitions at the expected speed. `scale` is
-`--benchmark-timeout-scale` (default 1). The expected speeds, in tokens per
+`model_GiB` is the model file's size in GiB. The formula allows 4 seconds per
+GiB to load the model, 1 second of overhead, and five repetitions at the
+expected speed. `scale` is `--benchmark-timeout-scale` (default 1). The expected speeds, in tokens per
 second, rise with the token count:
 
 | Tokens | Prompt processing | Text generation |
