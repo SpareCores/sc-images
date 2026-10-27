@@ -62,7 +62,8 @@ Note the following limitations:
 
 ## Usage
 
-Run the image via Docker. With no options, it runs the CPU build of llama.cpp:
+Run the image via Docker. Without GPU access, it runs the CPU build of
+llama.cpp:
 
 ```bash
 docker run --rm ghcr.io/sparecores/benchmark-llm:main > results.jsonl
@@ -75,8 +76,8 @@ caches them in `/models`, a Docker volume. See
 to reuse downloaded models.
 
 To run on NVIDIA GPUs, the host needs the NVIDIA driver and the
-NVIDIA Container Toolkit. Pass the GPUs to the container. The CUDA build is in
-the AMD64 image only:
+NVIDIA Container Toolkit. Pass the GPUs to the container. Only the AMD64 variant of `:main` includes
+the CUDA build:
 
 ```bash
 docker run --rm --gpus all ghcr.io/sparecores/benchmark-llm:main > results.jsonl
@@ -111,7 +112,8 @@ defaults:
   integer (default 1).
 - `--download-timeout` sets the maximum wait for each model download
   (default 900s).
-- `--version` prints the llama.cpp commit hash, `51f311e0`, and exits.
+- `--version` prints the commit hash of llama.cpp build `b4753`, `51f311e0`,
+  and exits.
 
 ### Results
 
@@ -135,7 +137,8 @@ of each line are the following:
 The process exits with code 0 even when it skipped models or token counts, so
 check which lines are present, and the reasons logged to stderr. On `SIGINT` or
 `SIGTERM`, it exits with code 128 plus the signal number. Resource usage is
-recorded with `resource-tracker` but not published.
+recorded with `resource-tracker`, which streams it to the Spare Cores Sentinel
+platform for the team's own monitoring. It is not published.
 
 ## Workloads
 

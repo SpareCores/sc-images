@@ -29,6 +29,19 @@ declares `/models` as a volume. Its entrypoint is
 CI builds the image for `amd64` and `arm64`, after the `resource-tracker` image
 it depends on.
 
+To build the image locally, run the following command from the root of the
+`sc-images` repository. The image folder is the build context:
+
+```bash
+docker build --build-arg LLAMA_CPP_BUILD=b4753 -t benchmark-llm images/benchmark-llm
+```
+
+To check the rebuilt image, print the llama.cpp commit hash:
+
+```bash
+docker run --rm benchmark-llm --version
+```
+
 Changing `LLAMA_CPP_BUILD` or the default models makes new results
 incomparable with the published ones, which would need a rerun on every server
 type; see [Fixed Models and Build](./limitations.md#fixed-models-and-build).

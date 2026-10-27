@@ -9,8 +9,9 @@ CPU:
 docker run --rm ghcr.io/sparecores/benchmark-llm:main > results.jsonl
 ```
 
-No options or environment variables are required. The Arm64 image always uses
-the CPU build of llama.cpp, and the AMD64 image uses it when the CUDA (Compute
+No options or environment variables are required. `:main` covers both AMD64 and
+Arm64, and Docker pulls the one for the host. The Arm64 variant always uses the
+CPU build of llama.cpp, and the AMD64 variant uses it when the CUDA (Compute
 Unified Device Architecture) build cannot start, for example without GPUs.
 
 `--version` prints the commit hash of the llama.cpp build, `51f311e0`, and
@@ -29,7 +30,7 @@ NVIDIA Container Toolkit. Pass the GPUs to the container:
 docker run --rm --gpus all ghcr.io/sparecores/benchmark-llm:main > results.jsonl
 ```
 
-The CUDA build is in the AMD64 image only. At startup,
+Only the AMD64 variant of `:main` includes the CUDA build. At startup,
 [`benchmark.py`](../benchmark.py) runs `llama-cli --version` from the CUDA
 build: if it succeeds, this benchmark uses the CUDA build, and otherwise the
 CPU build, for example on a non-NVIDIA GPU or with NVIDIA driver issues. This
@@ -60,6 +61,7 @@ reads the file size from Hugging Face and skips the model if the free space is
 less than the file size plus 10%. The check reads the free space of the
 container's root filesystem (`/`), not of `--models-dir`, so with a separately
 mounted models directory, it does not reflect that directory's free space.
+Check the free space of the mounted directory yourself.
 
 `--download-timeout` (default 900s) limits the wait for each model. Once at
 least one download has finished, this benchmark also estimates from the
@@ -111,6 +113,13 @@ blocklist, with the following settings. Each item also notes what a plain
 - Production skips servers with less than 1 GiB of memory. The image does not
   enforce this minimum.
 - No options are passed, so production uses the default models and timeouts.
+
+To reproduce the container settings above, run the following command on a
+server with GPUs. Omit `--gpus all` on a server without GPUs:
+
+```bash
+docker run --rm --privileged --network host --gpus all ghcr.io/sparecores/benchmark-llm:main > results.jsonl
+```
 
 We investigate failed production runs, manually or semi-automatically, and
 then run them again. Until then, a server type's latest result in

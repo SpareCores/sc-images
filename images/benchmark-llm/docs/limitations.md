@@ -79,7 +79,8 @@ measurement has a timeout, and the following rules skip the rest of a run:
   skipped.
 - If a model would not finish downloading within `--download-timeout`, this
   benchmark stops and skips it and all larger models.
-- If the disk has too little free space for a model, that model is skipped.
+- If the disk has too little free space for a model, that model is skipped, and
+  the run continues with the next one.
 
 All of these paths exit with code 0, so a run with missing results looks like a
 successful run. See
