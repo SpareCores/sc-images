@@ -147,6 +147,13 @@ with one Tesla P100 GPU, `host_to_device_memcpy_ce` measured 11.06 GB/s,
 17 test cases between GPUs were waived
 ([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/alicloud/ecs.gn5-c4g1.xlarge/0/nvbandwidth/stdout)).
 
+<!-- EMBED CHART BEGIN
+<iframe
+ src="https://sparecores.com/embed/server/alicloud/ecs.gn5-c4g1.xlarge/nvbandwidth"
+ style="height: 517px; width: 100%; border: 1px solid #34d399; border-radius: 8px; min-height: 400px">
+</iframe>
+EMBED CHART END -->
+
 On a fatal error, such as a GPU that CUDA cannot initialize, the JSON has an
 `error` field instead of `testcases`, and the process exits with code 1. A
 failed data check prints `Invalid value when checking the pattern at ...`
