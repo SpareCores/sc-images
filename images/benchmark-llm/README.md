@@ -70,15 +70,17 @@ caches them in `/models`, a Docker volume. See
 [Model Downloads and Disk Space](./docs/usage.md#model-downloads-and-disk-space)
 to reuse downloaded models.
 
-To run on NVIDIA GPUs, pass the GPUs to the container. The CUDA build is in the
-AMD64 image only:
+To run on NVIDIA GPUs, the host needs the NVIDIA driver and the
+NVIDIA Container Toolkit. Pass the GPUs to the container. The CUDA build is in
+the AMD64 image only:
 
 ```bash
 docker run --rm --gpus all ghcr.io/sparecores/benchmark-llm:main > results.jsonl
 ```
 
-If the CUDA build cannot start, for example on a non-NVIDIA GPU or with NVIDIA
-driver issues, this benchmark falls back to the CPU build. See
+If the CUDA build cannot start inside the container, for example on a
+non-NVIDIA GPU or with NVIDIA driver issues, this benchmark falls back to the
+CPU build. The fallback does not replace the host requirements above. See
 [GPU Run](./docs/usage.md#gpu-run) for how it picks the build and the GPU
 layers.
 

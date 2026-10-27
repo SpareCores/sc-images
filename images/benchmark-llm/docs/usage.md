@@ -22,7 +22,8 @@ docker run --rm ghcr.io/sparecores/benchmark-llm:main --version
 
 ## GPU Run
 
-Pass the GPUs to the container to run on NVIDIA GPUs:
+To run on NVIDIA GPUs, the host needs the NVIDIA driver and the
+NVIDIA Container Toolkit. Pass the GPUs to the container:
 
 ```bash
 docker run --rm --gpus all ghcr.io/sparecores/benchmark-llm:main > results.jsonl
@@ -31,9 +32,10 @@ docker run --rm --gpus all ghcr.io/sparecores/benchmark-llm:main > results.jsonl
 The CUDA build is in the AMD64 image only. At startup,
 [`benchmark.py`](../benchmark.py) runs `llama-cli --version` from the CUDA
 build: if it succeeds, this benchmark uses the CUDA build, and otherwise the
-CPU build, for example on a non-NVIDIA GPU or with NVIDIA driver issues. The
-choice is logged to stderr, and each output line records it in `backends`
-(`CUDA` or `CPU`).
+CPU build, for example on a non-NVIDIA GPU or with NVIDIA driver issues. This
+fallback runs inside the container, so it does not replace the host
+requirements above. The choice is logged to stderr, and each output line
+records it in `backends` (`CUDA` or `CPU`).
 
 With the CUDA build, this benchmark then finds how many layers of each model
 fit on the GPUs; see [GPU Layers](./workloads.md#gpu-layers).
@@ -86,8 +88,9 @@ production runs took the following times:
   ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g4dn.xlarge/0/llm/meta.json))
 
 To give slower servers more time, raise `--benchmark-timeout-scale`, which
-multiplies every measurement's timeout. Results of such a run are not
-comparable with default runs.
+multiplies every measurement's timeout. The options passed to `llama-bench`
+stay the same, so such a run can report results for models and token counts
+that a default run skips.
 
 ## Production Setup
 
