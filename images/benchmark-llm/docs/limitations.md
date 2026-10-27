@@ -48,8 +48,8 @@ also retries a failed GPU run without GPUs. See
 [GPU Run](./usage.md#gpu-run) and
 [Production Setup](./usage.md#production-setup).
 
-The Navigator publishes the best score measured on a server type, without
-marking whether it came from the GPU or the CPU. Each output line records it in
+The Navigator publishes the score measured on a server type, without marking
+whether it came from the GPU or the CPU. Each output line records it in
 `backends` (`CUDA` or `CPU`), but this field is not published.
 
 ### GPU Coverage

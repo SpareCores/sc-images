@@ -55,6 +55,10 @@ Note the following limitations:
 - **[Missing Results](./docs/limitations.md#missing-results):** On slow
   servers, timeouts skip larger token counts and models, and the run still
   exits with code 0. The Navigator shows "no data" for the skipped results.
+- **[Downloads and Disk Space](./docs/limitations.md#downloads-and-disk-space):**
+  The models are downloaded during the run, so a slow download can skip the
+  largest models, even on a fast server. A model is also skipped if the disk has
+  too little free space for it.
 
 ## Usage
 
@@ -101,7 +105,7 @@ see the [full option reference](./docs/usage.md#options) for all options and
 defaults:
 
 - `--model-urls` replaces the default model list with URLs of GGUF model
-  files, ordered from smallest to largest.
+  files, separated by spaces and ordered from smallest to largest.
 - `--models-dir` sets the download and cache directory (default `/models`).
 - `--benchmark-timeout-scale` multiplies every per-scenario timeout by an
   integer (default 1).

@@ -100,16 +100,24 @@ second, rise with the token count:
 | 16384 | 1000 | Not run |
 
 For example, text generation of 16 tokens with a model of 4 GiB gets
-`4 / 0.25 + 1 + 5 × 16 / 1 = 97` seconds. A server that generates 512 tokens
-at 22 tokens per second misses the 25 tokens per second expected there, so its
-measurement times out and the larger token counts of that task are skipped.
+`4 / 0.25 + 1 + 5 × 16 / 1 = 97` seconds, and at 512 tokens 119 seconds. A
+server that generates 15 tokens per second needs \~171 seconds for the five
+repetitions at 512 tokens, so its measurement times out and the larger token
+counts of that task are skipped. The load allowance adds some slack: a server
+slightly below the expected speed can still finish in time.
 
 After a successful measurement of 1,024 or more tokens that is not the last of
 its task, this benchmark also estimates whether the next token count can meet
-its expected speed. If the measurement took longer than its timeout times the
-ratio of the two expected speeds, times 1.1, the remaining token counts of that
-task are skipped. For prompt processing at 1,024 tokens, that limit is 22% of
-the timeout (50 / 250 × 1.1).
+its expected speed. If the measurement took longer than the following limit,
+the remaining token counts of that task are skipped:
+
+```text
+limit = timeout × expected_speed / next_expected_speed × 1.1
+```
+
+`timeout` and `expected_speed` are those of the measurement that just ran, and
+`next_expected_speed` is the expected speed of the next token count. For prompt
+processing at 1,024 tokens, that limit is 22% of the timeout (50 / 250 × 1.1).
 
 When a measurement times out or fails, the following happens:
 

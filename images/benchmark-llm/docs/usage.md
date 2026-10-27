@@ -66,7 +66,8 @@ least one download has finished, this benchmark also estimates from the
 average download speed whether the next model can finish downloading within
 that time. If a model would not finish, or has not finished when the wait
 ends, this benchmark stops the downloads and exits with code 0, skipping that
-model and all larger ones.
+model and all larger ones. The check runs only after all earlier models have
+been measured, so their results are complete.
 
 On `SIGINT` or `SIGTERM`, this benchmark deletes the incomplete `.part` files
 and exits with code 128 plus the signal number.
@@ -123,8 +124,18 @@ output fields.
 
 | Option | Meaning | Default |
 | --- | --- | --- |
-| `--model-urls` | URLs of GGUF model files to download and measure, in order. Order them from smallest to largest: a model that fails its first measurement stops the run. | The six [default models](./workloads.md#models) |
+| `--model-urls` | URLs of GGUF model files to download and measure, in order, separated by spaces after one flag. Order them from smallest to largest: a model that fails its first measurement stops the run. | The six [default models](./workloads.md#models) |
 | `--models-dir` | Directory to download and cache the models in. | `/models` |
 | `--benchmark-timeout-scale` | Integer that multiplies every measurement's timeout. | `1` |
-| `--download-timeout` | Maximum wait for each model download, in seconds, and the horizon of the download estimate. | `900` |
+| `--download-timeout` | Maximum wait for each model download, in seconds. This benchmark also gives up a model when its remaining download, at the average speed of the earlier downloads, would take longer. | `900` |
 | `--version` | Print the llama.cpp commit hash and exit; `unknown` if it cannot be read. | Off |
+
+To measure other models, pass their URLs after one `--model-urls` flag. For
+example, the following command measures only the two smallest default models:
+
+```bash
+docker run --rm ghcr.io/sparecores/benchmark-llm:main --model-urls \
+  https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/b35f229108e4c5a4deeccccf9bf75cd46006fa7b/SmolLM-135M.Q4_K_M.gguf \
+  https://huggingface.co/Qwen/Qwen1.5-0.5B-Chat-GGUF/resolve/cfab082d2fef4a8736ef384dc764c2fb6887f387/qwen1_5-0_5b-chat-q4_k_m.gguf \
+  > results.jsonl
+```
