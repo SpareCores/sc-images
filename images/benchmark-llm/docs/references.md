@@ -25,7 +25,7 @@ Cores docs, which also lists the terms each image uses.
   use against the speed of prompt processing.
   [llama-bench README](https://github.com/ggml-org/llama.cpp/tree/master/tools/llama-bench)
 - **`llama-bench`**: The benchmark tool of llama.cpp. It measures the speed of
-  prompt processing and text generation, in tokens per second, for given
+  prompt processing and text generation in tokens per second, for given
   models, token counts, and settings. Each test is repeated several times, and
   the tool reports the average and standard deviation, as a table or in
   machine-readable formats such as JSON Lines.

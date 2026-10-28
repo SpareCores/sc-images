@@ -145,7 +145,7 @@ output fields.
 | `--model-urls` | URLs of GGUF model files to download and measure, in order, separated by spaces after one flag. Order them from smallest to largest: a model that fails its first measurement stops the run. | The six [default models](./workloads.md#models) |
 | `--models-dir` | Directory to download and cache the models in. | `/models` |
 | `--benchmark-timeout-scale` | Integer that multiplies every measurement's timeout. | `1` |
-| `--download-timeout` | Maximum wait for each model download, in seconds. This benchmark also gives up a model when its remaining download, at the average speed of the earlier downloads, would take longer. | `900` |
+| `--download-timeout` | Maximum wait for each model download in seconds. This benchmark also gives up a model when its remaining download, at the average speed of the earlier downloads, would take longer. | `900` |
 | `--version` | Print the llama.cpp commit hash and exit; `unknown` if it cannot be read. | Off |
 
 To measure other models, pass their URLs after one `--model-urls` flag. For

@@ -78,7 +78,7 @@ recorded as `n_gpu_layers`.
 
 ## Timeouts and Early Stops
 
-Each measurement's timeout, in seconds, depends on the model size, the token
+Each measurement's timeout in seconds depends on the model size, the token
 count, and the expected speed for that task and token count:
 
 ```text
@@ -88,21 +88,20 @@ timeout = round((model_GiB / 0.25 + 1 + 5 × tokens / expected_speed) × scale)
 The `model_GiB` variable is the model file's size in GiB. The formula allows 4 seconds per
 GiB to load the model, 1 second of overhead, and five repetitions at the
 expected speed. The `scale` variable is the value of `--benchmark-timeout-scale`
-(default: 1). The expected speeds, in tokens per
-second, rise with the token count:
+(default: 1). The expected speeds rise with the token count:
 
-| Tokens | Prompt processing | Text generation |
+| Tokens | Prompt processing (tokens/s) | Text generation (tokens/s) |
 | --- | --- | --- |
 | 16 | 2 | 1 |
 | 128 | 10 | 5 |
 | 512 | 25 | 25 |
-| 1024 | 50 | 50 |
-| 4096 | 250 | 250 |
-| 16384 | 1000 | Not run |
+| 1,024 | 50 | 50 |
+| 4,096 | 250 | 250 |
+| 16,384 | 1,000 | Not run |
 
 For example, text generation of 16 tokens with a model of 4 GiB gets
 `4 / 0.25 + 1 + 5 × 16 / 1 = 97` seconds, and at 512 tokens 119 seconds. A
-server that generates 15 tokens per second needs \~171 seconds for the five
+server that generates 15 tokens/s needs \~171 seconds for the five
 repetitions at 512 tokens, so its measurement times out and the larger token
 counts of that task are skipped. The load allowance adds some slack: a server
 slightly below the expected speed can still finish in time.

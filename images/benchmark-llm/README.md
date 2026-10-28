@@ -108,11 +108,11 @@ defaults:
 
 - `--model-urls` replaces the default model list with URLs of GGUF model
   files, separated by spaces and ordered from smallest to largest.
-- `--models-dir` sets the download and cache directory (default `/models`).
+- `--models-dir` sets the download and cache directory (default: `/models`).
 - `--benchmark-timeout-scale` multiplies every per-scenario timeout by an
-  integer (default 1).
+  integer (default: 1).
 - `--download-timeout` sets the maximum wait for each model download
-  (default 900s).
+  (default: 900s).
 - `--version` prints the commit hash of llama.cpp build `b4753`, `51f311e0`,
   and exits.
 
@@ -179,7 +179,7 @@ reconsider if a newer build materially changed the performance difference
 between server types, not only the overall speed.
 
 Slow servers cannot spend hours on long prompts, so the expected speed rises
-with the token count: 1 token per second can be acceptable for a short
+with the token count: 1 token/s can be acceptable for a short
 response, but not for batch processing of long inputs. In our experiments on
 several cloud server types, speed usually rose with the token count up to
 1,024 tokens, so early stops start only from there.
