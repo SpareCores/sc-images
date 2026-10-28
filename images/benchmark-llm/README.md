@@ -9,8 +9,8 @@ can start, and on the CPU otherwise.
 
 This benchmark reports speed in tokens per second for two tasks, prompt
 processing and text generation, each at several token counts. It prints one
-JSON line per model, task, and token count, with the average and the values of
-five repetitions.
+JSON line per model, task, and token count, with the values of five
+repetitions and their average.
 
 ## Purpose
 
@@ -95,10 +95,10 @@ the GPUs passed on GPU servers. A plain `docker run` uses neither privileged
 mode nor host networking. See [Production Setup](./docs/usage.md#production-setup)
 before you compare your results with the Navigator's.
 
-Sample production runs took about 18 to 32 minutes. Run time depends on the
-server's speed, on the download speed, and on how many models and token counts
-fit in their timeouts. See [Run Duration](./docs/usage.md#run-duration) for
-the timeouts.
+Sample production runs took about 18 to 32 minutes. Run time depends on
+the download speed, on the server's speed, and on how many models and token
+counts fit in their timeouts. See [Run Duration](./docs/usage.md#run-duration)
+for the timeouts.
 
 ### Settings
 
@@ -122,18 +122,18 @@ The process prints JSON Lines to stdout: one line per model, task, and token
 count, written as each measurement finishes. Logs go to stderr. The main fields
 of each line are the following:
 
-- `avg_ts` is the average speed in tokens per second, and `stddev_ts` its
-  standard deviation. `samples_ts` lists the five repetitions.
+- `samples_ts` lists the speeds of the five repetitions in tokens per second,
+  `avg_ts` their average, and `stddev_ts` their standard deviation.
 - `n_prompt` and `n_gen` identify the task: a prompt processing line has
   `n_gen: 0` and `n_prompt` tokens, and a text generation line has
   `n_prompt: 0` and `n_gen` tokens.
 - `model_filename`, `model_size` (in bytes), and `model_n_params` identify the
   model.
 - `backends` is `CUDA` or `CPU`, and `n_gpu_layers` is the number of model
-  layers offloaded to the GPUs. `gpu_info`, `cpu_info`, and `n_threads`
-  describe the hardware used.
-- `avg_ns` and `samples_ns` give the same measurements as time per repetition,
-  in nanoseconds.
+  layers offloaded to the GPUs. The `gpu_info`, `cpu_info`, and `n_threads`
+  fields describe the hardware used.
+- `samples_ns` gives the time of each repetition in nanoseconds, and
+  `avg_ns` their average.
 
 For example, on an AWS (Amazon Web Services)
 [`m7i.2xlarge`](https://sparecores.com/server/aws/m7i.2xlarge#llm_prompt_chart),

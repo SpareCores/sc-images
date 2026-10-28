@@ -15,8 +15,8 @@ The Arm64 variant always uses the CPU build of llama.cpp, and the AMD64 variant
 uses it when the CUDA (Compute Unified Device Architecture) build cannot start,
 for example without GPUs.
 
-`--version` prints the commit hash of the llama.cpp build, `51f311e0`, and
-exits:
+The `--version` option prints the commit hash of the llama.cpp build,
+`51f311e0`, and exits:
 
 ```bash
 docker run --rm ghcr.io/sparecores/benchmark-llm:main --version
@@ -52,8 +52,8 @@ as `us.aws.cdn.hf.co`, unless the model files are already in `--models-dir`
 model after another, while the models already downloaded are measured. Each
 file is written as `<file>.part` and renamed when it is complete.
 
-`/models` is a Docker volume, so a plain run downloads the models again each
-time. To reuse them across runs, mount a host directory on it:
+The `/models` folder is a Docker volume, so a plain run downloads the models
+again each time. To reuse them across runs, mount a host directory on it:
 
 ```bash
 docker run --rm -v "$PWD/models:/models" ghcr.io/sparecores/benchmark-llm:main > results.jsonl
@@ -67,20 +67,20 @@ the free space of the container's root filesystem (`/`), not of
 reflect that directory's free space. Check the free space of the mounted
 directory yourself.
 
-`--download-timeout` (default 900s) limits the wait for each model. Once at
-least one download has finished, this benchmark also estimates from the
-average download speed whether the next model can finish downloading within
-that time. If a model would not finish, or has not finished when the wait
-ends, this benchmark stops the downloads and exits with code 0, skipping that
-model and all larger ones. The check runs only after all earlier models have
-been measured, so their results are complete.
+The `--download-timeout` option (default: 900s) limits the wait for each
+model. Once at least one download has finished, this benchmark also estimates
+from the average download speed whether the next model can finish downloading
+within that time. If a model would not finish, or has not finished when the
+wait ends, this benchmark stops the downloads and exits with code 0, skipping
+that model and all larger ones. The check runs only after all earlier models
+have been measured, so their results are complete.
 
 On `SIGINT` or `SIGTERM`, this benchmark deletes the incomplete `.part` files
 and exits with code 128 plus the signal number.
 
 ## Run Duration
 
-Run time depends on the server's speed, on the download speed, and on how many
+Run time depends on the download speed, on the server's speed, and on how many
 models and token counts fit in their timeouts; see
 [Timeouts and Early Stops](./workloads.md#timeouts-and-early-stops). Sample
 production runs on AWS (Amazon Web Services) took the following times. Each
@@ -102,9 +102,9 @@ its production output:
   ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g4dn.xlarge/0/llm/meta.json))
 
 To give slower servers more time, raise `--benchmark-timeout-scale`, which
-multiplies every measurement's timeout. The options passed to `llama-bench`
-stay the same, so such a run can report results for models and token counts
-that a default run skips.
+multiplies every measurement's timeout without changing the `llama-bench`
+options. Such a run can then measure models and token counts that a default
+run skips.
 
 ## Production Setup
 

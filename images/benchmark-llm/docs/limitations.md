@@ -10,7 +10,7 @@ speed a single user gets from a model, *not* the throughput of a server that
 answers many requests at once, such as a shared LLM (Large Language Model)
 service.
 
-llama.cpp is often the fastest self-hosted option for a single user, but it
+For a single user, llama.cpp is often the fastest self-hosted option, but it
 does not scale as well to many concurrent requests, where vLLM is preferred.
 The vLLM benchmarks measure that case;
 [Spare Cores Navigator](https://docs.sparecores.com/overview) does not show
@@ -37,8 +37,8 @@ need a rerun on every server type already measured. A newer llama.cpp build may
 be faster in general; the published results show the differences between server
 types at build `b4753`.
 
-`--model-urls` replaces the model list for your own runs. The results of such a
-run are not comparable with the Navigator's.
+The `--model-urls` option replaces the model list for your own runs. The
+results of such a run are not comparable with the Navigator's.
 
 ### CPU or GPU Results
 

@@ -71,10 +71,10 @@ Every `llama-bench` measurement uses the following settings, set in
 
 With the CUDA build, this benchmark sets how many model layers to offload to
 the GPUs (`-ngl`) before it measures each model. It tries 999, 40, 24, and 12,
-in this order, each in a one-repetition `llama-bench` run with a fixed timeout
-of 120 seconds, and uses the first value whose run completes. If none
-completes, or with the CPU build, it uses 0. The value is recorded as
-`n_gpu_layers`.
+in this order. For each value, it runs `llama-bench` with one repetition, one
+thread, and a fixed timeout of 120 seconds, and uses the first value whose run
+succeeds. If none succeeds, or with the CPU build, it uses 0. The value is
+recorded as `n_gpu_layers`.
 
 ## Timeouts and Early Stops
 
@@ -85,9 +85,10 @@ count, and the expected speed for that task and token count:
 timeout = round((model_GiB / 0.25 + 1 + 5 × tokens / expected_speed) × scale)
 ```
 
-`model_GiB` is the model file's size in GiB. The formula allows 4 seconds per
+The `model_GiB` variable is the model file's size in GiB. The formula allows 4 seconds per
 GiB to load the model, 1 second of overhead, and five repetitions at the
-expected speed. `scale` is `--benchmark-timeout-scale` (default 1). The expected speeds, in tokens per
+expected speed. The `scale` variable is the value of `--benchmark-timeout-scale`
+(default: 1). The expected speeds, in tokens per
 second, rise with the token count:
 
 | Tokens | Prompt processing | Text generation |
@@ -115,9 +116,10 @@ the remaining token counts of that task are skipped:
 limit = timeout × expected_speed / next_expected_speed × 1.1
 ```
 
-`timeout` and `expected_speed` are those of the measurement that just ran, and
-`next_expected_speed` is the expected speed of the next token count. For prompt
-processing at 1,024 tokens, that limit is 22% of the timeout (50 / 250 × 1.1).
+The `timeout` and `expected_speed` variables are those of the measurement that
+just ran, and `next_expected_speed` is the expected speed of the next token
+count. For prompt processing at 1,024 tokens, that limit is 22% of the timeout
+(50 / 250 × 1.1).
 
 When a measurement times out or fails, the following happens:
 
