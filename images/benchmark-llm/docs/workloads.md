@@ -22,8 +22,8 @@ timeout or failure skips the rest of the task or the run; see
 
 ## Models
 
-The default models are the following, from smallest to largest. The file
-sizes are approximate:
+The default models are the following GGUF (GGML Universal File) files, from
+smallest to largest. The file sizes are approximate:
 
 | Model | Parameters | Quantization | File size | Download |
 | --- | --- | --- | --- | --- |

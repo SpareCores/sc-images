@@ -1,7 +1,7 @@
 # benchmark-llm
 
-This benchmark measures how fast a server runs LLM (Large Language Model)
-inference for one request stream at a time, with `llama-bench` from llama.cpp.
+This benchmark measures how fast a server runs LLM inference for one request
+stream at a time, with `llama-bench` from llama.cpp.
 It downloads six 4-bit quantized models, from 135 million to 70 billion
 parameters, and benchmarks them from smallest to largest. It runs on NVIDIA
 GPUs when the CUDA (Compute Unified Device Architecture) build of llama.cpp
@@ -106,8 +106,9 @@ Pass options after the image name. The following options are the most common;
 see the [full option reference](./docs/usage.md#options) for all options and
 defaults:
 
-- `--model-urls` replaces the default model list with URLs of GGUF model
-  files, separated by spaces and ordered from smallest to largest.
+- `--model-urls` replaces the default model list with URLs of GGUF (GGML
+  Universal File) model files, separated by spaces and ordered from smallest to
+  largest.
 - `--models-dir` sets the download and cache directory (default: `/models`).
 - `--benchmark-timeout-scale` multiplies every per-scenario timeout by an
   integer (default: 1).
@@ -185,8 +186,7 @@ several cloud server types, speed usually rose with the token count up to
 1,024 tokens, so early stops start only from there.
 
 In production, speed and download time limit how many models a server
-completes. On an AWS (Amazon Web Services) `c7g.large`, the 7B model timed out
-on its first scenario
+completes. On an AWS `c7g.large`, the 7B model timed out on its first scenario
 ([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/llm/stderr)),
 and on a `c9g.48xlarge`, this benchmark gave up the 70B model's download at
 25.7 MB/s

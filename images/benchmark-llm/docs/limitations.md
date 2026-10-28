@@ -7,8 +7,7 @@
 This benchmark runs one `llama-bench` process at a time, and the
 [harness](../benchmark.py) sends no concurrent requests. The results show the
 speed a single user gets from a model, *not* the throughput of a server that
-answers many requests at once, such as a shared LLM (Large Language Model)
-service.
+answers many requests at once, such as a shared LLM service.
 
 For a single user, llama.cpp is often the fastest self-hosted option, but it
 does not scale as well to many concurrent requests, where vLLM is preferred.

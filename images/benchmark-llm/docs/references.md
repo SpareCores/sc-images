@@ -1,7 +1,7 @@
 # References
 
 Terms specific to this image, alphabetized. Common terms, such as CUDA (Compute
-Unified Device Architecture), GGUF, LLM (Large Language Model), and token, are
+Unified Device Architecture), GGUF (GGML Universal File), and token, are
 defined in the [glossary](https://docs.sparecores.com/glossary) of the Spare
 Cores docs, which also lists the terms each image uses.
 
