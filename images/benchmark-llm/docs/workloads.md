@@ -85,10 +85,11 @@ count, and the expected speed for that task and token count:
 timeout = round((model_GiB / 0.25 + 1 + 5 × tokens / expected_speed) × scale)
 ```
 
-The `model_GiB` variable is the model file's size in GiB. The formula allows 4 seconds per
-GiB to load the model, 1 second of overhead, and five repetitions at the
-expected speed. The `scale` variable is the value of `--benchmark-timeout-scale`
-(default: 1). The expected speeds rise with the token count:
+The `model_GiB` variable is the model file's size in GiB. The formula allows 4
+seconds per GiB to load the model, 1 second of overhead, and five repetitions
+at the expected speed. The `scale` variable is the value of
+`--benchmark-timeout-scale` (default: 1). The expected speeds rise with the
+token count:
 
 | Tokens | Prompt processing (tokens/s) | Text generation (tokens/s) |
 | --- | --- | --- |
