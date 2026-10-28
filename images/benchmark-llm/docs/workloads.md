@@ -128,4 +128,5 @@ When a measurement times out or fails, the following happens:
 
 To allow slower servers more time, raise `--benchmark-timeout-scale`. See
 [Missing Results](./limitations.md#missing-results) for the other reasons a
-run can stop early and how Spare Cores Navigator shows them.
+run can stop early and how
+[Spare Cores Navigator](https://docs.sparecores.com/overview) shows them.

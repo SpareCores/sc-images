@@ -32,11 +32,11 @@ docker run --rm --gpus all ghcr.io/sparecores/benchmark-llm:main > results.jsonl
 
 Only the AMD64 variant of `:main` includes the CUDA build. At startup,
 [`benchmark.py`](../benchmark.py) runs `llama-cli --version` from the CUDA
-build: if it succeeds, this benchmark uses the CUDA build, and otherwise the
-CPU build, for example on a non-NVIDIA GPU or with NVIDIA driver issues. This
-fallback runs inside the container, so it does not replace the host
-requirements above. The choice is logged to stderr, and each output line
-records it in `backends` (`CUDA` or `CPU`).
+build. If it succeeds, this benchmark uses the CUDA build. If it fails, for
+example on a non-NVIDIA GPU or with NVIDIA driver issues, this benchmark uses
+the CPU build. This fallback runs inside the container, so it does not
+replace the host requirements above. The choice is logged to stderr, and each
+output line records it in `backends` (`CUDA` or `CPU`).
 
 With the CUDA build, this benchmark then finds how many layers of each model
 fit on the GPUs; see [GPU Layers](./workloads.md#gpu-layers).
@@ -44,8 +44,10 @@ fit on the GPUs; see [GPU Layers](./workloads.md#gpu-layers).
 ## Model Downloads and Disk Space
 
 This benchmark downloads the models from Hugging Face while it runs, so it
-needs network access to `huggingface.co`, unless the model files are already in
-`--models-dir` (default `/models`). The downloads run in the background, one
+needs network access to the hostname `huggingface.co` and to the Hugging Face
+CDN (Content Delivery Network) host that it redirects the downloads to, such
+as `us.aws.cdn.hf.co`, unless the model files are already in `--models-dir`
+(default: `/models`). The downloads run in the background, one
 model after another, while the models already downloaded are measured. Each
 file is written as `<file>.part` and renamed when it is complete.
 
@@ -56,12 +58,13 @@ time. To reuse them across runs, mount a host directory on it:
 docker run --rm -v "$PWD/models:/models" ghcr.io/sparecores/benchmark-llm:main > results.jsonl
 ```
 
-All six default models take up to \~58 GB. Before each download, this benchmark
-reads the file size from Hugging Face and skips the model if the free space is
-less than the file size plus 10%. The check reads the free space of the
-container's root filesystem (`/`), not of `--models-dir`, so with a separately
-mounted models directory, it does not reflect that directory's free space.
-Check the free space of the mounted directory yourself.
+Together, the six default models take \~58 GB, the largest \~42 GB. Before each
+download, this benchmark reads the file size from Hugging Face and skips the
+model if the free space is less than the file size plus 10%. The check reads
+the free space of the container's root filesystem (`/`), not of
+`--models-dir`, so with a separately mounted models directory, it does not
+reflect that directory's free space. Check the free space of the mounted
+directory yourself.
 
 `--download-timeout` (default 900s) limits the wait for each model. Once at
 least one download has finished, this benchmark also estimates from the
@@ -79,15 +82,22 @@ and exits with code 128 plus the signal number.
 Run time depends on the server's speed, on the download speed, and on how many
 models and token counts fit in their timeouts; see
 [Timeouts and Early Stops](./workloads.md#timeouts-and-early-stops). Sample
-production runs took the following times:
+production runs on AWS (Amazon Web Services) took the following times. Each
+server type links to its LLM scores in
+[Spare Cores Navigator](https://docs.sparecores.com/overview), and each run to
+its production output:
 
-- AWS (Amazon Web Services) `c7g.large`: 18 min, stopped at the 7B model
+- [`c7g.large`](https://sparecores.com/server/aws/c7g.large#llm_prompt_chart):
+  18 min, stopped at the 7B model
   ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/llm/meta.json))
-- AWS `c9g.48xlarge`: 26 min, stopped at the 70B model's download
+- [`c9g.48xlarge`](https://sparecores.com/server/aws/c9g.48xlarge#llm_prompt_chart):
+  26 min, stopped at the 70B model's download
   ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c9g.48xlarge/0/llm/meta.json))
-- AWS `m7i.2xlarge`: 31 min
+- [`m7i.2xlarge`](https://sparecores.com/server/aws/m7i.2xlarge#llm_prompt_chart):
+  31 min
   ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7i.2xlarge/0/llm/meta.json))
-- AWS `g4dn.xlarge` with an NVIDIA GPU: 32 min
+- [`g4dn.xlarge`](https://sparecores.com/server/aws/g4dn.xlarge#llm_prompt_chart)
+  with an NVIDIA GPU: 32 min
   ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g4dn.xlarge/0/llm/meta.json))
 
 To give slower servers more time, raise `--benchmark-timeout-scale`, which
@@ -97,7 +107,7 @@ that a default run skips.
 
 ## Production Setup
 
-The Inspector of Spare Cores Navigator
+The Navigator's Inspector
 ([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs this image
 on every server type except those on the
 [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)

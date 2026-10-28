@@ -12,8 +12,9 @@ service.
 
 llama.cpp is often the fastest self-hosted option for a single user, but it
 does not scale as well to many concurrent requests, where vLLM is preferred.
-The [vLLM benchmarks](../../../vllm-common/README.md) measure that case;
-Spare Cores Navigator does not publish their results yet.
+The vLLM benchmarks measure that case;
+[Spare Cores Navigator](https://docs.sparecores.com/overview) does not show
+their results yet.
 
 ### Output Quality
 
@@ -77,10 +78,11 @@ measurement has a timeout, and the following rules skip the rest of a run:
 - If a measurement of 1,024 or more tokens takes too long to meet the next
   token count's expected speed, the remaining token counts of that task are
   skipped.
-- If a model would not finish downloading within `--download-timeout`, this
-  benchmark stops and skips it and all larger models.
-- If the disk has too little free space for a model, that model is skipped, and
-  the run continues with the next one.
+- If a model would not finish downloading within `--download-timeout`, the
+  run stops, so that model and all larger ones are skipped.
+- If the disk has too little free space for a model, only that model is
+  skipped, and the run continues with the next one. The next default models
+  are larger, so they are skipped too.
 
 All of these paths exit with code 0, so a run with missing results looks like a
 successful run. See
@@ -91,16 +93,26 @@ The Navigator shows "no data" for a missing score, because the cause is not
 recorded: the server can be too slow, or the run can have failed or not tried.
 The Navigator's LLM workload profile includes a penalty when the smaller models
 have scores but the larger ones are missing, because then the larger models
-could not load or finish in time.
+could not load or finish in time. For example, the
+[AWS (Amazon Web Services) `c7g.large` page](https://sparecores.com/server/aws/c7g.large)
+has scores for the smaller models only.
+
+<!-- embed -->
+[Workload Profiles of c7g.large](https://sparecores.com/embed/server/aws/c7g.large/workload_profile)
 
 ### Downloads and Disk Space
 
 The models are downloaded from Hugging Face during the run, not built into the
 image, so download speed affects which models a run reaches. In production, an
-AWS (Amazon Web Services) `c9g.48xlarge` downloaded at 25.7 MB/s and gave up
-the 70B model, whose file is \~42 GB
+AWS `c9g.48xlarge` downloaded at 25.7 MB/s and gave up the 70B model, whose
+file is \~42 GB
 ([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c9g.48xlarge/0/llm/stderr)).
+Its [LLM scores](https://sparecores.com/server/aws/c9g.48xlarge#llm_prompt_chart)
+stop at the 14B model.
 
-All six models take up to \~58 GB of disk space. This benchmark checks the free
-space of the container's root filesystem, not of `--models-dir`; see
-[Model Downloads and Disk Space](./usage.md#model-downloads-and-disk-space).
+<!-- embed -->
+[LLM Prompt Processing of c9g.48xlarge](https://sparecores.com/embed/server/aws/c9g.48xlarge/llm_prompt)
+
+Together, the six default models take \~58 GB of disk space. This benchmark
+checks the free space of the container's root filesystem, not of `--models-dir`;
+see [Model Downloads and Disk Space](./usage.md#model-downloads-and-disk-space).

@@ -20,7 +20,8 @@ including LLM inference speed from this benchmark: one score in tokens per
 second for each server type, model, task, and token count. In the
 [Navigator's Web UI](https://sparecores.com/servers), you can order the server
 list by one of these scores, and each server's details page charts all of
-them.
+them, for example
+[for `m7i.2xlarge`](https://sparecores.com/server/aws/m7i.2xlarge#llm_prompt_chart).
 
 We needed one method that runs on every server type, from servers with less
 than 1 GB of RAM to servers with terabytes of memory, hundreds of CPU cores,
@@ -28,11 +29,10 @@ and several GPUs. llama.cpp runs inference on both CPUs and GPUs with minimal
 tuning, and its project publishes container images for AMD64 and Arm64, a CUDA
 build, and a configurable benchmark tool, `llama-bench`.
 
-llama.cpp is often the fastest self-hosted option for a single user, so this
-benchmark measures one request stream at a time. For shared serving with many
-concurrent requests, vLLM is preferred; the
-[vLLM benchmarks](../../vllm-common/README.md) cover that case, but the
-Navigator does not publish their results yet.
+For a single user, llama.cpp is often the fastest self-hosted option, so
+this benchmark measures one request stream at a time. For shared serving
+with many concurrent requests, vLLM is preferred; the vLLM benchmarks cover
+that case, but the Navigator does not show their results yet.
 
 ## Limitations
 
@@ -134,11 +134,22 @@ of each line are the following:
 - `avg_ns` and `samples_ns` give the same measurements as time per repetition,
   in nanoseconds.
 
+For example, on an AWS (Amazon Web Services)
+[`m7i.2xlarge`](https://sparecores.com/server/aws/m7i.2xlarge#llm_prompt_chart),
+the 7B model processed a 512-token prompt at 53.75 tokens/s and generated 128
+tokens at 7.71 tokens/s
+([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7i.2xlarge/0/llm/stdout)).
+
+<!-- embed -->
+[LLM Prompt Processing of m7i.2xlarge](https://sparecores.com/embed/server/aws/m7i.2xlarge/llm_prompt)
+
 The process exits with code 0 even when it skipped models or token counts, so
 check which lines are present, and the reasons logged to stderr. On `SIGINT` or
 `SIGTERM`, it exits with code 128 plus the signal number. Resource usage is
-recorded with `resource-tracker`, which streams it to the Spare Cores Sentinel
-platform for the team's own monitoring. It is not published.
+recorded with `resource-tracker`, which
+[streams it](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
+to the [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform for
+the team's own monitoring. It is not published.
 
 ## Workloads
 
