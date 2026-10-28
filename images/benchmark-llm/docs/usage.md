@@ -9,10 +9,11 @@ CPU:
 docker run --rm ghcr.io/sparecores/benchmark-llm:main > results.jsonl
 ```
 
-No options or environment variables are required. `:main` covers both AMD64 and
-Arm64, and Docker pulls the one for the host. The Arm64 variant always uses the
-CPU build of llama.cpp, and the AMD64 variant uses it when the CUDA (Compute
-Unified Device Architecture) build cannot start, for example without GPUs.
+No options or environment variables are required. The `:main` tag has variants
+for AMD64 and Arm64, and Docker pulls the variant for the host's architecture.
+The Arm64 variant always uses the CPU build of llama.cpp, and the AMD64 variant
+uses it when the CUDA (Compute Unified Device Architecture) build cannot start,
+for example without GPUs.
 
 `--version` prints the commit hash of the llama.cpp build, `51f311e0`, and
 exits:

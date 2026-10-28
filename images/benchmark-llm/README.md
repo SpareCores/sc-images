@@ -25,9 +25,10 @@ them, for example
 
 We needed one method that runs on every server type, from servers with less
 than 1 GB of RAM to servers with terabytes of memory, hundreds of CPU cores,
-and several GPUs. llama.cpp runs inference on both CPUs and GPUs with minimal
-tuning, and its project publishes container images for AMD64 and Arm64, a CUDA
-build, and a configurable benchmark tool, `llama-bench`.
+and several GPUs. We chose llama.cpp because it runs inference on both CPUs
+and GPUs with minimal tuning. Its project also publishes container images for
+AMD64 and Arm64, a CUDA build, and `llama-bench`, a configurable benchmark
+tool.
 
 For a single user, llama.cpp is often the fastest self-hosted option, so
 this benchmark measures one request stream at a time. For shared serving
@@ -89,10 +90,10 @@ CPU build. The fallback does not replace the host requirements above. See
 [GPU Run](./docs/usage.md#gpu-run) for how it picks the build and the GPU
 layers.
 
-Production runs the container privileged and with host networking, which a
-plain `docker run` does not, and passes the GPUs on GPU servers. See
-[Production Setup](./docs/usage.md#production-setup) before you compare your
-results with the Navigator's.
+Production runs the container privileged, with host networking, and with
+the GPUs passed on GPU servers. A plain `docker run` uses neither privileged
+mode nor host networking. See [Production Setup](./docs/usage.md#production-setup)
+before you compare your results with the Navigator's.
 
 Sample production runs took about 18 to 32 minutes. Run time depends on the
 server's speed, on the download speed, and on how many models and token counts
