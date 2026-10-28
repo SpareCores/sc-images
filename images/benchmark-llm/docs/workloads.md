@@ -57,15 +57,15 @@ a prompt (`llama-bench -n <n> -p 0`). Its output lines have `n_prompt: 0`, and
 Every `llama-bench` measurement uses the following settings, set in
 [`benchmark.py`](../benchmark.py):
 
-- **Threads:** the number of physical CPU cores (`-t`), as `psutil` counts
-  them; recorded as `n_threads`.
-- **Split mode:** `layer` (`-sm layer`).
-- **Flash attention:** on (`-fa 1`).
-- **Batch sizes:** a logical batch size of 2,048 (`-b`) and a physical batch
-  size of 512 (`-ub`).
-- **Repetitions:** the harness does not set `-r`, so `llama-bench`'s default
-  applies; production output has five repetitions per line.
-- **Output:** JSON Lines (`-o jsonl`), printed to stdout as is.
+| Setting | Option | Value |
+| --- | --- | --- |
+| Threads | `-t` | The number of physical CPU cores, as `psutil` counts them; recorded as `n_threads` |
+| Split mode | `-sm` | `layer` |
+| Flash attention | `-fa` | `1` (on) |
+| Logical batch size | `-b` | 2,048 |
+| Physical batch size | `-ub` | 512 |
+| Repetitions | `-r` | Not set, so `llama-bench`'s default applies; production output has five repetitions per line |
+| Output | `-o` | `jsonl` (JSON Lines), printed to stdout as is |
 
 ## GPU Layers
 

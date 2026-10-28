@@ -112,18 +112,16 @@ The Navigator's Inspector
 ([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs this image
 on every server type except those on the
 [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
-blocklist, with the following settings. Each item also notes what a plain
-`docker run` does instead:
+blocklist, with the following settings:
 
-- The container runs privileged and with host networking. A plain
-  `docker run` uses neither.
-- On servers with GPUs, all GPUs are passed to the container, equivalent to
-  `--gpus all`. If that run fails or times out, it is retried without GPUs.
-- The task timeout is 1.5 hours. The image itself sets no overall timeout,
-  only per-measurement and download timeouts.
-- Production skips servers with less than 1 GiB of memory. The image does not
-  enforce this minimum.
-- No options are passed, so production uses the default models and timeouts.
+| Setting | Production | Plain `docker run` |
+| --- | --- | --- |
+| Privileges | Privileged | Not privileged |
+| Networking | Host networking | Docker's default bridge network |
+| GPUs | All GPUs, as with `--gpus all`. If that run fails or times out, it is retried without GPUs. | None, unless `--gpus` is passed |
+| Overall timeout | 1.5 hours | None, only per-measurement and download timeouts |
+| Memory minimum | Skips servers with less than 1 GiB | None |
+| Options | None, so the default models and timeouts | As passed |
 
 To reproduce the container settings above, run the following command on a
 server with GPUs. Omit `--gpus all` on a server without GPUs:

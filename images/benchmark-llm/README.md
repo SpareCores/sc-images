@@ -156,9 +156,9 @@ the team's own monitoring. It is not published.
 
 Each model runs the following two tasks, in this order:
 
-- [Prompt processing](./docs/workloads.md#prompt-processing): processes a
+- **[Prompt Processing](./docs/workloads.md#prompt-processing):** processes a
   prompt of 16 to 16,384 tokens without generating any (`-p <n> -n 0`).
-- [Text generation](./docs/workloads.md#text-generation): generates 16 to
+- **[Text Generation](./docs/workloads.md#text-generation):** generates 16 to
   4,096 tokens without a prompt (`-n <n> -p 0`).
 
 Each token count runs as a separate `llama-bench` process with its own timeout.
