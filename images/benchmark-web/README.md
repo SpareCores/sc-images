@@ -154,7 +154,7 @@ scores from it:
   better.
 
 In the `aws/m5.large` example, for the `1k` file at 16 connections per vCPU,
-the row with two threads (64,606 requests per second) is kept over those with
+the row with two threads (64,606 requests/s) is kept over those with
 four and eight threads. Note that the published latency is that of the
 highest-`rps` row, not the lowest latency in the group. The Navigator's Web UI
 shows these scores with charts on each server type's page, for example
