@@ -143,11 +143,11 @@ the run. The JSON object's main fields are the following:
 
 The image supports the following workloads with different transaction patterns:
 
-- [`pgbench_ro`](./docs/workloads.md#pgbench_ro) (default) runs a custom,
+- **[`pgbench_ro`](./docs/workloads.md#pgbench_ro) (default):** Runs a custom,
   read-only transaction over a fixed schema, spreading work across eight
   PostgreSQL subsystems. The `SC_CPU_SCALE` variable changes transaction work
   without resizing the schema.
-- [`pgbench_tpcb`](./docs/workloads.md#pgbench_tpcb) runs
+- **[`pgbench_tpcb`](./docs/workloads.md#pgbench_tpcb):** Runs
   [`pgbench`](https://www.postgresql.org/docs/current/pgbench.html)'s built-in
   `tpcb-like` transaction mix against a schema initialized at one or more scale
   factors. It is disk-limited and not used in production.

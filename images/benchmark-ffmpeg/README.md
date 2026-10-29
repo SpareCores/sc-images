@@ -124,13 +124,13 @@ check `skipped`, `skip_reason`, and `failed_workers` in the output.
 
 All scenarios run by default, in the following groups:
 
-- [Audio encoding](./docs/workloads.md#audio-encoding): Vorbis, Opus, AAC
+- **[Audio Encoding](./docs/workloads.md#audio-encoding):** Vorbis, Opus, AAC
   (Advanced Audio Coding), MP3,
   and FLAC (Free Lossless Audio Codec) encodes of one
   music sample, on the CPU.
-- [CPU video](./docs/workloads.md#cpu-video): H.264 and H.265 encoding and
+- **[CPU Video](./docs/workloads.md#cpu-video):** H.264 and H.265 encoding and
   decoding of one film clip, with one codec thread per job.
-- [NVIDIA video](./docs/workloads.md#nvidia-video): the same H.264 and H.265
+- **[NVIDIA Video](./docs/workloads.md#nvidia-video):** The same H.264 and H.265
   encoding and decoding on NVIDIA GPUs, with NVENC
   (NVIDIA Video Encoder)
   and NVDEC

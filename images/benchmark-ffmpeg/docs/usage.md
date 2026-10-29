@@ -178,18 +178,20 @@ The Inspector of Spare Cores Navigator
 ([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs this image
 on every server type except those on the
 [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
-blocklist, with the following settings. A plain `docker run` differs from it as
-noted below:
+blocklist, with the settings in the following table. The last column shows what
+a plain `docker run` does instead:
 
-- The container runs privileged and with host networking. This benchmark does
-  not need either, and a plain `docker run` uses neither.
-- No `--shm-size` is set, so `/dev/shm` keeps Docker's 64 MiB default and
-  the test media is copied to `/tmp`, as in a plain run.
-- GPUs are requested for the container, equivalent to `--gpus all`. If that
-  fails, the run is retried without GPUs.
-- The task timeout is 2 hours, the same as the harness default.
-- Production skips servers with less than 1 GiB of memory. The image does
-  not enforce this minimum.
+| Setting | Production | Plain `docker run` |
+| ------- | ---------- | ------------------ |
+| Privileges and networking | Privileged, with host networking | Neither |
+| `--shm-size` | Not set | Not set |
+| GPUs | Requested for the container, equivalent to `--gpus all`; the run is retried without GPUs if that fails | None, unless you pass `--gpus all` |
+| Task timeout | 2 hours | 2 hours, the harness default |
+| Minimum memory | Servers with less than 1 GiB of memory are skipped | Not enforced by the image |
+
+This benchmark does not need privileged mode or host networking. With no
+`--shm-size` set, `/dev/shm` keeps Docker's 64 MiB default and the test media is
+copied to `/tmp`, in production and in a plain run.
 
 We investigate failed production runs, manually or semi-automatically, and
 then run them again. Until then, a server type's latest result in

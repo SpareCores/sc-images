@@ -102,11 +102,11 @@ See [Output](./docs/usage.md#output) for every field.
 
 This benchmark runs the following workloads:
 
-- [Stressor suite](./docs/workloads.md#stressor-suite):
+- **[Stressor Suite](./docs/workloads.md#stressor-suite):**
   [`run_stressng_benchmarks.py`](./run_stressng_benchmarks.py) runs 85
   stressors in seven categories, each with one worker and then one worker per
   CPU.
-- [CPU scaling loop](./docs/workloads.md#cpu-scaling-loop): the `cpu` stressor
+- **[CPU Scaling Loop](./docs/workloads.md#cpu-scaling-loop):** The `cpu` stressor
   with the stress-ng div16 method runs for 10 seconds at each worker count from
   1 up to the CPU count, with [`count.awk`](./count.awk) picking the counts.
 

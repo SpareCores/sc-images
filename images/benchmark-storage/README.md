@@ -132,13 +132,13 @@ See [Output](./docs/usage.md#output) for every field and its unit.
 [`benchmark.py`](./benchmark.py) runs the following kinds of tests for each
 group of identical disks:
 
-- [Preconditioning](./docs/workloads.md#preconditioning) discards and fills
+- **[Preconditioning](./docs/workloads.md#preconditioning):** Discards and fills
   each writable disk sequentially, and later writes it randomly before the
   random-write tests.
-- [Single-disk tests](./docs/workloads.md#single-disk-tests) run random reads
-  and writes at eight block sizes, sequential reads and writes, and 70/30 mixed
+- **[Single-Disk Tests](./docs/workloads.md#single-disk-tests):** Run random
+  reads and writes at eight block sizes, sequential reads and writes, and 70/30 mixed
   I/O on one representative disk.
-- [Group tests](./docs/workloads.md#group-tests) run random and sequential
+- **[Group Tests](./docs/workloads.md#group-tests):** Run random and sequential
   reads on all disks of a group at once, and writes when at least two disks are
   writable.
 

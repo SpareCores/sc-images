@@ -116,15 +116,15 @@ Each link leads to the fields and units of that format.
 The image runs the following benchmarks, one per script, each with its own
 page:
 
-- [OpenSSL speed](./docs/openssl.md) (`openssl.sh`) measures the throughput
+- **[OpenSSL Speed](./docs/openssl.md) (`openssl.sh`):** Measures the throughput
   of 11 hash and cipher algorithms with one process per logical CPU.
-- [Memory bandwidth](./docs/bw-mem.md) (`bw_mem.sh`) measures read, write,
+- **[Memory Bandwidth](./docs/bw-mem.md) (`bw_mem.sh`):** Measures read, write,
   and read-write bandwidth over 11 buffer sizes from `16k` to `512M`, with one
   process per logical CPU.
-- [Compression](./docs/compression.md) (`compress.py`) measures eight
+- **[Compression](./docs/compression.md) (`compress.py`):** Measures eight
   compressors at several levels on one thread and with at most one process per
   physical core.
-- [Geekbench](./docs/geekbench.md) (`geekbench.sh`) runs Geekbench 6.7.1's
+- **[Geekbench](./docs/geekbench.md) (`geekbench.sh`):** Runs Geekbench 6.7.1's
   own Single-Core and Multi-Core suites.
 
 ## Design History

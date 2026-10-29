@@ -20,9 +20,9 @@ Gemma and Llama-3.1-8B are gated on Hugging Face — set `HF_TOKEN` and accept e
 
 ## Workloads
 
-- **chat**: 256 prompt / 128 output tokens  
-- **rag**: 1024 / 256  
-- **long**: 4096 / 512 (GPU only)
+- **`chat`:** 256 prompt / 128 output tokens  
+- **`rag`:** 1024 / 256  
+- **`long`:** 4096 / 512 (GPU only)
 
 ## Output
 
