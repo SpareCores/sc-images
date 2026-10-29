@@ -18,7 +18,7 @@ output is the unchanged `nvbandwidth` report.
 empirical performance measurements, such as
 [raw CPU speed](../stress-ng/README.md),
 [memory bandwidth](../benchmark/docs/bw-mem.md), and
-[LLM (Large Language Model) inference speed](../benchmark-llm/README.md),
+[LLM inference speed](../benchmark-llm/README.md),
 for more than 5,000 cloud server types. This benchmark adds measured raw GPU
 performance: how fast
 data moves between the CPU and the GPUs of a server type, and between its
