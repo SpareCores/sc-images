@@ -65,7 +65,7 @@ Push builds use GitHub-hosted runners (`ubuntu-latest` for amd64,
 `[self-hosted, Linux, X64, workhorse]`
 ([`build-level.yml`](../.github/workflows/build-level.yml)).
 
-Manual **Run workflow** checkboxes (default off):
+Manual **Run workflow** checkboxes (default: off):
 
 | Input | When enabled |
 |-------|----------------|

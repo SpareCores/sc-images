@@ -65,7 +65,7 @@ all lower the worker counts:
 - `--memory` (`memory.max`): each audio worker is budgeted 64 MiB and each
   video worker 320 MiB of available memory.
 - `--pids-limit` (`pids.max`): each worker is budgeted
-  `FFMPEG_BENCH_PID_TASKS_PER_WORKER` tasks (default four), because the PID
+  `FFMPEG_BENCH_PID_TASKS_PER_WORKER` tasks (default: four), because the PID
   (Process Identifier) limit counts threads, not only processes.
 
 The output records the limits it found in `host`, including `cgroup_cpu_max`,
@@ -120,7 +120,7 @@ Each scenario runs the following steps:
    that the scenario can run and estimates its speed. A scenario whose probe
    fails is skipped.
 2. At each worker count, a pilot run sizes the media for each worker so that
-   one repetition takes about `FFMPEG_BENCH_TARGET_SECONDS` (default 5s)
+   one repetition takes about `FFMPEG_BENCH_TARGET_SECONDS` (default: 5s)
    of wall time. Faster servers therefore process more media in the same time.
    A successful pilot is not reported; a pilot that still fails after up to four
    attempts is reported as a failed repetition and ends the scenario.
@@ -129,9 +129,9 @@ Each scenario runs the following steps:
    repetition with a failed worker ends the worker count.
 
 Each repetition, including pilots, times out after
-`FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` (default 30s), and workers that
+`FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` (default: 30s), and workers that
 run past it count as failed. The whole run stops after
-`FFMPEG_BENCH_TIMEOUT_SECONDS` (default 7,200s); scenarios that have not
+`FFMPEG_BENCH_TIMEOUT_SECONDS` (default: 7,200s); scenarios that have not
 started by then are reported as skipped with `overall_timeout`.
 
 Total run time therefore depends on the number of scenarios that run and the

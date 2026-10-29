@@ -72,7 +72,7 @@ you run, check the following prerequisites:
 - The `SC_DB_USER` role can create databases (`CREATEDB`) and terminate other
   sessions on the benchmark database: it must be a superuser, a member of
   `pg_signal_backend`, or the role those sessions run as.
-- The benchmark database, `SC_PGBENCH_DB` (default `pgbench`), holds no data you
+- The benchmark database, `SC_PGBENCH_DB` (default: `pgbench`), holds no data you
   need. Restoring a cached dump drops and recreates it; building the dataset
   drops and recreates its benchmark tables.
 - The `SC_DB_USER` role owns the benchmark database or is a superuser, so it can
@@ -125,11 +125,11 @@ points in the following steps:
 
 1. Restore the dataset from a cached dump on the CDN, or build it if no dump
    exists for it.
-2. Warm up once for `SC_WARMUP_SECONDS` (default 120s) at the first concurrency
+2. Warm up once for `SC_WARMUP_SECONDS` (default: 120s) at the first concurrency
    point. Before each later point, run a settle period of `SC_SETTLE_SECONDS`
-   (default 60s) at that point's client count. Neither is measured. With
+   (default: 60s) at that point's client count. Neither is measured. With
    `SC_WARMUP_ONCE=false`, every point gets the full warmup.
-3. Measure each concurrency point for `SC_RUN_SECONDS` (default 300s), sampling
+3. Measure each concurrency point for `SC_RUN_SECONDS` (default: 300s), sampling
    1% of transaction latencies.
 4. Report the highest TPM (Transactions Per Minute) of all concurrency points
    (and scale factors) as the score.

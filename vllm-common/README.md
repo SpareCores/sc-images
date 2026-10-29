@@ -17,7 +17,7 @@ Not a published image — shared sources for the `benchmark-vllm-*` images under
    Llama-3.3-70B bnb-4bit (~48 GiB). On CPU, each model runs only when `model_fits` (RAM); 70B is
    skipped on CPU because bitsandbytes quant is GPU-only. Access to `google/gemma-2-2b-it` and
    `meta-llama/Llama-3.1-8B-Instruct` requires Hugging Face license acceptance plus `HF_TOKEN`.
-   - **CPU + GPU**: `sweep` (default autoconfig: budget-limited steps — sync → throughput → constant interpolations). Override with `GUIDELLM_SWEEP_SIZE`, `GUIDELLM_CPU_SWEEP_SIZE`, or `GUIDELLM_GPU_SWEEP_SIZE`. Set `BENCHMARK_VLLM_AUTOCONFIG=0` for legacy static settings (CPU `max_requests=25`, `sweep_size=3`).
+   - **CPU + GPU**: `sweep` (default: autoconfig with budget-limited steps, from sync through throughput to constant interpolations). Override with `GUIDELLM_SWEEP_SIZE`, `GUIDELLM_CPU_SWEEP_SIZE`, or `GUIDELLM_GPU_SWEEP_SIZE`. Set `BENCHMARK_VLLM_AUTOCONFIG=0` for legacy static settings (CPU `max_requests=25`, `sweep_size=3`).
    - **Legacy fast path**: `GUIDELLM_PROFILES=legacy` (or `GUIDELLM_CPU_PROFILES=legacy`) runs `synchronous` + capped `throughput` (`GUIDELLM_THROUGHPUT_RATE`, default 8 on CPU).
 3. **Multi-GPU**: see [Tensor parallelism](#tensor--data-parallelism) below.
 

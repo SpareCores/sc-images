@@ -99,10 +99,10 @@ for all options and defaults:
   unmounting it.
 - `SC_STORAGE_PURGE=0` skips the discard (`blkdiscard`) before the fill.
 - `SC_STORAGE_RUNTIME_S` and `SC_STORAGE_WRITE_RUNTIME_S` set the measured
-  seconds per read test (default `10`) and per write test (default `30`).
-- `SC_STORAGE_FILL_BUDGET_S` sets the total sequential-fill time (default
+  seconds per read test (default: `10`) and per write test (default: `30`).
+- `SC_STORAGE_FILL_BUDGET_S` sets the total sequential-fill time (default:
   `300`), and `SC_STORAGE_BUDGET_S` the target for the estimated test time
-  (default `2400`).
+  (default: `2400`).
 
 ### Results
 

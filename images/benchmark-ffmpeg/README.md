@@ -84,13 +84,13 @@ The following settings are the most common; see the
 for all options and defaults:
 
 - `FFMPEG_BENCH_TARGET_SECONDS` sets the wall time of each measured repetition
-  (default 5s).
+  (default: 5s).
 - `FFMPEG_BENCH_REPETITIONS` and `FFMPEG_BENCH_MAX_REPETITIONS` set how many
-  repetitions run at each worker count (default three, up to five).
+  repetitions run at each worker count (default: three, up to five).
 - `FFMPEG_BENCH_WORKERS` replaces the automatic worker counts with an explicit,
   comma-separated list.
 - `FFMPEG_BENCH_MAX_WORKERS` caps the number of parallel workers.
-- `FFMPEG_BENCH_TIMEOUT_SECONDS` sets the deadline for the whole run (default
+- `FFMPEG_BENCH_TIMEOUT_SECONDS` sets the deadline for the whole run (default:
   7,200s).
 
 ### Results
