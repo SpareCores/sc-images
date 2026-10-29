@@ -47,8 +47,10 @@ Production runs the container with the following settings:
 - a timeout of 1 hour
 - after the benchmarks that have a set priority, because this benchmark may
   unmount and overwrite free disks
-- Resource Tracker settings, so the tracker that wraps this benchmark streams
-  the run's resource usage to the Spare Cores Sentinel platform
+- Resource Tracker settings, so the tracker that wraps this benchmark
+  [streams](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
+  the run's resource usage to the
+  [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform
 
 A plain `docker run` with `--privileged --pid=host` runs the same tests, but
 without host networking and without the Resource Tracker settings.
