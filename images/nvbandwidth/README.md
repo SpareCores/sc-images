@@ -8,7 +8,7 @@ GPU, between GPUs, and within the memory of a single GPU. The image runs
 every `nvbandwidth` test case in sequence, with the tool's default settings,
 on all GPUs passed to the container with `--gpus all`.
 
-It reports one bandwidth matrix per test case, in GB/s, or a latency matrix in
+It reports one bandwidth matrix per test case in GB/s, or a latency matrix in
 nanoseconds, plus the matrix sum. The image adds no harness and no score: the
 output is the unchanged `nvbandwidth` report.
 

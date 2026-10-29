@@ -204,11 +204,11 @@ The following variables configure this benchmark. See
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
-| `FFMPEG_BENCH_TARGET_SECONDS` | Target wall time per repetition, in seconds. | `5` |
-| `FFMPEG_BENCH_MIN_MEDIA_SECONDS` | Minimum media length per worker, in seconds. | `0.5` |
-| `FFMPEG_BENCH_MAX_MEDIA_SECONDS` | Maximum media length per worker, in seconds. | `1800` |
-| `FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS` | Media length of the one-worker video probe, in seconds. | `1` |
-| `FFMPEG_BENCH_AUDIO_CALIBRATION_SECONDS` | Media length of the one-worker audio probe, in seconds. | `5` |
+| `FFMPEG_BENCH_TARGET_SECONDS` | Target wall time per repetition in seconds. | `5` |
+| `FFMPEG_BENCH_MIN_MEDIA_SECONDS` | Minimum media length per worker in seconds. | `0.5` |
+| `FFMPEG_BENCH_MAX_MEDIA_SECONDS` | Maximum media length per worker in seconds. | `1800` |
+| `FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS` | Media length of the one-worker video probe in seconds. | `1` |
+| `FFMPEG_BENCH_AUDIO_CALIBRATION_SECONDS` | Media length of the one-worker audio probe in seconds. | `5` |
 | `FFMPEG_BENCH_REPETITIONS` | Measured repetitions per worker count (at least 1). | `3` |
 | `FFMPEG_BENCH_MAX_REPETITIONS` | Maximum repetitions per worker count when the rates vary. | `5` |
 | `FFMPEG_BENCH_CV_THRESHOLD` | Add repetitions while the coefficient of variation of the rates is above this value. | `0.10` |
@@ -219,8 +219,8 @@ The following variables configure this benchmark. See
 | `FFMPEG_BENCH_GPU_ENCODE_SESSIONS_PER_GPU` | Highest NVENC worker count per GPU the search can reach. | `8` |
 | `FFMPEG_BENCH_GPU_DECODE_SESSIONS_PER_GPU` | Highest NVDEC worker count per GPU the search can reach. | `8` |
 | `FFMPEG_BENCH_PID_TASKS_PER_WORKER` | Tasks budgeted per worker against the container's PID limit (at least 2). | `4` |
-| `FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` | Timeout for each repetition or pilot, in seconds. | 6 × target, at least `30` |
-| `FFMPEG_BENCH_TIMEOUT_SECONDS` | Deadline for the whole run, in seconds. | `7200` |
+| `FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` | Timeout for each repetition or pilot in seconds. | 6 × target, at least `30` |
+| `FFMPEG_BENCH_TIMEOUT_SECONDS` | Deadline for the whole run in seconds. | `7200` |
 | `FFMPEG_BENCH_AUDIO_SOURCE` | Path of an alternate FLAC file. It is not checksum-verified. | Bundled sample |
 | `FFMPEG_BENCH_VIDEO_SOURCE` | Path of an alternate H.264 MP4 file. It must match `FFMPEG_BENCH_VIDEO_SHA256`. | Bundled clip |
 | `FFMPEG_BENCH_VIDEO_HEVC_SOURCE` | Path of an alternate H.265 MP4 file. It must match `FFMPEG_BENCH_VIDEO_HEVC_SHA256`. | Bundled clip |

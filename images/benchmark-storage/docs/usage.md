@@ -229,7 +229,7 @@ the following reasons:
 | `SC_STORAGE_FILL_BUDGET_S` | Total sequential-fill seconds, split evenly between fill steps. | `300` |
 | `SC_STORAGE_WS_TARGET_BYTES` | Bytes to fill per disk; `0` fills the whole disk. | `0` |
 | `SC_STORAGE_RAND_PRECOND_S` | Random-write precondition seconds. | `120` |
-| `SC_STORAGE_BUDGET_S` | Target for the estimated total test time, in seconds. | `2400` |
+| `SC_STORAGE_BUDGET_S` | Target for the estimated total test time in seconds. | `2400` |
 | `SC_STORAGE_UMOUNT` | `0` keeps every mounted disk read-only instead of unmounting it. | `1` |
 | `SC_STORAGE_PURGE` | `0` skips the discard before the fill. | `1` |
 

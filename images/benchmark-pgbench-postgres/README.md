@@ -134,7 +134,7 @@ the run. The JSON object's main fields are the following:
   32. For how `pgbench_tpcb` picks its client counts, see
   [`pgbench_tpcb`](./docs/workloads.md#pgbench_tpcb).
 - `latency_ms` contains sampled p50, p95, and p99 (50th, 95th, and 99th
-  percentile) latency and an average, in milliseconds. The harness samples 1% of
+  percentile) latency and an average in milliseconds. The harness samples 1% of
   transaction latency logs.
 - `schema_gib` (`0.17`) in `pgbench_ro` output is a legacy constant, not the
   dataset size; the restored database is about 303 MiB.
