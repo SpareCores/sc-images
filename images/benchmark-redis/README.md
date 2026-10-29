@@ -116,8 +116,8 @@ The Navigator publishes the following three scores for each pipeline depth:
 - **Redis latency:** `latency`, in milliseconds; lower is better.
 
 Each score carries a note with the server and client CPU seconds. Production
-records the Redis version from `redis-server -v`. `memtier_benchmark` is
-installed from the Redis package repository without a version pin, so a
+records the Redis version from `redis-server -v`. The `memtier_benchmark` tool
+is installed from the Redis package repository without a version pin, so a
 rebuild of the image can change it, and production does not record its
 version.
 
@@ -141,7 +141,7 @@ harness runs the following steps:
    memtier_benchmark -4 -p <port> --ratio=1:0 --test-time=10 --hide-histogram -t 1 --pipeline=<depth>
    ```
 
-   `--ratio=1:0` sends SET operations only.
+   The `--ratio=1:0` option sends SET operations only.
 4. Wait for every client to exit, read the SET results from each client's
    summary table, and record the CPU times again.
 

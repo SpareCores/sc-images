@@ -122,8 +122,8 @@ fields under its top-level `nvbandwidth` key:
   image is built with.
 - `GPU Device list` names each GPU, with its index, name, bus address, and
   hostname.
-- `version` is the `nvbandwidth` version (`v0.8`). `git_version` is empty,
-  because the image builds `nvbandwidth` from a release archive.
+- `version` is the `nvbandwidth` version (`v0.8`). The `git_version` field is
+  empty, because the image builds `nvbandwidth` from a release archive.
 - `testcases[]` has one entry per test case, with its `name` and `status`.
 
 A test case that ran has `"status": "Passed"` and the following fields:
@@ -222,9 +222,9 @@ each GPU's own memory.
 
 Each measurement times a fixed number of copies between start and stop
 events, repeats three times, and reports the median. Four warmup copies run
-before the timed copies, outside the timed interval. `nvbandwidth` queues all
-copies before releasing them, so the time spent queuing them is not measured.
-It checks the copied data after each copy and sets CPU affinity
+before the timed copies, outside the timed interval. The `nvbandwidth` tool queues
+all copies before releasing them, so the time spent queuing them is not
+measured. It checks the copied data after each copy and sets CPU affinity
 automatically.
 
 ## Design History

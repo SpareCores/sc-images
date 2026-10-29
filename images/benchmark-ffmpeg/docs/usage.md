@@ -14,7 +14,7 @@ No environment variables are required, and the image needs no network access at
 run time: the test media is downloaded and checksum-verified when the image is
 built.
 
-`--version` prints the versions of the harness
+The `--version` option prints the versions of the harness
 ([`benchmark.py`](../benchmark.py)) and FFmpeg, and exits:
 
 ```bash

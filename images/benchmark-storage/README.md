@@ -77,10 +77,10 @@ Run the image via Docker on an ephemeral server that you can afford to wipe.
 docker run --rm --privileged --pid=host ghcr.io/sparecores/benchmark-storage:main > storage.json
 ```
 
-Both flags are required. `--privileged` gives the container raw access to the
-host's disks. `--pid=host` lets it read the host's mount table from
-`/proc/1/mountinfo` and unmount filesystems in the host's mount namespace, which
-the disk safety checks depend on. The image does not check if it runs in the
+Both flags are required. The `--privileged` flag gives the container raw access
+to the host's disks. The `--pid=host` flag lets it read the host's mount table
+from `/proc/1/mountinfo` and unmount filesystems in the host's mount namespace,
+which the disk safety checks depend on. The image does not check if it runs in the
 host's PID (Process Identifier) namespace. See
 [Production Setup](./docs/usage.md#production-setup) for how production runs
 differ.
@@ -110,19 +110,19 @@ This benchmark prints one JSON document to stdout when the run ends, and a
 timestamped progress log with per-test IOPS, MiB/s, and 99th-percentile latency
 to stderr. The JSON document's main fields are the following:
 
-- `inventory` lists each disk with its model, size, and transport. `mode` is
-  `read_write` or `read_only`, and `mode_reason` says why.
+- `inventory` lists each disk with its model, size, and transport. The `mode` field
+  is `read_write` or `read_only`, and `mode_reason` says why.
 - `groups` lists the groups of identical disks, each with its members and the
   `representative` that runs the single-disk tests.
 - Each `benchmarks[]` entry is one test, named
   `<kind>_<block size>_qd<queue depth>`, for example `randread_4k_qd256`.
-  `scope` is `single` or `group`.
+  The `scope` field is `single` or `group`.
 - `read` and `write` hold `iops`, `bw_bytes` (bytes per second), and `lat_ns`,
-  whose `percentiles` are latencies in nanoseconds. `iops_interval` and
-  `bw_bytes_interval` summarize 500 ms windows, including `tail_mean`, the
-  mean of the second half of the run.
-- `preconditioning` holds the fill and random-write steps. `filled_fraction`
-  shows how much of each disk the fill wrote.
+  whose `percentiles` are latencies in nanoseconds. The `iops_interval` and
+  `bw_bytes_interval` fields summarize 500 ms windows, including `tail_mean`,
+  the mean of the second half of the run.
+- `preconditioning` holds the fill and random-write steps. The `filled_fraction`
+  field shows how much of each disk the fill wrote.
 - `skipped` lists every test that did not run, with the reason.
 
 See [Output](./docs/usage.md#output) for every field and its unit.

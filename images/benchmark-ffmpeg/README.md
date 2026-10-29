@@ -106,8 +106,8 @@ stderr. The main fields of the JSON line are the following:
 - Each `repetitions[]` entry is one measurement at that worker count. Video
   repetitions report `aggregate_fps` (frames per second across all workers) and
   `processed_frames`; audio repetitions report `audio_seconds_per_sec` and
-  `processed_audio_seconds`. `wall_time_sec` is the time from the shared start
-  to the last worker's exit.
+  `processed_audio_seconds`. The `wall_time_sec` field is the time from the
+  shared start to the last worker's exit.
 - `successful_workers`, `failed_workers`, and `timed_out_workers` describe each
   repetition. A failed worker contributes no media, but its time still counts.
 - There is no score, peak, or median: aggregate the repetitions yourself, for

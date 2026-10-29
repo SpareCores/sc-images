@@ -18,7 +18,7 @@ CI auto-discovers every folder under `images/` (any dir with a `Dockerfile` or `
 
 [`resolve-build-plan.sh`](../.github/scripts/resolve-build-plan.sh) topologically sorts folders by `DEPENDS_ON` into levels (0 = no deps). [`push.yml`](../.github/workflows/push.yml) builds each level via the reusable [`build-level.yml`](../.github/workflows/build-level.yml) and publishes it before the next, so a dependency is always available as a base image; [`read-image-config.sh`](../.github/scripts/read-image-config.sh) resolves each folder's config at build time. No image names are hardcoded in the workflow.
 
-Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; `benchmark-vllm-cpu-avx2` also depends on `vllm-cpu-base-avx2` (source-compiled via `prepare.sh`). `benchmark-vllm-gpu` uses Hub `vllm/vllm-openai` for amd64 and arm64. Add a new dependent image by dropping a folder in `images/` with a `DEPENDS_ON` file.
+Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; the `benchmark-vllm-cpu-avx2` image also depends on `vllm-cpu-base-avx2` (source-compiled via `prepare.sh`). The `benchmark-vllm-gpu` image uses Hub `vllm/vllm-openai` for amd64 and arm64. Add a new dependent image by dropping a folder in `images/` with a `DEPENDS_ON` file.
 
 See [CI and Build Internals](ci.md) for how CI builds, caches, tracks, and publishes the images.
 

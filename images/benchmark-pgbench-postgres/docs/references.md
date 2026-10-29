@@ -52,8 +52,8 @@ Spare Cores docs, which also lists the terms each image uses.
   [SRT cookbook](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
 - **Parallel Query**: A PostgreSQL feature that splits one query across several
   worker processes, for example to scan, join or aggregate a large table on
-  several CPU cores at once. `max_parallel_workers_per_gather` limits how many
-  workers one part of a query can use.
+  several CPU cores at once. The `max_parallel_workers_per_gather` setting limits
+  how many workers one part of a query can use.
   [PostgreSQL docs](https://www.postgresql.org/docs/current/parallel-query.html)
 - **`pgbench`**: The benchmark tool shipped with PostgreSQL. It runs a SQL
   script repeatedly over many concurrent client sessions, and reports the

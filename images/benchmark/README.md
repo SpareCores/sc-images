@@ -65,14 +65,14 @@ docker run --rm --privileged ghcr.io/sparecores/benchmark:main python /usr/local
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main geekbench.sh
 ```
 
-`openssl.sh` and `bw_mem.sh` run their tools under `nice -n -20`, which needs
-`--privileged`. Production also runs `compress.py` and `geekbench.sh` under
+The `openssl.sh` and `bw_mem.sh` scripts run their tools under `nice -n -20`,
+which needs `--privileged`. Production also runs `compress.py` and `geekbench.sh` under
 `nice -n -20`, from its own command line. See
 [Production Setup](./docs/usage.md#production-setup) before you compare your
 results with the Navigator's.
 
-`geekbench.sh` does not upload results to the Geekbench Browser: it captures
-Geekbench's upload on a local HTTPS server inside the container. See
+The `geekbench.sh` script does not upload results to the Geekbench Browser: it
+captures Geekbench's upload on a local HTTPS server inside the container. See
 [Upload Capture](./docs/geekbench.md#upload-capture) for how the capture works.
 
 In production, the median run takes the following time:

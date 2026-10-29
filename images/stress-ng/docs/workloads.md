@@ -161,8 +161,8 @@ page-table lookups of nested paging, and the emulation of timers and traps:
 | [`timermix`](https://manpages.debian.org/testing/stress-ng/stress-ng.1.en.html#timermix) | Generates timer signals at a high rate |
 | [`mtx`](https://manpages.debian.org/testing/stress-ng/stress-ng.1.en.html#mtx) | Locks and unlocks mutexes |
 
-`tsc`, `usersyscall`, and `x86syscall` return `null` on Arm servers. See
-[Missing Results](./limitations.md#missing-results).
+The `tsc`, `usersyscall`, and `x86syscall` stressors return `null` on Arm
+servers. See [Missing Results](./limitations.md#missing-results).
 
 ## CPU Scaling Loop
 
@@ -171,7 +171,8 @@ The CPU scaling loop runs the `cpu` stressor with the stress-ng div16 method
 [`count.awk`](../count.awk) prints, and prints bogo ops/s for each. The loop itself is a shell command in the Navigator's
 Inspector; [Production Setup](./usage.md#production-setup) shows it in full.
 
-`count.awk` takes the CPU count N and prints the following worker counts:
+The `count.awk` script takes the CPU count N and prints the following worker
+counts:
 
 - every count from 1 to N, if N is 32 or less
 - otherwise, 1, N, and the even counts below N that are divisible by N / 32

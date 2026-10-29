@@ -61,8 +61,8 @@ output.
 
 Some images share one manual, and their READMEs cover only what differs. The
 [vLLM manual](vllm-common) in `vllm-common/`, which is not a published image,
-covers the `benchmark-vllm-*` images. `benchmark-pgbench-postgres` covers
-`benchmark-postgres-server`, and `stress-ng` covers `stress-ng-longrun`.
+covers the `benchmark-vllm-*` images. The `benchmark-pgbench-postgres` image
+covers `benchmark-postgres-server`, and `stress-ng` covers `stress-ng-longrun`.
 
 ## Usage
 

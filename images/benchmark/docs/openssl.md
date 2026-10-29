@@ -29,8 +29,8 @@ Each run uses the following options:
 
 The script runs `openssl speed` under `nice -n -20` and sets no duration, so
 `openssl speed` measures each block size for its default duration (3 seconds in
-production output). `openssl speed` also picks the block sizes itself;
-production output shows 16, 64, 256, 1024, 8192, and 16384 bytes.
+production output). The `openssl speed` command also picks the block sizes
+itself; production output shows 16, 64, 256, 1024, 8192, and 16384 bytes.
 
 ## OpenSSL Build
 
