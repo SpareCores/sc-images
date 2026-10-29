@@ -20,8 +20,9 @@ scripts. Each script has its own page, with what it runs and what it prints:
 - [Compression](./compression.md): `compress.py`
 - [Geekbench](./geekbench.md): `geekbench.sh`
 
-The entrypoint runs every command under Resource Tracker (`resource-tracker`),
-which samples the container's resource usage. Its metrics are not published.
+The container entrypoint runs every command under Resource Tracker
+(`resource-tracker`), which samples the container's resource usage. Its metrics
+are not published.
 
 ## Production Setup
 

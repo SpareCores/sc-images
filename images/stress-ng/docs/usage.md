@@ -2,7 +2,7 @@
 
 ## Running the Image
 
-The image's entrypoint runs `sh` under `resource-tracker`, and has no default
+The container entrypoint runs `sh` under `resource-tracker`, and has no default
 command. Pass the command to run with `-c`:
 
 ```bash

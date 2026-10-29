@@ -63,8 +63,8 @@ priority (`nice -n -20`), which needs the `CAP_SYS_NICE` capability that
 sets host networking (`--network host`); this benchmark's traffic itself stays
 on loopback inside the container.
 
-The entrypoint runs this benchmark under `resource-tracker`, which samples
-resource usage during the run. Its data is not published.
+The container entrypoint runs this benchmark under `resource-tracker`, which
+samples resource usage during the run. Its data is not published.
 
 Measurement takes 60 seconds (six configurations of 10 seconds each), plus
 server startup and a flush of all servers before each configuration.

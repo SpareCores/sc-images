@@ -16,7 +16,7 @@ every shared library that `ldd` reports for the CPU build's `llama-bench` into
 `/llama_cpp_cpu/libs`.
 
 The image installs `psutil` with pip, copies the `resource-tracker` binary, and
-declares `/models` as a volume. Its entrypoint is
+declares `/models` as a volume. The container entrypoint is
 `resource-tracker -- /benchmark.py`, with `TRACKER_QUIET=true`.
 
 ## Build Arguments
