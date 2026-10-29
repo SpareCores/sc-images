@@ -24,6 +24,11 @@ compute capability of each visible GPU. It needs 8.0 or newer, the Ampere
 generation or later. If every visible GPU is below 8.0, it logs an error and
 exits with code 1. A GPU whose compute capability cannot be read is allowed.
 
+If no GPU is visible, for example without `--gpus`, the check passes, but no
+model fits the [GPU memory check](./workloads.md#gpu-memory-fit). This
+benchmark then logs each model as skipped for insufficient memory and exits
+with code 1.
+
 The `--version` option prints the pinned vLLM and GuideLLM versions and exits:
 
 ```bash

@@ -24,8 +24,8 @@ following limitations of GPU runs:
 
 - **[NVIDIA GPUs Only](./docs/usage.md#gpu-run):** This benchmark needs
   NVIDIA GPUs with CUDA (Compute Unified Device Architecture) compute
-  capability 8.0 or newer, the Ampere generation or later. If every visible GPU
-  is older, it exits with code 1.
+  capability 8.0 or newer, the Ampere generation or later. If no GPU is
+  visible or every visible GPU is older, it exits with code 1.
 - **[Partial GPU Use](./docs/workloads.md#gpu-parallelism):** A model can run
   on fewer GPUs than the server has, because its tensor-parallel size must
   divide its attention head count. The 70B model uses pipeline parallelism
