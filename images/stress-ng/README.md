@@ -14,7 +14,8 @@ mode prints one `<workers>,<bogo ops/s>` line per worker count.
 
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
 empirical performance measurements for over 5,000 cloud server types, such as
-raw CPU speed, memory bandwidth, and compression throughput. This benchmark
+raw CPU speed, [memory bandwidth](../benchmark/docs/bw-mem.md), and
+[compression throughput](../benchmark/docs/compression.md). This benchmark
 covers a wide range of CPU and memory work in one run, from integer and
 floating-point math to sorting, hashing, and memory bandwidth.
 
