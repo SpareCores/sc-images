@@ -42,8 +42,9 @@ following limitations of GPU runs:
   visible or every visible GPU is older, it exits with code 1.
 - **[Partial GPU Use](./docs/workloads.md#gpu-parallelism):** A model can run
   on fewer GPUs than the server has, because its tensor-parallel size must
-  divide its attention head count. On more than one GPU, the 70B model uses
-  pipeline parallelism instead.
+  divide its attention head count. On more than one GPU,
+  [the 70B model](./docs/workloads.md#models), `llama-70b`, uses pipeline
+  parallelism instead.
 - **[Load Follows vCPU Count](./docs/workloads.md#load-settings):**
   Concurrency, GuideLLM workers, and the number of load stages scale with the
   host's vCPU count, not with the GPU count, GPU model, or GPU memory.

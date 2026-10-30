@@ -23,7 +23,8 @@ the build context is the root of the
 `TRACKER_QUIET=true`, and the Hugging Face cache to `/models`, a volume. It
 also sets `USER=benchmark`, `HOME=/tmp`, and
 `TORCHINDUCTOR_CACHE_DIR=/tmp/torch_inductor` as environment variables, for
-runs with `--user`; the `Dockerfile` has no `USER` instruction. The container entrypoint is
+runs with `--user`; the `Dockerfile` has no `USER` instruction. The
+[container entrypoint](../Dockerfile#L22) is
 `resource-tracker -- python3 /benchmark.py`.
 
 ## Build Arguments

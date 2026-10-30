@@ -143,8 +143,8 @@ the reasons logged to stderr.
 
 ## Production Setup
 
-The Navigator's Inspector
-([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs one task,
+The Navigator's
+[Inspector](https://docs.sparecores.com/overview#how-it-works) runs one task,
 `vllm`, for this image and the two CPU images, on every server type except
 those on the
 [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
