@@ -28,7 +28,7 @@ load stage, as one JSON line per metric and statistic:
 empirical performance measurements for over 5,000 cloud server types, among
 them [LLM inference speed](../benchmark-llm/README.md): how fast `llama.cpp`
 processes prompts and generates text for one request at a time. This
-benchmark measures LLM serving instead: the latency and throughput of a vLLM
+benchmark measures LLM *serving* instead: the latency and throughput of a vLLM
 server under concurrent load, from one request at a time up to peak load.
 
 ## Limitations
