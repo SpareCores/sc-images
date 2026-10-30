@@ -11,11 +11,16 @@ and these docs cover how it runs on GPUs.
 This benchmark reports the following metrics for each model, workload, and
 load stage, as one JSON line per metric and statistic:
 
-- **Latency:** TTFT (Time to First Token), TPOT (Time per Output Token), ITL
-  (Inter-Token Latency), and end-to-end request latency in milliseconds, each
-  as p50, p95, p99, and mean.
-- **Throughput:** output tokens and total tokens per second, and requests per
-  second, each as a mean.
+- **Latency:** in milliseconds, each as the 50th, 95th, and 99th percentile
+  (p50, p95, p99) and the mean:
+  - TTFT (Time to First Token)
+  - TPOT (Time per Output Token)
+  - ITL (Inter-Token Latency)
+  - End-to-end request latency
+- **Throughput:** each as a mean:
+  - Output tokens per second
+  - Total tokens per second
+  - Requests per second
 
 ## Purpose
 

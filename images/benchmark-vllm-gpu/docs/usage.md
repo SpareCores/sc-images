@@ -22,8 +22,9 @@ The image is built on the official vLLM server image,
 `:main` tag has variants for AMD64 and Arm64.
 
 At startup, this benchmark reads the CUDA (Compute Unified Device Architecture)
-compute capability of each visible GPU. It needs 8.0 or newer, the Ampere
-generation or later. If every visible GPU is below 8.0, it logs an error and
+compute capability of each visible GPU. It needs compute capability 8.0 or
+newer, the Ampere generation or later, such as the NVIDIA A10G or L40S, but
+not the older T4G. If every visible GPU is below 8.0, it logs an error and
 exits with code 1. A GPU whose compute capability cannot be read is allowed.
 
 If no GPU is visible, for example without `--gpus`, the check passes, but no
@@ -42,9 +43,9 @@ the image.
 
 ## Hugging Face Access and Model Cache
 
-This benchmark reads the model metadata from Hugging Face before it starts
-vLLM, and vLLM downloads the model weights while the run goes on, so the
-container needs network access to Hugging Face. Pass an access token in
+The container needs network access to Hugging Face: this benchmark reads
+each model's metadata from it, and `vllm serve` downloads the model weights
+from it. Pass an access token in
 `HF_TOKEN`; this benchmark passes it to the Hugging Face Hub, and production
 sets it too. A gated model needs a token from an account that has accepted
 the model's license.
