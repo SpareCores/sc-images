@@ -13,8 +13,11 @@ following files:
   [`GUIDELLM_VERSION`](../../../vllm-common/GUIDELLM_VERSION) from
   `vllm-common/`, to `/`
 
-The harness and the version files are shared with the CPU images, so the build
-context is the root of the
+The [harness](../../../vllm-common/benchmark.py) and the version files are
+shared with the CPU images,
+[`benchmark-vllm-cpu`](../../benchmark-vllm-cpu/README.md) and
+[`benchmark-vllm-cpu-avx2`](../../benchmark-vllm-cpu-avx2/README.md), so
+the build context is the root of the
 [`sc-images` repository](https://github.com/SpareCores/sc-images), as the
 [`CONTEXT`](../CONTEXT) file sets. The image sets `BENCHMARK_VLLM_MODE=gpu`,
 `TRACKER_QUIET=true`, and the Hugging Face cache to `/models`, a volume. It
@@ -63,7 +66,8 @@ them.
 
 ## Tests
 
-The unit tests of the harness are in
-[`test_benchmark.py`](../../../vllm-common/test_benchmark.py) in `vllm-common/`.
+The unit tests of [`benchmark.py`](../../../vllm-common/benchmark.py) are in
+[`test_benchmark.py`](../../../vllm-common/test_benchmark.py) in
+`vllm-common/`.
 They include GPU cases for the data-parallel override, the memory fit check of
 each GPU, and the compute capability check.

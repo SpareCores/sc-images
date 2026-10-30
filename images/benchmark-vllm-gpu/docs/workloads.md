@@ -12,7 +12,10 @@ length (`--max-model-len`) that fits the workload:
 | `rag` | 1,024 | 256 | 4,096 |
 | `long` | 4,096 | 512 | 8,192 |
 
-The `long` workload runs only on GPUs; the CPU images run `chat` and `rag`.
+The `long` workload runs only on GPUs; the CPU images,
+[`benchmark-vllm-cpu`](../../benchmark-vllm-cpu/README.md) and
+[`benchmark-vllm-cpu-avx2`](../../benchmark-vllm-cpu-avx2/README.md), run
+`chat` and `rag`.
 Set `BENCHMARK_VLLM_WORKLOADS` to run fewer workloads, such as
 `BENCHMARK_VLLM_WORKLOADS=chat`.
 
