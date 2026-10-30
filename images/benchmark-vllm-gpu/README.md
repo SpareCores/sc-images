@@ -85,7 +85,7 @@ A run fits its models and workloads into a 2-hour time budget. Sample
 production runs took 1 hour 14 minutes and 1 hour 40 minutes. See
 [Run Duration](./docs/usage.md#run-duration) for how the budget is split.
 
-Production runs the container privileged, with host networking, and with
+Production runs the container in privileged mode, with host networking, and with
 every GPU passed. A plain `docker run` uses neither privileged mode nor host
 networking. See [Production Setup](./docs/usage.md#production-setup) before you
 compare your results with production results.
