@@ -129,7 +129,8 @@ otherwise:
 - No JSON line was written.
 
 A run that skipped models or workloads, or stopped early, still exits with
-code 0. Check which lines are present, and the reasons logged to stderr.
+code 0 if it wrote at least one JSON line. Check which lines are present, and
+the reasons logged to stderr.
 
 ## Production Setup
 

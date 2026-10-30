@@ -38,7 +38,8 @@ following limitations of GPU runs:
   `tuning` object are not passed to `vllm serve`.
 - **[Skipped Models and Workloads](./docs/workloads.md#gpu-memory-fit):** A
   model or workload that does not fit in the memory of each GPU it would use is
-  skipped, and the run still exits with code 0.
+  skipped. The run still exits with code 0 as long as another model or
+  workload wrote results.
 
 ## Usage
 
