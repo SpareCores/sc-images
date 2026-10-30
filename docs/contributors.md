@@ -36,3 +36,14 @@ Common terms (e.g. AWS, vCPU, SMT) are defined in the docs site's [glossary](htt
 ```
 
 The expansion, the description and the trailing links are each optional, but an entry needs at least one of them; write commands and tools as inline code. The docs site replaces the page with one listing every glossary term the image's docs use, so the file itself only needs the image's own terms. Describe each term in itself, in one paragraph of 1–5 sentences, like a short encyclopedia entry: the docs site adds which images use it, so don't describe the term in relation to an image.
+
+## Navigator Charts
+
+To show a chart of the Spare Cores Navigator on [docs.sparecores.com](https://docs.sparecores.com/images), put an `<!-- embed -->` marker on its own line, right above a link to the chart's embed URL (the `src` of the embed code the Navigator gives):
+
+```md
+<!-- embed height=517px -->
+[GPU Bandwidth and Latency of ecs.gn5-c4g1.xlarge](https://sparecores.com/embed/server/alicloud/ecs.gn5-c4g1.xlarge/nvbandwidth)
+```
+
+GitHub hides the marker and shows the link; the docs site shows the chart instead, with the link text as its title for screen readers. The height is optional (500px by default); the docs site sets the rest of the style. A marker that isn't right above such a link, or has an unknown or invalid setting, leaves the link as it is, and the docs build warns about it.
