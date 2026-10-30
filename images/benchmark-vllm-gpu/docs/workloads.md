@@ -84,8 +84,8 @@ in the output:
 3. `constant`: N - 2 stages at constant request rates between the two.
 
 For example, a sweep of size 6 on an AWS (Amazon Web Services) `g5.16xlarge`
-ran one synchronous, one throughput, and four constant-rate stages per
-workload
+ran one synchronous, one throughput, and four constant-rate stages for the
+`chat` workload
 ([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)).
 Each stage stops at its time limit, and the throughput stage ramps up its
 concurrency first. The GuideLLM command and its options are in the
@@ -108,16 +108,19 @@ the following formulas:
   `min(10, max(2, 0.15 * seconds per stage))`
 - **Warmup:** `0.05`
 
-Production runs used the following settings:
+Production runs used the following settings. The workload columns give the
+sweep size times the seconds per stage:
 
-| Server type | vCPUs | Sweep size | Maximum concurrency | Workers | Seconds per stage |
-| --- | --- | --- | --- | --- | --- |
-| AWS `g5.16xlarge` | 64 | 6 | 97 | 24 | 40 |
-| AWS `g5.8xlarge` | 32 | 5 | 64 | 16 | 48 |
+| Server type | vCPUs | Maximum concurrency | Workers | `chat` | `rag` | `long` |
+| --- | --- | --- | --- | --- | --- | --- |
+| AWS `g5.16xlarge` | 64 | 97 | 24 | 6 x 40s | 5 x 48s | 2 x 120s |
+| AWS `g5.8xlarge` | 32 | 64 | 16 | 5 x 48s | 5 x 48s | 2 x 120s |
 
-On the UpCloud `GPU-32xCPU-384GB-3xL40S`, the `long` workload ran with a sweep
-size of 2
+The `long` workload also ran two stages of 120 seconds on the UpCloud
+`GPU-32xCPU-384GB-3xL40S`
 ([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
+Its minimum of 88 seconds per stage leaves room for only two stages in a run
+budget of 240 seconds.
 
 This benchmark also computes vLLM batch settings, `max_num_seqs`,
 `max_num_batched_tokens`, `dtype`, and `kv_memory_util`, and records them in

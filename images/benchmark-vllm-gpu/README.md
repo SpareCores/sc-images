@@ -146,8 +146,8 @@ context length that fits it:
   include it.
 
 Each workload runs one GuideLLM sweep: a synchronous stage of one request at a
-time, a throughput stage at the highest concurrency allowed, and constant-rate
-stages between the two. See [Models](./docs/workloads.md#models) for the six
+time, a throughput stage at the highest concurrency allowed, and, when the time
+budget allows, constant-rate stages between the two. See [Models](./docs/workloads.md#models) for the six
 default models, from 135 million to 70 billion parameters, and
 [Run Sequence](./docs/workloads.md#run-sequence) for when a model is skipped
 or stops the run.
