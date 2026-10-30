@@ -149,7 +149,7 @@ from this task. The task uses the following settings:
 
 | Setting | Production | Plain `docker run` |
 | --- | --- | --- |
-| Image | This image first, then `benchmark-vllm-cpu`, then `benchmark-vllm-cpu-avx2`. This image is skipped on servers without GPUs or with every GPU below compute capability 8.0. Each image first runs `--probe-only`, for at most 18 min, and the first that passes runs the full benchmark, with no fallback after that. | This image only |
+| Image | This image first, then [`benchmark-vllm-cpu`](../../benchmark-vllm-cpu/README.md), then [`benchmark-vllm-cpu-avx2`](../../benchmark-vllm-cpu-avx2/README.md). This image is skipped on servers without GPUs or with every GPU below compute capability 8.0. Each image first runs `--probe-only`, for at most 18 min, and the first that passes runs the full benchmark, with no fallback after that. | This image only |
 | GPUs | All GPUs | As passed with `--gpus` |
 | Shared memory | 4 GiB | 64 MiB, unless `--shm-size` is passed |
 | Privileges | Privileged | Not privileged |
@@ -167,7 +167,8 @@ docker run --rm --privileged --network host --gpus all --shm-size=4g -e HF_TOKEN
 ```
 
 Production stores the results of all three images under the task name `vllm`,
-in `data/<vendor>/<server>/<variant>/vllm/` of
+in `data/<vendor>/<server>/<variant>/vllm/` (the variant is a numbered folder,
+`0` for most server types) of
 [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data). The
 results do not mark which image produced them: the task tries the fastest
 method first, so the result of a server type is the best one measured.
