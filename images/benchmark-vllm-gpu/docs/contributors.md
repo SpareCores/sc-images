@@ -54,7 +54,8 @@ docker run --rm benchmark-vllm-gpu --version
 
 ## Version Changes
 
-The version files in `vllm-common/` pin vLLM and GuideLLM for all vLLM images.
+The version files in `vllm-common/`, `VLLM_VERSION` and `GUIDELLM_VERSION`,
+pin the vLLM and GuideLLM versions for all vLLM images.
 Before changing `VLLM_VERSION`, confirm on
 [Docker Hub](https://hub.docker.com/r/vllm/vllm-openai/tags) that the
 `vllm/vllm-openai` tag exists for both `linux/amd64` and `linux/arm64`, because

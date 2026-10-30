@@ -1,9 +1,9 @@
 # benchmark-vllm-gpu
 
 This benchmark measures how fast NVIDIA GPUs serve LLMs to many concurrent
-requests, with vLLM and GuideLLM. It starts each default model with
-`vllm serve`, from the smallest to the largest, and sends it synthetic requests
-over HTTP with GuideLLM, from one request at a time up to peak load. It is the
+requests. It starts each default model with vLLM (`vllm serve`), from the
+smallest to the largest, and sends synthetic requests to it over HTTP with
+GuideLLM, from one request at a time up to peak load. It is the
 GPU variant of the vLLM benchmarks: the
 [vLLM manual](../../vllm-common/README.md) describes the harness they share,
 and these docs cover how it runs on GPUs.
@@ -125,7 +125,7 @@ fields of each line are the following:
   throughput. The `score` field holds the value, and `unit` is `ms`,
   `tokens/sec`, or `requests/sec`.
 - `model` (the short name, such as `llama-8b`; `model_id` holds the Hugging
-  Face ID), `workload`, and `strategy` identify the run. The `strategy` field
+  Face model ID), `workload`, and `strategy` identify the run. The `strategy` field
   is the GuideLLM load stage, `synchronous`, `throughput`, or `constant`, and
   `concurrency` is its mean number of concurrent requests. The `target_rate`
   field is the request rate of a `constant` stage, which tells those stages

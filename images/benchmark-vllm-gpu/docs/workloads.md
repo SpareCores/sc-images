@@ -79,8 +79,8 @@ hosts. The prompts are synthetic text of the workload's token counts. GuideLLM
 generates them from a fixed random seed (42), the starting value of its random
 number generator, so every run sends the same prompts.
 
-A GuideLLM sweep of size N runs N load stages, each recorded as a `strategy`
-in the output:
+The sweep size, N, is the number of load stages a GuideLLM sweep runs. Each
+stage is recorded as a `strategy` in the output:
 
 1. `synchronous`: one request at a time, for the baseline latency.
 2. `throughput`: as many concurrent requests as the maximum concurrency
