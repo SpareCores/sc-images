@@ -72,9 +72,9 @@ line; see [Exit Codes](./usage.md#exit-codes).
 GuideLLM runs in the same container as the vLLM server and sends its requests
 to `http://127.0.0.1:8000` through vLLM's OpenAI-compatible
 `/v1/completions` endpoint, so the results include no network between
-hosts. The prompts are
-synthetic text of the workload's token counts, generated with the fixed seed
-42.
+hosts. The prompts are synthetic text of the workload's token counts. GuideLLM
+generates them from a fixed random seed (42), the starting value of its random
+number generator, so every run sends the same prompts.
 
 A GuideLLM sweep of size N runs N load stages, each recorded as a `strategy`
 in the output:
