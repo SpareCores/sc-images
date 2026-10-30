@@ -27,7 +27,7 @@ This benchmark never remounts a filesystem after unmounting it, and the write
 tests overwrite its data.
 
 Before every write test, this benchmark checks the disks again and skips the
-test if a disk is mounted, used as swap, or held again. `fio` also runs with
+test if a disk is mounted, used as swap, or held again. The `fio` tool also runs with
 `allow_mounted_write=0`, and read tests run with `fio --readonly`.
 
 The mount checks read the host's mount table from `/proc/1/mountinfo` and
@@ -47,8 +47,10 @@ Production runs the container with the following settings:
 - a timeout of 1 hour
 - after the benchmarks that have a set priority, because this benchmark may
   unmount and overwrite free disks
-- Resource Tracker settings, so the tracker that wraps this benchmark streams
-  the run's resource usage to the Spare Cores Sentinel platform
+- Resource Tracker settings, so the tracker that wraps this benchmark
+  [streams](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
+  the run's resource usage to the
+  [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform
 
 A plain `docker run` with `--privileged --pid=host` runs the same tests, but
 without host networking and without the Resource Tracker settings.
@@ -130,8 +132,8 @@ in the following fields:
 - `unmounted`: the filesystems this benchmark unmounted
 - `group`: the ID of the disk's group
 
-`excluded` lists the devices that are not tested, each with a reason. The
-following devices are excluded:
+The `excluded` field lists the devices that are not tested, each with a reason.
+The following devices are excluded:
 
 - devices that are not disks
 - virtual devices, such as `loop`, `zram`, `md`, or `dm-`
@@ -178,17 +180,16 @@ Each `read` and `write` result has the following fields:
 - `iops_interval` and `bw_bytes_interval`: statistics over 500 ms windows,
   with `min`, `p5`, `p50`, `p95`, `max`, `mean`, `tail_mean`, and `samples`
 
-`tail_mean` is the mean of the second half of the run. It leaves out the
-initial burst and includes the time a drive may still spend draining its write
-buffer. Multi-job and multi-disk results
-are merged: IOPS and bandwidth are summed, and latency percentiles come from
-the merged `fio` latency histograms. Preconditioning records also have
-`iops_series` and `bw_bytes_series`, averaged over steps of 5 seconds
-(`series_step_ms`).
+The `tail_mean` field is the mean of the second half of the run. It leaves out
+the initial burst and includes the time a drive may still spend draining its
+write buffer. Multi-job and multi-disk results are merged: IOPS and bandwidth
+are summed, and latency percentiles come from the merged `fio` latency
+histograms. Preconditioning records also have `iops_series` and
+`bw_bytes_series`, averaged over steps of 5 seconds (`series_step_ms`).
 
 ### Health Snapshots
 
-`health` has one entry per disk, with the following fields:
+The `health` field has one entry per disk, with the following fields:
 
 - `before` and `after`: snapshots of `smartctl -x` and, for NVMe drives,
   `nvme smart-log`, each with `taken_at`
@@ -228,9 +229,9 @@ the following reasons:
 | `SC_STORAGE_FILL_BUDGET_S` | Total sequential-fill seconds, split evenly between fill steps. | `300` |
 | `SC_STORAGE_WS_TARGET_BYTES` | Bytes to fill per disk; `0` fills the whole disk. | `0` |
 | `SC_STORAGE_RAND_PRECOND_S` | Random-write precondition seconds. | `120` |
-| `SC_STORAGE_BUDGET_S` | Target for the estimated total test time, in seconds. | `2400` |
+| `SC_STORAGE_BUDGET_S` | Target for the estimated total test time in seconds. | `2400` |
 | `SC_STORAGE_UMOUNT` | `0` keeps every mounted disk read-only instead of unmounting it. | `1` |
 | `SC_STORAGE_PURGE` | `0` skips the discard before the fill. | `1` |
 
-An empty value uses the default. `SC_STORAGE_UMOUNT` and `SC_STORAGE_PURGE`
-are off only when set to exactly `0`.
+An empty value uses the default. The `SC_STORAGE_UMOUNT` and `SC_STORAGE_PURGE`
+settings are off only when set to exactly `0`.

@@ -93,8 +93,8 @@ the host's loopback interface, so that port must be free. If it is not,
 `Couldn't start server` and exit code 1. Without host networking, the traffic
 stays on loopback inside the container.
 
-The entrypoint runs this benchmark under `resource-tracker`, which samples
-resource usage during the run. Its data is not published.
+The container entrypoint runs this benchmark under `resource-tracker`, which
+samples resource usage during the run. Its data is not published.
 
 Measurement takes about 12 minutes: 69 configurations of 10 seconds each, plus
 server startup. A production run on an `aws/m5.large` took 11 minutes 42 seconds
@@ -123,11 +123,11 @@ quoted column names, then one row per configuration.
 
 The columns mean the following:
 
-- `size` is the label of the served file, in KiB, such as `"1k"`.
+- `size` is the label of the served file in KiB, such as `"1k"`.
 - `threads` and `connections` are the `wrk` thread count and the number of
   open connections.
 - `rps` is the requests per second that `wrk` reports, as an integer.
-- `latency` is the average latency from `wrk`'s thread statistics, in seconds.
+- `latency` is the average latency from `wrk`'s thread statistics in seconds.
 - `failed` is the number of responses with a status other than 2xx or 3xx.
 - `server_usr` and `server_sys` are the user and system CPU seconds that
   `binserve` used during the configuration.
@@ -145,16 +145,16 @@ different vCPU counts can be compared. In each group, it keeps the row with the
 highest `rps`, whatever its thread count, and publishes the following five
 scores from it:
 
-- **`static_web:rps`:** `rps`, in requests per second.
+- **`static_web:rps`:** `rps` in requests per second.
 - **`static_web:rps-extrapolated`:** `rps` multiplied by the ratio of all CPU
-  time (server and client) to the server's CPU time, in requests per second.
+  time (server and client) to the server's CPU time in requests per second.
 - **`static_web:throughput` and `static_web:throughput-extrapolated`:** the
-  two scores above multiplied by the file size, in bytes per second.
-- **`static_web:latency`:** `latency` of the same row, in seconds; lower is
+  two scores above multiplied by the file size in bytes per second.
+- **`static_web:latency`:** `latency` of the same row in seconds; lower is
   better.
 
 In the `aws/m5.large` example, for the `1k` file at 16 connections per vCPU,
-the row with two threads (64,606 requests per second) is kept over those with
+the row with two threads (64,606 requests/s) is kept over those with
 four and eight threads. Note that the published latency is that of the
 highest-`rps` row, not the lowest latency in the group. The Navigator's Web UI
 shows these scores with charts on each server type's page, for example

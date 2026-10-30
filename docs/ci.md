@@ -27,8 +27,8 @@ cache, use one of the following:
 
 Every image build job runs `resource-tracker` in **standalone mode** (no
 wrapped command, no `--pid`) while `docker buildx build` runs in parallel.
-`docker buildx` only drives `buildkitd` over the API, so compiles do not
-appear in a shell-wrapper process tree; without a tracked PID,
+The `docker buildx` command only drives `buildkitd` over the API, so compiles
+do not appear in a shell-wrapper process tree; without a tracked PID,
 `resource-tracker` collects system-wide CPU, memory, disk, and network (see
 [`Usage.md`](https://github.com/SpareCores/resource-tracker-rs/blob/main/resource-tracker-rs-book/src/Usage.md):
 *"Leave unset [pid] to collect system-wide metrics only"*). Metrics are sent
@@ -65,7 +65,7 @@ Push builds use GitHub-hosted runners (`ubuntu-latest` for amd64,
 `[self-hosted, Linux, X64, workhorse]`
 ([`build-level.yml`](../.github/workflows/build-level.yml)).
 
-Manual **Run workflow** checkboxes (default off):
+Manual **Run workflow** checkboxes (default: off):
 
 | Input | When enabled |
 |-------|----------------|
@@ -116,8 +116,8 @@ Each build uses prefix `{folder}/{arch}/` (e.g. `vllm-cpu-base-avx2/amd64/`)
 via `SCCACHE_S3_KEY_PREFIX`. Docker layer cache is exported to **GHCR**
 (`buildcache-<arch>`) and **GitHub Actions cache** (`type=gha`, scope
 `{folder}-{arch}` or `{folder}-{arch}-v{VLLM_VERSION}` for source-built vLLM
-CPU base). `sccache` caches compiler objects inside the vLLM source compile
-steps.
+CPU base). The `sccache` tool caches compiler objects inside the vLLM source
+compile steps.
 
 Coverage when enabled:
 
@@ -126,9 +126,9 @@ Coverage when enabled:
 | `rust-build` | `RUSTC_WRAPPER=/usr/bin/sccache` for `cargo`; `CC`/`CXX` absolute paths for build-script C compiles (`openssl-sys`, etc.) |
 | `csrc-build` / `vllm-build` wheel | CMake compiler launchers via `setup.py` (`CMAKE_*_COMPILER_LAUNCHER=sccache`); `RUSTC_WRAPPER` unset so C++ is not double-wrapped |
 
-`sccache` v0.15.0 is installed to `/usr/bin/sccache`.
-`SCCACHE_IGNORE_SERVER_IO_ERROR=1` falls back to local compiles if the cache
-server is unreachable.
+Version 0.15.0 of `sccache` is installed to `/usr/bin/sccache`. The
+`SCCACHE_IGNORE_SERVER_IO_ERROR=1` setting falls back to local compiles if the
+cache server is unreachable.
 
 Currently enabled for `vllm-cpu-base-avx2`.
 

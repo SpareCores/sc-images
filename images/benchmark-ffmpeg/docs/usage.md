@@ -14,7 +14,7 @@ No environment variables are required, and the image needs no network access at
 run time: the test media is downloaded and checksum-verified when the image is
 built.
 
-`--version` prints the versions of the harness
+The `--version` option prints the versions of the harness
 ([`benchmark.py`](../benchmark.py)) and FFmpeg, and exits:
 
 ```bash
@@ -65,7 +65,7 @@ all lower the worker counts:
 - `--memory` (`memory.max`): each audio worker is budgeted 64 MiB and each
   video worker 320 MiB of available memory.
 - `--pids-limit` (`pids.max`): each worker is budgeted
-  `FFMPEG_BENCH_PID_TASKS_PER_WORKER` tasks (default four), because the PID
+  `FFMPEG_BENCH_PID_TASKS_PER_WORKER` tasks (default: four), because the PID
   (Process Identifier) limit counts threads, not only processes.
 
 The output records the limits it found in `host`, including `cgroup_cpu_max`,
@@ -120,7 +120,7 @@ Each scenario runs the following steps:
    that the scenario can run and estimates its speed. A scenario whose probe
    fails is skipped.
 2. At each worker count, a pilot run sizes the media for each worker so that
-   one repetition takes about `FFMPEG_BENCH_TARGET_SECONDS` (default 5s)
+   one repetition takes about `FFMPEG_BENCH_TARGET_SECONDS` (default: 5s)
    of wall time. Faster servers therefore process more media in the same time.
    A successful pilot is not reported; a pilot that still fails after up to four
    attempts is reported as a failed repetition and ends the scenario.
@@ -129,9 +129,9 @@ Each scenario runs the following steps:
    repetition with a failed worker ends the worker count.
 
 Each repetition, including pilots, times out after
-`FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` (default 30s), and workers that
+`FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` (default: 30s), and workers that
 run past it count as failed. The whole run stops after
-`FFMPEG_BENCH_TIMEOUT_SECONDS` (default 7,200s); scenarios that have not
+`FFMPEG_BENCH_TIMEOUT_SECONDS` (default: 7,200s); scenarios that have not
 started by then are reported as skipped with `overall_timeout`.
 
 Total run time therefore depends on the number of scenarios that run and the
@@ -178,18 +178,20 @@ The Inspector of Spare Cores Navigator
 ([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs this image
 on every server type except those on the
 [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
-blocklist, with the following settings. A plain `docker run` differs from it as
-noted below:
+blocklist, with the settings in the following table. The last column shows what
+a plain `docker run` does instead:
 
-- The container runs privileged and with host networking. This benchmark does
-  not need either, and a plain `docker run` uses neither.
-- No `--shm-size` is set, so `/dev/shm` keeps Docker's 64 MiB default and
-  the test media is copied to `/tmp`, as in a plain run.
-- GPUs are requested for the container, equivalent to `--gpus all`. If that
-  fails, the run is retried without GPUs.
-- The task timeout is 2 hours, the same as the harness default.
-- Production skips servers with less than 1 GiB of memory. The image does
-  not enforce this minimum.
+| Setting | Production | Plain `docker run` |
+| ------- | ---------- | ------------------ |
+| Privileges and networking | Privileged, with host networking | Neither |
+| `--shm-size` | Not set | Not set |
+| GPUs | Requested for the container, equivalent to `--gpus all`; the run is retried without GPUs if that fails | None, unless you pass `--gpus all` |
+| Task timeout | 2 hours | 2 hours, the harness default |
+| Minimum memory | Servers with less than 1 GiB of memory are skipped | Not enforced by the image |
+
+This benchmark does not need privileged mode or host networking. With no
+`--shm-size` set, `/dev/shm` keeps Docker's 64 MiB default and the test media is
+copied to `/tmp`, in production and in a plain run.
 
 We investigate failed production runs, manually or semi-automatically, and
 then run them again. Until then, a server type's latest result in
@@ -202,11 +204,11 @@ The following variables configure this benchmark. See
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
-| `FFMPEG_BENCH_TARGET_SECONDS` | Target wall time per repetition, in seconds. | `5` |
-| `FFMPEG_BENCH_MIN_MEDIA_SECONDS` | Minimum media length per worker, in seconds. | `0.5` |
-| `FFMPEG_BENCH_MAX_MEDIA_SECONDS` | Maximum media length per worker, in seconds. | `1800` |
-| `FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS` | Media length of the one-worker video probe, in seconds. | `1` |
-| `FFMPEG_BENCH_AUDIO_CALIBRATION_SECONDS` | Media length of the one-worker audio probe, in seconds. | `5` |
+| `FFMPEG_BENCH_TARGET_SECONDS` | Target wall time per repetition in seconds. | `5` |
+| `FFMPEG_BENCH_MIN_MEDIA_SECONDS` | Minimum media length per worker in seconds. | `0.5` |
+| `FFMPEG_BENCH_MAX_MEDIA_SECONDS` | Maximum media length per worker in seconds. | `1800` |
+| `FFMPEG_BENCH_VIDEO_CALIBRATION_SECONDS` | Media length of the one-worker video probe in seconds. | `1` |
+| `FFMPEG_BENCH_AUDIO_CALIBRATION_SECONDS` | Media length of the one-worker audio probe in seconds. | `5` |
 | `FFMPEG_BENCH_REPETITIONS` | Measured repetitions per worker count (at least 1). | `3` |
 | `FFMPEG_BENCH_MAX_REPETITIONS` | Maximum repetitions per worker count when the rates vary. | `5` |
 | `FFMPEG_BENCH_CV_THRESHOLD` | Add repetitions while the coefficient of variation of the rates is above this value. | `0.10` |
@@ -217,8 +219,8 @@ The following variables configure this benchmark. See
 | `FFMPEG_BENCH_GPU_ENCODE_SESSIONS_PER_GPU` | Highest NVENC worker count per GPU the search can reach. | `8` |
 | `FFMPEG_BENCH_GPU_DECODE_SESSIONS_PER_GPU` | Highest NVDEC worker count per GPU the search can reach. | `8` |
 | `FFMPEG_BENCH_PID_TASKS_PER_WORKER` | Tasks budgeted per worker against the container's PID limit (at least 2). | `4` |
-| `FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` | Timeout for each repetition or pilot, in seconds. | 6 × target, at least `30` |
-| `FFMPEG_BENCH_TIMEOUT_SECONDS` | Deadline for the whole run, in seconds. | `7200` |
+| `FFMPEG_BENCH_REPETITION_TIMEOUT_SECONDS` | Timeout for each repetition or pilot in seconds. | 6 × target, at least `30` |
+| `FFMPEG_BENCH_TIMEOUT_SECONDS` | Deadline for the whole run in seconds. | `7200` |
 | `FFMPEG_BENCH_AUDIO_SOURCE` | Path of an alternate FLAC file. It is not checksum-verified. | Bundled sample |
 | `FFMPEG_BENCH_VIDEO_SOURCE` | Path of an alternate H.264 MP4 file. It must match `FFMPEG_BENCH_VIDEO_SHA256`. | Bundled clip |
 | `FFMPEG_BENCH_VIDEO_HEVC_SOURCE` | Path of an alternate H.265 MP4 file. It must match `FFMPEG_BENCH_VIDEO_HEVC_SHA256`. | Bundled clip |

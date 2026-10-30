@@ -14,7 +14,8 @@ mode prints one `<workers>,<bogo ops/s>` line per worker count.
 
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
 empirical performance measurements for over 5,000 cloud server types, such as
-raw CPU speed, memory bandwidth, and compression throughput. This benchmark
+raw CPU speed, [memory bandwidth](../benchmark/docs/bw-mem.md), and
+[compression throughput](../benchmark/docs/compression.md). This benchmark
 covers a wide range of CPU and memory work in one run, from integer and
 floating-point math to sorting, hashing, and memory bandwidth.
 
@@ -102,11 +103,11 @@ See [Output](./docs/usage.md#output) for every field.
 
 This benchmark runs the following workloads:
 
-- [Stressor suite](./docs/workloads.md#stressor-suite):
+- **[Stressor Suite](./docs/workloads.md#stressor-suite):**
   [`run_stressng_benchmarks.py`](./run_stressng_benchmarks.py) runs 85
   stressors in seven categories, each with one worker and then one worker per
   CPU.
-- [CPU scaling loop](./docs/workloads.md#cpu-scaling-loop): the `cpu` stressor
+- **[CPU Scaling Loop](./docs/workloads.md#cpu-scaling-loop):** The `cpu` stressor
   with the stress-ng div16 method runs for 10 seconds at each worker count from
   1 up to the CPU count, with [`count.awk`](./count.awk) picking the counts.
 

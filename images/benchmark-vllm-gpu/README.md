@@ -1,9 +1,9 @@
 # benchmark-vllm-gpu
 
-vLLM **GPU serving** benchmark: `vllm serve` with the largest valid tensor-parallel
+This is a vLLM **GPU serving** benchmark: `vllm serve` with the largest valid tensor-parallel
 size for each model (not always all visible GPUs — see
 [Tensor parallelism](../../vllm-common/README.md#tensor--data-parallelism)), then
-[GuideLLM](https://github.com/vllm-project/guidellm) `sweep` (default 3 steps) per workload.
+[GuideLLM](https://github.com/vllm-project/guidellm) `sweep` (default: 3 steps) per workload.
 
 | Arch | Base |
 |------|------|
@@ -20,9 +20,9 @@ Gemma and Llama-3.1-8B are gated on Hugging Face — set `HF_TOKEN` and accept e
 
 ## Workloads
 
-- **chat**: 256 prompt / 128 output tokens  
-- **rag**: 1024 / 256  
-- **long**: 4096 / 512 (GPU only)
+- **`chat`:** 256 prompt / 128 output tokens  
+- **`rag`:** 1024 / 256  
+- **`long`:** 4096 / 512 (GPU only)
 
 ## Output
 

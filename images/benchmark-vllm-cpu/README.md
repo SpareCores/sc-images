@@ -1,6 +1,6 @@
 # benchmark-vllm-cpu
 
-vLLM **CPU serving** on **amd64 (AVX-512)** and **arm64** using Hub `vllm-openai-cpu`, plus GuideLLM load tests.
+This benchmark runs vLLM **CPU serving** on **amd64 (AVX-512)** and **arm64** using Hub `vllm-openai-cpu`, plus GuideLLM load tests.
 
 Published as `ghcr.io/sparecores/benchmark-vllm-cpu:main`. Pins: [`VLLM_VERSION`](../../vllm-common/VLLM_VERSION), [`GUIDELLM_VERSION`](../../vllm-common/GUIDELLM_VERSION).
 

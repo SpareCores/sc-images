@@ -17,8 +17,8 @@ MP3, or FLAC. The audio scenarios run on the CPU only; see
 | `mp3_192k` | `libmp3lame` | 192 kbps | 44.1 kHz |
 | `flac_lossless` | `flac` (FFmpeg's native FLAC encoder) | Compression level 5 | 44.1 kHz |
 
-`opus_128k` uses 48 kHz because `libopus` accepts only 8, 12, 16, 24, or
-48 kHz, not the sample's 44.1 kHz.
+The `opus_128k` workload uses 48 kHz because `libopus` accepts only 8, 12, 16,
+24, or 48 kHz, not the sample's 44.1 kHz.
 
 Audio results are reported as `audio_seconds_per_sec`: seconds of audio
 processed per second of wall time, across all workers.

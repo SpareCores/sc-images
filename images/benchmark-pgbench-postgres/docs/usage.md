@@ -53,15 +53,15 @@ count and system memory size, using the following algorithm, implemented in
 - Set `autovacuum_max_workers` to 4 when `C` ≥ 16 and to 5 when `C` ≥ 32;
   otherwise, keep the PostgreSQL default.
 - Override `pgtune`'s `max_connections` of 200 with 3,122 (the highest client
-  count, 3,072, plus 50 reserved connections). `work_mem` is still sized for 200
-  connections.
+  count, 3,072, plus 50 reserved connections). The `work_mem` setting is still sized
+  for 200 connections.
 - Set `synchronous_commit` to `off` when `SC_DURABILITY=async`, and `on`
   otherwise.
 
 The output records the generated settings in `postgres.requested_gucs` and a
 `pgtune` form link in `pgtune_share_url`. The link shows `pgtune`'s default of
-200 connections, not the 3,122 override. `pgbench_ro` applies further [workload
-settings](#workload-settings) on top of these.
+200 connections, not the 3,122 override. The `pgbench_ro` workload applies
+further [workload settings](#workload-settings) on top of these.
 
 ## Remote Mode
 
@@ -72,7 +72,7 @@ you run, check the following prerequisites:
 - The `SC_DB_USER` role can create databases (`CREATEDB`) and terminate other
   sessions on the benchmark database: it must be a superuser, a member of
   `pg_signal_backend`, or the role those sessions run as.
-- The benchmark database, `SC_PGBENCH_DB` (default `pgbench`), holds no data you
+- The benchmark database, `SC_PGBENCH_DB` (default: `pgbench`), holds no data you
   need. Restoring a cached dump drops and recreates it; building the dataset
   drops and recreates its benchmark tables.
 - The `SC_DB_USER` role owns the benchmark database or is a superuser, so it can
@@ -97,8 +97,8 @@ docker run --rm \
   ghcr.io/sparecores/benchmark-pgbench-postgres:main
 ```
 
-`SC_DB_MEM_GIB` is only recorded in the output; for a remote server it is `null`
-unless you set it.
+The `SC_DB_MEM_GIB` variable is only recorded in the output; for a remote server
+it is `null` unless you set it.
 
 The image does not tune a remote server's configuration; the only settings it
 changes are the [workload settings](#workload-settings) on the benchmark
@@ -115,7 +115,8 @@ DATABASE ... SET`, after building or restoring the dataset:
 - `max_parallel_workers_per_gather`: `0`
 
 They apply to every `pgbench` session and override the server-level values,
-including the standalone `pgtune` settings. `pgbench_tpcb` changes no settings.
+including the standalone `pgtune` settings. The `pgbench_tpcb` workload changes
+no settings.
 
 ## Run Duration
 
@@ -124,11 +125,11 @@ points in the following steps:
 
 1. Restore the dataset from a cached dump on the CDN, or build it if no dump
    exists for it.
-2. Warm up once for `SC_WARMUP_SECONDS` (default 120s) at the first concurrency
+2. Warm up once for `SC_WARMUP_SECONDS` (default: 120s) at the first concurrency
    point. Before each later point, run a settle period of `SC_SETTLE_SECONDS`
-   (default 60s) at that point's client count. Neither is measured. With
+   (default: 60s) at that point's client count. Neither is measured. With
    `SC_WARMUP_ONCE=false`, every point gets the full warmup.
-3. Measure each concurrency point for `SC_RUN_SECONDS` (default 300s), sampling
+3. Measure each concurrency point for `SC_RUN_SECONDS` (default: 300s), sampling
    1% of transaction latencies.
 4. Report the highest TPM (Transactions Per Minute) of all concurrency points
    (and scale factors) as the score.
@@ -220,14 +221,14 @@ region.
 | `SC_DB_PASSWORD` | Database password. | `postgres` |
 | `SC_DB_NAME` | Admin database used for setup and settings queries. | `postgres` |
 | `SC_PGBENCH_DB` | Database used by this benchmark; its contents are dropped and recreated. | `pgbench` |
-| `SC_DB_SSLMODE` | SSL (Secure Sockets Layer) mode for the dataset restore, `pg_dump`, and the connection that drops and recreates the benchmark database. `pgbench` and the setup queries do not use it. | `prefer` |
+| `SC_DB_SSLMODE` | SSL (Secure Sockets Layer) mode for the dataset restore, `pg_dump`, and the connection that drops and recreates the benchmark database. The `pgbench` tool and the setup queries do not use it. | `prefer` |
 | `SC_CPU_SCALE` | `pgbench_ro` transaction work multiplier. | `1` |
 | `SC_SCALEFACTORS` | Comma-separated `pgbench_tpcb` scale factors. | Unset |
 | `SC_SCALEFACTOR` | `pgbench_tpcb` scale factor when `SC_SCALEFACTORS` is unset or empty. | `65` |
 | `SC_PROFILE_VUS` | Comma-separated `pgbench_ro` concurrency points. For `pgbench_tpcb`, it only sets the default `SC_PROFILE_MAX_CLIENTS`. | Derived from database vCPUs |
 | `SC_PROFILE_SEARCH` | Allow adaptive concurrency search for `pgbench_tpcb`; forced off for `pgbench_ro`. At the default scale factor, it takes effect only when `SC_PROFILE_MAX_CLIENTS` is above the highest anchor. | True for `pgbench_tpcb`; false for `pgbench_ro` |
 | `SC_PROFILE_IMPROVE_PCT` | Throughput improvement threshold for `pgbench_tpcb` search. | `5.0` |
-| `SC_PROFILE_MAX_CLIENTS` | Client-count limit for the planned profile. `pgbench_tpcb` search can extend past it while throughput improves, up to the scale factor. Raising it above the highest anchor lets `pgbench_tpcb` search add points only when a ladder rung lies between that anchor and the scale factor. | Highest anchor |
+| `SC_PROFILE_MAX_CLIENTS` | Client-count limit for the planned profile. The `pgbench_tpcb` search can extend past it while throughput improves, up to the scale factor. Raising it above the highest anchor lets `pgbench_tpcb` search add points only when a ladder rung lies between that anchor and the scale factor. | Highest anchor |
 | `SC_PROFILE_HARD_MAX_CLIENTS` | `pgbench_tpcb` only: the highest client count search can reach, also capped by the scale factor and by `max_connections` minus 50. Has no effect on `pgbench_ro`. | Highest anchor for `pgbench_ro`; `3072` for `pgbench_tpcb` |
 | `SC_RUN_SECONDS` | Measurement duration per concurrency point. | `300` |
 | `SC_WARMUP_SECONDS` | Initial warmup duration. | `120` |

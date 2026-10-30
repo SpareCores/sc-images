@@ -8,7 +8,7 @@ GPU, between GPUs, and within the memory of a single GPU. The image runs
 every `nvbandwidth` test case in sequence, with the tool's default settings,
 on all GPUs passed to the container with `--gpus all`.
 
-It reports one bandwidth matrix per test case, in GB/s, or a latency matrix in
+It reports one bandwidth matrix per test case in GB/s, or a latency matrix in
 nanoseconds, plus the matrix sum. The image adds no harness and no score: the
 output is the unchanged `nvbandwidth` report.
 
@@ -18,7 +18,7 @@ output is the unchanged `nvbandwidth` report.
 empirical performance measurements, such as
 [raw CPU speed](../stress-ng/README.md),
 [memory bandwidth](../benchmark/docs/bw-mem.md), and
-[LLM (Large Language Model) inference speed](../benchmark-llm/README.md),
+[LLM inference speed](../benchmark-llm/README.md),
 for more than 5,000 cloud server types. This benchmark adds measured raw GPU
 performance: how fast
 data moves between the CPU and the GPUs of a server type, and between its
@@ -124,8 +124,8 @@ fields under its top-level `nvbandwidth` key:
   built with CUDA Toolkit 12.6.1.
 - `GPU Device list` names each GPU, with its index, name, bus address, and
   hostname.
-- `version` is the `nvbandwidth` version (`v0.8`). `git_version` is empty,
-  because the image builds `nvbandwidth` from a release archive.
+- `version` is the `nvbandwidth` version (`v0.8`). The `git_version` field is
+  empty, because the image builds `nvbandwidth` from a release archive.
 - `testcases[]` has one entry per test case, with its `name` and `status`.
 
 A test case that ran has `"status": "Passed"` and the following fields:

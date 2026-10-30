@@ -138,7 +138,7 @@ Sequential tests with more than one job split the disk into equal stripes, one
 per job. Random tests use the `tausworthe64` generator without a random map
 (`norandommap=1`) and without a repeatable seed (`randrepeat=0`).
 
-`fio` measures the end-to-end latency of each I/O, and this benchmark reports
-its percentiles from `fio`'s latency histograms. It also logs IOPS and
+The `fio` tool measures the end-to-end latency of each I/O, and this benchmark
+reports its percentiles from `fio`'s latency histograms. It also logs IOPS and
 bandwidth every 500 ms, which give the interval statistics in the output.
 See [Output](./usage.md#output) for the fields.

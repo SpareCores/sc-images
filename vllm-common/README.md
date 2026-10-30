@@ -15,9 +15,9 @@ Not a published image — shared sources for the `benchmark-vllm-*` images under
 
    Default ladder (small → large): SmolLM2-135M, Qwen2.5-0.5B, Gemma-2-2B, Llama-3.1-8B, Phi-4,
    Llama-3.3-70B bnb-4bit (~48 GiB). On CPU, each model runs only when `model_fits` (RAM); 70B is
-   skipped on CPU because bitsandbytes quant is GPU-only. `google/gemma-2-2b-it` and
-   `meta-llama/Llama-3.1-8B-Instruct` require Hugging Face license acceptance plus `HF_TOKEN`.
-   - **CPU + GPU**: `sweep` (default autoconfig: budget-limited steps — sync → throughput → constant interpolations). Override with `GUIDELLM_SWEEP_SIZE`, `GUIDELLM_CPU_SWEEP_SIZE`, or `GUIDELLM_GPU_SWEEP_SIZE`. Set `BENCHMARK_VLLM_AUTOCONFIG=0` for legacy static settings (CPU `max_requests=25`, `sweep_size=3`).
+   skipped on CPU because bitsandbytes quant is GPU-only. Access to `google/gemma-2-2b-it` and
+   `meta-llama/Llama-3.1-8B-Instruct` requires Hugging Face license acceptance plus `HF_TOKEN`.
+   - **CPU + GPU**: `sweep` (default: autoconfig with budget-limited steps, from sync through throughput to constant interpolations). Override with `GUIDELLM_SWEEP_SIZE`, `GUIDELLM_CPU_SWEEP_SIZE`, or `GUIDELLM_GPU_SWEEP_SIZE`. Set `BENCHMARK_VLLM_AUTOCONFIG=0` for legacy static settings (CPU `max_requests=25`, `sweep_size=3`).
    - **Legacy fast path**: `GUIDELLM_PROFILES=legacy` (or `GUIDELLM_CPU_PROFILES=legacy`) runs `synchronous` + capped `throughput` (`GUIDELLM_THROUGHPUT_RATE`, default 8 on CPU).
 3. **Multi-GPU**: see [Tensor parallelism](#tensor--data-parallelism) below.
 
@@ -44,7 +44,7 @@ Example CPU load at different sizes (8 model×workload runs, 2h budget, SmolLM2-
 | 192 (4) | 12 | 182 | 4 | 8s | 60 | 52s |
 | 896 (8) | 32 | 497 | 4 | 8s | 60 | 52s |
 
-`measure window` is `--max-seconds` minus throughput-stage `--rampup`. GuideLLM counts rampup **inside** the stage budget; vCPU-scaled rampup (old `v/4`, 24s at 96 cores / 30s at ≥128 with ~40s stages) left almost no time at peak concurrency — that was the sharp drop after 96 CPUs. Extra DP keeps small models at ~16 threads/rank instead of one giant OpenMP team.
+The `measure window` value is `--max-seconds` minus throughput-stage `--rampup`. GuideLLM counts rampup **inside** the stage budget; vCPU-scaled rampup (old `v/4`, 24s at 96 cores / 30s at ≥128 with ~40s stages) left almost no time at peak concurrency — that was the sharp drop after 96 CPUs. Extra DP keeps small models at ~16 threads/rank instead of one giant OpenMP team.
 
 ### GuideLLM sweep limits
 
@@ -76,7 +76,7 @@ Per workload (chat / rag / long), autoconfig restarts `vllm serve` with that wor
 
 JSONL rows include `max_model_len`, `tuning_version`, and a `tuning`
 object (`tuning_version=7`: v6 CPU/GuideLLM behavior plus authoritative
-model-footprint planning and per-node/per-GPU feasibility). `tuning.max_requests`
+model-footprint planning and per-node/per-GPU feasibility). The `tuning.max_requests` field
 is `null` unless env override. Host vCPU/RAM come from the `server` table when
 querying the DB. Disable autoconfig for A/B against older data:
 `BENCHMARK_VLLM_AUTOCONFIG=0`. Disable per-workload server restarts:
@@ -84,12 +84,12 @@ querying the DB. Disable autoconfig for A/B against older data:
 
 ## Tensor / data parallelism
 
-vLLM does **not** always use every visible GPU or CPU socket. The harness picks
+The vLLM engine does **not** always use every visible GPU or CPU socket. The harness picks
 parallelism as follows:
 
 **GPU:** largest `--tensor-parallel-size` (TP) ≤ GPU count that divides the
 model's attention head count (`tensor_parallel_size()` in `benchmark.py`).
-vLLM rejects invalid TP with e.g. `attention heads (9) must be divisible by tensor parallel size (2)`.
+The vLLM engine rejects invalid TP with e.g. `attention heads (9) must be divisible by tensor parallel size (2)`.
 
 **CPU (multi-NUMA):** vLLM's `VLLM_CPU_OMP_THREADS_BIND=auto` drops SMT on x86
 (one logical CPU per physical core) and, with a single rank, binds only to NUMA
@@ -118,7 +118,7 @@ Autoconfig then:
    skipped by `workload_kv_fits()` rather than crashed.
 
 Resource sizing no longer relies on parameter-count rules of thumb when the
-Hub is reachable. `--plan-only` resolves:
+Hub is reachable. The `--plan-only` option resolves:
 
 - exact selected weight-file bytes from Hugging Face file metadata (using the
   safetensors/bin index to avoid counting duplicate formats);
@@ -171,7 +171,7 @@ instances.
 
 ## JSONL fields
 
-`benchmark=vllm_serving`, `measurement` (ttft, tpot, itl, e2el, output_throughput, …), `percentile` (p50/p95/p99/mean), plus `workload`, `profile`, `strategy`, `mode`, `arch`, `tensor_parallel`, etc.
+Each row has `benchmark=vllm_serving`, `measurement` (ttft, tpot, itl, e2el, output_throughput, …), `percentile` (p50/p95/p99/mean), plus `workload`, `profile`, `strategy`, `mode`, `arch`, `tensor_parallel`, etc.
 
 ## Images
 

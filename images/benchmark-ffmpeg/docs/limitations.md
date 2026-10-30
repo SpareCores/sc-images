@@ -43,8 +43,8 @@ threads. See [One Codec Thread per Job](#one-codec-thread-per-job).
 ### One Codec Thread per Job
 
 Each worker is an independent `ffmpeg` process limited to one codec thread
-([`benchmark.py`](../benchmark.py)). `libx265` additionally runs with one frame
-thread and no thread pool. Throughput on larger servers comes from running more
+([`benchmark.py`](../benchmark.py)). The `libx265` encoder additionally runs with one
+frame thread and no thread pool. Throughput on larger servers comes from running more
 workers in parallel, not from more threads per job.
 
 ### Physical Cores, Not Logical CPUs
@@ -122,8 +122,8 @@ until those servers are measured again.
 
 ### Computed Media Counts
 
-`processed_frames` and `processed_audio_seconds` are computed from the media
-length each worker was asked to process, not read from FFmpeg's output:
+The `processed_frames` and `processed_audio_seconds` fields are computed from
+the media length each worker was asked to process, not read from FFmpeg's output:
 successful workers × media length (× the clip's frame rate, for video). A failed
 or timed-out worker adds no media, but the group's wall time still includes it,
 so failures lower the rate.

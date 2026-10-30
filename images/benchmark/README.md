@@ -65,14 +65,14 @@ docker run --rm --privileged ghcr.io/sparecores/benchmark:main python /usr/local
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main geekbench.sh
 ```
 
-`openssl.sh` and `bw_mem.sh` run their tools under `nice -n -20`, which needs
-`--privileged`. Production also runs `compress.py` and `geekbench.sh` under
+The `openssl.sh` and `bw_mem.sh` scripts run their tools under `nice -n -20`,
+which needs `--privileged`. Production also runs `compress.py` and `geekbench.sh` under
 `nice -n -20`, from its own command line. See
 [Production Setup](./docs/usage.md#production-setup) before you compare your
 results with the Navigator's.
 
-`geekbench.sh` does not upload results to the Geekbench Browser: it captures
-Geekbench's upload on a local HTTPS server inside the container. See
+The `geekbench.sh` script does not upload results to the Geekbench Browser: it
+captures Geekbench's upload on a local HTTPS server inside the container. See
 [Upload Capture](./docs/geekbench.md#upload-capture) for how the capture works.
 
 In production, the median run takes the following time:
@@ -116,15 +116,15 @@ Each link leads to the fields and units of that format.
 The image runs the following benchmarks, one per script, each with its own
 page:
 
-- [OpenSSL speed](./docs/openssl.md) (`openssl.sh`) measures the throughput
+- **[OpenSSL Speed](./docs/openssl.md) (`openssl.sh`):** Measures the throughput
   of 11 hash and cipher algorithms with one process per logical CPU.
-- [Memory bandwidth](./docs/bw-mem.md) (`bw_mem.sh`) measures read, write,
+- **[Memory Bandwidth](./docs/bw-mem.md) (`bw_mem.sh`):** Measures read, write,
   and read-write bandwidth over 11 buffer sizes from `16k` to `512M`, with one
   process per logical CPU.
-- [Compression](./docs/compression.md) (`compress.py`) measures eight
+- **[Compression](./docs/compression.md) (`compress.py`):** Measures eight
   compressors at several levels on one thread and with at most one process per
   physical core.
-- [Geekbench](./docs/geekbench.md) (`geekbench.sh`) runs Geekbench 6.7.1's
+- **[Geekbench](./docs/geekbench.md) (`geekbench.sh`):** Runs Geekbench 6.7.1's
   own Single-Core and Multi-Core suites.
 
 ## Design History
