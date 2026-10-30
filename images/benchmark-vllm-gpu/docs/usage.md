@@ -153,15 +153,15 @@ from this task. The task uses the following settings:
 
 | Setting | Production | Plain `docker run` |
 | --- | --- | --- |
-| Image | This image first, then [`benchmark-vllm-cpu`](../../benchmark-vllm-cpu/README.md), then [`benchmark-vllm-cpu-avx2`](../../benchmark-vllm-cpu-avx2/README.md). This image is skipped on servers without GPUs or with every GPU below compute capability 8.0. Each image first runs `--probe-only`, for at most 18 min, and the first that passes runs the full benchmark, with no fallback after that. | This image only |
+| Image | This image first, then [`benchmark-vllm-cpu`](../../benchmark-vllm-cpu/README.md), then [`benchmark-vllm-cpu-avx2`](../../benchmark-vllm-cpu-avx2/README.md). This image is skipped on servers without GPUs or with every GPU below compute capability 8.0. Each image first runs `--probe-only`, for at most 18 min, and the first that passes runs the full benchmark, with no fallback after that. | Only the image you run, with no `--probe-only` step first and no fallback to the CPU images |
 | GPUs | All GPUs | As passed with `--gpus` |
 | Shared memory | 4 GiB | 64 MiB, unless `--shm-size` is passed |
-| Privileges | Privileged | Not privileged |
-| Networking | Host networking | Docker's default bridge network |
-| Memory limit | 85% of the host's available memory, with swap disabled | None |
-| Environment | `HF_TOKEN` and the `resource-tracker` settings | As passed with `-e` |
+| Privileges | Privileged | Not privileged, unless `--privileged` is passed |
+| Networking | Host networking | Docker's default bridge network, unless `--network host` is passed |
+| Memory limit | 85% of the host's available memory, with swap disabled | None, and swap as the host allows |
+| Environment | `HF_TOKEN` and the `resource-tracker` settings | As passed with `-e`, such as `-e HF_TOKEN`, without the `resource-tracker` settings |
 | Overall timeout | 3 hours | None, only this benchmark's own 2-hour budget |
-| Other tasks | Not run in parallel with other benchmarks | Not applicable |
+| Other tasks | Not run in parallel with other benchmarks | Whatever else runs on the host at the same time |
 
 To reproduce the container settings above, except the memory limit, run the
 following command:
