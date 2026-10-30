@@ -103,11 +103,13 @@ the following formulas:
 - **GuideLLM worker processes:** `min(max(8, int(3 * v ** 0.50)), max(4, v))`
 - **Sweep size:** `max(2, min(3 + floor(log2(v) / 2), 6 + floor(log2(v) / 3)))`,
   then reduced until the sweep fits the [time budget](#time-budget) of the run
-- **Seconds per stage:** at least `max(25, 22 * max_model_len / 2048)`, and at
-  most 240
+- **Seconds per stage:** the run budget divided by the sweep size, at least
+  `max(25, 22 * max_model_len / 2048)`, and at most 240
 - **Throughput-stage ramp-up in seconds:**
   `min(10, max(2, 0.15 * seconds per stage))`
-- **Warmup:** `0.05`
+- **Warmup:** `0.05`, so GuideLLM leaves the first 5% of each stage out of
+  the results, to exclude startup effects
+  ([GuideLLM](https://github.com/vllm-project/guidellm/blob/v0.7.3/README.md))
 
 Production runs used the following settings. The workload columns give the
 sweep size times the seconds per stage:
@@ -123,9 +125,10 @@ The `long` workload also ran two stages of 120 seconds on the UpCloud
 Its minimum of 88 seconds per stage leaves room for only two stages in a run
 budget of 240 seconds.
 
-This benchmark also computes vLLM batch settings, `max_num_seqs`,
-`max_num_batched_tokens`, `dtype`, and `kv_memory_util`, and records them in
-each line's `tuning` object. On GPUs, it does not pass them to `vllm serve`,
+This benchmark also computes vLLM server settings: the batch limits
+`max_num_seqs` and `max_num_batched_tokens`, the data type `dtype`, and the
+memory fraction `kv_memory_util`. It records them in each line's `tuning`
+object. On GPUs, it does not pass them to `vllm serve`,
 which uses its own defaults. Set `BENCHMARK_VLLM_MAX_NUM_SEQS` or
 `BENCHMARK_VLLM_MAX_NUM_BATCHED_TOKENS` to pass `--max-num-seqs` or
 `--max-num-batched-tokens`. See
@@ -135,12 +138,15 @@ other settings.
 ## Time Budget
 
 By default, a run has an overall budget of 2 hours, multiplied by
-`--benchmark-timeout-scale`. This benchmark splits it as follows:
+`--benchmark-timeout-scale`; no new model or workload starts after 2 hours,
+whatever the scale (see [Run Duration](./usage.md#run-duration)). This
+benchmark splits the budget as follows:
 
 1. It reserves 600 seconds, plus 60 seconds for each GPU server start, one per
    runnable model and workload.
 2. It divides the rest by the number of model and workload runs.
-3. It limits each run to 45 to 240 seconds.
+3. It limits each run of one model and workload, that is, one sweep, to 45 to
+   240 seconds.
 
 For example, on the `g5.16xlarge` with one NVIDIA A10G GPU, the log shows
 `overall=7200s reserve=1320s runs=12 per_run=240s`

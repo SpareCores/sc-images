@@ -17,6 +17,15 @@ load stage, as one JSON line per metric and statistic:
 - **Throughput:** output tokens and total tokens per second, and requests per
   second, each as a mean.
 
+## Purpose
+
+[Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
+empirical performance measurements for over 5,000 cloud server types, among
+them [LLM inference speed](../benchmark-llm/README.md): how fast `llama.cpp`
+processes prompts and generates text for one request at a time. This
+benchmark measures LLM serving instead: the latency and throughput of a vLLM
+server under concurrent load, from one request at a time up to peak load.
+
 ## Limitations
 
 These results compare LLM serving under load on NVIDIA GPUs. Note the
@@ -33,18 +42,23 @@ following limitations of GPU runs:
 - **[Load Follows vCPU Count](./docs/workloads.md#load-settings):**
   Concurrency, GuideLLM workers, and the number of load stages scale with the
   host's vCPU count, not with the GPU count, GPU model, or GPU memory.
-- **[vLLM Batch Defaults](./docs/workloads.md#load-settings):** On GPUs, vLLM
-  runs with its own batch limits. The batch settings recorded in each row's
-  `tuning` object are not passed to `vllm serve`.
+- **[vLLM Server Defaults](./docs/workloads.md#load-settings):** On GPUs, vLLM
+  runs with its own batch limits and data type. The vLLM server settings
+  recorded in each row's `tuning` object are not passed to `vllm serve`.
 - **[Skipped Models and Workloads](./docs/workloads.md#gpu-memory-fit):** A
   model or workload that does not fit in the memory of each GPU it would use is
   skipped. The run still exits with code 0 as long as another model or
   workload wrote results.
+- **[One Host, Synthetic Prompts](./docs/workloads.md#guidellm-sweep):** This
+  benchmark measures serving latency and throughput on one host, with
+  synthetic prompts of fixed lengths. It does not measure the network latency
+  between a client and the server, or the quality of the model output.
 
 ## Usage
 
-Run the image via Docker with the GPUs passed, a larger shared memory, and a
-Hugging Face access token in `HF_TOKEN`:
+Export your Hugging Face access token as `HF_TOKEN` in the shell first;
+`-e HF_TOKEN` passes it into the container. Then run the image via Docker with
+the GPUs passed and a larger shared memory:
 
 ```bash
 docker run --rm --gpus all --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-gpu:main > results.jsonl
@@ -94,7 +108,8 @@ and their defaults:
 
 The process prints JSON Lines to stdout: one line per model, workload,
 GuideLLM load stage, metric, and statistic. Logs go to stderr, including the
-load settings and each `vllm serve` command. The output of the vLLM server goes
+load settings, each `vllm serve` command, and the cause when a server fails to
+start. The output of the vLLM server goes
 to a temporary file inside the container, not to stdout or stderr. The main
 fields of each line are the following:
 
@@ -106,7 +121,8 @@ fields of each line are the following:
   `requests/sec`.
 - `model`, `workload`, and `strategy` identify the run. `strategy` is the
   GuideLLM load stage, `synchronous`, `throughput`, or `constant`, and
-  `concurrency` is its mean number of concurrent requests.
+  `concurrency` is its mean number of concurrent requests. `target_rate` is
+  the request rate of a `constant` stage, which tells those stages apart.
 - `mode` is `gpu`. The `gpu_count`, `gpu_model` (the name of the first GPU),
   and `total_vram_gb` (the memory of all GPUs in GiB) fields describe the GPUs.
 - `tensor_parallel`, `pipeline_parallel`, and `data_parallel` show how the
@@ -114,9 +130,8 @@ fields of each line are the following:
   [GPU Parallelism](./docs/workloads.md#gpu-parallelism).
 - `vllm_version` and `guidellm_version` give the pinned versions.
 
-The [vLLM manual](../../vllm-common/README.md) describes the fields that the
-vLLM images share, and [Output Fields](./docs/usage.md#output-fields) the
-GPU-specific ones. For example, see the production
+See [Output Fields](./docs/usage.md#output-fields) for the GPU-specific
+fields. For example, see the production
 [output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)
 of an AWS (Amazon Web Services) `g5.16xlarge` with 64 vCPUs and one NVIDIA
 A10G GPU.

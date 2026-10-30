@@ -17,9 +17,10 @@ The harness and the version files are shared with the CPU images, so the build
 context is the root of the
 [`sc-images` repository](https://github.com/SpareCores/sc-images), as the
 [`CONTEXT`](../CONTEXT) file sets. The image sets `BENCHMARK_VLLM_MODE=gpu`,
-`TRACKER_QUIET=true`, and the Hugging Face cache to `/models`, a volume. For
-runs as a non-root user, it also sets `USER=benchmark`, `HOME=/tmp`, and
-`TORCHINDUCTOR_CACHE_DIR=/tmp/torch_inductor`. The container entrypoint is
+`TRACKER_QUIET=true`, and the Hugging Face cache to `/models`, a volume. It
+also sets `USER=benchmark`, `HOME=/tmp`, and
+`TORCHINDUCTOR_CACHE_DIR=/tmp/torch_inductor` as environment variables, for
+runs with `--user`; the `Dockerfile` has no `USER` instruction. The container entrypoint is
 `resource-tracker -- python3 /benchmark.py`.
 
 ## Build Arguments

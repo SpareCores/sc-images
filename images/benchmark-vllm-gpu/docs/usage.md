@@ -2,7 +2,9 @@
 
 ## GPU Run
 
-Run the image via Docker with the GPUs passed and a 4 GiB shared memory:
+Export your Hugging Face access token as `HF_TOKEN` in the shell first;
+`-e HF_TOKEN` passes it into the container. Then run the image via Docker with
+the GPUs passed and a 4 GiB shared memory:
 
 ```bash
 docker run --rm --gpus all --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-gpu:main > results.jsonl
@@ -76,8 +78,9 @@ runs took the following times:
   ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/meta.json))
 
 The `--benchmark-timeout-scale` option multiplies the overall budget and the
-GuideLLM time limits. The checks that stop the run at the end of the overall
-budget still use the unscaled 2 hours.
+GuideLLM time limits. The checks that stop the run still use the unscaled
+2 hours: no new model or workload starts after 2 hours, even when the scaled
+budget plans for more.
 
 ## Plan and Probe Modes
 
@@ -94,8 +97,7 @@ The following options run part of this benchmark only:
 
 ## Output Fields
 
-Each JSON line has the fields that the vLLM images share; see the
-[vLLM manual](../../../vllm-common/README.md) and
+Each JSON line has the main fields listed in
 [Results](../README.md#results). The following fields are specific to GPU runs
 or read differently on GPUs:
 
@@ -117,7 +119,8 @@ or read differently on GPUs:
   GPUs, `omp_threads_bind` is `null`.
 
 Where GuideLLM reports the successful requests separately, the scores use only
-those; otherwise they use all requests.
+those; otherwise they use all requests. The output does not record how many
+requests failed.
 
 ## Exit Codes
 
@@ -190,8 +193,8 @@ Pass the following options after the image name. See
 
 ## Environment Variables
 
-The following variables apply to GPU runs. Variables marked as legacy apply
-only with `BENCHMARK_VLLM_AUTOCONFIG=0` or `GUIDELLM_PROFILES`; see
+The following variables apply to GPU runs. A default marked "legacy" applies
+with `BENCHMARK_VLLM_AUTOCONFIG=0`; see
 [Legacy Settings](./workloads.md#legacy-settings).
 
 | Variable | Meaning | Default |
@@ -214,7 +217,7 @@ only with `BENCHMARK_VLLM_AUTOCONFIG=0` or `GUIDELLM_PROFILES`; see
 | `GUIDELLM__MAX_WORKER_PROCESSES` | GuideLLM worker processes | Computed |
 | `GUIDELLM_MAX_REQUESTS` | Adds a request cap (`max_requests` constraint) to GuideLLM | Unset; legacy: 120 |
 | `GUIDELLM_PROFILES` | `legacy`, `sync-throughput`, or `sync` runs one synchronous and one throughput run instead of a sweep | Unset |
-| `GUIDELLM_THROUGHPUT_RATE` | Concurrency of the throughput run with `GUIDELLM_PROFILES` | `16` |
+| `GUIDELLM_THROUGHPUT_RATE` | Concurrency of the throughput run; applies only with `GUIDELLM_PROFILES` | `16` |
 | `VLLM_PROBE_MODEL` | Model of `--probe-only` | `smol-135m` |
 | `VLLM_PROBE_HEALTH_TIMEOUT_GPU_SEC` | Health check wait of `--probe-only` in seconds | `480` |
 | `HF_HOME`, `HUGGINGFACE_HUB_CACHE` | Hugging Face cache directory | `/models`, set by the image |
