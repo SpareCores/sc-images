@@ -121,8 +121,9 @@ or read differently on GPUs:
 - `avx512`, `avx2_only_image`, and `omp_threads_bind` describe CPU runs; ignore
   them in GPU results. On GPUs, `omp_threads_bind` is `null`.
 
-Where GuideLLM reports the successful requests separately, the scores use only
-those; otherwise they use all requests. The output does not record how many
+The scores cover only the requests that succeeded. For a metric that
+GuideLLM gives no separate statistics of successful requests for, they cover
+all requests, failed ones included. The output does not record how many
 requests failed.
 
 ## Exit Codes
