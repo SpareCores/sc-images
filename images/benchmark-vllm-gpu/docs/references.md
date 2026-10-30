@@ -20,9 +20,9 @@ which also lists the terms each image uses.
 - **GuideLLM sweep**: A GuideLLM benchmark profile that measures a server
   across a range of loads. It first runs a synchronous stage, which sends one
   request at a time, and a throughput stage, which sends as many concurrent
-  requests as allowed. It then runs constant-rate stages at request rates
-  between the rates of those two stages. The sweep size is the total number of
-  stages.
+  requests as allowed. It then runs the remaining stages, if any, at constant
+  request rates between the rates of those two stages. The sweep size is the
+  total number of stages.
   [GuideLLM on GitHub](https://github.com/vllm-project/guidellm)
 - **`vllm serve`**: The vLLM command that starts an HTTP server for a model,
   with an API compatible with OpenAI's, such as the `/v1/completions` and

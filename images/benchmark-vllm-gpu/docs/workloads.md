@@ -64,8 +64,8 @@ The following rules skip models or stop the run early:
 - If a GuideLLM run fails or times out, the lines of its partial results are
   still written, if it saved any.
 
-All of these paths exit with code 0 as long as another model or workload wrote
-results; see [Exit Codes](./usage.md#exit-codes).
+All of these paths exit with code 0 as long as the run wrote at least one JSON
+line; see [Exit Codes](./usage.md#exit-codes).
 
 ## GuideLLM Sweep
 
