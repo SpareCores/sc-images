@@ -104,8 +104,8 @@ and their defaults:
   `BENCHMARK_VLLM_GPU_DP` the data-parallel size (default: 1).
 - `VLLM_GPU_MEMORY_UTILIZATION` sets the fraction of each GPU's memory that
   vLLM may use (default: 0.92).
-- `--plan-only` prints the host and the memory plan of each model as JSON
-  without starting vLLM.
+- `--plan-only` prints the host's resources and whether each model fits in GPU
+  memory, as JSON, without starting vLLM.
 - `--version` prints the pinned versions, `vllm=0.27.1 guidellm=0.7.3`, and
   exits.
 

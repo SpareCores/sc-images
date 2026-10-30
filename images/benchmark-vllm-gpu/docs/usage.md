@@ -87,8 +87,10 @@ budget plans for more.
 
 The following options run part of this benchmark only:
 
-- `--plan-only` prints the host and, for each model, its
-  [memory fit](./workloads.md#gpu-memory-fit), as JSON. It reads the model
+- `--plan-only` prints one JSON object with the host's resources, such as
+  its vCPUs, memory, and GPUs, and, for each model, whether it fits in GPU
+  memory at the shortest workload context, and if not, why
+  ([GPU Memory Fit](./workloads.md#gpu-memory-fit)). It reads the model
   metadata from Hugging Face but starts no vLLM server.
 - `--probe-only` starts the smallest model, `smol-135m` by default
   (`VLLM_PROBE_MODEL`), and waits up to 8 minutes for the server's health check
@@ -190,7 +192,7 @@ Pass the following options after the image name. See
 | `--models-dir` | Hugging Face cache directory, which needs at least 1 GB of free space | `/models` |
 | `--benchmark-timeout-scale` | Multiplier of the overall budget and the GuideLLM time limits | `1` |
 | `--probe-only` | Start the probe model, wait for its health check, and exit | Off |
-| `--plan-only` | Print the host and the memory plan of each model as JSON, without starting vLLM | Off |
+| `--plan-only` | Print the host's resources and whether each model fits in GPU memory, as JSON, without starting vLLM | Off |
 | `--version` | Print the pinned vLLM and GuideLLM versions and exit | Off |
 
 ## Environment Variables
