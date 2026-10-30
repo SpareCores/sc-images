@@ -4,7 +4,7 @@
 
 Export your Hugging Face access token as `HF_TOKEN` in the shell first;
 `-e HF_TOKEN` passes it into the container. Then run the image via Docker with
-the GPUs passed and a 4 GiB shared memory:
+the GPUs passed and 4 GiB of shared memory:
 
 ```bash
 docker run --rm --gpus all --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-gpu:main > results.jsonl

@@ -168,7 +168,7 @@ model across the GPUs as follows:
 
 For example, on the UpCloud server with three NVIDIA L40S GPUs, `smol-135m`
 (9 attention heads) ran on all three GPUs, and `qwen-0.5b` (14 heads) and the
-larger models on two
+models up to `phi-4` on two
 ([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
 The `llama-70b` model ran with `--pipeline-parallel-size 3`
 ([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stderr)).
