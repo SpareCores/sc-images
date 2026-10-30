@@ -56,8 +56,10 @@ docker run --rm --gpus all --shm-size=4g -e HF_TOKEN -v "$PWD/models:/models" gh
 ```
 
 If the `--models-dir` directory (default: `/models`) has less than 1 GB of
-free space at startup, this benchmark exits with code 1. It also caches the
-memory footprint it computes for each model in `.vllm-footprints/` under that
+free space at startup, this benchmark exits with code 1. This is its only disk
+check: it never deletes the models it downloads, so every model of a run, up
+to the 4-bit 70B model, stays in that directory. Make sure it has room for all
+of them. It also caches the memory footprint it computes for each model in `.vllm-footprints/` under that
 directory.
 
 ## Run Duration
