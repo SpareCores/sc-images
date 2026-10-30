@@ -182,9 +182,9 @@ from `pgbench_ro`.
 
 ## Production Setup
 
-The Inspector of Spare Cores Navigator
-([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs this image
-with the following setup. A plain `docker run` differs from it as noted below.
+The [Inspector](https://docs.sparecores.com/overview#how-it-works) of Spare
+Cores Navigator runs this image with the following setup. A plain
+`docker run` differs from it as noted below.
 
 ### Container Settings
 

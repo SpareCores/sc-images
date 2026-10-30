@@ -25,9 +25,9 @@ which samples the container's resource usage. Its metrics are not published.
 
 ## Production Setup
 
-The Inspector of Spare Cores Navigator
-([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs each script
-as a separate task. A plain `docker run` differs from it as noted below.
+The [Inspector](https://docs.sparecores.com/overview#how-it-works) of Spare
+Cores Navigator runs each script as a separate task. A plain `docker run`
+differs from it as noted below.
 
 ### Container Settings
 

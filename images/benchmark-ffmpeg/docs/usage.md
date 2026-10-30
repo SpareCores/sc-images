@@ -174,9 +174,8 @@ The results of such a run are not comparable with default runs.
 
 ## Production Setup
 
-The Inspector of Spare Cores Navigator
-([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs this image
-on every server type except those on the
+The [Inspector](https://docs.sparecores.com/overview#how-it-works) of Spare
+Cores Navigator runs this image on every server type except those on the
 [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
 blocklist, with the following settings. A plain `docker run` differs from it as
 noted below:
