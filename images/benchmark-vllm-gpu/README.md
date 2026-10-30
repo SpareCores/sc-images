@@ -117,12 +117,14 @@ fields of each line are the following:
   latency, and `output_throughput`, `total_throughput`, and
   `request_throughput` for throughput.
 - `percentile` is `p50`, `p95`, `p99`, or `mean` for latency, and `null` for
-  throughput. `score` holds the value, and `unit` is `ms`, `tokens/sec`, or
-  `requests/sec`.
-- `model`, `workload`, and `strategy` identify the run. `strategy` is the
-  GuideLLM load stage, `synchronous`, `throughput`, or `constant`, and
-  `concurrency` is its mean number of concurrent requests. `target_rate` is
-  the request rate of a `constant` stage, which tells those stages apart.
+  throughput. The `score` field holds the value, and `unit` is `ms`,
+  `tokens/sec`, or `requests/sec`.
+- `model` (the short name, such as `llama-8b`; `model_id` holds the Hugging
+  Face ID), `workload`, and `strategy` identify the run. The `strategy` field
+  is the GuideLLM load stage, `synchronous`, `throughput`, or `constant`, and
+  `concurrency` is its mean number of concurrent requests. The `target_rate`
+  field is the request rate of a `constant` stage, which tells those stages
+  apart.
 - `mode` is `gpu`. The `gpu_count`, `gpu_model` (the name of the first GPU),
   and `total_vram_gb` (the memory of all GPUs in GiB) fields describe the GPUs.
 - `tensor_parallel`, `pipeline_parallel`, and `data_parallel` show how the

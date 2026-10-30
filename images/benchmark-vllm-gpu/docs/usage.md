@@ -112,11 +112,11 @@ or read differently on GPUs:
 - `tuning` holds the load settings of the run. On GPUs, its `max_num_seqs`,
   `max_num_batched_tokens`, `dtype`, and `kv_memory_util` values are computed
   but not passed to `vllm serve`, which uses its own defaults for them.
-- `runtime_memory` holds the key-value cache size per worker in GiB and in
-  tokens, and the `--kv-cache-memory-bytes` value that vLLM suggests, as read
+- `runtime_memory` holds the key-value cache size per vLLM worker process in
+  GiB and in tokens, and the `--kv-cache-memory-bytes` value that vLLM suggests, as read
   from the server's log. It is empty when the log has none of them.
-- `avx512`, `avx2_only_image`, and `omp_threads_bind` describe CPU runs; on
-  GPUs, `omp_threads_bind` is `null`.
+- `avx512`, `avx2_only_image`, and `omp_threads_bind` describe CPU runs; ignore
+  them in GPU results. On GPUs, `omp_threads_bind` is `null`.
 
 Where GuideLLM reports the successful requests separately, the scores use only
 those; otherwise they use all requests. The output does not record how many
@@ -195,7 +195,9 @@ Pass the following options after the image name. See
 
 The following variables apply to GPU runs. A default marked "legacy" applies
 with `BENCHMARK_VLLM_AUTOCONFIG=0`; see
-[Legacy Settings](./workloads.md#legacy-settings).
+[Legacy Settings](./workloads.md#legacy-settings). If a row lists two
+variables and both are set, the first wins. The image does not check the
+tensor-parallel override against the GPU count or the head count of the model.
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
@@ -209,7 +211,7 @@ with `BENCHMARK_VLLM_AUTOCONFIG=0`; see
 | `VLLM_GPU_MEMORY_UTILIZATION` | Value of `--gpu-memory-utilization`, also used by the memory fit check | `0.92` |
 | `BENCHMARK_VLLM_MAX_NUM_SEQS` | Passed to vLLM as `--max-num-seqs` | Unset, so vLLM's default |
 | `BENCHMARK_VLLM_MAX_NUM_BATCHED_TOKENS` | Passed to vLLM as `--max-num-batched-tokens` | Unset, so vLLM's default |
-| `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` | Run a model with its declared footprint when the Hugging Face metadata cannot be read | Unset, so the model is skipped |
+| `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` | Run a model with the size estimated from the parameter count in the default model table when the Hugging Face metadata cannot be read | Unset, so the model is skipped |
 | `BENCHMARK_VLLM_VCPUS` | Host vCPU count used for the load settings | The CPUs the process may run on |
 | `BENCHMARK_VLLM_RAMPUP` | Ramp-up of the throughput stage in seconds | Computed |
 | `GUIDELLM_GPU_SWEEP_SIZE`, `GUIDELLM_SWEEP_SIZE` | Number of sweep stages, at least 2 | Computed; legacy: 3 |

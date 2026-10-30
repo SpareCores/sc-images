@@ -163,7 +163,8 @@ model across the GPUs as follows:
 - **Data parallelism:** One replica, unless `BENCHMARK_VLLM_GPU_DP` sets more.
 - **Pipeline parallelism:** On more than one GPU, the `bitsandbytes`-quantized
   `llama-70b` starts with `--pipeline-parallel-size <GPU count>` instead, and
-  without `--gpu-memory-utilization`.
+  without `--gpu-memory-utilization`. `VLLM_GPU_MEMORY_UTILIZATION` then
+  affects only its memory fit check.
 
 For example, on the UpCloud server with three NVIDIA L40S GPUs, `smol-135m`
 (9 attention heads) ran on all three GPUs, and `qwen-0.5b` (14 heads) and the

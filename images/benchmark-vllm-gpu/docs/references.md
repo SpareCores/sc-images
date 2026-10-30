@@ -11,6 +11,11 @@ which also lists the terms each image uses.
   weights and intermediate results goes to the key-value cache, so a higher
   value lets the server hold more concurrent sequences.
   [vLLM engine arguments](https://docs.vllm.ai/en/latest/configuration/engine_args.html)
+- **`--kv-cache-memory-bytes`**: The vLLM option that sets the size of the
+  key-value cache on each GPU in bytes. Without it, vLLM derives the cache size
+  from `--gpu-memory-utilization`; this option gives finer control over how much
+  memory the cache takes.
+  [vLLM engine arguments](https://docs.vllm.ai/en/latest/configuration/engine_args.html)
 - **`--max-model-len`**: The vLLM option that sets the context length of a
   model: the maximum number of tokens, prompt and output together, in one
   sequence. The key-value cache must have room for at least one sequence of
