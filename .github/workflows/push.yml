@@ -29,7 +29,7 @@ permissions:
 env:
   ZRAM_PERCENT: "125"
   # Set to false after resource-tracker consumers have been rebuilt once.
-  FORCE_REBUILD_RESOURCE_TRACKER: "true"
+  FORCE_REBUILD_RESOURCE_TRACKER: "false"
 jobs:
   find-jobs:
     runs-on: ubuntu-latest
