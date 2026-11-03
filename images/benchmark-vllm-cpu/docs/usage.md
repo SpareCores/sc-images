@@ -122,7 +122,7 @@ or read differently on CPUs:
   `model_torch_dtype` the data type in the model's configuration, and
   `model_metadata_source` where this benchmark read the metadata from. The
   `kv_bytes_per_token_per_tp_rank` field is the key-value cache size of one
-  token on each tensor-parallel rank, in bytes.
+  token on each vLLM worker of a tensor-parallel group in bytes.
 - `runtime_memory` holds the key-value cache memory and token capacity that
   vLLM reports in its log. It is empty when the log has none of them.
 - `gpu_count` is 0. The `gpu_model` and `total_vram_gb` fields describe GPU

@@ -32,7 +32,7 @@ them [LLM inference speed](../benchmark-llm/README.md), measured with
 latency and throughput of a vLLM server under concurrent load, from one
 request at a time up to peak load. In its note on the LLM inference speed
 scores, the Navigator points readers who need high concurrency to the vLLM
-benchmarks, but the Navigator does not publish their results yet.
+benchmarks, but the Navigator does not show their results yet.
 
 The vLLM benchmarks run the same harness in the following images:
 
@@ -152,7 +152,8 @@ or stderr. The main fields of each line are the following:
   identify the run, and `model_id` holds the Hugging Face model ID. The
   `strategy` field is the GuideLLM load stage, `synchronous`, `throughput`, or
   `constant`, and `concurrency` is its mean number of concurrent requests. The
-  `target_rate` field is the request rate of a `constant` stage.
+  `target_rate` field is the request rate of a `constant` stage, and `null`
+  when GuideLLM gives no rate, as in production `synchronous` stages.
 - `mode` is `cpu`, and `arch` is `amd64` or `arm64`.
 - `tensor_parallel`, `data_parallel`, and `omp_threads_bind` show how the
   model was split across the NUMA nodes and CPU cores; see

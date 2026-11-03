@@ -69,7 +69,7 @@ one JSON line; see [Exit Codes](./usage.md#exit-codes).
 
 GuideLLM runs in the same container as the vLLM server and sends its requests
 through vLLM's OpenAI-compatible `/v1/completions` endpoint, so the results
-include no network between hosts. The prompts are synthetic text of the
+include no network latency between hosts. The prompts are synthetic text of the
 workload's token counts. GuideLLM generates them from a fixed random seed
 (42), the starting value of its random number generator, so every run sends
 the same prompts.
@@ -99,8 +99,8 @@ load and the vLLM server settings from the host's vCPU count `v`. Set
 formulas for the load, where `workers`, the number of vLLM workers, is the
 tensor-parallel size times the data-parallel size:
 
-- **Maximum concurrency:** `max(floor, int(6 * v ** 0.65))`, where `floor` is
-  `max(1, min(32, 4 * v), 4 * workers)`
+- **Maximum concurrency:** `max(min_concurrency, int(6 * v ** 0.65))`, where
+  `min_concurrency` is `max(1, min(32, 4 * v), 4 * workers)`
 - **GuideLLM worker processes:** `max(1, min(32, v, max_concurrency // 8))`
 - **Sweep size:** `max(2, min(4, 2 + floor(log2(v) / 3)))`, that is, 2 below
   8 vCPUs, 3 from 8 to 63 vCPUs, and 4 from 64 vCPUs, then reduced, down to
