@@ -11,7 +11,7 @@ Not a published image — shared sources for the `benchmark-vllm-*` images under
 ## Harness
 
 1. **Probe** (`--probe-only`): load smallest model (SmolLM2-135M), wait for `/health`.
-2. **Benchmark**: model ladder × workloads (chat / rag / long) × GuideLLM profile.
+2. **Benchmark**: model ladder × workloads (chat / rag / long; long is GPU-only) × GuideLLM profile.
 
    Default ladder (small → large): SmolLM2-135M, Qwen2.5-0.5B, Gemma-2-2B, Llama-3.1-8B, Phi-4,
    Llama-3.3-70B bnb-4bit (~48 GiB). On CPU, each model runs only when `model_fits` (RAM); 70B is
@@ -33,7 +33,7 @@ When `BENCHMARK_VLLM_AUTOCONFIG=1` (default), the harness derives GuideLLM load 
 | `sweep_size` | log(vCPU) capped at 4 on CPU, then **shrunk** to fit `per_run_budget` | `per_run_budget_sec` (45–240s); fewer steps for rag/long ctx |
 | CPU TP / DP | NUMA + model size (small models get more DP replicas) | `MAX_CPU_DP`, RAM for weight copies, `BENCHMARK_VLLM_CPU_TP` / `_DP` |
 | `max_num_seqs`, KV fraction | sub-linear + model RAM | available memory |
-| dtype (CPU) | model + arch | gemma / arm64 → bfloat16 |
+| dtype (CPU) | CPU flags, not model or arch | bfloat16 with `bf16` / `avx512_bf16`, else float32 |
 
 Example CPU load at different sizes (8 model×workload runs, 2h budget, SmolLM2-135M):
 
@@ -92,8 +92,9 @@ vLLM rejects invalid TP with e.g. `attention heads (9) must be divisible by tens
 
 **CPU (multi-NUMA):** vLLM's `VLLM_CPU_OMP_THREADS_BIND=auto` drops SMT on x86
 (one logical CPU per physical core) and, with a single rank, binds only to NUMA
-node 0. The harness therefore writes an **explicit** bind string covering every
-allowed logical CPU, partitioned NUMA-locally across TP×DP ranks (one CPU is
+node 0. The harness therefore writes an **explicit** bind string with one
+logical CPU per physical core (SMT siblings dropped), partitioned NUMA-locally
+across TP×DP ranks (one CPU is
 reserved for the frontend when vCPU ≥ 2). Dockerfile `ENV …=auto` means "let
 the harness decide"; a non-`auto` value is passed through.
 
