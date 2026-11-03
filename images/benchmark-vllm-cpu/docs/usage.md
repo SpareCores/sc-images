@@ -83,14 +83,14 @@ go past 2 hours; see [Time Budget](./workloads.md#time-budget).
 The following options run part of this benchmark only:
 
 - `--plan-only` prints one JSON object with the host's resources, such as its
-  vCPUs, memory, and NUMA (Non-Uniform Memory Access) nodes, and, for each
-  model, whether it fits in memory, and if not, why
-  ([Memory Fit](./workloads.md#memory-fit)). It reads the model metadata from
+  vCPUs, memory, and NUMA (Non-Uniform Memory Access) nodes. For each model,
+  the object shows whether it fits in memory and, if not, why; see
+  [Memory Fit](./workloads.md#memory-fit). It reads the model metadata from
   Hugging Face but starts no vLLM server. It reads the host's memory, not the
   container's `--memory` limit.
-- `--probe-only` starts the smallest model, `smol-135m` by default
-  (`VLLM_PROBE_MODEL`), and waits up to 15 minutes for the server's health
-  check (`VLLM_PROBE_HEALTH_TIMEOUT_CPU_SEC`). It exits with code 0 if the
+- `--probe-only` starts the smallest model, set by `VLLM_PROBE_MODEL`
+  (default: `smol-135m`), and waits for the server's health check for up to 15
+  minutes, set by `VLLM_PROBE_HEALTH_TIMEOUT_CPU_SEC`. It exits with code 0 if the
   server started. Production uses it to choose the vLLM image; see
   [Production Setup](#production-setup).
 
@@ -158,8 +158,8 @@ The [Inspector](https://docs.sparecores.com/overview#how-it-works) of
 Spare Cores Navigator runs one task, `vllm`, for the three vLLM images, on
 every server type except those on the
 [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
-blocklist, which also excludes server types with less than 2 GB of memory
-from this task. The task uses the following settings:
+blocklist. The blocklist also excludes server types with less than 2 GB of
+memory from this task. The task uses the following settings:
 
 | Setting | Production | Plain `docker run` |
 | --- | --- | --- |
@@ -175,9 +175,9 @@ The command in [Usage](../README.md#usage) reproduces these container
 settings.
 
 Production stores the results of all three images under the task name `vllm`,
-in `data/<vendor>/<server>/<variant>/vllm/` (the variant is a numbered folder,
-`0` for most server types) of
-[`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data). The
+in the `data/<vendor>/<server>/<variant>/vllm/` folder of
+[`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data), where
+`<variant>` is a numbered folder, `0` for most server types. The
 task tries the fastest image first, so the result of a server type comes from
 the fastest image that runs on it.
 
@@ -213,7 +213,7 @@ benchmark.
 | --- | --- | --- |
 | `HF_TOKEN` | Hugging Face access token for the model metadata and downloads | Unset |
 | `BENCHMARK_VLLM_MODE` | `gpu` or `cpu` mode | `cpu`, set by the image |
-| `BENCHMARK_VLLM_WORKLOADS` | Comma-separated workload names; a value that matches none runs all | `chat,rag` |
+| `BENCHMARK_VLLM_WORKLOADS` | Comma-separated workload names; a value that matches no CPU workload, such as `long`, runs all of them | `chat,rag` |
 | `BENCHMARK_VLLM_AUTOCONFIG` | `0`, `false`, or `no` uses the legacy static settings | `1` |
 | `BENCHMARK_VLLM_PER_WORKLOAD_SERVER` | Restart vLLM for each workload with its context length; `0`, `false`, or `no` turns this off, so one server with the context length of the longest workload runs all workloads | Same as `BENCHMARK_VLLM_AUTOCONFIG` |
 | `BENCHMARK_VLLM_ALLOW_AVX2_ONLY` | `1`, `true`, or `yes` skips the AVX-512 check on AMD64 | Unset |

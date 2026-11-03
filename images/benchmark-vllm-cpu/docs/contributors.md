@@ -5,9 +5,10 @@
 The [`Dockerfile`](../Dockerfile) builds the image from the vLLM CPU server
 image on Docker Hub for the target architecture:
 `vllm/vllm-openai-cpu:v<VLLM_VERSION>-x86_64` for `amd64` and
-`vllm/vllm-openai-cpu:v<VLLM_VERSION>-arm64` for `arm64`, selected by
-`TARGETARCH`. It installs `psutil` and `guidellm[recommended]` at the pinned
-GuideLLM version with pip, and copies the following files:
+`vllm/vllm-openai-cpu:v<VLLM_VERSION>-arm64` for `arm64`. The `TARGETARCH`
+build argument selects the tag. With pip, it installs `psutil`, and
+`guidellm[recommended]` at the pinned GuideLLM version. It also copies the
+following files:
 
 - the `resource-tracker` binary, from the image set by `RESOURCE_TRACKER_IMAGE`
 - [`benchmark.py`](../../../vllm-common/benchmark.py),
@@ -62,9 +63,9 @@ pin the vLLM and GuideLLM versions for all vLLM images. Before changing
 `-x86_64` and the `-arm64` tag of the new version exist, because CI builds
 this image for both architectures.
 
-Changing either version makes new results incomparable with the published
-ones, which would need a rerun on every server type. We do not plan to update
-them.
+Changing either version makes new results incomparable with earlier ones, so
+every server type would need a rerun. We do not plan to change the pinned
+versions.
 
 ## Tests
 

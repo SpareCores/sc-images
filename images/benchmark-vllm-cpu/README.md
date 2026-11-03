@@ -5,8 +5,9 @@ It starts each default model with vLLM (`vllm serve`) on the CPU, from the
 smallest to the largest, and sends synthetic requests to it over HTTP with
 GuideLLM, from one request at a time up to peak load. It is the CPU variant of
 the vLLM benchmarks for AMD64 CPUs with AVX-512 (Advanced Vector Extensions
-512) and for Arm64 CPUs: the [vLLM manual](../../vllm-common/README.md)
-describes the harness they share, and these docs cover how it runs on CPUs.
+512) and for Arm64 CPUs. The [vLLM manual](../../vllm-common/README.md)
+describes the harness that all vLLM benchmarks share, and these docs cover how
+this image runs it on CPUs.
 
 This benchmark reports the following metrics for each model, workload, and
 load stage, as one JSON line per metric and statistic:
@@ -29,9 +30,9 @@ empirical performance measurements for over 5,000 cloud server types, among
 them [LLM inference speed](../benchmark-llm/README.md), measured with
 `llama.cpp`. This benchmark measures LLM *serving* on CPUs instead: the
 latency and throughput of a vLLM server under concurrent load, from one
-request at a time up to peak load. The Navigator's note on its LLM inference
-speed scores points readers who need high concurrency to the vLLM benchmarks,
-but the Navigator does not publish their results yet.
+request at a time up to peak load. In its note on the LLM inference speed
+scores, the Navigator points readers who need high concurrency to the vLLM
+benchmarks, but the Navigator does not publish their results yet.
 
 The vLLM benchmarks run the same harness in the following images:
 
@@ -46,8 +47,9 @@ These results compare LLM serving under load on CPUs. Note the following
 limitations of CPU runs:
 
 - **[AVX-512 on AMD64](./docs/usage.md#cpu-requirements):** On AMD64 CPUs,
-  this benchmark needs AVX-512. Without it, it exits with code 2 and names
-  `benchmark-vllm-cpu-avx2` instead. Arm64 CPUs skip this check.
+  this benchmark needs AVX-512. Without it, it exits with code 2, and its
+  error message points to `benchmark-vllm-cpu-avx2`. Arm64 CPUs skip this
+  check.
 - **[Data Type Follows the CPU](./docs/workloads.md#data-type):** Models run
   in bfloat16 on CPUs that support it, and in float32 on the others, so two
   server types can serve the same model in different data types.
@@ -102,7 +104,7 @@ results with production results.
 This benchmark downloads the models from Hugging Face while it runs, and uses
 `HF_TOKEN` for the downloads and the model metadata. Two default models,
 `gemma-2b` and `llama-8b`, are gated: they need a token from an account that
-has accepted the model's license. Without such a token, this benchmark skips
+has accepted their licenses. Without such a token, this benchmark skips
 them and runs the other models. The models are cached in `/models`, a Docker
 volume; see
 [Hugging Face Access and Model Cache](./docs/usage.md#hugging-face-access-and-model-cache)
@@ -115,8 +117,8 @@ and 1 hour 5 minutes on a `c8a.16xlarge`. See
 
 ### Settings
 
-Pass options after the image name and environment variables with `-e`. The
-following settings are the most common on CPUs; see the
+Pass options after the image name, and environment variables with `-e` before
+it. The following settings are the most common on CPUs; see the
 [full option and variable reference](./docs/usage.md#options) for all of them
 and their defaults:
 
@@ -146,9 +148,9 @@ or stderr. The main fields of each line are the following:
 - `percentile` is `p50`, `p95`, `p99`, or `mean` for latency, and `null` for
   throughput. The `score` field holds the value, and `unit` is `ms`,
   `tokens/sec`, or `requests/sec`.
-- `model` (the short name, such as `llama-8b`; `model_id` holds the Hugging
-  Face model ID), `workload`, and `strategy` identify the run. The `strategy`
-  field is the GuideLLM load stage, `synchronous`, `throughput`, or
+- `model` (the short name, such as `llama-8b`), `workload`, and `strategy`
+  identify the run, and `model_id` holds the Hugging Face model ID. The
+  `strategy` field is the GuideLLM load stage, `synchronous`, `throughput`, or
   `constant`, and `concurrency` is its mean number of concurrent requests. The
   `target_rate` field is the request rate of a `constant` stage.
 - `mode` is `cpu`, and `arch` is `amd64` or `arm64`.
@@ -160,7 +162,7 @@ or stderr. The main fields of each line are the following:
 - `vllm_version` and `guidellm_version` give the pinned versions.
 
 See [Output Fields](./docs/usage.md#output-fields) for the CPU-specific
-fields. For example, see the production
+fields. For a full example, see the production
 [output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)
 of an AWS `c8a.12xlarge`.
 
@@ -173,7 +175,7 @@ messages of skipped models.
 Resource usage is recorded with `resource-tracker`, which
 [streams it](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
 to the [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform for
-the Spare Cores team's own monitoring. It is not published.
+the Spare Cores team's own monitoring. The resource usage is not published.
 
 ## Workloads
 

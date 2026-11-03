@@ -62,8 +62,8 @@ The following rules skip models or stop the run early:
 - If a model does not fit in memory, it is skipped, and the run continues with
   the next model.
 
-All of these paths exit with code 0 as long as the run wrote at least one JSON
-line; see [Exit Codes](./usage.md#exit-codes).
+In all of these cases, the run exits with code 0 as long as it wrote at least
+one JSON line; see [Exit Codes](./usage.md#exit-codes).
 
 ## GuideLLM Sweep
 
@@ -96,7 +96,7 @@ The GuideLLM command and its options are in the
 By default (`BENCHMARK_VLLM_AUTOCONFIG=1`), this benchmark derives the GuideLLM
 load and the vLLM server settings from the host's vCPU count `v`. Set
 `BENCHMARK_VLLM_VCPUS` to use another count. On CPUs, it uses the following
-formulas for the load, where `workers` is the number of vLLM workers, the
+formulas for the load, where `workers`, the number of vLLM workers, is the
 tensor-parallel size times the data-parallel size:
 
 - **Maximum concurrency:** `max(floor, int(6 * v ** 0.65))`, where `floor` is
