@@ -29,7 +29,7 @@ The following five default models run on CPUs, from smallest to largest:
 | `llama-8b` | `meta-llama/Llama-3.1-8B-Instruct` | 8 billion |
 | `phi-4` | `microsoft/phi-4` | 14 billion |
 
-The `gemma-2b` and `llama-8b` models are gated; see
+The `gemma-2b` and `llama-8b` models are gated models; see
 [Hugging Face Access and Model Cache](./usage.md#hugging-face-access-and-model-cache).
 The sixth default model, `llama-70b`
 (`unsloth/Llama-3.3-70B-Instruct-bnb-4bit`), is 4-bit quantized with

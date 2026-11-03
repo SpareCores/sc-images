@@ -103,7 +103,7 @@ results with production results.
 
 This benchmark downloads the models from Hugging Face while it runs, and uses
 `HF_TOKEN` for the downloads and the model metadata. Two default models,
-`gemma-2b` and `llama-8b`, are gated: they need a token from an account that
+`gemma-2b` and `llama-8b`, are gated models: they need a token from an account that
 has accepted their licenses. Without such a token, this benchmark skips
 them and runs the other models. The models are cached in `/models`, a Docker
 volume; see
