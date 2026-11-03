@@ -236,7 +236,7 @@ This benchmark does not fall back to float16: on AWS Graviton2 CPUs, which lack
 ## Legacy Settings
 
 With `BENCHMARK_VLLM_AUTOCONFIG=0`, this benchmark uses static settings
-instead of the formulas above. On CPUs, they include the following:
+instead of the formulas in [Load Settings](#load-settings). On CPUs, they include the following:
 
 - A sweep size of 3
 - A cap of 25 requests per stage, set with `GUIDELLM_MAX_REQUESTS_CPU`
