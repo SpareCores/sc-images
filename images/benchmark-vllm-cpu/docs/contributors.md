@@ -21,11 +21,23 @@ shared with [`benchmark-vllm-gpu`](../../benchmark-vllm-gpu/README.md) and
 [`benchmark-vllm-cpu-avx2`](../../benchmark-vllm-cpu-avx2/README.md), so the
 build context is the root of the
 [`sc-images` repository](https://github.com/SpareCores/sc-images), as the
-[`CONTEXT`](../CONTEXT) file sets. The image sets `BENCHMARK_VLLM_MODE=cpu`,
-`VLLM_CPU_OMP_THREADS_BIND=auto`, `TRACKER_QUIET=true`, and the Hugging Face
-cache to `/models`, a volume. It also sets `USER=benchmark`, `HOME=/tmp`, and
-`TORCHINDUCTOR_CACHE_DIR=/tmp/torch_inductor` as environment variables, for
-runs as a non-root user. The [container entrypoint](../Dockerfile#L26) is
+[`CONTEXT`](../CONTEXT) file sets.
+
+The image sets the following environment variables. `/models` is a volume, and
+`USER`, `HOME`, and `TORCHINDUCTOR_CACHE_DIR` are for runs as a non-root user:
+
+| Variable | Value |
+| --- | --- |
+| `BENCHMARK_VLLM_MODE` | `cpu` |
+| `VLLM_CPU_OMP_THREADS_BIND` | `auto` |
+| `TRACKER_QUIET` | `true` |
+| `HF_HOME` | `/models` |
+| `HUGGINGFACE_HUB_CACHE` | `/models` |
+| `USER` | `benchmark` |
+| `HOME` | `/tmp` |
+| `TORCHINDUCTOR_CACHE_DIR` | `/tmp/torch_inductor` |
+
+The [container entrypoint](../Dockerfile#L26) is
 `resource-tracker -- python3 /benchmark.py`.
 
 ## Build Arguments

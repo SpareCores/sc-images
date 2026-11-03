@@ -1,6 +1,6 @@
 # Usage
 
-## CPU Requirements
+## Requirements and Versions
 
 The image is built on the official vLLM CPU server images from Docker Hub,
 `vllm/vllm-openai-cpu:v0.27.1-x86_64` for AMD64 and
@@ -87,11 +87,16 @@ The following options run part of this benchmark only:
   the object shows whether it fits in memory and, if not, why; see
   [Memory Fit](./workloads.md#memory-fit). It reads the model metadata from
   Hugging Face but starts no vLLM server. It reads the host's memory, not the
-  container's `--memory` limit.
+  container's `--memory` limit. For example:
+
+  ```bash
+  docker run --rm -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu:main --plan-only
+  ```
+
 - `--probe-only` starts the smallest model, set by `VLLM_PROBE_MODEL`
   (default: `smol-135m`), and waits for the server's health check for up to 15
-  minutes, set by `VLLM_PROBE_HEALTH_TIMEOUT_CPU_SEC`. It exits with code 0 if the
-  server started. Production uses it to choose the vLLM image; see
+  minutes, set by `VLLM_PROBE_HEALTH_TIMEOUT_CPU_SEC`. It exits with code 0 if
+  the server started. Production uses it to choose the vLLM image; see
   [Production Setup](#production-setup).
 
 ## Output Fields
@@ -130,18 +135,19 @@ or read differently on CPUs:
 
 ## Exit Codes
 
-This benchmark exits with code 1 in the following cases:
+This benchmark exits with one of the following codes:
 
-- The `--models-dir` directory has less than 1 GB of free space.
-- The `guidellm` command is missing.
-- No model could run, for example because none fits in memory.
-- No JSON line was written.
+- **0:** it wrote at least one JSON line, even if it skipped models or
+  workloads, or stopped early.
+- **1:** one of the following cases applies:
+  - The `--models-dir` directory has less than 1 GB of free space.
+  - The `guidellm` command is missing.
+  - No model could run, for example because none fits in memory.
+  - No JSON line was written.
+- **2:** the CPU is an AMD64 CPU without AVX-512, unless
+  `BENCHMARK_VLLM_ALLOW_AVX2_ONLY` is set.
 
-It exits with code 2 on an AMD64 CPU without AVX-512, unless
-`BENCHMARK_VLLM_ALLOW_AVX2_ONLY` is set, and with code 0 otherwise. A run that
-skipped models or workloads, or stopped early, still exits with code 0 if it
-wrote at least one JSON line. Check which lines are present, and look for the
-following messages in stderr:
+Check which lines are present, and look for the following messages in stderr:
 
 - `metadata lookup failed for <model_id>`: the model's Hugging Face metadata
   could not be read; see

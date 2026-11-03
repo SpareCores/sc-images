@@ -55,12 +55,12 @@ workload:
 
 The following rules skip models or stop the run early:
 
+- If a model does not fit in memory, it is skipped, and the run continues with
+  the next model.
 - If a model's server does not pass its health check, the run stops, and no
   larger model is tried.
 - If a model's highest mean output throughput is below 1 token per second, the
   run stops after that model.
-- If a model does not fit in memory, it is skipped, and the run continues with
-  the next model.
 
 In all of these cases, the run exits with code 0 as long as it wrote at least
 one JSON line; see [Exit Codes](./usage.md#exit-codes).

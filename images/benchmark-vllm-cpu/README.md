@@ -46,7 +46,7 @@ The vLLM benchmarks run the same harness in the following images:
 These results compare LLM serving under load on CPUs. Note the following
 limitations of CPU runs:
 
-- **[AVX-512 on AMD64](./docs/usage.md#cpu-requirements):** On AMD64 CPUs,
+- **[AVX-512 on AMD64](./docs/usage.md#requirements-and-versions):** On AMD64 CPUs,
   this benchmark needs AVX-512. Without it, it exits with code 2, and its
   error message points to `benchmark-vllm-cpu-avx2`. Arm64 CPUs skip this
   check.
@@ -65,7 +65,7 @@ limitations of CPU runs:
   or workload that does not fit in the memory of the NUMA nodes it would use
   is skipped. The 4-bit `llama-70b` model and the `long` workload never run on
   CPUs. The run still exits with code 0 as long as another model or workload
-  wrote results.
+  wrote results. See also [Run Sequence](./docs/workloads.md#run-sequence).
 - **[One Host, Synthetic Prompts](./docs/workloads.md#guidellm-sweep):** This
   benchmark measures serving latency and throughput on one host, with
   synthetic prompts of fixed lengths, sent by GuideLLM from the same container
