@@ -72,7 +72,9 @@ limitations of CPU runs:
 
 ## Usage
 
-Export your Hugging Face access token as `HF_TOKEN` in the shell first;
+Export your Hugging Face
+[access token](https://huggingface.co/docs/hub/security-tokens) as `HF_TOKEN`
+in the shell first;
 `-e HF_TOKEN` passes it into the container. Then run the image via Docker with
 the container settings of production:
 
@@ -81,16 +83,27 @@ docker run --rm --privileged --network host --shm-size=4g --memory=<limit> --mem
 ```
 
 Replace `<limit>` in both options with 85% of the host's available memory, as
-production does; the same value for `--memory-swap` disables swap. The vLLM
-benchmarks fail with Docker's default 64 MiB `/dev/shm`, so `--shm-size=4g` is
-required; the minimal run passes only `--shm-size=4g` and `-e HF_TOKEN`. See
-[Production Setup](./docs/usage.md#production-setup) before you compare your
+production does; the same value for `--memory-swap` disables swap. Production
+reads the memory that Linux reports as available, the `available` column of
+`free -g` in GiB. Write the limit with a unit: for example, with 40 GiB
+available, pass `--memory=34g --memory-swap=34g`.
+
+The vLLM benchmarks fail with Docker's default 64 MiB `/dev/shm`, so a minimal
+run needs only `--shm-size=4g` and `-e HF_TOKEN`; the other options match
+production:
+
+```bash
+docker run --rm --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl
+```
+
+See [Production Setup](./docs/usage.md#production-setup) before you compare your
 results with production results.
 
 This benchmark downloads the models from Hugging Face while it runs, and uses
 `HF_TOKEN` for the downloads and the model metadata. Two default models,
 `gemma-2b` and `llama-8b`, are gated: they need a token from an account that
-has accepted the model's license. The models are cached in `/models`, a Docker
+has accepted the model's license. Without such a token, this benchmark skips
+them and runs the other models. The models are cached in `/models`, a Docker
 volume; see
 [Hugging Face Access and Model Cache](./docs/usage.md#hugging-face-access-and-model-cache)
 to reuse them across runs.

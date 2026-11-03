@@ -26,7 +26,8 @@ in float32; see [Data Type](./workloads.md#data-type).
 When it runs in Docker, this benchmark logs a warning if `/dev/shm` is smaller
 than 1 GiB. The vLLM benchmarks fail with Docker's default 64 MiB `/dev/shm`,
 so pass `--shm-size=4g`. When a vLLM server fails to start, the error in the
-log suggests `--privileged --shm-size=4g`.
+log suggests `--privileged --shm-size=4g`. Only `--shm-size=4g` is required;
+`--privileged` matches production.
 
 The `--version` option prints the pinned vLLM and GuideLLM versions and exits:
 
@@ -41,10 +42,14 @@ the image.
 
 The container needs network access to Hugging Face: this benchmark reads
 each model's metadata from it, and the model weights are downloaded from it.
-Pass an access token in `HF_TOKEN`, which this benchmark uses for both;
-production passes the host's token too. The default models `gemma-2b` and
-`llama-8b` are gated, so they need a token from an account that has accepted
-their licenses.
+Pass an [access token](https://huggingface.co/docs/hub/security-tokens) in
+`HF_TOKEN`, which this benchmark uses for both; production passes the host's
+token too. The default models `gemma-2b` and `llama-8b` are gated, so they need
+a token from an account that has accepted their licenses. Without such a
+token, this benchmark cannot read a gated model's metadata: it logs
+`metadata lookup failed for <model_id>`, skips the model unless
+`BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set, and continues with the next
+model.
 
 The image sets `HF_HOME` and `HUGGINGFACE_HUB_CACHE` to `/models`, a Docker
 volume, so a plain run downloads the models again each time. To reuse them

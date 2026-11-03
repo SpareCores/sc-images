@@ -103,9 +103,11 @@ tensor-parallel size times the data-parallel size:
   `max(1, min(32, 4 * v), 4 * workers)`
 - **GuideLLM worker processes:** `max(1, min(32, v, max_concurrency // 8))`
 - **Sweep size:** `max(2, min(4, 2 + floor(log2(v) / 3)))`, that is, 2 below
-  8 vCPUs, 3 from 8 to 63 vCPUs, and 4 from 64 vCPUs, then reduced until the
-  sweep fits the [time budget](#time-budget) of the run
-- **Seconds per stage:** the run budget divided by the sweep size
+  8 vCPUs, 3 from 8 to 63 vCPUs, and 4 from 64 vCPUs, then reduced, down to
+  2, while the stages would be shorter than their minimum
+- **Seconds per stage:** the [time limit](#time-budget) of the sweep divided
+  by the sweep size, at most 240 seconds, and at least 25 seconds for `chat`
+  and 44 seconds for `rag`, a minimum that grows with the context length
 - **Throughput-stage ramp-up:** 15% of the seconds per stage, between 2s and
   8s, and short enough to leave at least 25s of the stage at peak concurrency
 
@@ -132,9 +134,8 @@ A run has an overall budget of 2 hours. This benchmark splits it as follows:
 
 1. It reserves 600 seconds, plus 120 seconds for each CPU server start, one
    per runnable model and workload.
-2. It divides the rest by the number of model and workload runs.
-3. It limits each run of one model and workload, that is, one sweep, to 45 to
-   240 seconds.
+2. It divides the rest by the number of sweeps, one per model and workload.
+3. It limits each sweep to 45 to 240 seconds.
 
 Before it starts each model, workload, and GuideLLM process, this benchmark
 checks the elapsed time. After 2 hours, it starts nothing new: it logs
