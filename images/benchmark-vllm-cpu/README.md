@@ -185,9 +185,9 @@ output lengths. This benchmark restarts `vllm serve` for each workload, with a
 context length that fits it:
 
 - **[`chat`](./docs/workloads.md#prompt-and-output-lengths):** 256 prompt
-  tokens and 128 output tokens, with a 2,048-token context.
+  tokens and 128 output tokens, with a context of 2,048 tokens.
 - **[`rag`](./docs/workloads.md#prompt-and-output-lengths):** 1,024 prompt
-  tokens and 256 output tokens, with a 4,096-token context.
+  tokens and 256 output tokens, with a context of 4,096 tokens.
 
 Each workload runs one GuideLLM sweep: a synchronous stage of one request at a
 time, a throughput stage at the highest concurrency allowed, and, on hosts with

@@ -11,8 +11,8 @@ length (`--max-model-len`) that fits the workload:
 | `chat` | 256 | 128 | 2,048 |
 | `rag` | 1,024 | 256 | 4,096 |
 
-The `long` workload, with 4,096 prompt tokens, 512 output tokens, and an
-8,192-token context, runs only on GPUs, in
+The `long` workload, with 4,096 prompt tokens, 512 output tokens, and a
+context of 8,192 tokens, runs only on GPUs, in
 [`benchmark-vllm-gpu`](../../benchmark-vllm-gpu/README.md). Set
 `BENCHMARK_VLLM_WORKLOADS` to run fewer workloads, such as
 `BENCHMARK_VLLM_WORKLOADS=chat`.
@@ -59,8 +59,8 @@ The following rules skip models or stop the run early:
   the next model.
 - If a model's server does not pass its health check, the run stops, and no
   larger model is tried.
-- If a model's highest mean output throughput is below 1 token per second, the
-  run stops after that model.
+- If a model's highest mean output throughput is below 1 token/s, the run
+  stops after that model.
 
 In all of these cases, the run exits with code 0 as long as it wrote at least
 one JSON line; see [Exit Codes](./usage.md#exit-codes).
