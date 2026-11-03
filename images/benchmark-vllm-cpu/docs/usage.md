@@ -48,10 +48,11 @@ their licenses.
 
 The image sets `HF_HOME` and `HUGGINGFACE_HUB_CACHE` to `/models`, a Docker
 volume, so a plain run downloads the models again each time. To reuse them
-across runs, mount a host directory on it:
+across runs, mount a host directory on it with `-v`, and replace `<limit>` as
+[Usage](../README.md#usage) describes:
 
 ```bash
-docker run --rm --shm-size=4g -e HF_TOKEN -v "$PWD/models:/models" ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl
+docker run --rm --privileged --network host --shm-size=4g --memory=<limit> --memory-swap=<limit> --memory-swappiness=0 -e HF_TOKEN -v "$PWD/models:/models" ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl
 ```
 
 If the `--models-dir` directory (default: `/models`) has less than 1 GB of
@@ -178,7 +179,7 @@ Pass the following options after the image name. See
 | Option | Meaning | Default |
 | --- | --- | --- |
 | `--models` | Hugging Face model IDs, or short names of the [default models](./workloads.md#models), to run instead of the default models | The five default models that run on CPUs |
-| `--models-dir` | Hugging Face cache directory, which needs at least 1 GB of free space | `/models` |
+| `--models-dir` | Directory of the 1 GB free-space check and of the model metadata that this benchmark downloads. The model weights still go to `HF_HOME` and `HUGGINGFACE_HUB_CACHE` (`/models`), so mount a disk at `/models` to move them | `/models` |
 | `--benchmark-timeout-scale` | Whole number of 1 or more that multiplies the time limits of GuideLLM, but not the 2-hour stop; see [Time Budget](./workloads.md#time-budget) | `1` |
 | `--probe-only` | Start the probe model, wait for its health check, and exit | Off |
 | `--plan-only` | Print the host's resources and whether each model fits in memory, as JSON, without starting vLLM | Off |
@@ -189,7 +190,9 @@ Pass the following options after the image name. See
 The following variables apply to CPU runs. A default marked "legacy" applies
 with `BENCHMARK_VLLM_AUTOCONFIG=0`; see
 [Legacy Settings](./workloads.md#legacy-settings). If a row lists two
-variables and both are set, the first wins.
+variables and both are set, the first wins, except in the `HF_HOME` and
+`HUGGINGFACE_HUB_CACHE` row: the Hugging Face libraries read those, not this
+benchmark.
 
 | Variable | Meaning | Default |
 | --- | --- | --- |

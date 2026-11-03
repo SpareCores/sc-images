@@ -98,7 +98,7 @@ to reuse them across runs.
 A run fits its models and workloads into a 2-hour time budget. Sample
 production runs took 28 minutes on an AWS (Amazon Web Services) `c8a.large`
 and 1 hour 5 minutes on a `c8a.16xlarge`. See
-[Run Duration](./docs/usage.md#run-duration) for how the budget is split.
+[Time Budget](./docs/workloads.md#time-budget) for how the budget is split.
 
 ### Settings
 
@@ -171,8 +171,9 @@ context length that fits it:
   tokens and 256 output tokens, with a 4,096-token context.
 
 Each workload runs one GuideLLM sweep: a synchronous stage of one request at a
-time, a throughput stage at the highest concurrency allowed, and, when the time
-budget allows, constant-rate stages between the two. See
+time, a throughput stage at the highest concurrency allowed, and, on hosts with
+8 or more vCPUs and when the time budget allows, constant-rate stages between
+the two. See
 [Models](./docs/workloads.md#models) for the five default models that run on
 CPUs, from 135 million to 14 billion parameters, and
 [Run Sequence](./docs/workloads.md#run-sequence) for when a model is skipped
