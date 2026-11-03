@@ -57,7 +57,7 @@ across runs, mount a host directory on it with `-v`, and replace `<limit>` as
 [Usage](../README.md#usage) describes:
 
 ```bash
-docker run --rm --privileged --network host --shm-size=4g --memory=<limit> --memory-swap=<limit> --memory-swappiness=0 -e HF_TOKEN -v "$PWD/models:/models" ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl
+docker run --rm --privileged --network host --shm-size=4g --memory=<limit> --memory-swap=<limit> --memory-swappiness=0 -e HF_TOKEN -v "$PWD/models:/models" ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl 2> results.log
 ```
 
 If the `--models-dir` directory (default: `/models`) has less than 1 GB of
@@ -86,7 +86,8 @@ The following options run part of this benchmark only:
   vCPUs, memory, and NUMA (Non-Uniform Memory Access) nodes, and, for each
   model, whether it fits in memory, and if not, why
   ([Memory Fit](./workloads.md#memory-fit)). It reads the model metadata from
-  Hugging Face but starts no vLLM server.
+  Hugging Face but starts no vLLM server. It reads the host's memory, not the
+  container's `--memory` limit.
 - `--probe-only` starts the smallest model, `smol-135m` by default
   (`VLLM_PROBE_MODEL`), and waits up to 15 minutes for the server's health
   check (`VLLM_PROBE_HEALTH_TIMEOUT_CPU_SEC`). It exits with code 0 if the
@@ -139,8 +140,17 @@ This benchmark exits with code 1 in the following cases:
 It exits with code 2 on an AMD64 CPU without AVX-512, unless
 `BENCHMARK_VLLM_ALLOW_AVX2_ONLY` is set, and with code 0 otherwise. A run that
 skipped models or workloads, or stopped early, still exits with code 0 if it
-wrote at least one JSON line. Check which lines are present, and the reasons
-logged to stderr.
+wrote at least one JSON line. Check which lines are present, and look for the
+following messages in stderr:
+
+- `metadata lookup failed for <model_id>`: the model's Hugging Face metadata
+  could not be read; see
+  [Hugging Face Access and Model Cache](#hugging-face-access-and-model-cache).
+- `Skipping <model> workload=<name> — insufficient KV cache headroom`: the
+  workload's key-value cache did not fit in memory; see
+  [Memory Fit](./workloads.md#memory-fit).
+- `Overall timeout reached`: the run reached its 2-hour stop, and the
+  remaining models did not run; see [Time Budget](./workloads.md#time-budget).
 
 ## Production Setup
 
@@ -205,9 +215,9 @@ benchmark.
 | `BENCHMARK_VLLM_MODE` | `gpu` or `cpu` mode | `cpu`, set by the image |
 | `BENCHMARK_VLLM_WORKLOADS` | Comma-separated workload names; a value that matches none runs all | `chat,rag` |
 | `BENCHMARK_VLLM_AUTOCONFIG` | `0`, `false`, or `no` uses the legacy static settings | `1` |
-| `BENCHMARK_VLLM_PER_WORKLOAD_SERVER` | Restart vLLM for each workload with its context length; when off, one server with the context length of the longest workload runs all workloads | Same as `BENCHMARK_VLLM_AUTOCONFIG` |
+| `BENCHMARK_VLLM_PER_WORKLOAD_SERVER` | Restart vLLM for each workload with its context length; `0`, `false`, or `no` turns this off, so one server with the context length of the longest workload runs all workloads | Same as `BENCHMARK_VLLM_AUTOCONFIG` |
 | `BENCHMARK_VLLM_ALLOW_AVX2_ONLY` | `1`, `true`, or `yes` skips the AVX-512 check on AMD64 | Unset |
-| `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` | Run a model with an estimated size when its Hugging Face metadata cannot be read | Unset, so the model is skipped |
+| `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` | Any non-empty value, even `0`, runs a model with an estimated size when its Hugging Face metadata cannot be read | Unset, so the model is skipped |
 | `BENCHMARK_VLLM_CPU_TP`, `VLLM_CPU_TENSOR_PARALLEL_SIZE` | Tensor-parallel size | The NUMA node count if it divides the model's attention heads, otherwise 1 |
 | `BENCHMARK_VLLM_CPU_DP`, `VLLM_CPU_DATA_PARALLEL_SIZE` | Data-parallel size | Computed; see [CPU Parallelism](./workloads.md#cpu-parallelism) |
 | `VLLM_CPU_OMP_THREADS_BIND` | CPUs of each vLLM worker; any value other than `auto` is passed to vLLM as is | `auto`, set by the image, so this benchmark computes it |
@@ -227,7 +237,7 @@ benchmark.
 | `GUIDELLM__MAX_CONCURRENCY` | Maximum concurrent requests | Computed |
 | `GUIDELLM__MAX_WORKER_PROCESSES` | GuideLLM worker processes | Computed |
 | `GUIDELLM_MAX_REQUESTS`, `GUIDELLM_MAX_REQUESTS_CPU` | Adds a request cap (`max_requests` constraint) to each GuideLLM stage; with `BENCHMARK_VLLM_AUTOCONFIG=0`, only `GUIDELLM_MAX_REQUESTS_CPU` applies | Unset; legacy: 25 |
-| `GUIDELLM_PROFILES`, `GUIDELLM_CPU_PROFILES` | `legacy`, `sync-throughput`, or `sync` runs one synchronous and one throughput run instead of a sweep | Unset |
-| `GUIDELLM_THROUGHPUT_RATE` | Concurrency of the throughput run; applies only with `GUIDELLM_PROFILES` or `GUIDELLM_CPU_PROFILES` | `8` |
+| `GUIDELLM_PROFILES`, `GUIDELLM_CPU_PROFILES` | Any of `legacy`, `sync-throughput`, or `sync` (all three do the same) runs one synchronous and one throughput stage instead of a sweep, with autoconfig on or off | Unset |
+| `GUIDELLM_THROUGHPUT_RATE` | Concurrency of the throughput stage; applies only with `GUIDELLM_PROFILES` or `GUIDELLM_CPU_PROFILES` | `8` |
 | `HF_HOME`, `HUGGINGFACE_HUB_CACHE` | Hugging Face cache directory | `/models`, set by the image |
 | `TRACKER_QUIET` | Quiet output of `resource-tracker` | `true`, set by the image |

@@ -79,7 +79,7 @@ in the shell first;
 the container settings of production:
 
 ```bash
-docker run --rm --privileged --network host --shm-size=4g --memory=<limit> --memory-swap=<limit> --memory-swappiness=0 -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl
+docker run --rm --privileged --network host --shm-size=4g --memory=<limit> --memory-swap=<limit> --memory-swappiness=0 -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl 2> results.log
 ```
 
 Replace `<limit>` in both options with 85% of the host's available memory, as
@@ -93,7 +93,7 @@ run needs only `--shm-size=4g` and `-e HF_TOKEN`; the other options match
 production:
 
 ```bash
-docker run --rm --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl
+docker run --rm --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl 2> results.log
 ```
 
 See [Production Setup](./docs/usage.md#production-setup) before you compare your
@@ -165,9 +165,11 @@ fields. For example, see the production
 of an AWS `c8a.12xlarge`.
 
 The process exits with code 0 even when it skipped models or workloads, so
-check which lines are present, and the reasons logged to stderr. It exits with
-code 1 when no model could run or no line was written, and with code 2 on an
-AMD64 CPU without AVX-512; see [Exit Codes](./docs/usage.md#exit-codes).
+check which lines are present, and the reasons logged to stderr, which the
+commands above save to `results.log`. It exits with code 1 when no model could
+run or no line was written, and with code 2 on an AMD64 CPU without AVX-512.
+See [Exit Codes](./docs/usage.md#exit-codes) for the codes and the log
+messages of skipped models.
 Resource usage is recorded with `resource-tracker`, which
 [streams it](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
 to the [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform for

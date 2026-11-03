@@ -199,7 +199,9 @@ frontend
 ## Memory Fit
 
 Before it starts any server, this benchmark checks each model against the
-memory of the host, using the model's metadata from Hugging Face:
+memory of the host, using the model's metadata from Hugging Face. The check
+reads the host's memory, not the container's `--memory` limit, so the plan can
+count on memory that the container cannot use. The check works as follows:
 
 - A model runs when at least one tensor- and data-parallel layout fits: the
   weights and a minimum key-value cache of each vLLM worker must fit in the
@@ -241,7 +243,7 @@ instead of the formulas above. On CPUs, they include the following:
 - One vLLM server for all workloads, unless
   `BENCHMARK_VLLM_PER_WORKLOAD_SERVER` is set
 
-Set `GUIDELLM_PROFILES` or `GUIDELLM_CPU_PROFILES` to `legacy`,
-`sync-throughput`, or `sync` to run one synchronous and one throughput run
-instead of a sweep, with the throughput run at a concurrency of
-`GUIDELLM_THROUGHPUT_RATE` (default: 8).
+With autoconfig on or off, set `GUIDELLM_PROFILES` or `GUIDELLM_CPU_PROFILES`
+to any of `legacy`, `sync-throughput`, or `sync` (all three do the same) to
+run one synchronous and one throughput stage instead of a sweep, with the
+throughput stage at a concurrency of `GUIDELLM_THROUGHPUT_RATE` (default: 8).
