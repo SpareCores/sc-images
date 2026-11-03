@@ -128,14 +128,31 @@ Each line's `tuning` object records these settings. See
 
 ## Time Budget
 
-By default, a run has an overall budget of 2 hours, multiplied by
-`--benchmark-timeout-scale`. This benchmark splits the budget as follows:
+A run has an overall budget of 2 hours. This benchmark splits it as follows:
 
 1. It reserves 600 seconds, plus 120 seconds for each CPU server start, one
    per runnable model and workload.
 2. It divides the rest by the number of model and workload runs.
 3. It limits each run of one model and workload, that is, one sweep, to 45 to
    240 seconds.
+
+Before it starts each model, workload, and GuideLLM process, this benchmark
+checks the elapsed time. After 2 hours, it starts nothing new: it logs
+"Overall timeout reached" before the next model, and the models it has not
+reached do not run. This can happen, for example, when the 45-second minimum
+per sweep pushes the plan past 2 hours.
+
+The `--benchmark-timeout-scale` option takes a whole number, and values below
+1 act as 1. It multiplies the following limits:
+
+- The overall budget, before the split above. Each sweep stays limited to 240
+  seconds, so its stages get longer only when its budget was below 240
+  seconds without the scale.
+- The time limit of each GuideLLM process.
+- With `BENCHMARK_VLLM_AUTOCONFIG=0`, the time limit of each stage.
+
+The option does not scale the 2-hour stop, so a value above 1 does not let a
+run go on longer.
 
 ## CPU Parallelism
 
@@ -180,11 +197,11 @@ memory of the host, using the model's metadata from Hugging Face:
 On CPUs, vLLM's `--gpu-memory-utilization` option is a fraction of the total
 memory of the worker's NUMA node, which each worker reserves on its own. This
 benchmark divides it among the workers that share a NUMA node, so that their
-sum stays within 70% of the node's free memory, and caps it at 0.50. When
-several workers share a node, it lowers that budget by a further 10% and
-leaves 0.8 GiB for startup. Set `VLLM_CPU_GPU_MEMORY_UTILIZATION` to override
-the fraction. Run the image with `--plan-only` to see the plan of each model on
-your server.
+sum stays within 70% of the node's free memory, and caps it at 0.50. It
+leaves 0.8 GiB of each node for startup, and when several workers share a
+node, it lowers the budget by a further 10%. Set
+`VLLM_CPU_GPU_MEMORY_UTILIZATION` to override the fraction. Run the image with
+`--plan-only` to see the plan of each model on your server.
 
 ## Data Type
 
@@ -205,7 +222,7 @@ With `BENCHMARK_VLLM_AUTOCONFIG=0`, this benchmark uses static settings
 instead of the formulas above. On CPUs, they include the following:
 
 - A sweep size of 3
-- A cap of 25 requests per stage
+- A cap of 25 requests per stage, set with `GUIDELLM_MAX_REQUESTS_CPU`
 - One vLLM server for all workloads, unless
   `BENCHMARK_VLLM_PER_WORKLOAD_SERVER` is set
 

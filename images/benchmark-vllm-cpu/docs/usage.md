@@ -68,8 +68,9 @@ runs on AWS (Amazon Web Services) server types took the following times:
 - `c8a.16xlarge`: 1 hour 5 minutes
   ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.16xlarge/0/vllm/meta.json))
 
-The `--benchmark-timeout-scale` option multiplies the overall budget and the
-GuideLLM time limits.
+The `--benchmark-timeout-scale` option takes a whole number of 1 or more, and
+mainly extends the time limit of each GuideLLM process. It does not let a run
+go past 2 hours; see [Time Budget](./workloads.md#time-budget).
 
 ## Plan and Probe Modes
 
@@ -161,8 +162,8 @@ Production stores the results of all three images under the task name `vllm`,
 in `data/<vendor>/<server>/<variant>/vllm/` (the variant is a numbered folder,
 `0` for most server types) of
 [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data). The
-results do not mark which image produced them: the task tries the fastest
-method first, so the result of a server type is the best one measured.
+task tries the fastest image first, so the result of a server type comes from
+the fastest image that runs on it.
 
 We investigate failed production runs, manually or semi-automatically, and
 then run them again. Until then, a server type's latest result in
@@ -178,7 +179,7 @@ Pass the following options after the image name. See
 | --- | --- | --- |
 | `--models` | Hugging Face model IDs, or short names of the [default models](./workloads.md#models), to run instead of the default models | The five default models that run on CPUs |
 | `--models-dir` | Hugging Face cache directory, which needs at least 1 GB of free space | `/models` |
-| `--benchmark-timeout-scale` | Multiplier of the overall budget and the GuideLLM time limits | `1` |
+| `--benchmark-timeout-scale` | Whole number of 1 or more that multiplies the time limits of GuideLLM, but not the 2-hour stop; see [Time Budget](./workloads.md#time-budget) | `1` |
 | `--probe-only` | Start the probe model, wait for its health check, and exit | Off |
 | `--plan-only` | Print the host's resources and whether each model fits in memory, as JSON, without starting vLLM | Off |
 | `--version` | Print the pinned vLLM and GuideLLM versions and exit | Off |
@@ -217,7 +218,7 @@ variables and both are set, the first wins.
 | `GUIDELLM_CPU_SWEEP_SIZE`, `GUIDELLM_SWEEP_SIZE` | Number of sweep stages, at least 2 | Computed; legacy: 3 |
 | `GUIDELLM__MAX_CONCURRENCY` | Maximum concurrent requests | Computed |
 | `GUIDELLM__MAX_WORKER_PROCESSES` | GuideLLM worker processes | Computed |
-| `GUIDELLM_MAX_REQUESTS`, `GUIDELLM_MAX_REQUESTS_CPU` | Adds a request cap (`max_requests` constraint) to each GuideLLM stage | Unset; legacy: 25 |
+| `GUIDELLM_MAX_REQUESTS`, `GUIDELLM_MAX_REQUESTS_CPU` | Adds a request cap (`max_requests` constraint) to each GuideLLM stage; with `BENCHMARK_VLLM_AUTOCONFIG=0`, only `GUIDELLM_MAX_REQUESTS_CPU` applies | Unset; legacy: 25 |
 | `GUIDELLM_PROFILES`, `GUIDELLM_CPU_PROFILES` | `legacy`, `sync-throughput`, or `sync` runs one synchronous and one throughput run instead of a sweep | Unset |
 | `GUIDELLM_THROUGHPUT_RATE` | Concurrency of the throughput run; applies only with `GUIDELLM_PROFILES` or `GUIDELLM_CPU_PROFILES` | `8` |
 | `HF_HOME`, `HUGGINGFACE_HUB_CACHE` | Hugging Face cache directory | `/models`, set by the image |

@@ -174,8 +174,8 @@ Production stores the results of all three images under the task name `vllm`,
 in `data/<vendor>/<server>/<variant>/vllm/` (the variant is a numbered folder,
 `0` for most server types) of
 [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data). The
-results do not mark which image produced them: the task tries the fastest
-method first, so the result of a server type is the best one measured.
+task tries the fastest image first, so the result of a server type comes from
+the fastest image that runs on it.
 
 We investigate failed production runs, manually or semi-automatically, and
 then run them again. Until then, a server type's latest result in
