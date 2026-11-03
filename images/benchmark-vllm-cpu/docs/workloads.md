@@ -211,12 +211,12 @@ count on memory that the container cannot use. The check works as follows:
 - If the Hugging Face metadata cannot be read, the model is skipped, unless
   `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set.
 
-On CPUs, vLLM's `--gpu-memory-utilization` option is a fraction of the total
-memory of the worker's NUMA node, which each worker reserves on its own. This
-benchmark divides it among the workers that share a NUMA node, so that their
-sum stays within 70% of the node's free memory, and caps it at 0.50. It
-leaves 0.8 GiB of each node for startup, and when several workers share a
-node, it lowers the budget by a further 10%. Set
+On CPUs, vLLM's `--gpu-memory-utilization` option sets the fraction of the
+NUMA node's total memory that each worker reserves for itself. This benchmark
+splits the fraction among the workers that share a NUMA node, so that together
+they reserve at most 70% of the node's free memory, and caps each worker's
+fraction at 0.50. It leaves 0.8 GiB of each node for startup, and when several
+workers share a node, it lowers the 70% budget by a further 10%. Set
 `VLLM_CPU_GPU_MEMORY_UTILIZATION` to override the fraction. Run the image with
 `--plan-only` to see the plan of each model on your server.
 
