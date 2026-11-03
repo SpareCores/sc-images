@@ -183,7 +183,7 @@ Pass the following options after the image name. See
 
 | Option | Meaning | Default |
 | --- | --- | --- |
-| `--models` | Hugging Face model IDs, or short names of the [default models](./workloads.md#models), to run instead of the default models | The five default models that run on CPUs |
+| `--models` | Hugging Face model IDs, or short names of the [default models](./workloads.md#models), to run instead of the default models, separated by spaces, such as `qwen-0.5b <owner>/<model>` | The five default models that run on CPUs |
 | `--models-dir` | Directory of the 1 GB free-space check and of the model metadata that this benchmark downloads. The model weights still go to `HF_HOME` and `HUGGINGFACE_HUB_CACHE` (`/models`), so mount a disk at `/models` to move them | `/models` |
 | `--benchmark-timeout-scale` | Whole number of 1 or more that multiplies the time limits of GuideLLM, but not the 2-hour stop; see [Time Budget](./workloads.md#time-budget) | `1` |
 | `--probe-only` | Start the probe model, wait for its health check, and exit | Off |

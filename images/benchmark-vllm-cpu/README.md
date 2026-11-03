@@ -121,7 +121,8 @@ following settings are the most common on CPUs; see the
 and their defaults:
 
 - `--models` replaces the default models with Hugging Face model IDs or the
-  short names of the default models.
+  short names of the default models, separated by spaces, such as
+  `--models qwen-0.5b <owner>/<model>`.
 - `BENCHMARK_VLLM_WORKLOADS` selects workloads by name, such as `chat`.
 - `BENCHMARK_VLLM_CPU_TP` overrides the tensor-parallel size, and
   `BENCHMARK_VLLM_CPU_DP` the data-parallel size.

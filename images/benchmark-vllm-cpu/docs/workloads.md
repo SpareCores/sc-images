@@ -163,13 +163,16 @@ follows:
 
 - **Tensor parallelism:** The tensor-parallel size is the NUMA node count when
   that count divides the model's attention head count, and 1 otherwise.
-- **Data parallelism:** When the tensor-parallel size is below the NUMA node
-  count, this benchmark runs at least one replica per NUMA node. It adds
-  replicas until each vLLM worker has about 16 physical cores for models up to
-  0.5 billion parameters, 32 up to 2 billion, 64 up to 8 billion, and 128 for
-  larger models. It runs at most 32 replicas, and only as many as fit in the
-  memory of each NUMA node, because each replica loads a full copy of the
-  weights.
+- **Data parallelism:** The data-parallel size is the number of model
+  replicas, each with a full copy of the weights. This benchmark sets it as
+  follows:
+  - At least one replica per NUMA node when the tensor-parallel size is below
+    the NUMA node count.
+  - On every host, more replicas if the physical core count, divided by the
+    tensor-parallel size and by the cores per worker for the model size (see
+    the table below), gives more.
+  - At most 32 replicas, and only as many as fit in the memory of each NUMA
+    node.
 - **Thread binding:** This benchmark sets `VLLM_CPU_OMP_THREADS_BIND` to an
   explicit CPU list for each worker, with one logical CPU per physical core,
   all from one NUMA node. It finds the SMT (Simultaneous Multithreading)
@@ -178,8 +181,19 @@ follows:
   frontend process. A `VLLM_CPU_OMP_THREADS_BIND` value other than `auto`
   replaces these lists.
 
-For example, on the `c8a.12xlarge`, `smol-135m` ran as three replicas bound to
-`0-15|16-31|32-46`, that is, 16, 16, and 15 cores
+The cores per worker depend on the model size:
+
+| Model size | Physical cores per worker |
+| --- | --- |
+| Up to 0.5 billion parameters | 16 |
+| Up to 2 billion parameters | 32 |
+| Up to 8 billion parameters | 64 |
+| Larger | 128 |
+
+For example, on the `c8a.12xlarge`, `smol-135m` ran as three replicas: 48
+physical cores divided by 16 cores per worker. They were bound to
+`0-15|16-31|32-46`, that is, 16, 16, and 15 cores, with one CPU left for the
+frontend
 ([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
 
 ## Memory Fit
