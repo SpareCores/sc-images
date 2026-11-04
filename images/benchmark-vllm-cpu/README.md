@@ -111,9 +111,11 @@ volume; see
 to reuse them across runs.
 
 A run fits its models and workloads into a 2-hour time budget. Sample
-production runs took 28 minutes on an AWS (Amazon Web Services) `c8a.large`
-and 1 hour 5 minutes on a `c8a.16xlarge`. See
-[Time Budget](./docs/workloads.md#time-budget) for how the budget is split.
+production runs took 28 minutes on an AWS (Amazon Web Services)
+[`c8a.large`](https://sparecores.com/server/aws/c8a.large) and 1 hour 5
+minutes on a [`c8a.16xlarge`](https://sparecores.com/server/aws/c8a.16xlarge).
+See [Time Budget](./docs/workloads.md#time-budget) for how the budget is
+split.
 
 ### Settings
 
@@ -163,14 +165,15 @@ or stderr. The main fields of each line are the following:
 - `vllm_version` and `guidellm_version` give the pinned versions.
 
 See [Output Fields](./docs/usage.md#output-fields) for the CPU-specific
-fields. For a full example, see the production
-[output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)
-of an AWS `c8a.12xlarge`.
+fields. For a full example, see the
+[production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)
+of an AWS [`c8a.12xlarge`](https://sparecores.com/server/aws/c8a.12xlarge).
 
 The process exits with code 0 even when it skipped models or workloads, so
-check which lines are present, and the reasons logged to stderr, which the
-commands above save to `results.log`. It exits with code 1 when no model could
-run or no line was written, and with code 2 on an AMD64 CPU without AVX-512.
+check which lines are present in stdout and which reasons are logged to
+stderr; the commands above save them to `results.jsonl` and `results.log`.
+It exits with code 1 when no model could run or no line was written, and with
+code 2 on an AMD64 CPU without AVX-512.
 See [Exit Codes](./docs/usage.md#exit-codes) for the codes and the log
 messages of skipped models.
 Resource usage is recorded with `resource-tracker`, which

@@ -147,7 +147,8 @@ This benchmark exits with one of the following codes:
 - **2:** the CPU is an AMD64 CPU without AVX-512, unless
   `BENCHMARK_VLLM_ALLOW_AVX2_ONLY` is set.
 
-Check which lines are present, and look for the following messages in stderr:
+Check which lines are present in stdout, and look for the following messages
+in stderr:
 
 - `metadata lookup failed for <model_id>`: the model's Hugging Face metadata
   could not be read; see
