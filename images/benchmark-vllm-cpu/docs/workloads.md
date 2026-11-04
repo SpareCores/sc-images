@@ -85,8 +85,8 @@ stage is recorded as a `strategy` in the output:
 Each stage stops at its time limit, and the throughput stage ramps up its
 concurrency first. No stage has a request cap unless `GUIDELLM_MAX_REQUESTS`
 or `GUIDELLM_MAX_REQUESTS_CPU` sets one. For example, on an AWS (Amazon Web
-Services) `c8a.12xlarge`, each sweep had a size of 3, with 80 seconds per
-stage
+Services) [`c8a.12xlarge`](https://sparecores.com/server/aws/c8a.12xlarge),
+each sweep had a size of 3, with 80 seconds per stage
 ([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
 The GuideLLM command and its options are in the
 [harness](../../../vllm-common/benchmark.py).

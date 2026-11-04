@@ -63,9 +63,11 @@ limitations of CPU runs:
   node.
 - **[Skipped Models and Workloads](./docs/workloads.md#memory-fit):** A model
   or workload that does not fit in the memory of the NUMA nodes it would use
-  is skipped. The 4-bit `llama-70b` model and the `long` workload never run on
-  CPUs. The run still exits with code 0 as long as another model or workload
-  wrote results. See also [Run Sequence](./docs/workloads.md#run-sequence).
+  is skipped. The 4-bit [`llama-70b`](./docs/workloads.md#models) model and
+  the [`long`](./docs/workloads.md#prompt-and-output-lengths) workload never
+  run on CPUs. The run still exits with code 0 as long as another model or
+  workload wrote results. See also
+  [Run Sequence](./docs/workloads.md#run-sequence).
 - **[One Host, Synthetic Prompts](./docs/workloads.md#guidellm-sweep):** This
   benchmark measures serving latency and throughput on one host, with
   synthetic prompts of fixed lengths, sent by GuideLLM from the same container
@@ -102,11 +104,11 @@ See [Production Setup](./docs/usage.md#production-setup) before you compare your
 results with production results.
 
 This benchmark downloads the models from Hugging Face while it runs, and uses
-`HF_TOKEN` for the downloads and the model metadata. Two default models,
-`gemma-2b` and `llama-8b`, are gated models: they need a token from an account that
-has accepted their licenses. Without such a token, this benchmark skips
-them and runs the other models. The models are cached in `/models`, a Docker
-volume; see
+`HF_TOKEN` for the downloads and the model metadata. Two
+[default models](./docs/workloads.md#models), `gemma-2b` and `llama-8b`, are
+gated models: they need a token from an account that has accepted their
+licenses. Without such a token, this benchmark skips them and runs the other
+models. The models are cached in `/models`, a Docker volume; see
 [Hugging Face Access and Model Cache](./docs/usage.md#hugging-face-access-and-model-cache)
 to reuse them across runs.
 

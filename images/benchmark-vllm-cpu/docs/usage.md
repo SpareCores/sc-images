@@ -2,8 +2,9 @@
 
 ## Requirements and Versions
 
-The image is built on the official vLLM CPU server images from Docker Hub,
-`vllm/vllm-openai-cpu:v0.27.1-x86_64` for AMD64 and
+The image is built on the
+[official vLLM CPU server images](https://hub.docker.com/r/vllm/vllm-openai-cpu)
+from Docker Hub, `vllm/vllm-openai-cpu:v0.27.1-x86_64` for AMD64 and
 `vllm/vllm-openai-cpu:v0.27.1-arm64` for Arm64, and its `:main` tag has
 variants for both. The [`Dockerfile`](../Dockerfile) sets
 `BENCHMARK_VLLM_MODE=cpu`, so the
@@ -44,12 +45,12 @@ The container needs network access to Hugging Face: this benchmark reads
 each model's metadata from it, and the model weights are downloaded from it.
 Pass an [access token](https://huggingface.co/docs/hub/security-tokens) in
 `HF_TOKEN`, which this benchmark uses for both; production passes the host's
-token too. The default models `gemma-2b` and `llama-8b` are gated models, so they
-need a token from an account that has accepted their licenses. Without such a
-token, this benchmark cannot read a gated model's metadata: it logs
-`metadata lookup failed for <model_id>`, skips the model unless
-`BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set, and continues with the next
-model.
+token too. The [default models](./workloads.md#models) `gemma-2b` and
+`llama-8b` are gated models, so they need a token from an account that has
+accepted their licenses. Without such a token, this benchmark cannot read a
+gated model's metadata: it logs `metadata lookup failed for <model_id>`, skips
+the model unless `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set, and
+continues with the next model.
 
 The image sets `HF_HOME` and `HUGGINGFACE_HUB_CACHE` to `/models`, a Docker
 volume, so a plain run downloads the models again each time. To reuse them
@@ -69,9 +70,9 @@ A run has a 2-hour budget, which it splits across the runnable models and
 workloads; see [Time Budget](./workloads.md#time-budget). Sample production
 runs on AWS (Amazon Web Services) server types took the following times:
 
-- `c8a.large`: 28 minutes
+- [`c8a.large`](https://sparecores.com/server/aws/c8a.large): 28 minutes
   ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.large/0/vllm/meta.json))
-- `c8a.16xlarge`: 1 hour 5 minutes
+- [`c8a.16xlarge`](https://sparecores.com/server/aws/c8a.16xlarge): 1 hour 5 minutes
   ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.16xlarge/0/vllm/meta.json))
 
 The `--benchmark-timeout-scale` option takes a whole number of 1 or more, and
@@ -177,9 +178,6 @@ memory from this task. The task uses the following settings:
 | Memory limit | 85% of the host's available memory, with swap disabled and a swappiness of 0 | None, unless `--memory` is passed, and swap as the host allows |
 | Environment | The host's `HF_TOKEN` | As passed with `-e`, such as `-e HF_TOKEN` |
 | Overall timeout | 3 hours | None, only this benchmark's own 2-hour budget |
-
-The command in [Usage](../README.md#usage) reproduces these container
-settings.
 
 Production stores the results of all three images under the task name `vllm`,
 in the `data/<vendor>/<server>/<variant>/vllm/` folder of
