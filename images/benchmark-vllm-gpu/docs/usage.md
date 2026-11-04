@@ -15,7 +15,8 @@ The host needs the NVIDIA driver and the NVIDIA Container Toolkit for
 pass `--shm-size=4g`. On GPUs, this benchmark does not warn about a small
 `/dev/shm` before it starts.
 
-The image is built on the official vLLM server image,
+The image is built on the
+[official vLLM server image](https://hub.docker.com/r/vllm/vllm-openai),
 `vllm/vllm-openai:v0.27.1` from Docker Hub, and the
 [`Dockerfile`](../Dockerfile) sets `BENCHMARK_VLLM_MODE=gpu`, so the
 [harness](../../../vllm-common/benchmark.py) always runs in GPU mode. The
@@ -61,8 +62,9 @@ docker run --rm --gpus all --shm-size=4g -e HF_TOKEN -v "$PWD/models:/models" gh
 If the `--models-dir` directory (default: `/models`) has less than 1 GB of
 free space at startup, this benchmark exits with code 1. This is its only disk
 check: it never deletes the models it downloads, so every model of a run, up
-to the 4-bit 70B model, stays in that directory. Make sure it has room for all
-of them. It also caches the memory footprint it computes for each model in `.vllm-footprints/` under that
+to the 4-bit [70B model](./workloads.md#models), `llama-70b`, stays in that
+directory. Make sure it has room for all of them. It also caches the memory
+footprint it computes for each model in `.vllm-footprints/` under that
 directory.
 
 ## Run Duration

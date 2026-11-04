@@ -112,12 +112,11 @@ and their defaults:
 
 ### Results
 
-The process prints JSON Lines to stdout: one line per model, workload,
-GuideLLM load stage, metric, and statistic. Logs go to stderr, including the
-load settings, each `vllm serve` command, and the cause when a server fails to
-start. The output of the vLLM server goes
-to a temporary file inside the container, not to stdout or stderr. The main
-fields of each line are the following:
+The process prints one JSON line to stdout per model, workload, GuideLLM load
+stage, metric, and statistic. Logs go to stderr, including the load settings,
+each `vllm serve` command, and the cause when a server fails to start. The
+output of the vLLM server goes to a temporary file inside the container, not to
+stdout or stderr. The main fields of each line are the following:
 
 - `measurement` names the metric: `ttft`, `tpot`, `itl`, and `e2el` for
   latency, and `output_throughput`, `total_throughput`, and
@@ -139,8 +138,8 @@ fields of each line are the following:
 - `vllm_version` and `guidellm_version` give the pinned versions.
 
 See [Output Fields](./docs/usage.md#output-fields) for the GPU-specific
-fields. For example, see the production
-[output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)
+fields. For example, see the
+[production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)
 of an AWS (Amazon Web Services) `g5.16xlarge` with 64 vCPUs and one NVIDIA
 A10G GPU.
 [Spare Cores Navigator](https://docs.sparecores.com/overview) does not
