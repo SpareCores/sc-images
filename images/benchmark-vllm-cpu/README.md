@@ -139,10 +139,10 @@ and their defaults:
 
 ### Results
 
-The process prints JSON Lines to stdout: one line per model, workload,
-GuideLLM load stage, metric, and statistic. Logs go to stderr. The vLLM
-server's own log goes to a temporary file inside the container, not to stdout
-or stderr. The main fields of each line are the following:
+The process prints one JSON line to stdout per model, workload, GuideLLM load
+stage, metric, and statistic. Logs go to stderr. The vLLM server's own log goes
+to a temporary file inside the container, not to stdout or stderr. The main
+fields of each line are the following:
 
 - `measurement` names the metric: `ttft`, `tpot`, `itl`, and `e2el` for
   latency, and `output_throughput`, `total_throughput`, and
