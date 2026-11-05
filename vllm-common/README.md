@@ -102,7 +102,7 @@ following:
 - **GPUs, for `benchmark-vllm-gpu` only:** `--gpus all`, with the NVIDIA
   driver and the NVIDIA Container Toolkit on the host.
 
-Production also runs the container in privileged mode, with host networking
+Production also runs the container with privileged mode, host networking,
 and a memory limit. See [Production Setup](./docs/usage.md#production-setup)
 before comparing results with production.
 
