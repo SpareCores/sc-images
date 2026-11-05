@@ -10,15 +10,14 @@ peak load. The [vLLM manual](../../vllm-common/README.md) describes the harness
 that all vLLM benchmarks share, and these docs cover only what this image does
 differently.
 
-Like `benchmark-vllm-cpu`, this benchmark reports the following metrics, as one
-JSON line per model, workload, load stage, metric, and statistic:
+Like `benchmark-vllm-cpu`, this benchmark writes one JSON line per model,
+workload, load stage, metric, and statistic. Each line also marks the AVX2 image
+and the data type that the model ran in; see [Results](#results). The lines
+report the following metrics:
 
 - **Latency:** TTFT (Time to First Token), TPOT (Time per Output Token), ITL
   (Inter-Token Latency), and end-to-end request latency
 - **Throughput:** output tokens, total tokens, and requests per second
-
-Each line also records that this image wrote it, and the data type that the
-model ran in; see [Results](#results).
 
 ## Purpose
 
