@@ -62,9 +62,7 @@ Face token, the model cache, the 2-hour time budget, and the
 The image is built on the official vLLM CPU server images from Docker Hub,
 `vllm/vllm-openai-cpu:v0.27.1-x86_64` for AMD64 and
 `vllm/vllm-openai-cpu:v0.27.1-arm64` for Arm64, and its `:main` tag has
-variants for both. The [`Dockerfile`](./Dockerfile) sets
-`BENCHMARK_VLLM_MODE=cpu`, so the [harness](../../vllm-common/benchmark.py)
-always runs in CPU mode, even on a server with GPUs.
+variants for both.
 
 At startup on AMD64, this benchmark reads the CPU flags from `/proc/cpuinfo`.
 The vLLM CPU image for AMD64 needs AVX-512, so without the `avx512f` flag,
@@ -77,24 +75,13 @@ Arm64 CPUs skip the check, and this benchmark does not check the Arm64 CPU
 generation either. On Arm64 CPUs without the `bf16` flag, it runs the models
 in float32; see [Data Type](../../vllm-common/docs/workloads.md#data-type).
 
-The `--version` option prints the pinned versions, `vllm=0.27.1
-guidellm=0.7.3`, and exits:
-
-```bash
-docker run --rm ghcr.io/sparecores/benchmark-vllm-cpu:main --version
-```
-
 ### Results
 
 The JSON lines in stdout have the fields that the manual's
 [Results](../../vllm-common/README.md#results) and
 [Output Fields](../../vllm-common/docs/usage.md#output-fields) describe for
 CPU runs. In this image, `arch` is `amd64` or `arm64`, `avx512` is `true` on
-AMD64 and `null` on Arm64, and `avx2_only_image` is `false`. For a full
-example, see the
-[production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)
-of an AWS (Amazon Web Services)
-[`c8a.12xlarge`](https://sparecores.com/server/aws/c8a.12xlarge).
+AMD64 and `null` on Arm64, and `avx2_only_image` is `false`.
 
 The process exits with the codes of the manual's
 [Exit Codes](../../vllm-common/docs/usage.md#exit-codes), and with code 2 on
@@ -104,18 +91,12 @@ an AMD64 CPU without AVX-512.
 
 This benchmark runs the `chat` and `rag` workloads of the vLLM benchmarks on
 the five default models that run on CPUs; see the manual's
-[Workloads](../../vllm-common/README.md#workloads). On CPUs, the harness
-splits each model across the NUMA (Non-Uniform Memory Access) nodes and CPU
-cores, checks that it fits in the memory of each node, and picks a data type
-that the CPU supports; see
-[CPU Parallelism](../../vllm-common/docs/workloads.md#cpu-parallelism),
-[CPU Memory Fit](../../vllm-common/docs/workloads.md#cpu-memory-fit), and
-[Data Type](../../vllm-common/docs/workloads.md#data-type).
+[Workloads](../../vllm-common/README.md#workloads).
 
 ## References
 
-Common terms, such as GuideLLM, NUMA, and AVX-512, are defined in the
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs. To
-change or rebuild this image, see the
+Common terms, such as GuideLLM, NUMA (Non-Uniform Memory Access), and
+AVX-512, are defined in the [glossary](https://docs.sparecores.com/glossary)
+of the Spare Cores docs. To change or rebuild this image, see the
 [contributor guide](../../vllm-common/docs/contributors.md) of the vLLM
 benchmarks.
