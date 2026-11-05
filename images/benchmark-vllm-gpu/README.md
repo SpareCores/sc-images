@@ -25,9 +25,7 @@ relate to the LLM inference speed that Spare Cores Navigator publishes.
 
 The results of this image share the
 [limitations](../../vllm-common/README.md#limitations) of the vLLM benchmarks
-on GPUs, such as load settings that follow the vCPU count, vLLM's own server
-defaults, and models that run on fewer GPUs than the server has. Note the
-following limitation of this image in addition:
+on GPUs. Note the following limitation of this image in addition:
 
 - **[NVIDIA GPUs Only](#gpu-run):** This benchmark needs NVIDIA GPUs with CUDA
   (Compute Unified Device Architecture) compute capability 8.0 or newer, the
@@ -36,9 +34,7 @@ following limitation of this image in addition:
 
 ## Usage
 
-Export your Hugging Face access token as `HF_TOKEN` in the shell first;
-`-e HF_TOKEN` passes it into the container. Then run the image via Docker with
-the GPUs passed and 4 GiB of shared memory:
+Run the image via Docker with the GPUs passed and 4 GiB of shared memory:
 
 ```bash
 docker run --rm --gpus all --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-gpu:main > results.jsonl
@@ -59,9 +55,7 @@ Face token, the model cache, the 2-hour time budget, and the
 
 The host needs the NVIDIA driver and the NVIDIA Container Toolkit for
 `--gpus`. The image is built on `vllm/vllm-openai:v0.27.1` from Docker Hub,
-and its `:main` tag has variants for AMD64 and Arm64. The
-[`Dockerfile`](./Dockerfile) sets `BENCHMARK_VLLM_MODE=gpu`, so the
-[harness](../../vllm-common/benchmark.py) always runs in GPU mode.
+and its `:main` tag has variants for AMD64 and Arm64.
 
 At startup, this benchmark reads the CUDA compute capability of each visible
 GPU. It needs compute capability 8.0 or newer, the Ampere generation or
@@ -75,35 +69,18 @@ model fits the
 benchmark then logs each model as skipped for insufficient memory and exits
 with code 1.
 
-The `--version` option prints the pinned versions, `vllm=0.27.1
-guidellm=0.7.3`, and exits:
-
-```bash
-docker run --rm ghcr.io/sparecores/benchmark-vllm-gpu:main --version
-```
-
 ### Results
 
 The JSON lines in stdout have the fields that the manual's
 [Results](../../vllm-common/README.md#results) and
 [Output Fields](../../vllm-common/docs/usage.md#output-fields) describe for
-GPU runs: `gpu_count`, `gpu_model` (the name of the first GPU), and
-`total_vram_gb` (the memory of all GPUs in GiB) describe the GPUs. For
-example, see the
-[production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)
-of an AWS (Amazon Web Services) `g5.16xlarge` with 64 vCPUs and one NVIDIA
-A10G GPU. Spare Cores Navigator does not publish the results of the vLLM
-benchmarks yet.
+GPU runs.
 
 ## Workloads
 
 This benchmark runs all three workloads of the vLLM benchmarks, `chat`, `rag`,
 and `long`, on the six default models; see the manual's
-[Workloads](../../vllm-common/README.md#workloads). On GPUs, the harness
-splits each model across the GPUs and checks that it fits in each GPU's
-memory; see
-[GPU Parallelism](../../vllm-common/docs/workloads.md#gpu-parallelism) and
-[GPU Memory Fit](../../vllm-common/docs/workloads.md#gpu-memory-fit). The
+[Workloads](../../vllm-common/README.md#workloads). The
 [Load Settings](../../vllm-common/docs/workloads.md#load-settings) give the
 settings of production runs on GPU server types.
 
