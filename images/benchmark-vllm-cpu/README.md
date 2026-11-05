@@ -37,24 +37,17 @@ on CPUs. Note the following limitation of this image in addition:
 
 ## Usage
 
-Export your Hugging Face
-[access token](https://huggingface.co/docs/hub/security-tokens) as `HF_TOKEN`
-in the shell first; `-e HF_TOKEN` passes it into the container. Then run the
-image via Docker with the container settings of production:
+Run the image via Docker with the container settings of production, with
+`<limit>` set as the manual's
+[Production Setup](../../vllm-common/docs/usage.md#production-setup)
+describes:
 
 ```bash
 docker run --rm --privileged --network host --shm-size=4g --memory=<limit> --memory-swap=<limit> --memory-swappiness=0 -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl 2> results.log
 ```
 
-Replace `<limit>` in both options with 85% of the host's available memory, as
-production does; the same value for `--memory-swap` disables swap. Production
-reads the memory that Linux reports as available, the `available` column of
-`free -g` in GiB. Write the limit with a unit: for example, with 40 GiB
-available, pass `--memory=34g --memory-swap=34g`.
-
-A minimal run needs only two options: `--shm-size=4g`, because the vLLM
-benchmarks fail with Docker's default 64 MiB `/dev/shm`, and `-e HF_TOKEN`.
-The other options of the first command only reproduce production:
+A minimal run needs only `--shm-size=4g` and `-e HF_TOKEN`; the other
+options of the first command only reproduce production:
 
 ```bash
 docker run --rm --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu:main > results.jsonl 2> results.log
