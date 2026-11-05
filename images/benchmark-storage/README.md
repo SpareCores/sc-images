@@ -62,7 +62,7 @@ limitations:
 
 ## Usage
 
-Run the image via Docker on an ephemeral server that you can afford to wipe.
+Run the image via Docker on an ephemeral server that can be wiped.
 
 > [!CAUTION]
 > Every filesystem this benchmark unmounts is destroyed, together with the

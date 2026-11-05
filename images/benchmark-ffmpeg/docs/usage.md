@@ -29,7 +29,7 @@ Pass the GPUs to the container to add the NVIDIA video scenarios:
 docker run --rm --gpus all ghcr.io/sparecores/benchmark-ffmpeg:main > results.json
 ```
 
-Before you run, check the following prerequisites:
+Before running, check the following prerequisites:
 
 - The host has an NVIDIA GPU, the NVIDIA driver, and the
   [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html).
@@ -43,8 +43,8 @@ Before you run, check the following prerequisites:
   GPUs; without it, the GPU scenarios are skipped.
 
 The image sets `NVIDIA_DRIVER_CAPABILITIES=compute,utility,video`, so the
-NVIDIA Container Toolkit also mounts the driver's video libraries; you do not
-need to request them yourself. Without the `video` capability, the GPU
+NVIDIA Container Toolkit also mounts the driver's video libraries without a
+separate request. Without the `video` capability, the GPU
 scenarios fail to load `libnvcuvid.so.1` and are skipped.
 
 Each GPU scenario first runs a one-worker probe. If the GPU cannot open an

@@ -78,8 +78,8 @@ full memory. See [Standalone Mode](./docs/usage.md#standalone-mode).
 Production runs the container privileged, which lets the harness start
 `postgres` at a higher priority (`nice -n -20`); with a plain `docker run`, it
 runs at normal priority. See [Production
-Setup](./docs/usage.md#production-setup) before you compare your scores with
-the Navigator's.
+Setup](./docs/usage.md#production-setup) before comparing scores with the
+Navigator's.
 
 Set `SC_DB_HOST` to benchmark a remote PostgreSQL server instead. A remote run
 needs more setup: database privileges, a disposable benchmark database, and the
@@ -119,7 +119,7 @@ all options and defaults:
 The process prints nothing until the run ends, then prints one JSON object to
 stdout; a default run can stay silent for about 25 minutes. Errors go to
 stderr. In standalone mode, the PostgreSQL server log is written to
-`/tmp/pg-server.log` inside the container, so drop `--rm` if you need it after
+`/tmp/pg-server.log` inside the container, so drop `--rm` to keep it after
 the run. The JSON object's main fields are the following:
 
 - `score` is the highest TPM result; `score_unit` is `tpm`, and

@@ -69,7 +69,7 @@ See [GPU Run](./docs/usage.md#gpu-run) for the GPU requirements.
 
 Production runs the container privileged and with host networking; a plain
 `docker run` needs neither. See
-[Production Setup](./docs/usage.md#production-setup) before you compare your
+[Production Setup](./docs/usage.md#production-setup) before comparing
 results with production runs.
 
 A production run on an AWS (Amazon Web Services)

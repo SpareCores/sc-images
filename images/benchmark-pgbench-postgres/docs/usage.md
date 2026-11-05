@@ -67,13 +67,13 @@ settings](#workload-settings) on top of these.
 
 Set `SC_DB_HOST` to benchmark an existing PostgreSQL 18 server, such as a DBaaS
 (Database as a Service) instance, from the same or a separate machine. Before
-you run, check the following prerequisites:
+running, check the following prerequisites:
 
 - The `SC_DB_USER` role can create databases (`CREATEDB`) and terminate other
   sessions on the benchmark database: it must be a superuser, a member of
   `pg_signal_backend`, or the role those sessions run as.
-- The benchmark database, `SC_PGBENCH_DB` (default `pgbench`), holds no data you
-  need. Restoring a cached dump drops and recreates it; building the dataset
+- The benchmark database, `SC_PGBENCH_DB` (default `pgbench`), holds no data that
+  is needed. Restoring a cached dump drops and recreates it; building the dataset
   drops and recreates its benchmark tables.
 - The `SC_DB_USER` role owns the benchmark database or is a superuser, so it can
   set the `pgbench_ro` [workload settings](#workload-settings).
@@ -98,7 +98,7 @@ docker run --rm \
 ```
 
 `SC_DB_MEM_GIB` is only recorded in the output; for a remote server it is `null`
-unless you set it.
+unless it is set.
 
 The image does not tune a remote server's configuration; the only settings it
 changes are the [workload settings](#workload-settings) on the benchmark

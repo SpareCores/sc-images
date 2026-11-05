@@ -6,7 +6,7 @@ This benchmark prints PassMark's YAML results file to stdout:
 `results_all.yml` when it runs both suites, or `results_cpu.yml` when it runs
 the CPU suite only. PassMark's interactive terminal interface, including its
 terminal escape sequences, goes to stderr; redirect it to a file or
-`/dev/null` if you do not need it.
+`/dev/null` if it is not needed.
 
 The YAML document has the following top-level keys:
 
