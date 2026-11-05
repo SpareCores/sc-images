@@ -7,7 +7,7 @@ the CPU image of the vLLM benchmarks: it starts each default model with vLLM
 from one request at a time up to peak load. The
 [vLLM benchmarks manual](../../vllm-common/README.md) describes the
 methodology, settings, and output that all vLLM benchmarks share, and this
-README covers only what this image does differently.
+page covers only what this image does differently.
 
 Like the other vLLM benchmarks, this benchmark reports the latency and
 throughput [metrics](../../vllm-common/README.md) of each model under load;
