@@ -104,9 +104,9 @@ before you compare your results with production results.
 The vLLM benchmarks download the models from Hugging Face while they run, and
 use `HF_TOKEN` for the downloads and the model metadata. Two
 [default models](./docs/workloads.md#models), `gemma-2b` and `llama-8b`, are
-gated models: they need a token from an account that has accepted their
-licenses. Without such a token, the vLLM benchmarks skip them and run the
-other models. The models are cached in `/models`, a Docker volume; see
+gated models: they need an access token from an account that has accepted
+their licenses. Without one, the vLLM benchmarks skip them and run the other
+models. The models are cached in `/models`, a Docker volume; see
 [Hugging Face Access and Model Cache](./docs/usage.md#hugging-face-access-and-model-cache)
 to reuse them across runs.
 

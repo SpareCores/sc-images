@@ -32,9 +32,9 @@ The container needs network access to Hugging Face: the harness reads each
 model's metadata from it, and the model weights are downloaded from it. Pass an
 [access token](https://huggingface.co/docs/hub/security-tokens) in
 `HF_TOKEN`, which the harness uses for both; production passes the host's
-token too. The [default models](./workloads.md#models) `gemma-2b` and
-`llama-8b` are gated models, so they need a token from an account that has
-accepted their licenses. Without such a token, the harness cannot read a gated
+access token too. The [default models](./workloads.md#models) `gemma-2b` and
+`llama-8b` are gated models, so they need an access token from an account that
+has accepted their licenses. Without one, the harness cannot read a gated
 model's metadata: it logs `metadata lookup failed for <model_id>`, skips the
 model unless `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set, and continues
 with the next model.
@@ -182,6 +182,13 @@ memory from this task. The task uses the following settings:
 | Environment | The host's `HF_TOKEN` and the `resource-tracker` settings | As passed with `-e`, such as `-e HF_TOKEN`, without the `resource-tracker` settings |
 | Overall timeout | 3 hours | None, only the harness's own 2-hour budget |
 | Other tasks | Not run in parallel with other benchmarks | Whatever else runs on the host at the same time |
+
+To reproduce the memory limit, pass `--memory=<limit> --memory-swap=<limit>
+--memory-swappiness=0`, with `<limit>` set to 85% of the host's available
+memory; the same value for `--memory-swap` disables swap. Production reads
+the memory that Linux reports as available, the `available` column of
+`free -g` in GiB. Write the limit with a unit: for example, with 40 GiB
+available, pass `--memory=34g --memory-swap=34g`.
 
 Production stores the results of all three images under the task name `vllm`,
 in the `data/<vendor>/<server>/<variant>/vllm/` folder of
