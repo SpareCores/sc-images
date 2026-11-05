@@ -31,9 +31,7 @@ publishes.
 
 The results of this image share the
 [limitations](../../vllm-common/README.md#limitations) of the vLLM benchmarks
-on CPUs, such as load settings that follow the vCPU count and models that are
-skipped when they do not fit in memory. Note the following limitations of this
-image in addition:
+on CPUs. Note the following limitations of this image in addition:
 
 - **[No CPU Feature Check](#requirements-and-versions):** This image skips the
   harness's AVX-512 check and does not check for AVX2 either. Production tries
@@ -50,24 +48,17 @@ image in addition:
 
 ## Usage
 
-Export your Hugging Face
-[access token](https://huggingface.co/docs/hub/security-tokens) as `HF_TOKEN`
-in the shell first; `-e HF_TOKEN` passes it into the container. Then run the
-image via Docker with the container settings of production:
+Run the image via Docker with the container settings of production, with
+`<limit>` set as the manual's
+[Production Setup](../../vllm-common/docs/usage.md#production-setup)
+describes:
 
 ```bash
 docker run --rm --privileged --network host --shm-size=4g --memory=<limit> --memory-swap=<limit> --memory-swappiness=0 -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main > results.jsonl 2> results.log
 ```
 
-Replace `<limit>` in both options with 85% of the host's available memory, as
-production does; the same value for `--memory-swap` disables swap. Production
-reads the memory that Linux reports as available, the `available` column of
-`free -g` in GiB. Write the limit with a unit: for example, with 40 GiB
-available, pass `--memory=34g --memory-swap=34g`.
-
-A minimal run needs only two options: `--shm-size=4g`, because the vLLM
-benchmarks fail with Docker's default 64 MiB `/dev/shm`, and `-e HF_TOKEN`.
-The other options of the first command only reproduce production:
+A minimal run needs only `--shm-size=4g` and `-e HF_TOKEN`; the other
+options of the first command only reproduce production:
 
 ```bash
 docker run --rm --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main > results.jsonl 2> results.log
@@ -84,12 +75,8 @@ from source with the `VLLM_CPU_AVX2=true` build option. This image and its
 base are published for AMD64 only. This image and `benchmark-vllm-cpu` take
 the vLLM version from the same pin, 0.27.1.
 
-The [`Dockerfile`](./Dockerfile) sets the following two environment variables:
-
-- `BENCHMARK_VLLM_MODE=cpu`, so the
-  [harness](../../vllm-common/benchmark.py) always runs in CPU mode.
-- `BENCHMARK_VLLM_ALLOW_AVX2_ONLY=true`, which skips the harness's AVX-512
-  check on AMD64.
+The [`Dockerfile`](./Dockerfile) sets `BENCHMARK_VLLM_ALLOW_AVX2_ONLY=true`,
+which skips the harness's AVX-512 check on AMD64.
 
 This image does not check for AVX2 itself. To check a host before a
 run, look for the `avx2` flag in `/proc/cpuinfo`; the following command prints
@@ -103,21 +90,13 @@ At startup, the log in stderr lists the CPU flags that the harness found, such
 as `cpu_flag_avx2=yes`, and `cpu_bf16=False` on a CPU without bfloat16 support.
 On a CPU without AVX-512, the log has no `cpu_flag_avx512f` line.
 
-The `--version` option prints the pinned versions, `vllm=0.27.1
-guidellm=0.7.3`, and exits:
-
-```bash
-docker run --rm ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main --version
-```
-
 ### Settings
 
 This image takes the
 [options and environment variables](../../vllm-common/docs/usage.md#options)
 of the vLLM benchmarks. The only default that differs from
 `benchmark-vllm-cpu` is `BENCHMARK_VLLM_ALLOW_AVX2_ONLY`, which this image sets
-to `true`. Set `VLLM_CPU_DTYPE` to run the models in a data type other than
-float32; see [Data Type](#data-type).
+to `true`.
 
 ### Results
 
@@ -142,21 +121,15 @@ as `-e BENCHMARK_VLLM_ALLOW_AVX2_ONLY=0`, turns the check back on.
 
 ### Production Setup
 
-Production tries this image last of the three vLLM images, after
-[`benchmark-vllm-gpu`](../benchmark-vllm-gpu/README.md) and
-`benchmark-vllm-cpu`, and runs the full benchmark with the first image whose
-[`--probe-only`](../../vllm-common/docs/usage.md#plan-and-probe-modes) run
-exits with code 0. It skips this image on Arm64 server types, but does not
-check the CPU flags of an AMD64 server type before it tries this image. To
-test this image on a server type before a full run, probe it yourself:
+Production tries this image last of the three vLLM images, without checking
+the CPU flags of an AMD64 server type first; see the manual's
+[Production Setup](../../vllm-common/docs/usage.md#production-setup). To test
+this image on a server type before a full run, run its
+[`--probe-only`](../../vllm-common/docs/usage.md#plan-and-probe-modes) check:
 
 ```bash
 docker run --rm --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main --probe-only
 ```
-
-See the manual's
-[Production Setup](../../vllm-common/docs/usage.md#production-setup) for how
-production differs from a plain `docker run`.
 
 ## Workloads
 
