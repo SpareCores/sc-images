@@ -223,9 +223,9 @@ The float32 format takes 4 bytes per weight, twice as many as bfloat16. When
 the serving data type is wider than the data type in the model's configuration,
 the [memory check](../benchmark-vllm-cpu/docs/workloads.md#memory-fit) of the
 [harness](../../vllm-common/benchmark.py) scales the size of the weights by the
-same ratio, for example by 2 for a bfloat16 model. A host without bfloat16
-support can therefore fit fewer models than a host with the same memory that
-has it.
+same ratio; for a bfloat16 model, it doubles them. A host without
+bfloat16 support can therefore fit fewer models than a host with the same
+memory that has it.
 
 To see which models fit on a host before a full run, start this image with
 the `--plan-only` option. It prints the host's resources and whether each
