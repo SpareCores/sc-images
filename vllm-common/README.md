@@ -11,11 +11,15 @@ The vLLM benchmarks write one JSON line per model, workload, load stage,
 metric, and statistic. The lines report the following metrics:
 
 - **Latency:** in milliseconds, each as the 50th, 95th, and 99th percentile
-  (p50, p95, p99) and the mean: TTFT (Time to First Token), TPOT (Time per
-  Output Token), ITL (Inter-Token Latency), and E2EL (End-to-End Request
-  Latency)
-- **Throughput:** each as a mean: output and total TPS (Tokens per Second),
-  and RPS (Requests per Second)
+  (p50, p95, p99) and the mean:
+  - TTFT (Time to First Token)
+  - TPOT (Time per Output Token)
+  - ITL (Inter-Token Latency)
+  - E2EL (End-to-End Request Latency)
+- **Throughput:** each as a mean:
+  - Output TPS (Tokens per Second)
+  - Total TPS
+  - RPS (Requests per Second)
 
 ## Purpose
 
@@ -23,6 +27,7 @@ metric, and statistic. The lines report the following metrics:
 empirical performance measurements for over 5,000 cloud server types, among
 them [LLM inference speed](../images/benchmark-llm/README.md): how fast
 `llama.cpp` processes prompts and generates text for one request at a time.
+
 The vLLM benchmarks measure LLM *serving* instead: the latency and throughput
 of a vLLM server under concurrent load, from one request at a time up to peak
 load. In its note on the LLM inference speed scores, the Navigator points
@@ -223,12 +228,15 @@ Before it starts the server for each model, the harness does the following:
 The harness first ran fixed load settings on every host. It now derives the
 load from the host's vCPU count and fits all runs into a 2-hour budget, so
 that a host with hundreds of vCPUs gets more load without running for days.
+The fixed settings remain as
+[Legacy Settings](./docs/workloads.md#legacy-settings) for comparisons with
+older results.
+
 An early version also scaled the throughput stage's ramp-up with the vCPU
 count, which left almost no time at peak concurrency on hosts with more than
-96 vCPUs; the ramp-up is now a share of the stage, capped at a few seconds.
-The fixed settings remain as [Legacy Settings](./docs/workloads.md#legacy-settings)
-for comparisons with older results. See the [changelog](./CHANGELOG.md) for
-the details.
+96 vCPUs. The ramp-up is now a share of the stage, capped at 8 seconds on CPUs
+and 10 seconds on GPUs. See the [changelog](./CHANGELOG.md) for the details of
+both changes.
 
 ## References
 
