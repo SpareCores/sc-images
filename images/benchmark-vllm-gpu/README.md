@@ -6,7 +6,7 @@ model with vLLM (`vllm serve`), from the smallest to the largest, and sends
 synthetic requests to it with GuideLLM, from one request at a time up to peak
 load. The [vLLM benchmarks manual](../../vllm-common/README.md) describes the
 methodology, settings, and output that all vLLM benchmarks share, and this
-README covers only what this image does differently.
+page covers only what this image does differently.
 
 Like the other vLLM benchmarks, this benchmark reports the latency and
 throughput [metrics](../../vllm-common/README.md) of each model under load;
