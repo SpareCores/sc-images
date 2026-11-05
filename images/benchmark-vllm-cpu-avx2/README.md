@@ -204,6 +204,17 @@ same ratio, for example by 2 for a bfloat16 model. A host without bfloat16
 support can therefore fit fewer models than a host with the same memory that
 has it.
 
+To see which models fit on a host before a full run, start this image with
+the `--plan-only` option. It prints the host's resources and whether each
+model fits in memory, as JSON, without starting vLLM:
+
+```bash
+docker run --rm -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main --plan-only
+```
+
+See [Plan and Probe Modes](../benchmark-vllm-cpu/docs/usage.md#plan-and-probe-modes)
+for details.
+
 ## References
 
 See the full list of [references](./docs/references.md) used in this
