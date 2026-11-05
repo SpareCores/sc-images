@@ -2,7 +2,8 @@
 
 This benchmark measures how fast AMD64 CPUs with AVX2 (Advanced Vector
 Extensions 2) but without AVX-512 (Advanced Vector Extensions 512) serve LLMs
-to many concurrent requests. It runs the harness and CPU methodology of
+to many concurrent requests. It runs the
+[harness](../../vllm-common/benchmark.py) and CPU methodology of
 [`benchmark-vllm-cpu`](../benchmark-vllm-cpu/README.md) on a vLLM build for
 these CPUs: it starts each default model with `vllm serve` on the CPU and
 sends synthetic requests to it with GuideLLM, from one request at a time up to
@@ -16,8 +17,9 @@ and the data type that the model ran in; see [Results](#results). The lines
 report the following metrics:
 
 - **Latency:** TTFT (Time to First Token), TPOT (Time per Output Token), ITL
-  (Inter-Token Latency), and end-to-end request latency
-- **Throughput:** output tokens, total tokens, and requests per second
+  (Inter-Token Latency), and E2EL (End-to-End Request Latency)
+- **Throughput:** output and total TPS (Tokens per Second), and RPS (Requests
+  per Second)
 
 ## Purpose
 
