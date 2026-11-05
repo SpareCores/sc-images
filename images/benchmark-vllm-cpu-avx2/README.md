@@ -21,7 +21,8 @@ report the following metrics:
 
 ## Purpose
 
-The `benchmark-vllm-cpu` image is built on the official vLLM CPU server image
+The `benchmark-vllm-cpu` image is built on the
+[official vLLM CPU server image](https://hub.docker.com/r/vllm/vllm-openai-cpu)
 from Docker Hub, whose AMD64 build needs AVX-512. On an AMD64 CPU without
 AVX-512, `benchmark-vllm-cpu` exits with code 2 and names this image in its
 error message. This image runs the same measurements on vLLM built from source
@@ -30,7 +31,8 @@ for AVX2, so that server types with these CPUs can get vLLM results too.
 [Spare Cores Navigator](https://docs.sparecores.com/overview) does not show
 the results of the vLLM benchmarks yet; see the
 [Purpose](../benchmark-vllm-cpu/README.md#purpose) of `benchmark-vllm-cpu` for
-how they relate to the LLM inference speed that the Navigator publishes.
+how they relate to the
+[LLM inference speed](../benchmark-llm/README.md) that the Navigator publishes.
 
 ## Limitations
 
