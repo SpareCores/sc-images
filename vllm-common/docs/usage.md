@@ -173,7 +173,7 @@ memory from this task. The task uses the following settings:
 
 | Setting | Production | Plain `docker run` |
 | --- | --- | --- |
-| Image | [`benchmark-vllm-gpu`](../../images/benchmark-vllm-gpu/README.md) first, then [`benchmark-vllm-cpu`](../../images/benchmark-vllm-cpu/README.md), then [`benchmark-vllm-cpu-avx2`](../../images/benchmark-vllm-cpu-avx2/README.md). The GPU image is skipped on servers without GPUs or with every GPU below compute capability 8.0, and `benchmark-vllm-cpu-avx2` on Arm64. Each image first runs `--probe-only`, for at most 18 minutes, and the first that exits with code 0 runs the full benchmark, with no fallback after that. | Only the image you run, with no `--probe-only` step first and no fallback to another image |
+| Image | [`benchmark-vllm-gpu`](../../images/benchmark-vllm-gpu/README.md) first, then [`benchmark-vllm-cpu`](../../images/benchmark-vllm-cpu/README.md), then [`benchmark-vllm-cpu-avx2`](../../images/benchmark-vllm-cpu-avx2/README.md). The GPU image is skipped on servers without GPUs or with every GPU below compute capability 8.0, and `benchmark-vllm-cpu-avx2` on Arm64. Each image first runs `--probe-only`, for at most 18 minutes, and the first that exits with code 0 runs the full benchmark, with no fallback after that. | Only the image passed to `docker run`, with no `--probe-only` step first and no fallback to another image |
 | GPUs | All GPUs | As passed with `--gpus` |
 | Shared memory | 4 GiB | 64 MiB, unless `--shm-size` is passed |
 | Privileges | Privileged | Not privileged, unless `--privileged` is passed |

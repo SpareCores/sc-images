@@ -99,7 +99,7 @@ following:
 
 Production also runs the container in privileged mode, with host networking
 and a memory limit. See [Production Setup](./docs/usage.md#production-setup)
-before you compare your results with production results.
+before comparing results with production.
 
 The vLLM benchmarks download the models from Hugging Face while they run, and
 use `HF_TOKEN` for the downloads and the model metadata. Two

@@ -304,7 +304,7 @@ they reserve at most 70% of the node's free memory, and caps each worker's
 fraction at 0.50. It leaves 0.8 GiB of each node for startup, and when several
 workers share a node, it lowers the 70% budget by a further 10%. Set
 `VLLM_CPU_GPU_MEMORY_UTILIZATION` to override the fraction. Run the image with
-`--plan-only` to see the plan of each model on your server.
+`--plan-only` to see the plan of each model on a host.
 
 ## GPU Memory Fit
 
@@ -333,7 +333,7 @@ cannot be read, the model is skipped, unless
 For example, on the `g5.16xlarge`, whose A10G GPU has 22 GiB of memory,
 `phi-4` and `llama-70b` were skipped for insufficient memory
 ([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stderr)).
-Run the image with `--plan-only` to see the plan of each model on your server.
+Run the image with `--plan-only` to see the plan of each model on a host.
 
 ## Data Type
 
