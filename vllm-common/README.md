@@ -40,14 +40,14 @@ them:
 - [`benchmark-vllm-cpu-avx2`](../images/benchmark-vllm-cpu-avx2/README.md):
   AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without AVX-512
 
-Each image's README covers what only that image does: its base image, its
+Each image's own page covers what only that image does: its base image, its
 hardware check, and its run command. This manual covers the rest, with CPU
 and GPU sections where the two differ.
 
 ## Limitations
 
 These results compare LLM serving under load. Note the following limitations
-of all vLLM benchmarks; the image READMEs add the hardware limits of each
+of all vLLM benchmarks; the image pages add the hardware limits of each
 image:
 
 - **[Load Follows vCPU Count](./docs/workloads.md#load-settings):**
@@ -86,7 +86,7 @@ image:
 
 ## Usage
 
-Each image's README gives its `docker run` command. Every image needs the
+Each image's page gives its `docker run` command. Every image needs the
 following:
 
 - **Shared memory:** `--shm-size=4g`, because the vLLM benchmarks fail with

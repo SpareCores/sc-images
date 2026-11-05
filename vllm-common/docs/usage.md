@@ -13,7 +13,7 @@ Each image's `Dockerfile` sets `BENCHMARK_VLLM_MODE`, so the
 [harness](../benchmark.py) always runs in that image's mode: `gpu` in
 [`benchmark-vllm-gpu`](../../images/benchmark-vllm-gpu/README.md), even
 without GPUs, and `cpu` in the CPU images, even on a server with GPUs. Each
-image checks its hardware at startup; see its README.
+image checks its hardware at startup; see its page.
 
 The `--version` option prints the pinned vLLM and GuideLLM versions and exits,
 such as:
