@@ -32,8 +32,9 @@ tool.
 
 For a single user, llama.cpp is often the fastest self-hosted option, so
 this benchmark measures one request stream at a time. For shared serving
-with many concurrent requests, vLLM is preferred; the vLLM benchmarks cover
-that case, but the Navigator does not show their results yet.
+with many concurrent requests, vLLM is preferred; the
+[vLLM benchmarks](../../vllm-common/README.md) cover that case, but the
+Navigator does not show their results yet.
 
 ## Limitations
 
