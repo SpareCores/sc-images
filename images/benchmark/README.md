@@ -68,7 +68,7 @@ docker run --rm --privileged ghcr.io/sparecores/benchmark:main geekbench.sh
 `openssl.sh` and `bw_mem.sh` run their tools under `nice -n -20`, which needs
 `--privileged`. Production also runs `compress.py` and `geekbench.sh` under
 `nice -n -20`, from its own command line. See
-[Production Setup](./docs/usage.md#production-setup) before you compare your
+[Production Setup](./docs/usage.md#production-setup) before comparing
 results with the Navigator's.
 
 `geekbench.sh` does not upload results to the Geekbench Browser: it captures
