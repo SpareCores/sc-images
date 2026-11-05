@@ -65,8 +65,9 @@ docker run --rm --privileged --network host --shm-size=4g --memory=<limit> --mem
 ```
 
 Replace `<limit>` in both options with 85% of the host's available memory, as
-production does; the same value for `--memory-swap` disables swap. Write the
-limit with a unit: for example, with 40 GiB available, pass
+production does; the same value for `--memory-swap` disables swap. Production
+reads the memory that Linux reports as available, the `available` column of
+`free -g` in GiB. Write the limit with a unit: for example, with 40 GiB available, pass
 `--memory=34g --memory-swap=34g`.
 
 The vLLM benchmarks fail with Docker's default 64 MiB `/dev/shm`, so a minimal
