@@ -145,7 +145,9 @@ We built this benchmark around aggregate capacity. Instead of adding up the
 speed that each `ffmpeg` process reports for itself, the harness
 ([`benchmark.py`](./benchmark.py)) times the whole group with one clock, from a
 shared start to the last worker's exit, so process startup and teardown count
-too. Worker counts follow physical cores rather than logical CPUs, because two
+too.
+
+Worker counts follow physical cores rather than logical CPUs, because two
 single-threaded workers on the hyperthreads of one core compete for it and can
 lower throughput, especially for decoding.
 

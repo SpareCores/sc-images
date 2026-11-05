@@ -4,8 +4,9 @@ This benchmark measures how fast AMD64 CPUs with AVX-512 (Advanced Vector
 Extensions 512) and Arm64 CPUs serve LLMs to many concurrent requests. It is
 the CPU image of the vLLM benchmarks: it starts each default model with vLLM
 (`vllm serve`) on the CPU and sends synthetic requests to it with GuideLLM,
-from one request at a time up to peak load. The
-[vLLM benchmarks manual](../../vllm-common/README.md) describes the
+from one request at a time up to peak load.
+
+The [vLLM benchmarks manual](../../vllm-common/README.md) describes the
 methodology, settings, and output that all vLLM benchmarks share, and this
 page covers only what this image does differently.
 
@@ -18,8 +19,9 @@ see the manual's [Results](../../vllm-common/README.md#results).
 This image runs the vLLM benchmarks on CPUs, with the
 [official vLLM CPU server images](https://hub.docker.com/r/vllm/vllm-openai-cpu)
 from Docker Hub. Production tries it on every server type where
-[`benchmark-vllm-gpu`](../benchmark-vllm-gpu/README.md) does not run. On
-AMD64 CPUs without AVX-512, which the official image does not support,
+[`benchmark-vllm-gpu`](../benchmark-vllm-gpu/README.md) does not run.
+
+On AMD64 CPUs without AVX-512, which the official image does not support,
 [`benchmark-vllm-cpu-avx2`](../benchmark-vllm-cpu-avx2/README.md) runs the
 same benchmark instead. See the manual's
 [Purpose](../../vllm-common/README.md#purpose) for how the vLLM benchmarks

@@ -26,6 +26,7 @@ This benchmark focuses on a server type's bundled storage: the disk or disks
 provisioned with the server type by default, regardless of whether an HDD (Hard
 Disk Drive), an SSD, or network-attached storage backs them. Results reflect the
 storage as provisioned, including any provider-imposed IOPS or bandwidth limit.
+
 Network storage attached on demand is out of scope, because its performance is
 not a property of the server type. See
 [Disk Scope](./docs/limitations.md#disk-scope).
@@ -81,8 +82,9 @@ Both flags are required. `--privileged` gives the container raw access to the
 host's disks. `--pid=host` lets it read the host's mount table from
 `/proc/1/mountinfo` and unmount filesystems in the host's mount namespace, which
 the disk safety checks depend on. The image does not check if it runs in the
-host's PID (Process Identifier) namespace. See
-[Production Setup](./docs/usage.md#production-setup) for how production runs
+host's PID (Process Identifier) namespace.
+
+See [Production Setup](./docs/usage.md#production-setup) for how production runs
 differ.
 
 A run took about 21-22 minutes on the first production servers. This benchmark

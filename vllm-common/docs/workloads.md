@@ -98,6 +98,7 @@ For example, on an AWS (Amazon Web Services)
 [`c8a.12xlarge`](https://sparecores.com/server/aws/c8a.12xlarge) CPU server,
 each sweep had a size of 3, with 80 seconds per stage
 ([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
+
 On an AWS `g5.16xlarge` with one NVIDIA A10G GPU, the `chat` sweep had a size
 of 6: one synchronous, one throughput, and four constant-rate stages
 ([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)).
@@ -302,9 +303,10 @@ NUMA node's total memory that each worker reserves for itself. The harness
 splits the fraction among the workers that share a NUMA node, so that together
 they reserve at most 70% of the node's free memory, and caps each worker's
 fraction at 0.50. It leaves 0.8 GiB of each node for startup, and when several
-workers share a node, it lowers the 70% budget by a further 10%. Set
-`VLLM_CPU_GPU_MEMORY_UTILIZATION` to override the fraction. Run the image with
-`--plan-only` to see the plan of each model on a host.
+workers share a node, it lowers the 70% budget by a further 10%.
+
+Set `VLLM_CPU_GPU_MEMORY_UTILIZATION` to override the fraction. Run the image
+with `--plan-only` to see the plan of each model on a host.
 
 ## GPU Memory Fit
 
@@ -348,8 +350,10 @@ Two server types can therefore serve the same model in different data types.
 An AMD64 CPU without AVX-512 has no `avx512_bf16` flag, so it runs the models
 in float32, which takes 4 bytes per weight, twice as many as bfloat16. Such a
 host can fit fewer models than a host with the same memory that supports
-bfloat16. The harness does not fall back to float16: on AWS Graviton2 CPUs,
-which lack `bf16`, the vLLM server hangs with float16, as recorded in the
+bfloat16.
+
+The harness does not fall back to float16: on AWS Graviton2 CPUs, which lack
+`bf16`, the vLLM server hangs with float16, as recorded in the
 [harness](../benchmark.py).
 
 On GPUs, the harness does not pass `--dtype`, so vLLM picks the data type.

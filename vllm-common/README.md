@@ -113,7 +113,9 @@ use `HF_TOKEN` for the downloads and the model metadata. Two
 [default models](./docs/workloads.md#models), `gemma-2b` and `llama-8b`, are
 gated models: they need an access token from an account that has accepted
 their licenses. Without one, the vLLM benchmarks skip them and run the other
-models. The models are cached in `/models`, a Docker volume; see
+models.
+
+The models are cached in `/models`, a Docker volume; see
 [Hugging Face Access and Model Cache](./docs/usage.md#hugging-face-access-and-model-cache)
 to reuse them across runs.
 
@@ -183,8 +185,9 @@ The process exits with code 0 even when it skipped models or workloads, so
 check which lines are present in stdout and which reasons are logged to
 stderr. It exits with code 1 when no model could run or no line was written;
 see [Exit Codes](./docs/usage.md#exit-codes) for the other codes and the log
-messages of skipped models. Resource usage is recorded with
-`resource-tracker`, which
+messages of skipped models.
+
+Resource usage is recorded with `resource-tracker`, which
 [streams it](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
 to the [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform for
 the Spare Cores team's own monitoring. The resource usage is not published.
@@ -206,8 +209,9 @@ context length that fits it:
 Each workload runs one GuideLLM sweep: a synchronous stage of one request at a
 time, a throughput stage at the highest concurrency allowed, and, when the
 time budget allows, constant-rate stages between the two. On CPUs, hosts with
-fewer than 8 vCPUs run no constant-rate stages. See
-[Models](./docs/workloads.md#models) for the six default models, from 135
+fewer than 8 vCPUs run no constant-rate stages.
+
+See [Models](./docs/workloads.md#models) for the six default models, from 135
 million to 70 billion parameters, five of which run on CPUs, and
 [Run Sequence](./docs/workloads.md#run-sequence) for when a model is skipped
 or stops the run.

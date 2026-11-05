@@ -32,12 +32,14 @@ The container needs network access to Hugging Face: the harness reads each
 model's metadata from it, and the model weights are downloaded from it. Pass an
 [access token](https://huggingface.co/docs/hub/security-tokens) in
 `HF_TOKEN`, which the harness uses for both; production passes the host's
-access token too. The [default models](./workloads.md#models) `gemma-2b` and
-`llama-8b` are gated models, so they need an access token from an account that
-has accepted their licenses. Without one, the harness cannot read a gated
-model's metadata: it logs `metadata lookup failed for <model_id>`, skips the
-model unless `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set, and continues
-with the next model.
+access token too.
+
+The [default models](./workloads.md#models) `gemma-2b` and `llama-8b` are gated
+models, so they need an access token from an account that has accepted their
+licenses. Without one, the harness cannot read a gated model's metadata: it
+logs `metadata lookup failed for <model_id>`, skips the model unless
+`BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set, and continues with the next
+model.
 
 The images set `HF_HOME` and `HUGGINGFACE_HUB_CACHE` to `/models`, a Docker
 volume, so a plain run downloads the models again each time. To reuse them

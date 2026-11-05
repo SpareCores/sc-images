@@ -140,18 +140,21 @@ worker counts each one measures. A production run on an AWS
 measured every CPU and audio scenario at 1, 32, and 64 workers and took about
 10 minutes
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/0/ffmpeg)).
+
 Across 372 production runs of harness version 3.2.1, run time ranged from about
-3 minutes on servers with 2 vCPUs to about 17 minutes on GPU
-servers, with a median of about 9.5 minutes.
+3 minutes on servers with 2 vCPUs to about 17 minutes on GPU servers, with a
+median of about 9.5 minutes.
 
 ### Repetition Length
 
 Each repetition targets 5 seconds of wall time by default. Because the pilot
 scales the media to that target, larger servers process more media in the same
-time instead of running longer. The default comes from a study that compared
-targets of 2, 5, and 10 seconds on one developer workstation, a 24-core Intel
-Core i9-14900K desktop CPU without an NVIDIA GPU, so GPU scenarios were not
-part of it. Only the study's summary was kept; see
+time instead of running longer.
+
+The default comes from a study that compared targets of 2, 5, and 10 seconds
+on one developer workstation, a 24-core Intel Core i9-14900K desktop CPU
+without an NVIDIA GPU, so GPU scenarios were not part of it. Only the study's
+summary was kept; see
 [Why 5 Seconds](../CHANGELOG.md#why-5-seconds).
 
 ### Shorter Test Runs

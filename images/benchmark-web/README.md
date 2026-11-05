@@ -8,6 +8,7 @@ number of CPUs. Each of the 69 configurations runs once for 10 seconds.
 
 It reports the requests per second and the average latency of each
 configuration, together with the CPU time the server and the client used.
+
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
 requests per second, throughput in bytes per second, and latency for each file
 size and number of connections per vCPU. It also publishes extrapolated
@@ -29,13 +30,14 @@ The web server and the load generator run side by side in the same
 container: `wrk` sends its requests to `binserve` at `localhost:8080`, over
 the loopback interface. Loopback is a virtual network interface that the
 operating system provides for traffic between programs on the same machine,
-so the requests never reach a network card or leave the server. This keeps
-provisioning simple and benchmarking costs lower, because a run needs only
-the server under test and no separate client machine, and it keeps network
-latency out of the results. The trade-off is that `wrk` uses CPU time that
-`binserve` could otherwise use. This benchmark records the CPU time of both,
-so the Navigator can estimate how fast `binserve` would serve with the CPUs
-to itself; see [Results](#results).
+so the requests never reach a network card or leave the server.
+
+This keeps provisioning simple and benchmarking costs lower, because a run
+needs only the server under test and no separate client machine, and it keeps
+network latency out of the results. The trade-off is that `wrk` uses CPU time
+that `binserve` could otherwise use. This benchmark records the CPU time of
+both, so the Navigator can estimate how fast `binserve` would serve with the
+CPUs to itself; see [Results](#results).
 
 ## Limitations
 

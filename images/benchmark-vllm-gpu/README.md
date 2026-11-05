@@ -4,7 +4,9 @@ This benchmark measures how fast NVIDIA GPUs serve LLMs to many concurrent
 requests. It is the GPU image of the vLLM benchmarks: it starts each default
 model with vLLM (`vllm serve`), from the smallest to the largest, and sends
 synthetic requests to it with GuideLLM, from one request at a time up to peak
-load. The [vLLM benchmarks manual](../../vllm-common/README.md) describes the
+load.
+
+The [vLLM benchmarks manual](../../vllm-common/README.md) describes the
 methodology, settings, and output that all vLLM benchmarks share, and this
 page covers only what this image does differently.
 

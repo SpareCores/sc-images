@@ -5,8 +5,10 @@ Extensions 2) but without AVX-512 (Advanced Vector Extensions 512) serve LLMs
 to many concurrent requests. It runs the vLLM benchmarks on a vLLM build for
 these CPUs: it starts each default model with `vllm serve` on the CPU and
 sends synthetic requests to it with GuideLLM, from one request at a time up to
-peak load. The [vLLM benchmarks manual](../../vllm-common/README.md) describes
-the methodology, settings, and output that all vLLM benchmarks share, and this
+peak load.
+
+The [vLLM benchmarks manual](../../vllm-common/README.md) describes the
+methodology, settings, and output that all vLLM benchmarks share, and this
 page covers only what this image does differently.
 
 Like the other vLLM benchmarks, this benchmark reports the latency and
@@ -21,11 +23,12 @@ The [`benchmark-vllm-cpu`](../benchmark-vllm-cpu/README.md) image is built on
 the [official vLLM CPU server image](https://hub.docker.com/r/vllm/vllm-openai-cpu)
 from Docker Hub, whose AMD64 build needs AVX-512. On an AMD64 CPU without
 AVX-512, `benchmark-vllm-cpu` exits with code 2 and names this image in its
-error message. This image runs the same measurements on vLLM built from source
-for AVX2, so that server types with these CPUs can get vLLM results too. See
-the manual's [Purpose](../../vllm-common/README.md#purpose) for how the vLLM
-benchmarks relate to the LLM inference speed that Spare Cores Navigator
-publishes.
+error message.
+
+This image runs the same measurements on vLLM built from source for AVX2, so
+that server types with these CPUs can get vLLM results too. See the manual's
+[Purpose](../../vllm-common/README.md#purpose) for how the vLLM benchmarks
+relate to the LLM inference speed that Spare Cores Navigator publishes.
 
 ## Limitations
 
@@ -143,9 +146,10 @@ An AMD64 CPU without AVX-512 has no `avx512_bf16` flag, so on such a CPU, this
 image runs the models in float32 by default, and the
 [memory check](../../vllm-common/docs/workloads.md#cpu-memory-fit) doubles the
 size of a bfloat16 model's weights; see
-[Data Type](../../vllm-common/docs/workloads.md#data-type). Setting
-`VLLM_CPU_DTYPE`, such as `-e VLLM_CPU_DTYPE=bfloat16`, overrides the data
-type, and the memory check then uses the data type set.
+[Data Type](../../vllm-common/docs/workloads.md#data-type).
+
+Setting `VLLM_CPU_DTYPE`, such as `-e VLLM_CPU_DTYPE=bfloat16`, overrides the
+data type, and the memory check then uses the data type set.
 
 To see which models fit on a host before a full run, start this image with
 the [`--plan-only`](../../vllm-common/docs/usage.md#plan-and-probe-modes)
