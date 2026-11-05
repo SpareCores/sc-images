@@ -9,12 +9,9 @@ from one request at a time up to peak load. The
 methodology, settings, and output that all vLLM benchmarks share, and this
 README covers only what this image does differently.
 
-Like the other vLLM benchmarks, this benchmark writes one JSON line per model,
-workload, load stage, metric, and statistic, with the latency metrics TTFT
-(Time to First Token), TPOT (Time per Output Token), ITL (Inter-Token
-Latency), and E2EL (End-to-End Request Latency), and the throughput metrics
-output and total TPS (Tokens per Second) and RPS (Requests per Second); see
-[Results](../../vllm-common/README.md#results).
+Like the other vLLM benchmarks, this benchmark reports the latency and
+throughput [metrics](../../vllm-common/README.md) of each model under load;
+see the manual's [Results](../../vllm-common/README.md#results).
 
 ## Purpose
 
@@ -32,9 +29,7 @@ relate to the LLM inference speed that Spare Cores Navigator publishes.
 
 The results of this image share the
 [limitations](../../vllm-common/README.md#limitations) of the vLLM benchmarks
-on CPUs, such as load settings that follow the vCPU count, a data type that
-follows the CPU, and models that are skipped when they do not fit in memory.
-Note the following limitation of this image in addition:
+on CPUs. Note the following limitation of this image in addition:
 
 - **[AVX-512 on AMD64](#requirements-and-versions):** On AMD64 CPUs, this
   benchmark needs AVX-512. Without it, it exits with code 2, and its error
