@@ -182,7 +182,7 @@ it tries the images in the following order, and the first image whose
 run exits with code 0 runs the full benchmark:
 
 1. [`benchmark-vllm-gpu`](../benchmark-vllm-gpu/README.md)
-2. `benchmark-vllm-cpu`
+2. [`benchmark-vllm-cpu`](../benchmark-vllm-cpu/README.md)
 3. This image
 
 The task tries the fastest image first, so the result of a server type comes
