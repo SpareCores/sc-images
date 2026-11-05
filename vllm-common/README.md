@@ -74,11 +74,12 @@ image:
 - **[Partial GPU Use](./docs/workloads.md#gpu-parallelism):** A model can run
   on fewer GPUs than the server has, because its tensor-parallel size must
   divide its attention head count. On more than one GPU, the 70B model,
-  `llama-70b`, uses pipeline parallelism instead.
+  [`llama-70b`](./docs/workloads.md#models), uses pipeline parallelism
+  instead.
 - **[Skipped Models and Workloads](./docs/workloads.md#cpu-memory-fit):** A
   model or workload that does not fit in the memory it would use, of each NUMA
-  node on CPUs or of each GPU on GPUs, is skipped. The 4-bit
-  [`llama-70b`](./docs/workloads.md#models) model and the
+  node on CPUs or of each GPU on GPUs, is skipped. The 4-bit `llama-70b`
+  model and the
   [`long`](./docs/workloads.md#prompt-and-output-lengths) workload never run
   on CPUs. The run still exits with code 0 as long as another model or
   workload wrote results. See also
