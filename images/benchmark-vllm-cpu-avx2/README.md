@@ -10,7 +10,7 @@ peak load. The [vLLM manual](../../vllm-common/README.md) describes the harness
 that all vLLM benchmarks share, and these docs cover only what this image does
 differently.
 
-Like `benchmark-vllm-cpu`, this image reports the following metrics, as one
+Like `benchmark-vllm-cpu`, this benchmark reports the following metrics, as one
 JSON line per model, workload, load stage, metric, and statistic:
 
 - **Latency:** TTFT (Time to First Token), TPOT (Time per Output Token), ITL
@@ -78,7 +78,7 @@ other options of the first command only reproduce production:
 docker run --rm --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main > results.jsonl 2> results.log
 ```
 
-This image downloads the models from Hugging Face while it runs. Two
+This benchmark downloads the models from Hugging Face while it runs. Two
 [default models](../benchmark-vllm-cpu/docs/workloads.md#models), `gemma-2b`
 and `llama-8b`, are gated models: they need a token from an account that has
 accepted their licenses. Without such a token, this benchmark skips them. The
@@ -203,7 +203,7 @@ See [Production Setup](../benchmark-vllm-cpu/docs/usage.md#production-setup) of
 
 ## Workloads
 
-This image runs the workloads, models, and GuideLLM sweeps of
+This benchmark runs the workloads, models, and GuideLLM sweeps of
 `benchmark-vllm-cpu` unchanged: each model runs the
 [`chat` and `rag` workloads](../benchmark-vllm-cpu/docs/workloads.md#prompt-and-output-lengths).
 See [Models](../benchmark-vllm-cpu/docs/workloads.md#models) for the five
