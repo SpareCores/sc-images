@@ -16,10 +16,11 @@ metric, and statistic. The lines report the following metrics:
   - TPOT (Time per Output Token)
   - ITL (Inter-Token Latency)
   - E2EL (End-to-End Request Latency)
-- **Throughput:** each as a mean:
-  - Output TPS (Tokens per Second)
-  - Total TPS
-  - RPS (Requests per Second)
+- **Throughput:** each as a mean, in TPS (Tokens per Second) or RPS (Requests
+  per Second):
+  - Output TPS: output tokens generated
+  - Total TPS: prompt and output tokens
+  - RPS: requests served
 
 ## Purpose
 
