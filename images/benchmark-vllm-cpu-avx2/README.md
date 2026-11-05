@@ -35,7 +35,7 @@ how they relate to the LLM inference speed that the Navigator publishes.
 
 ## Limitations
 
-The results of this image share the
+Apart from its AVX-512 requirement, the results of this image share the
 [limitations](../benchmark-vllm-cpu/README.md#limitations) of
 `benchmark-vllm-cpu`, such as load settings that follow the vCPU count and
 models that are skipped when they do not fit in memory. Note the following
@@ -46,9 +46,9 @@ limitations of this image in addition:
   it on every AMD64 server type where the earlier vLLM images fail, without
   checking the CPU flags first. See also [Production Setup](#production-setup).
 - **[Data Type and Memory](#data-type):** On CPUs without AVX-512, the models
-  run in float32 by default. The memory check counts the float32 weights of a
-  bfloat16 model at twice their size, so a host can fit fewer models than a
-  host with the same memory and bfloat16 support.
+  run in float32 by default. The memory check counts the weights of a
+  bfloat16 model at twice their size, because they run in float32, so a host
+  can fit fewer models than a host with the same memory and bfloat16 support.
 - **[Separate vLLM Build](#requirements-and-versions):** This image runs vLLM
   built from source for AVX2, not the official Docker Hub image that
   `benchmark-vllm-cpu` runs. Both images use the same vLLM version.
@@ -146,8 +146,10 @@ skipped models or workloads. It exits with code 1 in the following cases:
 - No JSON line was written.
 - `/models` has less than 1 GB of free space at startup.
 
-This image never exits with code 2, the code of `benchmark-vllm-cpu` on CPUs
-without AVX-512, because it skips that check. Check which lines are present in
+With its default settings, this image does not exit with code 2, the code of
+`benchmark-vllm-cpu` on CPUs without AVX-512, because it skips that check. Any
+`BENCHMARK_VLLM_ALLOW_AVX2_ONLY` value other than `1`, `true`, or `yes`, such
+as `-e BENCHMARK_VLLM_ALLOW_AVX2_ONLY=0`, turns the check back on. Check which lines are present in
 stdout and which reasons are logged to stderr; the commands above save them to
 `results.jsonl` and `results.log`. See
 [Exit Codes](../benchmark-vllm-cpu/docs/usage.md#exit-codes) for the log
@@ -176,13 +178,8 @@ result of a server type comes from the fastest image that runs on it. See
 ## Workloads
 
 This image runs the workloads, models, and GuideLLM sweeps of
-`benchmark-vllm-cpu` unchanged. Each model runs the following two workloads:
-
-- **[`chat`](../benchmark-vllm-cpu/docs/workloads.md#prompt-and-output-lengths):**
-  256 prompt tokens and 128 output tokens, with a context of 2,048 tokens.
-- **[`rag`](../benchmark-vllm-cpu/docs/workloads.md#prompt-and-output-lengths):**
-  1,024 prompt tokens and 256 output tokens, with a context of 4,096 tokens.
-
+`benchmark-vllm-cpu` unchanged: each model runs the
+[`chat` and `rag` workloads](../benchmark-vllm-cpu/docs/workloads.md#prompt-and-output-lengths).
 See [Models](../benchmark-vllm-cpu/docs/workloads.md#models) for the five
 default models that run on CPUs, and
 [Run Sequence](../benchmark-vllm-cpu/docs/workloads.md#run-sequence) for when a
