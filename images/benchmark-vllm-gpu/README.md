@@ -1,189 +1,119 @@
 # benchmark-vllm-gpu
 
 This benchmark measures how fast NVIDIA GPUs serve LLMs to many concurrent
-requests. It starts each default model with vLLM (`vllm serve`), from the
-smallest to the largest, and sends synthetic requests to it over HTTP with
-GuideLLM, from one request at a time up to peak load. It is the
-GPU variant of the vLLM benchmarks: the
-[vLLM manual](../../vllm-common/README.md) describes the harness they share,
-and these docs cover how it runs on GPUs.
+requests. It is the GPU image of the vLLM benchmarks: it starts each default
+model with vLLM (`vllm serve`), from the smallest to the largest, and sends
+synthetic requests to it with GuideLLM, from one request at a time up to peak
+load. The [vLLM benchmarks manual](../../vllm-common/README.md) describes the
+methodology, settings, and output that all vLLM benchmarks share, and this
+README covers only what this image does differently.
 
-This benchmark reports the following metrics for each model, workload, and
-load stage, as one JSON line per metric and statistic:
-
-- **Latency:** in milliseconds, each as the 50th, 95th, and 99th percentile
-  (p50, p95, p99) and the mean:
-  - TTFT (Time to First Token)
-  - TPOT (Time per Output Token)
-  - ITL (Inter-Token Latency)
-  - End-to-end request latency
-- **Throughput:** each as a mean:
-  - Output tokens per second
-  - Total tokens per second
-  - Requests per second
+Like the other vLLM benchmarks, this benchmark writes one JSON line per model,
+workload, load stage, metric, and statistic, with the latency metrics TTFT
+(Time to First Token), TPOT (Time per Output Token), ITL (Inter-Token
+Latency), and E2EL (End-to-End Request Latency), and the throughput metrics
+output and total TPS (Tokens per Second) and RPS (Requests per Second); see
+[Results](../../vllm-common/README.md#results).
 
 ## Purpose
 
-[Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
-empirical performance measurements for over 5,000 cloud server types, among
-them [LLM inference speed](../benchmark-llm/README.md): how fast `llama.cpp`
-processes prompts and generates text for one request at a time. This
-benchmark measures LLM *serving* instead: the latency and throughput of a vLLM
-server under concurrent load, from one request at a time up to peak load.
+This image runs the vLLM benchmarks on NVIDIA GPUs, with the
+[official vLLM server image](https://hub.docker.com/r/vllm/vllm-openai) from
+Docker Hub. Production tries it first on every server type, and runs the CPU
+images only where it does not run. See the manual's
+[Purpose](../../vllm-common/README.md#purpose) for how the vLLM benchmarks
+relate to the LLM inference speed that Spare Cores Navigator publishes.
 
 ## Limitations
 
-These results compare LLM serving under load on NVIDIA GPUs. Note the
-following limitations of GPU runs:
+The results of this image share the
+[limitations](../../vllm-common/README.md#limitations) of the vLLM benchmarks
+on GPUs, such as load settings that follow the vCPU count, vLLM's own server
+defaults, and models that run on fewer GPUs than the server has. Note the
+following limitation of this image in addition:
 
-- **[NVIDIA GPUs Only](./docs/usage.md#gpu-run):** This benchmark needs
-  NVIDIA GPUs with CUDA (Compute Unified Device Architecture) compute
-  capability 8.0 or newer, the Ampere generation or later. If no GPU is
-  visible or every visible GPU is older, it exits with code 1.
-- **[Partial GPU Use](./docs/workloads.md#gpu-parallelism):** A model can run
-  on fewer GPUs than the server has, because its tensor-parallel size must
-  divide its attention head count. On more than one GPU,
-  [the 70B model](./docs/workloads.md#models), `llama-70b`, uses pipeline
-  parallelism instead.
-- **[Load Follows vCPU Count](./docs/workloads.md#load-settings):**
-  Concurrency, GuideLLM workers, and the number of load stages scale with the
-  host's vCPU count, not with the GPU count, GPU model, or GPU memory.
-- **[vLLM Server Defaults](./docs/workloads.md#load-settings):** On GPUs, vLLM
-  runs with its own batch limits and data type. The vLLM server settings
-  recorded in each row's `tuning` object are not passed to `vllm serve`.
-- **[Skipped Models and Workloads](./docs/workloads.md#gpu-memory-fit):** A
-  model or workload that does not fit in the memory of each GPU it would use is
-  skipped. The run still exits with code 0 as long as another model or
-  workload wrote results.
-- **[One Host, Synthetic Prompts](./docs/workloads.md#guidellm-sweep):** This
-  benchmark measures serving latency and throughput on one host, with
-  synthetic prompts of fixed lengths. It does not measure the network latency
-  between a client and the server, or the quality of the model output.
+- **[NVIDIA GPUs Only](#gpu-run):** This benchmark needs NVIDIA GPUs with CUDA
+  (Compute Unified Device Architecture) compute capability 8.0 or newer, the
+  Ampere generation or later. If no GPU is visible or every visible GPU is
+  older, it exits with code 1.
 
 ## Usage
 
 Export your Hugging Face access token as `HF_TOKEN` in the shell first;
 `-e HF_TOKEN` passes it into the container. Then run the image via Docker with
-the GPUs passed and more shared memory:
+the GPUs passed and 4 GiB of shared memory:
 
 ```bash
 docker run --rm --gpus all --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-gpu:main > results.jsonl
 ```
 
+To reproduce the container settings of production, except the memory limit,
+run the following command:
+
+```bash
+docker run --rm --privileged --network host --gpus all --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-gpu:main > results.jsonl
+```
+
+See the manual's [Usage](../../vllm-common/README.md#usage) for the Hugging
+Face token, the model cache, the 2-hour time budget, and the
+[settings](../../vllm-common/docs/usage.md#options) that this image takes.
+
+### GPU Run
+
 The host needs the NVIDIA driver and the NVIDIA Container Toolkit for
-`--gpus`. Without `--shm-size=4g`, the vLLM benchmarks fail with Docker's
-default 64 MiB `/dev/shm`. See [GPU Run](./docs/usage.md#gpu-run) for the GPU
-check and the supported architectures.
+`--gpus`. The image is built on `vllm/vllm-openai:v0.27.1` from Docker Hub,
+and its `:main` tag has variants for AMD64 and Arm64. The
+[`Dockerfile`](./Dockerfile) sets `BENCHMARK_VLLM_MODE=gpu`, so the
+[harness](../../vllm-common/benchmark.py) always runs in GPU mode.
 
-This benchmark downloads the models from Hugging Face while it runs, and uses
-`HF_TOKEN` for the downloads and the model metadata. A gated model needs a
-token from an account that has accepted the model's license. The
-models are cached in `/models`, a Docker volume; see
-[Hugging Face Access and Model Cache](./docs/usage.md#hugging-face-access-and-model-cache)
-to reuse them across runs.
+At startup, this benchmark reads the CUDA compute capability of each visible
+GPU. It needs compute capability 8.0 or newer, the Ampere generation or
+later, such as the NVIDIA A10G or L40S, but not the older T4G. If every
+visible GPU is below 8.0, it logs an error and exits with code 1. A GPU whose
+compute capability cannot be read is allowed.
 
-A run fits its models and workloads into a 2-hour time budget. Sample
-production runs took 1 hour 14 minutes and 1 hour 40 minutes. See
-[Run Duration](./docs/usage.md#run-duration) for how the budget is split.
+If no GPU is visible, for example without `--gpus`, the check passes, but no
+model fits the
+[GPU memory check](../../vllm-common/docs/workloads.md#gpu-memory-fit). This
+benchmark then logs each model as skipped for insufficient memory and exits
+with code 1.
 
-Production runs the container in privileged mode, with host networking, and with
-every GPU passed. A plain `docker run` uses neither privileged mode nor host
-networking. See [Production Setup](./docs/usage.md#production-setup) before you
-compare your results with production results.
+The `--version` option prints the pinned versions, `vllm=0.27.1
+guidellm=0.7.3`, and exits:
 
-### Settings
-
-Pass options after the image name and environment variables with `-e`. The
-following settings are the most common on GPUs; see the
-[full option and variable reference](./docs/usage.md#options) for all of them
-and their defaults:
-
-- `--models` replaces the default models with Hugging Face model IDs or the
-  short names of the default models.
-- `BENCHMARK_VLLM_WORKLOADS` selects workloads by name, such as `chat,rag`.
-- `BENCHMARK_VLLM_GPU_TP` overrides the tensor-parallel size, and
-  `BENCHMARK_VLLM_GPU_DP` the data-parallel size (default: 1).
-- `VLLM_GPU_MEMORY_UTILIZATION` sets the fraction of each GPU's memory that
-  vLLM may use (default: 0.92).
-- `--plan-only` prints the host's resources and whether each model fits in GPU
-  memory, as JSON, without starting vLLM.
-- `--version` prints the pinned versions, `vllm=0.27.1 guidellm=0.7.3`, and
-  exits.
+```bash
+docker run --rm ghcr.io/sparecores/benchmark-vllm-gpu:main --version
+```
 
 ### Results
 
-The process prints one JSON line to stdout per model, workload, GuideLLM load
-stage, metric, and statistic. Logs go to stderr, including the load settings,
-each `vllm serve` command, and the cause when a server fails to start. The
-output of the vLLM server goes to a temporary file inside the container, not to
-stdout or stderr. The main fields of each line are the following:
-
-- `measurement` names the metric: `ttft`, `tpot`, `itl`, and `e2el` for
-  latency, and `output_throughput`, `total_throughput`, and
-  `request_throughput` for throughput.
-- `percentile` is `p50`, `p95`, `p99`, or `mean` for latency, and `null` for
-  throughput. The `score` field holds the value, and `unit` is `ms`,
-  `tokens/sec`, or `requests/sec`.
-- `model` (the short name, such as `llama-8b`; `model_id` holds the Hugging
-  Face model ID), `workload`, and `strategy` identify the run. The `strategy` field
-  is the GuideLLM load stage, `synchronous`, `throughput`, or `constant`, and
-  `concurrency` is its mean number of concurrent requests. The `target_rate`
-  field is the request rate of a `constant` stage, which tells those stages
-  apart.
-- `mode` is `gpu`. The `gpu_count`, `gpu_model` (the name of the first GPU),
-  and `total_vram_gb` (the memory of all GPUs in GiB) fields describe the GPUs.
-- `tensor_parallel`, `pipeline_parallel`, and `data_parallel` show how the
-  model was split across the GPUs; see
-  [GPU Parallelism](./docs/workloads.md#gpu-parallelism).
-- `vllm_version` and `guidellm_version` give the pinned versions.
-
-See [Output Fields](./docs/usage.md#output-fields) for the GPU-specific
-fields. For example, see the
+The JSON lines in stdout have the fields that the manual's
+[Results](../../vllm-common/README.md#results) and
+[Output Fields](../../vllm-common/docs/usage.md#output-fields) describe for
+GPU runs: `gpu_count`, `gpu_model` (the name of the first GPU), and
+`total_vram_gb` (the memory of all GPUs in GiB) describe the GPUs. For
+example, see the
 [production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)
 of an AWS (Amazon Web Services) `g5.16xlarge` with 64 vCPUs and one NVIDIA
-A10G GPU.
-[Spare Cores Navigator](https://docs.sparecores.com/overview) does not
-publish the results of the vLLM benchmarks yet.
-
-The process exits with code 0 even when it skipped models or workloads, so
-check which lines are present, and the reasons logged to stderr. It exits with
-code 1 when no model could run or no line was written; see
-[Exit Codes](./docs/usage.md#exit-codes). Resource usage is recorded with
-`resource-tracker`, which
-[streams it](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
-to the [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform for
-the Spare Cores team's own monitoring. It is not published.
+A10G GPU. Spare Cores Navigator does not publish the results of the vLLM
+benchmarks yet.
 
 ## Workloads
 
-Each model runs the following three workloads of fixed synthetic prompt and
-output lengths. This benchmark restarts `vllm serve` for each workload, with a
-context length that fits it:
-
-- **[`chat`](./docs/workloads.md#prompt-and-output-lengths):** 256 prompt
-  tokens and 128 output tokens, with a 2,048-token context.
-- **[`rag`](./docs/workloads.md#prompt-and-output-lengths):** 1,024 prompt
-  tokens and 256 output tokens, with a 4,096-token context.
-- **[`long`](./docs/workloads.md#prompt-and-output-lengths):** 4,096 prompt
-  tokens and 512 output tokens, with an 8,192-token context. Only GPU runs
-  include it.
-
-Each workload runs one GuideLLM sweep: a synchronous stage of one request at a
-time, a throughput stage at the highest concurrency allowed, and, when the time
-budget allows, constant-rate stages between the two. See [Models](./docs/workloads.md#models) for the six
-default models, from 135 million to 70 billion parameters, and
-[Run Sequence](./docs/workloads.md#run-sequence) for when a model is skipped
-or stops the run.
-
-On GPUs, this benchmark picks how to split each model across the GPUs, checks
-that it fits in each GPU's memory before starting it, and derives the load from
-the host's vCPU count. See
-[GPU Parallelism](./docs/workloads.md#gpu-parallelism),
-[GPU Memory Fit](./docs/workloads.md#gpu-memory-fit), and
-[Load Settings](./docs/workloads.md#load-settings) for the rules.
+This benchmark runs all three workloads of the vLLM benchmarks, `chat`, `rag`,
+and `long`, on the six default models; see the manual's
+[Workloads](../../vllm-common/README.md#workloads). On GPUs, the harness
+splits each model across the GPUs and checks that it fits in each GPU's
+memory; see
+[GPU Parallelism](../../vllm-common/docs/workloads.md#gpu-parallelism) and
+[GPU Memory Fit](../../vllm-common/docs/workloads.md#gpu-memory-fit). The
+[Load Settings](../../vllm-common/docs/workloads.md#load-settings) give the
+settings of production runs on GPU server types.
 
 ## References
 
-See the full list of [references](./docs/references.md) used in this
-documentation. To change or rebuild this image, see the
-[contributor guide](./docs/contributors.md).
+Common terms, such as GuideLLM, CUDA, and tensor parallelism, are defined in
+the [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs.
+To change or rebuild this image, see the
+[contributor guide](../../vllm-common/docs/contributors.md) of the vLLM
+benchmarks.

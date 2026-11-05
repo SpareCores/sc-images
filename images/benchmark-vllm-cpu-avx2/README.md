@@ -2,19 +2,17 @@
 
 This benchmark measures how fast AMD64 CPUs with AVX2 (Advanced Vector
 Extensions 2) but without AVX-512 (Advanced Vector Extensions 512) serve LLMs
-to many concurrent requests. It runs the
-[harness](../../vllm-common/benchmark.py) and CPU methodology of
-[`benchmark-vllm-cpu`](../benchmark-vllm-cpu/README.md) on a vLLM build for
+to many concurrent requests. It runs the vLLM benchmarks on a vLLM build for
 these CPUs: it starts each default model with `vllm serve` on the CPU and
 sends synthetic requests to it with GuideLLM, from one request at a time up to
-peak load. The [vLLM manual](../../vllm-common/README.md) describes the harness
-that all vLLM benchmarks share, and these docs cover only what this image does
-differently.
+peak load. The [vLLM benchmarks manual](../../vllm-common/README.md) describes
+the methodology, settings, and output that all vLLM benchmarks share, and this
+README covers only what this image does differently.
 
-Like `benchmark-vllm-cpu`, this benchmark writes one JSON line per model,
-workload, load stage, metric, and statistic. Each line also marks the AVX2 image
-and the data type that the model ran in; see [Results](#results). The lines
-report the following metrics:
+Like the other vLLM benchmarks, this benchmark writes one JSON line per model,
+workload, load stage, metric, and statistic. Each line also marks the AVX2
+image and the data type that the model ran in; see [Results](#results). The
+lines report the following metrics:
 
 - **Latency:** TTFT (Time to First Token), TPOT (Time per Output Token), ITL
   (Inter-Token Latency), and E2EL (End-to-End Request Latency)
@@ -23,31 +21,29 @@ report the following metrics:
 
 ## Purpose
 
-The `benchmark-vllm-cpu` image is built on the
-[official vLLM CPU server image](https://hub.docker.com/r/vllm/vllm-openai-cpu)
+The [`benchmark-vllm-cpu`](../benchmark-vllm-cpu/README.md) image is built on
+the [official vLLM CPU server image](https://hub.docker.com/r/vllm/vllm-openai-cpu)
 from Docker Hub, whose AMD64 build needs AVX-512. On an AMD64 CPU without
 AVX-512, `benchmark-vllm-cpu` exits with code 2 and names this image in its
 error message. This image runs the same measurements on vLLM built from source
-for AVX2, so that server types with these CPUs can get vLLM results too.
-
-[Spare Cores Navigator](https://docs.sparecores.com/overview) does not show
-the results of the vLLM benchmarks yet; see the
-[Purpose](../benchmark-vllm-cpu/README.md#purpose) of `benchmark-vllm-cpu` for
-how they relate to the
-[LLM inference speed](../benchmark-llm/README.md) that the Navigator publishes.
+for AVX2, so that server types with these CPUs can get vLLM results too. See
+the manual's [Purpose](../../vllm-common/README.md#purpose) for how the vLLM
+benchmarks relate to the LLM inference speed that Spare Cores Navigator
+publishes.
 
 ## Limitations
 
-Apart from its AVX-512 requirement, the results of this image share the
-[limitations](../benchmark-vllm-cpu/README.md#limitations) of
-`benchmark-vllm-cpu`, such as load settings that follow the vCPU count and
-models that are skipped when they do not fit in memory. Note the following
-limitations of this image in addition:
+The results of this image share the
+[limitations](../../vllm-common/README.md#limitations) of the vLLM benchmarks
+on CPUs, such as load settings that follow the vCPU count and models that are
+skipped when they do not fit in memory. Note the following limitations of this
+image in addition:
 
 - **[No CPU Feature Check](#requirements-and-versions):** This image skips the
   harness's AVX-512 check and does not check for AVX2 either. Production tries
   it on every AMD64 server type where the two vLLM images before it in the
-  probe order fail their probe, without checking the CPU flags first. See also [Production Setup](#production-setup).
+  probe order fail their probe, without checking the CPU flags first. See also
+  [Production Setup](#production-setup).
 - **[Data Type and Memory](#data-type):** On CPUs without AVX-512, the models
   run in float32 by default. The memory check counts the weights of a
   bfloat16 model at twice their size, because they run in float32, so a host
@@ -70,39 +66,27 @@ docker run --rm --privileged --network host --shm-size=4g --memory=<limit> --mem
 Replace `<limit>` in both options with 85% of the host's available memory, as
 production does; the same value for `--memory-swap` disables swap. Production
 reads the memory that Linux reports as available, the `available` column of
-`free -g` in GiB. Write the limit with a unit: for example, with 40 GiB available, pass
-`--memory=34g --memory-swap=34g`.
+`free -g` in GiB. Write the limit with a unit: for example, with 40 GiB
+available, pass `--memory=34g --memory-swap=34g`.
 
 A minimal run needs only two options: `--shm-size=4g`, because the vLLM
-benchmarks fail with Docker's default 64 MiB `/dev/shm`, and `-e HF_TOKEN`. The
-other options of the first command only reproduce production:
+benchmarks fail with Docker's default 64 MiB `/dev/shm`, and `-e HF_TOKEN`.
+The other options of the first command only reproduce production:
 
 ```bash
 docker run --rm --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main > results.jsonl 2> results.log
 ```
 
-This benchmark downloads the models from Hugging Face while it runs. Two
-[default models](../benchmark-vllm-cpu/docs/workloads.md#models), `gemma-2b`
-and `llama-8b`, are gated models: they need a token from an account that has
-accepted their licenses. Without such a token, this benchmark skips them. The
-models are cached in `/models`, a Docker volume; to reuse them across runs,
-mount a host directory on it, such as `-v "$PWD/models:/models"`. See
-[Hugging Face Access and Model Cache](../benchmark-vllm-cpu/docs/usage.md#hugging-face-access-and-model-cache)
-for details.
-
-A run fits its models and workloads into a 2-hour time budget; see
-[Time Budget](../benchmark-vllm-cpu/docs/workloads.md#time-budget) for how the
-budget is split.
+See the manual's [Usage](../../vllm-common/README.md#usage) for the Hugging
+Face token, the model cache, and the 2-hour time budget.
 
 ### Requirements and Versions
 
 This image is built on
 [`vllm-cpu-base-avx2`](../vllm-cpu-base-avx2/README.md), which builds vLLM
 from source with the `VLLM_CPU_AVX2=true` build option. This image and its
-base are published for AMD64 only. The `benchmark-vllm-cpu` image runs the
-official vLLM CPU server image from Docker Hub instead, whose AMD64 build
-needs AVX-512. This image and `benchmark-vllm-cpu` take the vLLM version from
-the same pin, 0.27.1.
+base are published for AMD64 only. This image and `benchmark-vllm-cpu` take
+the vLLM version from the same pin, 0.27.1.
 
 The [`Dockerfile`](./Dockerfile) sets the following two environment variables:
 
@@ -123,30 +107,28 @@ At startup, the log in stderr lists the CPU flags that the harness found, such
 as `cpu_flag_avx2=yes`, and `cpu_bf16=False` on a CPU without bfloat16 support.
 On a CPU without AVX-512, the log has no `cpu_flag_avx512f` line.
 
-The `--version` option prints the pinned vLLM and GuideLLM versions and exits:
+The `--version` option prints the pinned versions, `vllm=0.27.1
+guidellm=0.7.3`, and exits:
 
 ```bash
 docker run --rm ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main --version
 ```
 
-It prints `vllm=0.27.1 guidellm=0.7.3`, read from the version files built into
-the image.
-
 ### Settings
 
-This image takes the options and environment variables of
-`benchmark-vllm-cpu`; see its
-[full option and variable reference](../benchmark-vllm-cpu/docs/usage.md#options).
-The only default that differs from `benchmark-vllm-cpu` is
-`BENCHMARK_VLLM_ALLOW_AVX2_ONLY`, which this image sets to `true`. Set `VLLM_CPU_DTYPE` to run the models in a data type
-other than float32; see [Data Type](#data-type).
+This image takes the
+[options and environment variables](../../vllm-common/docs/usage.md#options)
+of the vLLM benchmarks. The only default that differs from
+`benchmark-vllm-cpu` is `BENCHMARK_VLLM_ALLOW_AVX2_ONLY`, which this image sets
+to `true`. Set `VLLM_CPU_DTYPE` to run the models in a data type other than
+float32; see [Data Type](#data-type).
 
 ### Results
 
-The JSON lines in stdout have the fields of `benchmark-vllm-cpu`; see its
-[Results](../benchmark-vllm-cpu/README.md#results) and
-[Output Fields](../benchmark-vllm-cpu/docs/usage.md#output-fields). The
-following fields read differently in this image:
+The JSON lines in stdout have the fields that the manual's
+[Results](../../vllm-common/README.md#results) and
+[Output Fields](../../vllm-common/docs/usage.md#output-fields) describe for
+CPU runs. The following fields read differently in this image:
 
 - `avx2_only_image` is `true`, because this image sets
   `BENCHMARK_VLLM_ALLOW_AVX2_ONLY`.
@@ -155,95 +137,60 @@ following fields read differently in this image:
 - `tuning` holds the data type in `dtype`, which is `float32` by default on
   CPUs without AVX-512.
 
-The process exits with code 0 when it wrote at least one JSON line, even if it
-skipped models or workloads. It exits with code 1 in the following cases:
-
-- No model could run, for example because none fits in memory.
-- Models started, but none wrote a JSON line, for example because the vLLM
-  server failed to start.
-- `/models` has less than 1 GB of free space at startup.
-
-With its default settings, this image does not exit with code 2, the code of
+The process exits with the codes of the manual's
+[Exit Codes](../../vllm-common/docs/usage.md#exit-codes). With its default
+settings, this image does not exit with code 2, the code of
 `benchmark-vllm-cpu` on CPUs without AVX-512, because it skips that check. Any
 `BENCHMARK_VLLM_ALLOW_AVX2_ONLY` value other than `1`, `true`, or `yes`, such
 as `-e BENCHMARK_VLLM_ALLOW_AVX2_ONLY=0`, turns the check back on.
 
-To see which models and workloads ran, check which JSON lines stdout holds and
-which skip reasons stderr logs. The commands in [Usage](#usage) save them to
-`results.jsonl` and `results.log`. See
-[Exit Codes](../benchmark-vllm-cpu/docs/usage.md#exit-codes) for the log
-messages of skipped models.
-
 ### Production Setup
 
-The Navigator's [Inspector](https://docs.sparecores.com/overview#how-it-works)
-runs one task, `vllm`, for the three vLLM images, with the container settings
-of the first command above and a task timeout of 3 hours. On each server type,
-it tries the images in the following order, and the first image whose
-[`--probe-only`](../benchmark-vllm-cpu/docs/usage.md#plan-and-probe-modes)
-run exits with code 0 runs the full benchmark:
-
-1. [`benchmark-vllm-gpu`](../benchmark-vllm-gpu/README.md)
-2. [`benchmark-vllm-cpu`](../benchmark-vllm-cpu/README.md)
-3. This image
-
-The task tries the fastest image first, so the result of a server type comes
-from the fastest image that runs on it. Production stores the results of all
-three images under the task name `vllm`.
-
-The Inspector skips this image on Arm64 server types, but does not check the
-CPU flags of an AMD64 server type before it tries this image. It stops each
-probe after 18 minutes. A probe starts the smallest default model,
-SmolLM2-135M, waits for its health check, and exits with code 0 or 1. To test
-this image on a server type before a full run, probe it yourself:
+Production tries this image last of the three vLLM images, after
+[`benchmark-vllm-gpu`](../benchmark-vllm-gpu/README.md) and
+`benchmark-vllm-cpu`, and runs the full benchmark with the first image whose
+[`--probe-only`](../../vllm-common/docs/usage.md#plan-and-probe-modes) run
+exits with code 0. It skips this image on Arm64 server types, but does not
+check the CPU flags of an AMD64 server type before it tries this image. To
+test this image on a server type before a full run, probe it yourself:
 
 ```bash
 docker run --rm --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main --probe-only
 ```
 
-See [Production Setup](../benchmark-vllm-cpu/docs/usage.md#production-setup) of
-`benchmark-vllm-cpu` for how production differs from a plain `docker run`.
+See the manual's
+[Production Setup](../../vllm-common/docs/usage.md#production-setup) for how
+production differs from a plain `docker run`.
 
 ## Workloads
 
-This benchmark runs the workloads, models, and GuideLLM sweeps of
-`benchmark-vllm-cpu` unchanged: each model runs the
-[`chat` and `rag` workloads](../benchmark-vllm-cpu/docs/workloads.md#prompt-and-output-lengths).
-See [Models](../benchmark-vllm-cpu/docs/workloads.md#models) for the five
-default models that run on CPUs, and
-[Run Sequence](../benchmark-vllm-cpu/docs/workloads.md#run-sequence) for when a
-model is skipped or stops the run.
+This benchmark runs the `chat` and `rag` workloads of the vLLM benchmarks on
+the five default models that run on CPUs, unchanged; see the manual's
+[Workloads](../../vllm-common/README.md#workloads).
 
 ### Data Type
 
-The harness runs the models in bfloat16 only when `/proc/cpuinfo` lists the
-`avx512_bf16` or `bf16` flag, and in float32 otherwise. An AMD64 CPU without
-AVX-512 has no `avx512_bf16` flag, so on such a CPU, this image runs the models
-in float32 by default. The harness passes the data type to `vllm serve`.
-Setting `VLLM_CPU_DTYPE`, such as `-e VLLM_CPU_DTYPE=bfloat16`, overrides the
-harness's choice, and the memory check below then uses the data type set.
-
-The float32 format takes 4 bytes per weight, twice as many as bfloat16. When
-the serving data type is wider than the data type in the model's configuration,
-the [memory check](../benchmark-vllm-cpu/docs/workloads.md#memory-fit) of the
-[harness](../../vllm-common/benchmark.py) scales the size of the weights by the
-same ratio; for a bfloat16 model, it doubles them. A host without
-bfloat16 support can therefore fit fewer models than a host with the same
-memory that has it.
+An AMD64 CPU without AVX-512 has no `avx512_bf16` flag, so on such a CPU, this
+image runs the models in float32 by default, and the
+[memory check](../../vllm-common/docs/workloads.md#cpu-memory-fit) doubles the
+size of a bfloat16 model's weights; see
+[Data Type](../../vllm-common/docs/workloads.md#data-type). Setting
+`VLLM_CPU_DTYPE`, such as `-e VLLM_CPU_DTYPE=bfloat16`, overrides the data
+type, and the memory check then uses the data type set.
 
 To see which models fit on a host before a full run, start this image with
-the `--plan-only` option. It prints the host's resources and whether each
-model fits in memory, as JSON, without starting vLLM:
+the [`--plan-only`](../../vllm-common/docs/usage.md#plan-and-probe-modes)
+option. It prints the host's resources and whether each model fits in memory,
+as JSON, without starting vLLM:
 
 ```bash
 docker run --rm -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main --plan-only
 ```
 
-See [Plan and Probe Modes](../benchmark-vllm-cpu/docs/usage.md#plan-and-probe-modes)
-for details.
-
 ## References
 
-See the full list of [references](./docs/references.md) used in this
-documentation. The [references](../benchmark-vllm-cpu/docs/references.md) of
-`benchmark-vllm-cpu` explain the vLLM terms of its documentation.
+Common terms, such as AVX2, AVX-512, and float32, are defined in the
+[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs. To
+change or rebuild this image, see the
+[contributor guide](../../vllm-common/docs/contributors.md) of the vLLM
+benchmarks.

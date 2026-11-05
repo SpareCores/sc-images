@@ -60,7 +60,7 @@ output.
 | [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 but no AVX-512, used as the base of benchmark-vllm-cpu-avx2. |
 
 Some images share one manual, and their READMEs cover only what differs. The
-[vLLM manual](vllm-common) in `vllm-common/`, which is not a published image,
+[vLLM benchmarks manual](vllm-common) in `vllm-common/`, which is not a published image,
 covers the `benchmark-vllm-*` images. `benchmark-pgbench-postgres` covers
 `benchmark-postgres-server`, and `stress-ng` covers `stress-ng-longrun`.
 
