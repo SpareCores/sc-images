@@ -103,8 +103,15 @@ the same pin, 0.27.1.
 The [`Dockerfile`](./Dockerfile) sets `BENCHMARK_VLLM_MODE=cpu`, so the
 [harness](../../vllm-common/benchmark.py) always runs in CPU mode, and
 `BENCHMARK_VLLM_ALLOW_AVX2_ONLY=true`, which skips the harness's AVX-512 check
-on AMD64. This image does not check for AVX2 itself. At startup, the log in
-stderr lists the CPU flags that the harness found, such as
+on AMD64. This image does not check for AVX2 itself. To check a host before a
+run, look for the `avx2` flag in `/proc/cpuinfo`; the following command prints
+`avx2` only when the CPU has it:
+
+```bash
+grep -o -m 1 avx2 /proc/cpuinfo
+```
+
+At startup, the log in stderr lists the CPU flags that the harness found, such as
 `cpu_flag_avx2=yes`, and `cpu_bf16=False` on a CPU without bfloat16 support.
 
 The `--version` option prints the pinned vLLM and GuideLLM versions and exits:
@@ -161,7 +168,8 @@ The Navigator's [Inspector](https://docs.sparecores.com/overview#how-it-works)
 runs one task, `vllm`, for the three vLLM images, with the container settings
 of the first command above and a task timeout of 3 hours. On each server type,
 it tries the images in the following order, and the first image whose
-`--probe-only` run exits with code 0 runs the full benchmark:
+[`--probe-only`](../benchmark-vllm-cpu/docs/usage.md#plan-and-probe-modes)
+run exits with code 0 runs the full benchmark:
 
 1. [`benchmark-vllm-gpu`](../benchmark-vllm-gpu/README.md)
 2. `benchmark-vllm-cpu`
@@ -169,9 +177,17 @@ it tries the images in the following order, and the first image whose
 
 The Inspector skips this image on Arm64 server types, but does not check the
 CPU flags of an AMD64 server type before it tries this image. It stops each
-probe after 18 minutes. Production stores the results of all three images
-under the task name `vllm`. The task tries the fastest image first, so the
-result of a server type comes from the fastest image that runs on it. See
+probe after 18 minutes. A probe starts the smallest default model,
+SmolLM2-135M, waits for its health check, and exits with code 0 or 1. To test
+this image on a server type before a full run, probe it yourself:
+
+```bash
+docker run --rm --shm-size=4g -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main --probe-only
+```
+
+Production stores the results of all three images under the task name
+`vllm`. The task tries the fastest image first, so the result of a server
+type comes from the fastest image that runs on it. See
 [Production Setup](../benchmark-vllm-cpu/docs/usage.md#production-setup) of
 `benchmark-vllm-cpu` for how production differs from a plain `docker run`.
 
@@ -190,8 +206,9 @@ model is skipped or stops the run.
 The harness runs the models in bfloat16 only when `/proc/cpuinfo` lists the
 `avx512_bf16` or `bf16` flag, and in float32 otherwise. An AMD64 CPU without
 AVX-512 has no `avx512_bf16` flag, so on such a CPU, this image runs the models
-in float32 by default. The harness passes the data type to `vllm serve`, and
-`VLLM_CPU_DTYPE` overrides it.
+in float32 by default. The harness passes the data type to `vllm serve`.
+Setting `VLLM_CPU_DTYPE`, such as `-e VLLM_CPU_DTYPE=bfloat16`, overrides the
+harness's choice, and the memory check below then uses the data type set.
 
 The float32 format takes 4 bytes per weight, twice as many as bfloat16. When
 the serving data type is wider than the data type in the model's configuration,
