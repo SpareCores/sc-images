@@ -21,8 +21,10 @@ Run an image via Docker:
 docker run --rm ghcr.io/sparecores/<image>:main
 ```
 
-**Note:** Some images, such as `stress-ng`, `dmidecode`, and `hwinfo`, have no
-default command, so append the command (such as `-c 'stress-ng --cpu 1'`) to run after the image name. Others
+**Note:** Some images, such as `benchmark`, `stress-ng`, `dmidecode`, and
+`hwinfo`, have no default command, so append the command to run after the image
+name: a script such as `openssl.sh` for `benchmark`, or
+`-c 'stress-ng --cpu 1'` for `stress-ng`, which runs it in `sh`. Others
 need extra parameters, such as environment variables or Docker options. The
 command and parameters production passes to each image are in sc-inspector's
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py).
@@ -62,7 +64,7 @@ output.
 | [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | FFmpeg benchmark of aggregate transcoding throughput: frames per second for H.264/H.265 video encoding and decoding on CPUs and NVIDIA GPUs, and audio seconds processed per second for audio encoding on CPUs. |
 | [`benchmark-llm`](images/benchmark-llm) | Low-concurrency LLM inference speed benchmark with llama.cpp's llama-bench, measuring prompt processing and text generation across models and token counts. |
 | [`benchmark-passmark`](images/benchmark-passmark) | PassMark PerformanceTest benchmark of CPU and memory performance, reporting the CPU Mark and Memory Mark composite scores and the individual test results behind them. |
-| [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per second and latency against a local or remote server. |
+| [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per minute and latency against a local or remote server. |
 | [`benchmark-redis`](images/benchmark-redis) | Redis 7.4 SET throughput and latency benchmark with memtier_benchmark, one server and client pair per CPU. |
 | [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, measuring the IOPS (Input/Output Operations Per Second), bandwidth, and latency of a server's bundled disks, per disk type and across identical disks at once. |
 | [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX-512 and on Arm64 CPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
