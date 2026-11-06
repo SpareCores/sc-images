@@ -32,11 +32,6 @@ the Spare Cores docs, which also lists the terms each image uses.
   constant across scenes. Lower values mean higher quality and larger files;
   x264's default is 23 on a scale of 0 to 51.
   [FFmpeg wiki](https://trac.ffmpeg.org/wiki/Encode/H.264#crf)
-- **FFmpeg**: A free, open-source collection of libraries and command-line
-  tools to decode, encode, transcode, filter and stream audio and video. Its
-  `ffmpeg` command converts between nearly all media formats, and its
-  libraries, such as libavcodec, power many media players and services.
-  [`ffmpeg` docs](https://ffmpeg.org/ffmpeg.html)
 - **FLAC** (Free Lossless Audio Codec): A lossless audio codec by the Xiph.Org
   Foundation. It compresses audio without discarding any information, so
   decoding restores the original samples bit for bit.
