@@ -14,11 +14,6 @@ Spare Cores docs, which also lists the terms each image uses.
   be refreshed periodically. Servers use it as main memory, and many storage
   devices as a cache.
   [Wikipedia](https://en.wikipedia.org/wiki/Dynamic_random-access_memory)
-- **`fio`**: The Flexible I/O Tester, an open-source storage benchmark and I/O
-  workload generator. Each job describes an access pattern, such as random or
-  sequential reads and writes, the block size, the queue depth, and the I/O
-  engine, and `fio` reports the resulting IOPS, bandwidth, and latency.
-  [fio docs](https://fio.readthedocs.io/en/latest/)
 - **FTL** (Flash Translation Layer): The firmware layer of an SSD controller
   that maps the logical blocks the host sees to physical flash pages. Because
   flash has to be erased in large blocks before it is rewritten, the FTL writes
@@ -30,10 +25,6 @@ Spare Cores docs, which also lists the terms each image uses.
   can be resized while in use. It also supports snapshots, and striping or
   mirroring across disks.
   [man page](https://man7.org/linux/man-pages/man8/lvm.8.html)
-- **OVHcloud**: A French cloud provider, founded in 1999, with data centers in
-  Europe, North America and Asia-Pacific. It offers dedicated (bare-metal)
-  servers, public cloud instances based on OpenStack, and private cloud.
-  [OVHcloud](https://www.ovhcloud.com/)
 - **RAID** (Redundant Array of Independent Disks): A way to combine several
   disks into one logical device, for redundancy, speed or both. Common levels
   are RAID 0 (striping), RAID 1 (mirroring) and RAID 5 or 6 (striping with
