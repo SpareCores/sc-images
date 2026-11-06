@@ -1,6 +1,6 @@
 # vllm-cpu-base-avx2
 
-This is an amd64 vLLM `vllm-openai` CPU image built with **`VLLM_CPU_AVX2=true`** for hosts that have AVX2 but not AVX-512.
+amd64 vLLM `vllm-openai` CPU image built with **`VLLM_CPU_AVX2=true`** for hosts that have AVX2 (Advanced Vector Extensions 2) but not AVX-512 (Advanced Vector Extensions 512).
 
 Hub `vllm/vllm-openai-cpu` amd64 targets AVX-512; [`benchmark-vllm-cpu-avx2`](../benchmark-vllm-cpu-avx2) uses this base.
 

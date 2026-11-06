@@ -27,6 +27,7 @@ This benchmark focuses on a server type's bundled storage: the disk or disks
 provisioned with the server type by default, regardless of whether an HDD (Hard
 Disk Drive), an SSD, or network-attached storage backs them. Results reflect the
 storage as provisioned, including any provider-imposed IOPS or bandwidth limit.
+
 Network storage attached on demand is out of scope, because its performance is
 not a property of the server type. See
 [Disk Scope](./docs/limitations.md#disk-scope).
@@ -63,7 +64,7 @@ limitations:
 
 ## Usage
 
-Run the image via Docker on an ephemeral server that you can afford to wipe.
+Run the image via Docker on an ephemeral server that can be wiped.
 
 > [!CAUTION]
 > Every filesystem this benchmark unmounts is destroyed, together with the
@@ -78,12 +79,13 @@ Run the image via Docker on an ephemeral server that you can afford to wipe.
 docker run --rm --privileged --pid=host ghcr.io/sparecores/benchmark-storage:main > storage.json
 ```
 
-Both flags are required. The `--privileged` flag gives the container raw access
-to the host's disks. The `--pid=host` flag lets it read the host's mount table
-from `/proc/1/mountinfo` and unmount filesystems in the host's mount namespace,
-which the disk safety checks depend on. The image does not check if it runs in the
-host's PID (Process Identifier) namespace. See
-[Production Setup](./docs/usage.md#production-setup) for how production runs
+Both flags are required. `--privileged` gives the container raw access to the
+host's disks. `--pid=host` lets it read the host's mount table from
+`/proc/1/mountinfo` and unmount filesystems in the host's mount namespace, which
+the disk safety checks depend on. The image does not check if it runs in the
+host's PID (Process Identifier) namespace.
+
+See [Production Setup](./docs/usage.md#production-setup) for how production runs
 differ.
 
 A run took about 21-22 minutes on the first production servers. This benchmark

@@ -4,11 +4,6 @@ Terms specific to this image, alphabetized. Common terms (e.g. SCore, SIMD,
 vCPU) are defined in the [glossary](https://docs.sparecores.com/glossary) of
 the Spare Cores docs, which also lists the terms each image uses.
 
-- **`stress-ng`**: An open-source tool that loads a computer in selectable
-  ways, with hundreds of stress tests (stressors) that exercise the CPU,
-  memory, file systems, and kernel interfaces. With `--metrics`, it reports
-  each stressor's throughput in bogo ops/s.
-  [stress-ng on GitHub](https://github.com/ColinIanKing/stress-ng)
 - **stress-ng bogo ops/s** (bogus operations per second): The throughput
   metric of `stress-ng`: how many times a stressor completes its own unit of
   work per second. Each stressor defines that unit differently, so the values

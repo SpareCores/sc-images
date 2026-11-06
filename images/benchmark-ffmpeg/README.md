@@ -70,7 +70,7 @@ See [GPU Run](./docs/usage.md#gpu-run) for the GPU requirements.
 
 Production runs the container privileged and with host networking; a plain
 `docker run` needs neither. See
-[Production Setup](./docs/usage.md#production-setup) before you compare your
+[Production Setup](./docs/usage.md#production-setup) before comparing
 results with production runs.
 
 A production run on an AWS (Amazon Web Services)
@@ -146,7 +146,9 @@ We built this benchmark around aggregate capacity. Instead of adding up the
 speed that each `ffmpeg` process reports for itself, the harness
 ([`benchmark.py`](./benchmark.py)) times the whole group with one clock, from a
 shared start to the last worker's exit, so process startup and teardown count
-too. Worker counts follow physical cores rather than logical CPUs, because two
+too.
+
+Worker counts follow physical cores rather than logical CPUs, because two
 single-threaded workers on the hyperthreads of one core compete for it and can
 lower throughput, especially for decoding.
 

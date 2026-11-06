@@ -14,10 +14,11 @@
 
 Disks with the same model, size, and subsystem form a group. One
 representative per group, the first writable disk by name (or the first disk
-if none is writable), runs the full set of single-disk tests. Groups of two or
-more disks also run group tests on all their disks at once, which measure the
-combined throughput. Each disk is either written to (`read_write`) or only read
-(`read_only`), as described in
+if none is writable), runs the full set of single-disk tests.
+
+Groups of two or more disks also run group tests on all their disks at once,
+which measure the combined throughput. Each disk is either written to
+(`read_write`) or only read (`read_only`), as described in
 [Disk Safety](./usage.md#disk-safety).
 
 The groups run one after the other, and so do the tests within a group. Each

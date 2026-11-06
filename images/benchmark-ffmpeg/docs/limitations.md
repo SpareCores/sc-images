@@ -7,8 +7,10 @@
 This benchmark measures throughput, not the quality of the encoded output. It
 computes no quality metric, such as PSNR (Peak Signal-to-Noise Ratio), SSIM
 (Structural Similarity Index Measure), or VMAF (Video Multimethod Assessment
-Fusion). The encode settings are fixed per scenario, so the quality target
-stays the same across server types; see
+Fusion).
+
+The encode settings are fixed per scenario, so the quality target stays the
+same across server types; see
 [CPU and GPU Encode Quality](#cpu-and-gpu-encode-quality) for how CPU and GPU
 settings relate.
 
@@ -53,18 +55,22 @@ The CPU worker counts are based on physical cores rather than logical CPUs.
 Two single-threaded workers on the two hyperthreads of one core compete for
 that core, so counting logical CPUs over-subscribes servers with SMT
 (Simultaneous Multithreading) and can lower throughput, especially for
-decoding. When throughput at the physical core count is at least 8% higher than
-at half of it, one extra measurement at twice that count shows whether SMT
-helps; see [Worker Counts](./usage.md#worker-counts).
+decoding.
+
+When throughput at the physical core count is at least 8% higher than at half
+of it, one extra measurement at twice that count shows whether SMT helps; see
+[Worker Counts](./usage.md#worker-counts).
 
 ### Audio on the CPU Only
 
 FFmpeg's NVIDIA encoders and decoders handle video only, and there is no NVIDIA
 hardware encoder for Vorbis, Opus, AAC
 (Advanced Audio Coding), MP3, or
-FLAC (Free Lossless Audio Codec). The audio
-scenarios therefore always run on the CPU, and a GPU does not change the audio
-results. The output records this as `audio_gpu_acceleration: false`. See the
+FLAC (Free Lossless Audio Codec).
+
+The audio scenarios therefore always run on the CPU, and a GPU does not change
+the audio results. The output records this as `audio_gpu_acceleration: false`.
+See the
 [NVIDIA FFmpeg guide](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)
 for the supported video codecs.
 
@@ -117,8 +123,10 @@ container. Since
 [harness version 3.3.0](../CHANGELOG.md#nvenc-quality-matched-to-cpu-encodes-and-gpu-driver-libraries-mounted),
 the image requests them itself; earlier
 production runs on many GPU servers skipped all GPU scenarios because these
-libraries were missing. Production results for GPUs are therefore incomplete
-until those servers are measured again.
+libraries were missing.
+
+Production results for GPUs are therefore incomplete until those servers are
+measured again.
 
 ### Computed Media Counts
 

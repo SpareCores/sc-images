@@ -16,11 +16,11 @@ hardware.
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
 empirical performance measurements for more than 5,000 cloud server types. We
 needed an RDBMS (Relational Database Management System) benchmark that measures
-database throughput and latency directly rather than relying on proxies. The
-Navigator previously relied on stand-ins:
-[PassMark database operations](../benchmark-passmark/README.md), which do not
-scale above 32 vCPUs; [Redis](../benchmark-redis/README.md), which is not
-relational; and [raw CPU speed](../stress-ng/README.md) and
+database throughput and latency directly rather than relying on proxies.
+
+The Navigator previously relied on stand-ins: PassMark database operations,
+which do not scale above 32 vCPUs; [Redis](../benchmark-redis/README.md), which
+is not relational; and raw CPU speed and
 [memory bandwidth](../benchmark/docs/bw-mem.md), which are useful proxies but
 not database workloads.
 
@@ -79,8 +79,8 @@ full memory. See [Standalone Mode](./docs/usage.md#standalone-mode).
 Production runs the container privileged, which lets the harness start
 `postgres` at a higher priority (`nice -n -20`); with a plain `docker run`, it
 runs at normal priority. See [Production
-Setup](./docs/usage.md#production-setup) before you compare your scores with
-the Navigator's.
+Setup](./docs/usage.md#production-setup) before comparing scores with the
+Navigator's.
 
 Set `SC_DB_HOST` to benchmark a remote PostgreSQL server instead. A remote run
 needs more setup: database privileges, a disposable benchmark database, and the
@@ -120,7 +120,7 @@ all options and defaults:
 The process prints nothing until the run ends, then prints one JSON object to
 stdout; a default run can stay silent for about 25 minutes. Errors go to
 stderr. In standalone mode, the PostgreSQL server log is written to
-`/tmp/pg-server.log` inside the container, so drop `--rm` if you need it after
+`/tmp/pg-server.log` inside the container, so drop `--rm` to keep it after
 the run. The JSON object's main fields are the following:
 
 - `score` is the highest TPM result; `score_unit` is `tpm`, and
@@ -159,24 +159,25 @@ For more information on available workloads, see
 ## Design History
 
 We first compared `sysbench`, HammerDB TPROC-C (HammerDB's transaction
-processing workload), BenchBase, and
-`pgbench`. The experiments showed that write-heavy workloads got bottlenecked by
-storage and WAL
-(Write-Ahead Logging).
+processing workload), BenchBase, and `pgbench`. The experiments showed that
+write-heavy workloads got bottlenecked by storage and WAL (Write-Ahead
+Logging).
+
 On `tmpfs`, write-heavy OLTP (Online Transaction Processing) results improved
 by 10-25%, showing how much disk behavior could influence a score. But `tmpfs`
 was unavailable for DBaaS, and sizing by warehouse count (TPROC-C's
 dataset-size unit) or scale factor could not cover the range from 1 vCPU to
-hundreds. The `pgbench` tool looked promising as a simpler, more scalable
-basis for a cross-provider benchmark.
+hundreds. `pgbench` looked promising as a simpler, more scalable basis for a
+cross-provider benchmark.
 
 Early `pgbench -S` runs were dominated by network latency, and profiling found
 that the first custom transaction over-weighted regex work. A set of 21
 PostgreSQL configuration experiments on a host with 32 vCPUs showed that tuning
-could improve throughput by about 20%. The `pgbench_ro` redesign uses a fixed,
-cache-resident schema and spreads CPU work across PostgreSQL subsystems.
-The `pgbench_tpcb` workload is kept as a conventional reference, but it is
-disk-limited and unused in production.
+could improve throughput by about 20%.
+
+The `pgbench_ro` redesign uses a fixed, cache-resident schema and spreads CPU
+work across PostgreSQL subsystems. `pgbench_tpcb` is kept as a conventional
+reference workload, but it is disk-limited and unused in production.
 
 See the [changelog](./CHANGELOG.md) for experiment results, validation, and
 calibration details.

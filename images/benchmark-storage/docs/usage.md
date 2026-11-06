@@ -180,12 +180,14 @@ Each `read` and `write` result has the following fields:
 - `iops_interval` and `bw_bytes_interval`: statistics over 500 ms windows,
   with `min`, `p5`, `p50`, `p95`, `max`, `mean`, `tail_mean`, and `samples`
 
-The `tail_mean` field is the mean of the second half of the run. It leaves out
-the initial burst and includes the time a drive may still spend draining its
-write buffer. Multi-job and multi-disk results are merged: IOPS and bandwidth
-are summed, and latency percentiles come from the merged `fio` latency
-histograms. Preconditioning records also have `iops_series` and
-`bw_bytes_series`, averaged over steps of 5 seconds (`series_step_ms`).
+`tail_mean` is the mean of the second half of the run. It leaves out the
+initial burst and includes the time a drive may still spend draining its write
+buffer.
+
+Multi-job and multi-disk results are merged: IOPS and bandwidth are summed, and
+latency percentiles come from the merged `fio` latency histograms.
+Preconditioning records also have `iops_series` and `bw_bytes_series`, averaged
+over steps of 5 seconds (`series_step_ms`).
 
 ### Health Snapshots
 
