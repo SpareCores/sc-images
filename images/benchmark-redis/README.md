@@ -153,6 +153,7 @@ We cut it to one thread in August 2024: with one server and client pair per
 CPU, more threads do not improve performance. A few published results still
 come from the earlier version, for example
 [`aws/c6g.16xlarge`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c6g.16xlarge/0/redis/stdout).
+
 For each pipeline depth, the Navigator keeps the row with the highest `rps`,
 regardless of the thread count.
 

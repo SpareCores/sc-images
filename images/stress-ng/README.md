@@ -86,7 +86,7 @@ for details:
 ### Results
 
 The stressor suite prints one JSON document to stdout when the run ends.
-Interpret its main fields as follows:
+The JSON document's main fields are the following:
 
 - `stressors.<name>` holds one entry per worker count: `"1"`, and the CPU
   count for the multi-worker run. Each entry is

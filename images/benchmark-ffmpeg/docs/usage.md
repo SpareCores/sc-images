@@ -29,7 +29,7 @@ Pass the GPUs to the container to add the NVIDIA video scenarios:
 docker run --rm --gpus all ghcr.io/sparecores/benchmark-ffmpeg:main > results.json
 ```
 
-Before you run, check the following prerequisites:
+Before running, check the following prerequisites:
 
 - The host has an NVIDIA GPU, the NVIDIA driver, and the
   [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html).
@@ -43,8 +43,8 @@ Before you run, check the following prerequisites:
   GPUs; without it, the GPU scenarios are skipped.
 
 The image sets `NVIDIA_DRIVER_CAPABILITIES=compute,utility,video`, so the
-NVIDIA Container Toolkit also mounts the driver's video libraries; you do not
-need to request them yourself. Without the `video` capability, the GPU
+NVIDIA Container Toolkit also mounts the driver's video libraries without a
+separate request. Without the `video` capability, the GPU
 scenarios fail to load `libnvcuvid.so.1` and are skipped.
 
 Each GPU scenario first runs a one-worker probe. If the GPU cannot open an
@@ -140,18 +140,21 @@ worker counts each one measures. A production run on an AWS
 measured every CPU and audio scenario at 1, 32, and 64 workers and took about
 10 minutes
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/0/ffmpeg)).
+
 Across 372 production runs of harness version 3.2.1, run time ranged from about
-3 minutes on servers with 2 vCPUs to about 17 minutes on GPU
-servers, with a median of about 9.5 minutes.
+3 minutes on servers with 2 vCPUs to about 17 minutes on GPU servers, with a
+median of about 9.5 minutes.
 
 ### Repetition Length
 
 Each repetition targets 5 seconds of wall time by default. Because the pilot
 scales the media to that target, larger servers process more media in the same
-time instead of running longer. The default comes from a study that compared
-targets of 2, 5, and 10 seconds on one developer workstation, a 24-core Intel
-Core i9-14900K desktop CPU without an NVIDIA GPU, so GPU scenarios were not
-part of it. Only the study's summary was kept; see
+time instead of running longer.
+
+The default comes from a study that compared targets of 2, 5, and 10 seconds
+on one developer workstation, a 24-core Intel Core i9-14900K desktop CPU
+without an NVIDIA GPU, so GPU scenarios were not part of it. Only the study's
+summary was kept; see
 [Why 5 Seconds](../CHANGELOG.md#why-5-seconds).
 
 ### Shorter Test Runs
@@ -174,9 +177,8 @@ The results of such a run are not comparable with default runs.
 
 ## Production Setup
 
-The Inspector of Spare Cores Navigator
-([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs this image
-on every server type except those on the
+The [Inspector](https://docs.sparecores.com/overview#how-it-works) of Spare
+Cores Navigator runs this image on every server type except those on the
 [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
 blocklist, with the following settings. A plain `docker run` differs from it as
 noted below:

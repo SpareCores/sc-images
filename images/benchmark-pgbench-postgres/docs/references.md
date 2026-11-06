@@ -55,11 +55,6 @@ Spare Cores docs, which also lists the terms each image uses.
   several CPU cores at once. `max_parallel_workers_per_gather` limits how many
   workers one part of a query can use.
   [PostgreSQL docs](https://www.postgresql.org/docs/current/parallel-query.html)
-- **`pgbench`**: The benchmark tool shipped with PostgreSQL. It runs a SQL
-  script repeatedly over many concurrent client sessions, and reports the
-  throughput in transactions per second and the latency. Its built-in script is
-  modeled on TPC-B, and custom scripts can define any other workload.
-  [PostgreSQL docs](https://www.postgresql.org/docs/current/pgbench.html)
 - **`pgtune`**: A web tool that suggests PostgreSQL settings, such as
   `shared_buffers` and `work_mem`, from the memory, CPU count, storage type and
   workload of a server. Its suggestions are a starting point for tuning rather

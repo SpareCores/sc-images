@@ -31,9 +31,10 @@ The scores say nothing about a server's network throughput or latency. With a
 remote client, both bandwidth and especially RTT (Round-Trip Time) between
 client and server can dominate chatty workloads. Placing the client close to
 the server is not enough on its own: occasional latency glitches still distort
-lightweight-workload results. The workload is therefore designed so the
-remaining RTT is a rounding error; see
-[CPU-Heavy Transactions](#cpu-heavy-transactions).
+lightweight-workload results.
+
+The workload is therefore designed so the remaining RTT is a rounding error;
+see [CPU-Heavy Transactions](#cpu-heavy-transactions).
 
 ### Uniform Data
 
@@ -68,10 +69,12 @@ of vCPUs, the same workload must produce meaningful, comparable numbers.
 HammerDB TPROC-C (HammerDB's transaction processing
 workload) and similar suites size their
 datasets by warehouse count, and `pgbench` by scale factor. Neither sizing
-scheme can fulfill this purpose. Because of this, we chose a fixed-size
-workload that can run on every server type in the
-[Navigator's Web UI](https://sparecores.com/servers) with at least 2 GiB of RAM,
-with larger servers being taxed by concurrency rather than workload size.
+scheme can fulfill this purpose.
+
+Because of this, we chose a fixed-size workload that can run on every server
+type in the [Navigator's Web UI](https://sparecores.com/servers) with at least
+2 GiB of RAM, with larger servers being taxed by concurrency rather than
+workload size.
 
 ### Engine Configuration
 
@@ -99,11 +102,12 @@ One `SELECT` whose eight query blocks are CTEs ([Common Table
 Expressions](https://www.postgresql.org/docs/current/queries-with.html))
 combined with `UNION ALL` is deliberate: it keeps one `pgbench` transaction
 equal to one network round trip. This makes the `pgbench_ro` workload resilient
-to RTT simulated with `netem` (Network
-Emulator);
-see [Latency and pipelining](../CHANGELOG.md#latency-and-pipelining) for the
-experiments. The tradeoff is that per-block planner GUCs (e.g. forcing Merge
-Join specifically) are not possible without affecting every block.
+to RTT simulated with `netem` (Network Emulator); see
+[Latency and pipelining](../CHANGELOG.md#latency-and-pipelining) for the
+experiments.
+
+The tradeoff is that per-block planner GUCs (e.g. forcing Merge Join
+specifically) are not possible without affecting every block.
 
 ### Pre-Calibrated Weights
 
@@ -124,10 +128,12 @@ principles.
 This benchmark is designed to use a small dataset of about 303 MiB. On the
 smallest nodes, the dataset does not fit in memory, which can add some disk
 overhead, so production runs this benchmark only on servers with at least
-2 GiB of RAM, as reported by the vendor. There, the dataset is meant to stay in
-memory (`shared_buffers` plus the OS page cache), so that the disk is not read
-again after warmup. Because the dataset is small by design, large instances are
-exercised through concurrency rather than data volume.
+2 GiB of RAM, as reported by the vendor.
+
+There, the dataset is meant to stay in memory (`shared_buffers` plus the OS
+page cache), so that the disk is not read again after warmup. Because the
+dataset is small by design, large instances are exercised through concurrency
+rather than data volume.
 
 ### Read-Only Workload
 

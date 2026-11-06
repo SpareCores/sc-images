@@ -29,9 +29,9 @@ output.
 | [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per second and latency against a local or remote server. |
 | [`benchmark-redis`](images/benchmark-redis) | Redis 7.4 SET throughput and latency benchmark with memtier_benchmark, one server and client pair per CPU. |
 | [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, measuring the IOPS (Input/Output Operations Per Second), bandwidth, and latency of a server's bundled disks, per disk type and across identical disks at once. |
-| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX-512 and Arm64 CPUs. |
-| [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, targeting x86_64 CPUs with AVX2 but no AVX-512. |
-| [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM, using the largest valid tensor-parallel size per model across all available GPUs. |
+| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX-512 and on Arm64 CPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
+| [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX2 but without AVX-512, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
+| [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on NVIDIA GPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
 | [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. |
 | [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory copy bandwidth and latency benchmark with nvbandwidth, measuring copies between the host CPU and each GPU, between GPUs, and within one GPU. |
 | [`stress-ng`](images/stress-ng) | CPU, memory, and kernel-heavy workload benchmark with stress-ng, measuring bogo ops/s for 85 stressors on one and on all CPUs, and the multi-core scaling of the cpu stressor. |
@@ -60,7 +60,7 @@ output.
 | [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 but no AVX-512, used as the base of benchmark-vllm-cpu-avx2. |
 
 Some images share one manual, and their READMEs cover only what differs. The
-[vLLM manual](vllm-common) in `vllm-common/`, which is not a published image,
+[vLLM benchmarks manual](vllm-common) in `vllm-common/`, which is not a published image,
 covers the `benchmark-vllm-*` images. `benchmark-pgbench-postgres` covers
 `benchmark-postgres-server`, and `stress-ng` covers `stress-ng-longrun`.
 
