@@ -4,7 +4,9 @@
 
 Each workload sends synthetic prompts of a fixed length and asks for a fixed
 number of output tokens. The harness starts `vllm serve` with a context
-length (`--max-model-len`) that fits the workload:
+length (`--max-model-len`), the most tokens that one request can hold, prompt
+and output together. Each workload gets a context length that fits it,
+because a shorter one needs a smaller key-value cache:
 
 | Workload | Prompt tokens | Output tokens | Context length | Runs on |
 | --- | --- | --- | --- | --- |
@@ -133,9 +135,12 @@ data-parallel size:
 On CPUs, the harness also computes the following vLLM server settings and
 passes them to `vllm serve`:
 
-- **`--max-num-seqs`:** grows sub-linearly with `v`, and is capped by the CPU
-  cores of each vLLM worker and by the key-value cache that fits in memory
-- **`--max-num-batched-tokens`:**
+- **`--max-num-seqs`:** the most requests that vLLM processes at once, with
+  the rest waiting in a queue; it grows sub-linearly with `v`, and is capped
+  by the CPU cores of each vLLM worker and by the key-value cache that fits in
+  memory
+- **`--max-num-batched-tokens`:** the most tokens, prompt and generated
+  together, that vLLM processes in one step:
   `min(max_model_len, max(2048, int(64 * v ** 0.5)))`, where `max_model_len`
   is the workload's context length
 - **`--dtype`:** the data type; see [Data Type](#data-type)
@@ -299,9 +304,11 @@ memory that the container cannot use. The check works as follows:
   `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set.
 
 On CPUs, vLLM's `--gpu-memory-utilization` option sets the fraction of the
-NUMA node's total memory that each worker reserves for itself. The harness
-splits the fraction among the workers that share a NUMA node, so that together
-they reserve at most 70% of the node's free memory, and caps each worker's
+NUMA node's total memory that each worker reserves for itself. What is left
+after the weights and intermediate results goes to the key-value cache, so a
+larger fraction lets a worker hold more requests at once. The harness splits
+the fraction among the workers that share a NUMA node, so that together they
+reserve at most 70% of the node's free memory, and caps each worker's
 fraction at 0.50. It leaves 0.8 GiB of each node for startup, and when several
 workers share a node, it lowers the 70% budget by a further 10%.
 
