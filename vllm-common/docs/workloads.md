@@ -303,10 +303,11 @@ memory that the container cannot use. The check works as follows:
 - If the Hugging Face metadata cannot be read, the model is skipped, unless
   `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set.
 
-On CPUs, vLLM's `--gpu-memory-utilization` option sets the fraction of the
-NUMA node's total memory that each worker reserves for itself. What is left
-after the weights and intermediate results goes to the key-value cache, so a
-larger fraction lets a worker hold more requests at once. The harness splits
+On CPUs, vLLM reuses its `--gpu-memory-utilization` option, despite the name,
+to set the fraction of the NUMA node's total memory that each worker reserves
+for itself. What is left after the weights and intermediate results goes to
+the key-value cache, so a larger fraction lets a worker hold more requests at
+once. The harness splits
 the fraction among the workers that share a NUMA node, so that together they
 reserve at most 70% of the node's free memory, and caps each worker's
 fraction at 0.50. It leaves 0.8 GiB of each node for startup, and when several
