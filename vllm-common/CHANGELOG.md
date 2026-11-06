@@ -111,7 +111,8 @@ On a **2-GPU** host, default ladder TP:
 | Llama-3.3-70B bnb-4bit | — | pipeline-parallel-size 2 | both |
 
 SmolLM on 2×GPU is still a real GPU run (`mode=gpu` in JSONL); `nvidia-smi
-pmon` showing ~95% SM on one GPU and idle on the other is expected for TP=1.
+pmon` showing ~95% SM (Streaming Multiprocessor) use on one GPU and idle on the
+other is expected for TP=1.
 
 ### Images and version bumps
 
