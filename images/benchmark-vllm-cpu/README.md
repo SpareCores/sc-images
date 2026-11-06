@@ -97,6 +97,8 @@ the five default models that run on CPUs; see the manual's
 
 ## References
 
+The terms of the vLLM benchmarks, such as `--max-model-len`, are defined in
+their [references](../../vllm-common/docs/references.md).
 Common terms, such as GuideLLM, NUMA (Non-Uniform Memory Access), and
 AVX-512, are defined in the [glossary](https://docs.sparecores.com/glossary)
 of the Spare Cores docs. To change or rebuild this image, see the
