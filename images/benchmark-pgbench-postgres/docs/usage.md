@@ -67,13 +67,13 @@ settings](#workload-settings) on top of these.
 
 Set `SC_DB_HOST` to benchmark an existing PostgreSQL 18 server, such as a DBaaS
 (Database as a Service) instance, from the same or a separate machine. Before
-you run, check the following prerequisites:
+running, check the following prerequisites:
 
 - The `SC_DB_USER` role can create databases (`CREATEDB`) and terminate other
   sessions on the benchmark database: it must be a superuser, a member of
   `pg_signal_backend`, or the role those sessions run as.
-- The benchmark database, `SC_PGBENCH_DB` (default `pgbench`), holds no data you
-  need. Restoring a cached dump drops and recreates it; building the dataset
+- The benchmark database, `SC_PGBENCH_DB` (default `pgbench`), holds no data that
+  is needed. Restoring a cached dump drops and recreates it; building the dataset
   drops and recreates its benchmark tables.
 - The `SC_DB_USER` role owns the benchmark database or is a superuser, so it can
   set the `pgbench_ro` [workload settings](#workload-settings).
@@ -98,7 +98,7 @@ docker run --rm \
 ```
 
 `SC_DB_MEM_GIB` is only recorded in the output; for a remote server it is `null`
-unless you set it.
+unless it is set.
 
 The image does not tune a remote server's configuration; the only settings it
 changes are the [workload settings](#workload-settings) on the benchmark
@@ -167,11 +167,13 @@ no timeout.
 ### Why 5 Minutes
 
 This is deliberately not a long-running benchmark. We tested 5-, 10-, 15-, and
-30-minute measurement windows with five interleaved trials each, using BenchBase's
-Wikipedia workload on three GCP (Google Cloud Platform) server types and
-`pgbench -S` on a fourth. Longer windows moved mean throughput
-by less than 2% and did not reduce run-to-run variation, which comes from load,
-OS, and noisy-neighbor effects rather than from too short an average. See
+30-minute measurement windows with five interleaved trials each, using
+BenchBase's Wikipedia workload on three GCP (Google Cloud Platform) server types
+and `pgbench -S` on a fourth.
+
+Longer windows moved mean throughput by less than 2% and did not reduce
+run-to-run variation, which comes from load, OS, and noisy-neighbor effects
+rather than from too short an average. See
 [Measurement duration](../CHANGELOG.md#measurement-duration) for the results.
 
 As a result, each score is a single 5-minute sample. Repeated runs on the same
@@ -182,9 +184,9 @@ from `pgbench_ro`.
 
 ## Production Setup
 
-The Inspector of Spare Cores Navigator
-([`sc-inspector`](https://github.com/SpareCores/sc-inspector)) runs this image
-with the following setup. A plain `docker run` differs from it as noted below.
+The [Inspector](https://docs.sparecores.com/overview#how-it-works) of Spare
+Cores Navigator runs this image with the following setup. A plain
+`docker run` differs from it as noted below.
 
 ### Container Settings
 

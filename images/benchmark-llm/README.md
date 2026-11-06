@@ -33,7 +33,7 @@ for more tokens as per below.
 
 So running the benchmark on a hardware that can generate 512 tokens with 22
 tokens/sec speed will not test 1024 and larger token lenghts and will stop early
-to save compute resources. If you want to allow longer runs, use the
+to save compute resources. To allow longer runs, use the
 `--benchmark-timeout-scale` flag to increase the timeouts.
 
 ### Usage
@@ -70,12 +70,11 @@ The default list of models to download and benchmark is:
 | Phi-4 | 14B | Q4 | [GGUF](https://huggingface.co/microsoft/phi-4-gguf/resolve/b1e764cfdbdd0a3ed824d6a8424129eb0a2232ff/phi-4-q4.gguf) |
 | Llama-3.3-Instruct | 70B | Q4_K_M | [GGUF](https://huggingface.co/unsloth/Llama-3.3-70B-Instruct-GGUF/resolve/7bcd751e48e909680bd2168359dcf7fb53b12da8/Llama-3.3-70B-Instruct-Q4_K_M.gguf) |
 
-You can override the default list of models by passing the `--model-urls` flag,
-but note that the models should be GGUF files, and ordered by size (start with
-the smallest).
+Pass the `--model-urls` flag to override the default list of models, but note
+that the models should be GGUF files, and ordered by size (start with the
+smallest).
 
 The models are cached in the `/models` directory by default, which is a
-temporary docker volume, but you can override this by passing the `--models-dir`
-flag. If you might need to rerun the benchmark multiple times, you might want to
-set a different models directory or attach an external location to avoid
-re-downloading the same models.
+temporary docker volume, but the `--models-dir` flag overrides this. To rerun
+the benchmark multiple times, set a different models directory or attach an
+external location to avoid re-downloading the same models.
