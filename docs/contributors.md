@@ -48,3 +48,14 @@ The terms of the vLLM benchmarks are defined in their
 ```
 
 A term that pages outside its folder use, such as other images, the Benchmarks section or the Crawler docs, belongs in `glossary.yaml`. The docs build warns about such terms, and about a README without a link to its own `references.md`.
+
+## Navigator Charts
+
+To show a chart of the Spare Cores Navigator on [docs.sparecores.com](https://docs.sparecores.com/images), put an `<!-- embed -->` marker on its own line, right above a link to the chart's embed URL (the `src` of the embed code the Navigator gives):
+
+```md
+<!-- embed height=517px -->
+[GPU Bandwidth and Latency of ecs.gn5-c4g1.xlarge](https://sparecores.com/embed/server/alicloud/ecs.gn5-c4g1.xlarge/nvbandwidth)
+```
+
+GitHub hides the marker and shows the link; the docs site shows the chart instead, with the link text as its title for screen readers. The height is optional (500px by default); the docs site sets the rest of the style. A marker that isn't right above such a link, or has an unknown or invalid setting, leaves the link as it is, and the docs build warns about it.
