@@ -72,8 +72,8 @@ output.
 | [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per minute and latency against a local or remote server. |
 | [`benchmark-redis`](images/benchmark-redis) | Redis 7.4 SET throughput and latency benchmark with memtier_benchmark, one server and client pair per CPU. |
 | [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, measuring the IOPS (Input/Output Operations Per Second), bandwidth, and latency of a server's bundled disks, per disk type and across identical disks at once. |
-| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX-512 and on Arm64 CPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
-| [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX2 but without AVX-512, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
+| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX-512 (Advanced Vector Extensions 512) and on Arm64 CPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
+| [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without AVX-512 (Advanced Vector Extensions 512), measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
 | [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on NVIDIA GPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
 | [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. |
 | [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory bandwidth benchmark with nvbandwidth, measuring host-to-device and device-to-device copy speeds. |
@@ -84,23 +84,23 @@ output.
 
 | Image | Description |
 | ----- | ----------- |
-| [`dmidecode`](images/dmidecode) | Reads the server's DMI/SMBIOS tables with dmidecode to report hardware details such as memory modules and firmware. |
+| [`dmidecode`](images/dmidecode) | Reads the server's DMI (Desktop Management Interface) and SMBIOS (System Management BIOS) tables with dmidecode to report hardware details such as memory modules and firmware. |
 | [`hwinfo`](images/hwinfo) | Collects CPU, memory, and topology details with hwloc, likwid, and lshw. |
-| [`virtualization`](images/virtualization) | Checks whether the server supports KVM hardware virtualization and reports the result as JSON. |
+| [`virtualization`](images/virtualization) | Checks whether the server supports KVM (Kernel-based Virtual Machine) hardware virtualization and reports the result as JSON. |
 
 ### Services
 
 | Image | Description |
 | ----- | ----------- |
 | [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server running at high priority, used as the remote target of database benchmarks. |
-| [`llama.cpp`](images/llama.cpp) | llama.cpp server (llama-server) with CUDA support, built from a pinned commit. |
+| [`llama.cpp`](images/llama.cpp) | llama.cpp server (llama-server) with CUDA (Compute Unified Device Architecture) support, built from a pinned commit. |
 
 ### Base Images
 
 | Image | Description |
 | ----- | ----------- |
 | [`resource-tracker`](images/resource-tracker) | The resource-tracker binary of Spare Cores Navigator, copied into the other images to record resource usage while benchmarks run. |
-| [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 but no AVX-512, used as the base of benchmark-vllm-cpu-avx2. |
+| [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 (Advanced Vector Extensions 2) but no AVX-512 (Advanced Vector Extensions 512), used as the base of benchmark-vllm-cpu-avx2. |
 
 The following docs cover more than one image. Where a covered image has its
 own README, that README describes only what differs:
