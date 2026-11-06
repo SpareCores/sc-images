@@ -8,9 +8,45 @@ types.
 
 Each folder under [`images/`](images) is published as
 `ghcr.io/sparecores/<folder>:main`, built for amd64 and arm64 unless its
-README says otherwise. Every image's GHCR package page shows this README. To
-find the docs for an image, look it up in [Images](#images) and follow its
-link.
+README says otherwise. Each image's docs are at
+`https://docs.sparecores.com/images/<image>/`, linked from the
+[image list](https://docs.sparecores.com/images/). The GHCR package page of
+every image shows this overview instead of the image's own docs.
+
+## Usage
+
+Run an image via Docker:
+
+```shell
+docker run --rm ghcr.io/sparecores/<image>:main
+```
+
+**Note:** Some images, such as `stress-ng`, `dmidecode`, and `hwinfo`, have no
+default command, so append the command (such as `-c 'stress-ng --cpu 1'`) to run after the image name. Others
+need extra parameters, such as environment variables or Docker options. The
+command and parameters production passes to each image are in sc-inspector's
+[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py).
+
+An image's README, where it has one, lists its settings, its output, and any
+extra Docker options it needs; otherwise, see its `Dockerfile`. Benchmark
+images run their workload under
+[resource-tracker](https://github.com/SpareCores/resource-tracker-rs), which
+samples CPU, memory, disk, network, and GPU usage once per second.
+
+Some images need the following extra Docker options:
+
+- **GPUs:** `--gpus all` for `benchmark-vllm-gpu`, `nvbandwidth`, and
+  `llama.cpp`, and for the GPU runs of `benchmark-llm` and `benchmark-ffmpeg`.
+- **Shared memory:** `--shm-size=4g` for the `benchmark-vllm-*` images, which
+  fail with Docker's default 64&nbsp;MiB `/dev/shm`.
+- **Privileged mode:** `--privileged` for `dmidecode`, `hwinfo`, and `virtualization`,
+  and for the images that raise their priority with `nice -n -20`:
+  `benchmark`, `benchmark-passmark`, `benchmark-pgbench-postgres`,
+  `benchmark-postgres-server`, `benchmark-redis`, and `benchmark-web`. Without
+  it, the `nice` images run at normal priority.
+- **Disk access:** `--privileged --pid=host` for `benchmark-storage`. It
+  unmounts and overwrites every disk it may write to, so do not run it on a
+  machine with data you need.
 
 ## Images
 
@@ -63,41 +99,6 @@ Some images share one manual, and their READMEs cover only what differs. The
 [vLLM benchmarks manual](vllm-common) in `vllm-common/`, which is not a published image,
 covers the `benchmark-vllm-*` images. `benchmark-pgbench-postgres` covers
 `benchmark-postgres-server`, and `stress-ng` covers `stress-ng-longrun`.
-
-## Usage
-
-Run an image via Docker:
-
-```shell
-docker run --rm ghcr.io/sparecores/<image>:main
-```
-
-**Note:** Some images, such as `stress-ng`, `dmidecode`, and `hwinfo`, have no
-default command, so append the command (such as `-c 'stress-ng --cpu 1'`) to run after the image name. Others
-need extra parameters, such as environment variables or Docker options. The
-command and parameters production passes to each image are in sc-inspector's
-[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py).
-
-An image's README, where it has one, lists its settings, its output, and any
-extra Docker options it needs; otherwise, see its `Dockerfile`. Benchmark
-images run their workload under
-[resource-tracker](https://github.com/SpareCores/resource-tracker-rs), which
-samples CPU, memory, disk, network, and GPU usage once per second.
-
-Some images need the following extra Docker options:
-
-- **GPUs:** `--gpus all` for `benchmark-vllm-gpu`, `nvbandwidth`, and
-  `llama.cpp`, and for the GPU runs of `benchmark-llm` and `benchmark-ffmpeg`.
-- **Shared memory:** `--shm-size=4g` for the `benchmark-vllm-*` images, which
-  fail with Docker's default 64&nbsp;MiB `/dev/shm`.
-- **Privileged mode:** `--privileged` for `dmidecode`, `hwinfo`, and `virtualization`,
-  and for the images that raise their priority with `nice -n -20`:
-  `benchmark`, `benchmark-passmark`, `benchmark-pgbench-postgres`,
-  `benchmark-postgres-server`, `benchmark-redis`, and `benchmark-web`. Without
-  it, the `nice` images run at normal priority.
-- **Disk access:** `--privileged --pid=host` for `benchmark-storage`. It
-  unmounts and overwrites every disk it may write to, so do not run it on a
-  machine with data you need.
 
 ## Contributing
 
