@@ -1,10 +1,10 @@
 # benchmark-pgbench-postgres
 
-This benchmark measures cloud server database performance with `pgbench`. In
-standalone mode, the image starts a local PostgreSQL 18 server. In remote mode,
-it connects to the configured host without checking or enforcing the remote
-server version. The image can run on the same node as the database or on a
-separate machine.
+This benchmark measures cloud server database performance with `pgbench`,
+focusing on CPU and memory rather than disk. In standalone mode, the image
+starts a local PostgreSQL 18 server. In remote mode, it connects to the
+configured host without checking or enforcing the remote server version. The
+image can run on the same node as the database or on a separate machine.
 
 This benchmarking tool reports throughput in TPM (Transactions Per Minute) and
 latency at several client counts. Together, they show peak performance and how
