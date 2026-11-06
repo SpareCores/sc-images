@@ -10,8 +10,9 @@ Each folder under [`images/`](images) is published as
 `ghcr.io/sparecores/<folder>:main`, built for amd64 and arm64 unless its
 README says otherwise. Each image's docs are at
 `https://docs.sparecores.com/images/<image>/`, linked from the
-[image list](https://docs.sparecores.com/images/). The GHCR package page of
-every image shows this overview instead of the image's own docs.
+[image list](https://docs.sparecores.com/images/). The GHCR (GitHub Container
+Registry) package page of every image shows this overview instead of the
+image's own docs.
 
 ## Usage
 
@@ -24,15 +25,18 @@ docker run --rm ghcr.io/sparecores/<image>:main
 **Note:** Some images, such as `benchmark`, `stress-ng`, `dmidecode`, and
 `hwinfo`, have no default command, so append the command to run after the image
 name: a script such as `openssl.sh` for `benchmark`, or
-`-c 'stress-ng --cpu 1'` for `stress-ng`, which runs it in `sh`. Others
-need extra parameters, such as environment variables or Docker options. The
-command and parameters production passes to each image are in sc-inspector's
-[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py).
+`-c 'stress-ng --cpu 1'` for `stress-ng`, whose entrypoint is `sh`.
+
+Other images need extra parameters, such as environment variables or Docker
+options. The command and parameters that production passes to each image are
+in
+[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
+in the `sc-inspector` repository.
 
 An image's README, where it has one, lists its settings, its output, and any
 extra Docker options it needs; otherwise, see its `Dockerfile`. Benchmark
 images run their workload under
-[resource-tracker](https://github.com/SpareCores/resource-tracker-rs), which
+[`resource-tracker`](https://github.com/SpareCores/resource-tracker-rs), which
 samples CPU, memory, disk, network, and GPU usage once per second.
 
 Some images need the following extra Docker options:
@@ -40,15 +44,16 @@ Some images need the following extra Docker options:
 - **GPUs:** `--gpus all` for `benchmark-vllm-gpu`, `nvbandwidth`, and
   `llama.cpp`, and for the GPU runs of `benchmark-llm` and `benchmark-ffmpeg`.
 - **Shared memory:** `--shm-size=4g` for the `benchmark-vllm-*` images, which
-  fail with Docker's default 64&nbsp;MiB `/dev/shm`.
-- **Privileged mode:** `--privileged` for `dmidecode`, `hwinfo`, and `virtualization`,
-  and for the images that raise their priority with `nice -n -20`:
+  fail with Docker's default 64 MiB `/dev/shm`.
+- **Privileged mode:** `--privileged` for `dmidecode`, `hwinfo`, and
+  `virtualization`, and for the images that raise their priority with
+  `nice -n -20`:
   `benchmark`, `benchmark-passmark`, `benchmark-pgbench-postgres`,
   `benchmark-postgres-server`, `benchmark-redis`, and `benchmark-web`. Without
   it, the `nice` images run at normal priority.
 - **Disk access:** `--privileged --pid=host` for `benchmark-storage`. It
   unmounts and overwrites every disk it may write to, so do not run it on a
-  machine with data you need.
+  machine with data to keep.
 
 ## Images
 
@@ -97,22 +102,25 @@ output.
 | [`resource-tracker`](images/resource-tracker) | The resource-tracker binary of Spare Cores Navigator, copied into the other images to record resource usage while benchmarks run. |
 | [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 but no AVX-512, used as the base of benchmark-vllm-cpu-avx2. |
 
-Some images share one manual, and their READMEs cover only what differs. The
-[vLLM benchmarks manual](vllm-common) in `vllm-common/`, which is not a published image,
-covers the `benchmark-vllm-*` images. `benchmark-pgbench-postgres` covers
-`benchmark-postgres-server`, and `stress-ng` covers `stress-ng-longrun`.
+The following docs cover more than one image. Where a covered image has its
+own README, that README describes only what differs:
+
+- The [vLLM benchmarks manual](./vllm-common) in `vllm-common/`, which is not
+  a published image, covers the `benchmark-vllm-*` images.
+- The `benchmark-pgbench-postgres` docs cover `benchmark-postgres-server`.
+- The `stress-ng` docs cover `stress-ng-longrun`.
 
 ## Contributing
 
 See the following pages for maintaining and extending the
 [`sc-images`](https://github.com/SpareCores/sc-images) repository:
 
-- [Adding an Image](docs/contributors.md): the folder layout, the metadata
+- [Adding an Image](./docs/contributors.md): the folder layout, the metadata
   files that control each image's build, and how dependencies are ordered.
-- [CI and Build Internals](docs/ci.md): how CI builds, caches, tracks, and
+- [CI and Build Internals](./docs/ci.md): how CI builds, caches, tracks, and
   publishes the images.
 
 ## License
 
 The `sc-images` repository is licensed under the
-[Mozilla Public License 2.0](LICENSE).
+[Mozilla Public License 2.0](./LICENSE).
