@@ -57,7 +57,7 @@ same data, not one multithreaded compressor working on shared data.
 
 ## Output
 
-`compress.py` prints one indented JSON object,
+The `compress.py` script prints one indented JSON object,
 `{<compressor>: {<level>: [<result>, ...]}}`. Levels are string keys, and
 `bzip3`, which has no level, uses the key `"null"`. Each result has the
 following fields:

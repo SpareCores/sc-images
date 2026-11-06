@@ -103,7 +103,7 @@ all options and defaults:
 
 - `SC_DB_HOST`, `SC_DB_PORT`, `SC_DB_USER`, and `SC_DB_PASSWORD` configure a
   remote connection; leave `SC_DB_PORT` and `SC_DB_USER` unset in standalone
-  mode. `SC_DB_SSLMODE` sets the SSL (Secure Sockets
+  mode. The `SC_DB_SSLMODE` variable sets the SSL (Secure Sockets
   Layer) mode for the
   dataset restore and dump connections and the connection that drops and
   recreates the benchmark database, not for `pgbench`.
@@ -126,16 +126,16 @@ the run. The JSON object's main fields are the following:
 - `score` is the highest TPM result; `score_unit` is `tpm`, and
   `peak_concurrency` is the client count for that result.
 - Each `sizes[]` entry represents a workload size and has its own score and
-  `profile`. `pgbench_ro` entries identify `cpu_scale`; `pgbench_tpcb` entries
-  identify `scalefactor`.
-- Each `profile[]` entry is one concurrency measurement. `concurrency` is the
-  client count and `jobs` is the worker count. For `pgbench_ro`,
+  `profile`. Entries of `pgbench_ro` identify `cpu_scale`; entries of
+  `pgbench_tpcb` identify `scalefactor`.
+- Each `profile[]` entry is one concurrency measurement. The `concurrency` field is
+  the client count and `jobs` is the worker count. For `pgbench_ro`,
   [`benchmark.py`](./benchmark.py) uses fixed points `{1, V/2, V, 2·V}`, where
   `V` is the database vCPU count (`V/2` rounded down), and caps worker jobs at
   32. For how `pgbench_tpcb` picks its client counts, see
   [`pgbench_tpcb`](./docs/workloads.md#pgbench_tpcb).
 - `latency_ms` contains sampled p50, p95, and p99 (50th, 95th, and 99th
-  percentile) latency and an average, in milliseconds. The harness samples 1% of
+  percentile) latency and an average in milliseconds. The harness samples 1% of
   transaction latency logs.
 - `schema_gib` (`0.17`) in `pgbench_ro` output is a legacy constant, not the
   dataset size; the restored database is about 303 MiB.
@@ -144,11 +144,11 @@ the run. The JSON object's main fields are the following:
 
 The image supports the following workloads with different transaction patterns:
 
-- [`pgbench_ro`](./docs/workloads.md#pgbench_ro) (default) runs a custom,
+- **[`pgbench_ro`](./docs/workloads.md#pgbench_ro) (default):** Runs a custom,
   read-only transaction over a fixed schema, spreading work across eight
-  PostgreSQL subsystems. `SC_CPU_SCALE` changes transaction work without
-  resizing the schema.
-- [`pgbench_tpcb`](./docs/workloads.md#pgbench_tpcb) runs
+  PostgreSQL subsystems. The `SC_CPU_SCALE` variable changes transaction work
+  without resizing the schema.
+- **[`pgbench_tpcb`](./docs/workloads.md#pgbench_tpcb):** Runs
   [`pgbench`](https://www.postgresql.org/docs/current/pgbench.html)'s built-in
   `tpcb-like` transaction mix against a schema initialized at one or more scale
   factors. It is disk-limited and not used in production.

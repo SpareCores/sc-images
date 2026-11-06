@@ -17,10 +17,11 @@ on ephemeral servers.
 
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
 empirical performance measurements for over 5,000 cloud server types, such as
-raw CPU speed, memory bandwidth, and LLM (Large Language Model) inference
-speed. This benchmark adds storage performance: the Navigator will publish
-bandwidth and IOPS at different block sizes, both per disk and for each group
-of identical disks.
+[raw CPU speed](../stress-ng/README.md),
+[memory bandwidth](../benchmark/docs/bw-mem.md), and
+[LLM inference speed](../benchmark-llm/README.md). This benchmark adds storage
+performance: the Navigator will publish bandwidth and IOPS at different block
+sizes, both per disk and for each group of identical disks.
 
 This benchmark focuses on a server type's bundled storage: the disk or disks
 provisioned with the server type by default, regardless of whether an HDD (Hard
@@ -101,10 +102,10 @@ for all options and defaults:
   unmounting it.
 - `SC_STORAGE_PURGE=0` skips the discard (`blkdiscard`) before the fill.
 - `SC_STORAGE_RUNTIME_S` and `SC_STORAGE_WRITE_RUNTIME_S` set the measured
-  seconds per read test (default `10`) and per write test (default `30`).
-- `SC_STORAGE_FILL_BUDGET_S` sets the total sequential-fill time (default
+  seconds per read test (default: `10`) and per write test (default: `30`).
+- `SC_STORAGE_FILL_BUDGET_S` sets the total sequential-fill time (default:
   `300`), and `SC_STORAGE_BUDGET_S` the target for the estimated test time
-  (default `2400`).
+  (default: `2400`).
 
 ### Results
 
@@ -112,19 +113,19 @@ This benchmark prints one JSON document to stdout when the run ends, and a
 timestamped progress log with per-test IOPS, MiB/s, and 99th-percentile latency
 to stderr. The JSON document's main fields are the following:
 
-- `inventory` lists each disk with its model, size, and transport. `mode` is
-  `read_write` or `read_only`, and `mode_reason` says why.
+- `inventory` lists each disk with its model, size, and transport. The `mode` field
+  is `read_write` or `read_only`, and `mode_reason` says why.
 - `groups` lists the groups of identical disks, each with its members and the
   `representative` that runs the single-disk tests.
 - Each `benchmarks[]` entry is one test, named
   `<kind>_<block size>_qd<queue depth>`, for example `randread_4k_qd256`.
-  `scope` is `single` or `group`.
+  The `scope` field is `single` or `group`.
 - `read` and `write` hold `iops`, `bw_bytes` (bytes per second), and `lat_ns`,
-  whose `percentiles` are latencies in nanoseconds. `iops_interval` and
-  `bw_bytes_interval` summarize 500 ms windows, including `tail_mean`, the
-  mean of the second half of the run.
-- `preconditioning` holds the fill and random-write steps. `filled_fraction`
-  shows how much of each disk the fill wrote.
+  whose `percentiles` are latencies in nanoseconds. The `iops_interval` and
+  `bw_bytes_interval` fields summarize 500 ms windows, including `tail_mean`,
+  the mean of the second half of the run.
+- `preconditioning` holds the fill and random-write steps. The `filled_fraction`
+  field shows how much of each disk the fill wrote.
 - `skipped` lists every test that did not run, with the reason.
 
 See [Output](./docs/usage.md#output) for every field and its unit.
@@ -134,13 +135,13 @@ See [Output](./docs/usage.md#output) for every field and its unit.
 [`benchmark.py`](./benchmark.py) runs the following kinds of tests for each
 group of identical disks:
 
-- [Preconditioning](./docs/workloads.md#preconditioning) discards and fills
+- **[Preconditioning](./docs/workloads.md#preconditioning):** Discards and fills
   each writable disk sequentially, and later writes it randomly before the
   random-write tests.
-- [Single-disk tests](./docs/workloads.md#single-disk-tests) run random reads
-  and writes at eight block sizes, sequential reads and writes, and 70/30 mixed
+- **[Single-Disk Tests](./docs/workloads.md#single-disk-tests):** Run random
+  reads and writes at eight block sizes, sequential reads and writes, and 70/30 mixed
   I/O on one representative disk.
-- [Group tests](./docs/workloads.md#group-tests) run random and sequential
+- **[Group Tests](./docs/workloads.md#group-tests):** Run random and sequential
   reads on all disks of a group at once, and writes when at least two disks are
   writable.
 

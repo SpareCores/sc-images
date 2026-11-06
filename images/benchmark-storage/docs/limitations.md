@@ -74,8 +74,8 @@ region of each disk.
 
 This benchmark overwrites every disk it may write to, and does not
 remount the filesystems it unmounts. Run it only on ephemeral servers, never on
-production or similar systems. `SC_STORAGE_UMOUNT=0` leaves mounted disks
-alone, but disks that are not in use are always overwritten. See
+production or similar systems. The `SC_STORAGE_UMOUNT=0` setting leaves mounted
+disks alone, but disks that are not in use are always overwritten. See
 [Disk Safety](./usage.md#disk-safety).
 
 ### Time Budget

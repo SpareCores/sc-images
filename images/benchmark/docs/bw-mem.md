@@ -36,13 +36,13 @@ not run; `rd`, `wr`, and `rdwr` allocate one buffer of the given size.
 
 ## `bw_mem` Version
 
-`bw_mem` comes from Ubuntu 24.04's `lmbench` package, whose version may differ
-from the upstream LMbench source.
+The `bw_mem` program comes from Ubuntu 24.04's `lmbench` package, whose version
+may differ from the upstream LMbench source.
 
 ## Output
 
-`bw_mem.sh` prints one line per successful run, `<op> <size> <bandwidth>`,
-such as `rd 0.016384 147885.61`:
+The `bw_mem.sh` script prints one line per successful run,
+`<op> <size> <bandwidth>`, such as `rd 0.016384 147885.61`:
 
 - `<op>` is `rd`, `wr`, or `rdwr`.
 - `<size>` is the per-process buffer size in MB of 10^6 bytes, so `16k`

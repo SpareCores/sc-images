@@ -70,8 +70,8 @@ The harness runs PassMark at the highest scheduling priority
 grants. Production runs the container the same way and also sets host
 networking (`--network host`).
 
-The entrypoint runs this benchmark under `resource-tracker`, which samples
-resource usage during the run. Its data is not published.
+The container entrypoint runs this benchmark under `resource-tracker`, which
+samples resource usage during the run. Its data is not published.
 
 The image is built for `amd64` and `arm64`. A run took about 3 minutes on
 `aws/a1.2xlarge`
