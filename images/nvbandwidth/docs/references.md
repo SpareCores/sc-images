@@ -19,5 +19,5 @@ also lists the terms each image uses.
   test case between GPUs is waived rather than run when no two GPUs of the
   system have P2P (Peer-to-Peer) access to each other, as on a system with
   one GPU.
-  `nvbandwidth -l` lists the test cases of a build.
+  The `nvbandwidth -l` command lists the test cases of a build.
   [Official documentation](https://github.com/NVIDIA/nvbandwidth/blob/v0.8/README.md)

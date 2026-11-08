@@ -54,7 +54,7 @@ the `GEEKBENCH_UPLOAD_DOCUMENT` block.
 
 ## Output
 
-`geekbench.sh` writes the following:
+The `geekbench.sh` script writes the following:
 
 - **stdout:** Geekbench's console report: system information, then the
   Single-Core and Multi-Core tables of each workload's score and rate. It ends

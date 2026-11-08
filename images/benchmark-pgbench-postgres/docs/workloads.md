@@ -2,8 +2,8 @@
 
 ## `pgbench_ro`
 
-`pgbench_ro` is a custom read-only workload with one transaction composed of
-eight query blocks. They exercise joins, aggregation, indexes, full-text search,
+The `pgbench_ro` workload is a custom read-only workload with one transaction
+composed of eight query blocks. They exercise joins, aggregation, indexes, full-text search,
 arrays, and other PostgreSQL subsystems to emphasize CPU work rather than disk
 I/O (Input/Output). The setup script, [`ro_cpu_setup.sql`](../ro_cpu_setup.sql),
 creates the following test data, which takes about 303 MiB including indexes on
@@ -23,11 +23,11 @@ PostgreSQL 18:
 </p>
 
 The harness invokes `pgbench` with `-D scale=N` and `-f`
-[`ro_cpu_txn.sql`](../ro_cpu_txn.sql). `-D scale=N` multiplies most block widths
-inside the transaction (wider slices, bigger joins) without touching the
-underlying dataset, so a single fixed schema can represent a range of CPU
-intensities. Total work grows sub-linearly, because some blocks have fixed
-costs.
+[`ro_cpu_txn.sql`](../ro_cpu_txn.sql). The `-D scale=N` option multiplies most
+block widths inside the transaction (wider slices, bigger joins) without
+touching the underlying dataset, so a single fixed schema can represent a range
+of CPU intensities. Total work grows sub-linearly, because some blocks have
+fixed costs.
 
 The workload uses fixed concurrency points `{1, V/2, V, 2·V}`, set in
 [`benchmark.py`](../benchmark.py), where `V` is the database vCPU count,
