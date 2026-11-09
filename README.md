@@ -1,11 +1,11 @@
 # sc-images
 
-Spare Cores container images inspect the hardware of cloud servers and
-benchmark their performance for the
+Spare Cores container images collect details about cloud server hardware and
+benchmark server performance for the
 [Spare Cores Navigator](https://docs.sparecores.com/overview). The Navigator's
-[Inspector](https://github.com/SpareCores/sc-inspector) runs them on cloud
-servers, and the results are published in the Navigator, which lists over
-5,000 cloud server types.
+[Inspector](https://github.com/SpareCores/sc-inspector) runs these images on
+cloud servers and publishes the results in the Navigator, which lists more
+than 5,000 cloud server types.
 
 Each image is built for `amd64` and `arm64` unless its docs say otherwise. The
 docs of each image can be found linked from the [image list](#images),
