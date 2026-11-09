@@ -28,35 +28,43 @@ Other images need extra parameters, such as environment variables or Docker
 options. The command and parameters that production passes to each image are
 in
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
-in the `sc-inspector` repository. An image's README, where it has one, lists its settings, its output, and any
-extra Docker options it needs; otherwise, see its `Dockerfile`.
-
-Benchmark
-images run their workload under
-[`resource-tracker`](https://github.com/SpareCores/resource-tracker-rs), which
-samples CPU, memory, disk, network, and GPU usage once per second.
+in the `sc-inspector` repository. Where an image has docs, its main page
+lists its settings, its output, and any extra Docker options it needs;
+otherwise, see its `Dockerfile`.
 
 Some images need the following extra Docker options:
 
 - **GPUs:** `--gpus all` for `benchmark-vllm-gpu`, `nvbandwidth`, and
   `llama.cpp`, and for the GPU runs of `benchmark-llm` and `benchmark-ffmpeg`.
-- **Shared memory:** `--shm-size=4g` for the `benchmark-vllm-*` images, which
-  fail with Docker's default 64 MiB `/dev/shm`.
-- **Privileged mode:** `--privileged` for `dmidecode`, `hwinfo`, and
-  `virtualization`, and for the images that raise their priority with
-  `nice -n -20`:
-  `benchmark`, `benchmark-passmark`, `benchmark-pgbench-postgres`,
-  `benchmark-postgres-server`, `benchmark-redis`, and `benchmark-web`. Without
-  it, the `nice` images run at normal priority.
+- **Shared memory:** `--shm-size=4g` for benchmarks of the
+  [vLLM family](./vllm-common), which fail with Docker's default 64 MiB
+  `/dev/shm`.
+- **Privileged mode:** `--privileged` for the following images:
+  - **Hardware discovery:**
+    - `dmidecode`
+    - `hwinfo`
+    - `virtualization`
+  - **High priority:** raise their priority with `nice -n -20`, and run at
+    normal priority without `--privileged`:
+    - `benchmark`
+    - `benchmark-passmark`
+    - `benchmark-pgbench-postgres`
+    - `benchmark-postgres-server`
+    - `benchmark-redis`
+    - `benchmark-web`
 - **Disk access:** `--privileged --pid=host` for `benchmark-storage`. It
   unmounts and overwrites every disk it may write to, so do not run it on a
   machine with data to keep.
 
+Benchmark images run their workload under
+[`resource-tracker`](https://github.com/SpareCores/resource-tracker-rs), which
+samples CPU, memory, disk, network, and GPU usage once per second.
+
 ## Images
 
-The following tables list the images by their `CATEGORY`. Where an image has a
-README, it covers what the image measures, how to run it, and how to read its
-output.
+The following tables list the images by their `CATEGORY`. Where an image has
+docs, its main page covers what the image measures, how to run it, and how to
+read its output.
 
 ### Benchmarks
 
@@ -99,11 +107,11 @@ output.
 | [`resource-tracker`](images/resource-tracker) | The resource-tracker binary of Spare Cores Navigator, copied into the other images to record resource usage while benchmarks run. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/resource-tracker/) |
 | [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 (Advanced Vector Extensions 2) but no AVX-512 (Advanced Vector Extensions 512), used as the base of benchmark-vllm-cpu-avx2. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/vllm-cpu-base-avx2/) |
 
-The following docs cover more than one image. Where a covered image has its
-own README, that README describes only what differs:
+The following docs cover more than one image. Where a covered image has a main
+page of its own, that page describes only what differs:
 
 - The [vLLM benchmarks manual](./vllm-common) in `vllm-common/`, which is not
-  a published image, covers the `benchmark-vllm-*` images.
+  a published image, covers the vLLM family's benchmarks.
 - The `benchmark-pgbench-postgres` docs cover `benchmark-postgres-server`.
 - The `stress-ng` docs cover `stress-ng-longrun`.
 
