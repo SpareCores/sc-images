@@ -2,7 +2,7 @@
 
 ## Running the Image
 
-The image's entrypoint runs `sh` under `resource-tracker`, and has no default
+The container entrypoint runs `sh` under `resource-tracker`, and has no default
 command. Pass the command to run with `-c`:
 
 ```bash
@@ -26,8 +26,9 @@ command, such as `-c 'stress-ng --cpu 1 -t 10 --metrics'`.
 
 The Navigator's Inspector runs this image in two production tasks, each with
 `--privileged` and `--network host`, and with the command under
-`nice -n -20`. `nice -n -20` needs `--privileged`; a plain run, without
-`nice`, runs at normal priority. The image itself does not set a priority.
+`nice -n -20`. The `nice -n -20` command needs `--privileged`; a plain run,
+without `nice`, runs at normal priority. The image itself does not set a
+priority.
 
 The stressor suite runs as follows:
 
@@ -79,8 +80,8 @@ indented with two spaces. It has the following fields:
 | `meta.physical_cpus` | integer | Worker count of the multi-worker runs: the number of logical CPUs available to the container |
 | `meta.stressor_count` | integer | Number of stressors run, after `STRESSNG_LIMIT` |
 
-`categories` is not shortened by `STRESSNG_LIMIT`, so it can list stressors
-that did not run.
+The `categories` field is not shortened by `STRESSNG_LIMIT`, so it can list
+stressors that did not run.
 
 The following is an excerpt from a production run on a server with 2 vCPUs:
 

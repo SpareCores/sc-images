@@ -17,7 +17,8 @@ headline score.
 empirical performance measurements for more than 5,000 cloud server types.
 Media businesses often run video and audio transcoding and similar tasks in the
 cloud, because their compute needs change over time. The Navigator previously
-covered this kind of work only through proxies from the Geekbench suite: photo
+covered this kind of work only through proxies from the
+[Geekbench suite](../benchmark/docs/geekbench.md): photo
 editing, ray tracing, and document rendering.
 
 This benchmark measures transcoding directly. It runs many single-threaded jobs
@@ -84,13 +85,13 @@ The following settings are the most common; see the
 for all options and defaults:
 
 - `FFMPEG_BENCH_TARGET_SECONDS` sets the wall time of each measured repetition
-  (default 5s).
+  (default: 5s).
 - `FFMPEG_BENCH_REPETITIONS` and `FFMPEG_BENCH_MAX_REPETITIONS` set how many
-  repetitions run at each worker count (default three, up to five).
+  repetitions run at each worker count (default: three, up to five).
 - `FFMPEG_BENCH_WORKERS` replaces the automatic worker counts with an explicit,
   comma-separated list.
 - `FFMPEG_BENCH_MAX_WORKERS` caps the number of parallel workers.
-- `FFMPEG_BENCH_TIMEOUT_SECONDS` sets the deadline for the whole run (default
+- `FFMPEG_BENCH_TIMEOUT_SECONDS` sets the deadline for the whole run (default:
   7,200s).
 
 ### Results
@@ -106,8 +107,8 @@ stderr. The main fields of the JSON line are the following:
 - Each `repetitions[]` entry is one measurement at that worker count. Video
   repetitions report `aggregate_fps` (frames per second across all workers) and
   `processed_frames`; audio repetitions report `audio_seconds_per_sec` and
-  `processed_audio_seconds`. `wall_time_sec` is the time from the shared start
-  to the last worker's exit.
+  `processed_audio_seconds`. The `wall_time_sec` field is the time from the
+  shared start to the last worker's exit.
 - `successful_workers`, `failed_workers`, and `timed_out_workers` describe each
   repetition. A failed worker contributes no media, but its time still counts.
 - There is no score, peak, or median: aggregate the repetitions yourself, for
@@ -124,13 +125,13 @@ check `skipped`, `skip_reason`, and `failed_workers` in the output.
 
 All scenarios run by default, in the following groups:
 
-- [Audio encoding](./docs/workloads.md#audio-encoding): Vorbis, Opus, AAC
+- **[Audio Encoding](./docs/workloads.md#audio-encoding):** Vorbis, Opus, AAC
   (Advanced Audio Coding), MP3,
   and FLAC (Free Lossless Audio Codec) encodes of one
   music sample, on the CPU.
-- [CPU video](./docs/workloads.md#cpu-video): H.264 and H.265 encoding and
+- **[CPU Video](./docs/workloads.md#cpu-video):** H.264 and H.265 encoding and
   decoding of one film clip, with one codec thread per job.
-- [NVIDIA video](./docs/workloads.md#nvidia-video): the same H.264 and H.265
+- **[NVIDIA Video](./docs/workloads.md#nvidia-video):** The same H.264 and H.265
   encoding and decoding on NVIDIA GPUs, with NVENC
   (NVIDIA Video Encoder)
   and NVDEC

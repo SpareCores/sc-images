@@ -63,8 +63,8 @@ priority (`nice -n -20`), which needs the `CAP_SYS_NICE` capability that
 sets host networking (`--network host`); this benchmark's traffic itself stays
 on loopback inside the container.
 
-The entrypoint runs this benchmark under `resource-tracker`, which samples
-resource usage during the run. Its data is not published.
+The container entrypoint runs this benchmark under `resource-tracker`, which
+samples resource usage during the run. Its data is not published.
 
 Measurement takes 60 seconds (six configurations of 10 seconds each), plus
 server startup and a flush of all servers before each configuration.
@@ -109,15 +109,15 @@ pipeline 1 to 685,686 at pipeline 512, while `latency` rises from 1.43 ms to
 
 The Navigator publishes the following three scores for each pipeline depth:
 
-- **Redis server+client speed:** `rps`, in operations per second.
+- **Redis server+client speed:** `rps` in operations per second.
 - **Redis server (extrapolated) speed:** `rps` multiplied by the ratio of all
-  CPU time (servers and clients) to the servers' CPU time, in operations per
+  CPU time (servers and clients) to the servers' CPU time in operations per
   second.
-- **Redis latency:** `latency`, in milliseconds; lower is better.
+- **Redis latency:** `latency` in milliseconds; lower is better.
 
 Each score carries a note with the server and client CPU seconds. Production
-records the Redis version from `redis-server -v`. `memtier_benchmark` is
-installed from the Redis package repository without a version pin, so a
+records the Redis version from `redis-server -v`. The `memtier_benchmark` tool
+is installed from the Redis package repository without a version pin, so a
 rebuild of the image can change it, and production does not record its
 version.
 
@@ -141,7 +141,7 @@ harness runs the following steps:
    memtier_benchmark -4 -p <port> --ratio=1:0 --test-time=10 --hide-histogram -t 1 --pipeline=<depth>
    ```
 
-   `--ratio=1:0` sends SET operations only.
+   The `--ratio=1:0` option sends SET operations only.
 4. Wait for every client to exit, read the SET results from each client's
    summary table, and record the CPU times again.
 

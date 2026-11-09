@@ -18,7 +18,7 @@ CI auto-discovers every folder under `images/` (any dir with a `Dockerfile` or `
 
 [`resolve-build-plan.sh`](../.github/scripts/resolve-build-plan.sh) topologically sorts folders by `DEPENDS_ON` into levels (0 = no deps). [`push.yml`](../.github/workflows/push.yml) builds each level via the reusable [`build-level.yml`](../.github/workflows/build-level.yml) and publishes it before the next, so a dependency is always available as a base image; [`read-image-config.sh`](../.github/scripts/read-image-config.sh) resolves each folder's config at build time. No image names are hardcoded in the workflow.
 
-Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; `benchmark-vllm-cpu-avx2` also depends on `vllm-cpu-base-avx2` (source-compiled via `prepare.sh`). `benchmark-vllm-gpu` uses Hub `vllm/vllm-openai` for amd64 and arm64. Add a new dependent image by dropping a folder in `images/` with a `DEPENDS_ON` file.
+Example: every `benchmark-*` image has `DEPENDS_ON: resource-tracker`; the `benchmark-vllm-cpu-avx2` image also depends on `vllm-cpu-base-avx2` (source-compiled via `prepare.sh`). The `benchmark-vllm-gpu` image uses Hub `vllm/vllm-openai` for amd64 and arm64. Add a new dependent image by dropping a folder in `images/` with a `DEPENDS_ON` file.
 
 See [CI and Build Internals](ci.md) for how CI builds, caches, tracks, and publishes the images.
 
@@ -48,3 +48,14 @@ The terms of the vLLM benchmarks are defined in their
 ```
 
 A term that pages outside its folder use, such as other images, the Benchmarks section or the Crawler docs, belongs in `glossary.yaml`. The docs build warns about such terms, and about a README without a link to its own `references.md`.
+
+## Navigator Charts
+
+To show a chart of the Spare Cores Navigator on [docs.sparecores.com](https://docs.sparecores.com/images), put an `<!-- embed -->` marker on its own line, right above a link to the chart's embed URL (the `src` of the embed code the Navigator gives):
+
+```md
+<!-- embed height=517px -->
+[GPU Bandwidth and Latency of ecs.gn5-c4g1.xlarge](https://sparecores.com/embed/server/alicloud/ecs.gn5-c4g1.xlarge/nvbandwidth)
+```
+
+GitHub hides the marker and shows the link; the docs site shows the chart instead, with the link text as its title for screen readers. The height is optional (500px by default); the docs site sets the rest of the style. A marker that isn't right above such a link, or has an unknown or invalid setting, leaves the link as it is, and the docs build warns about it.

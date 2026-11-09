@@ -67,7 +67,7 @@ output.
 | ----- | ----------- |
 | [`benchmark`](images/benchmark) | General CPU, memory, and compression benchmarks: Geekbench 6 scores, OpenSSL speed throughput, LMbench bw_mem memory bandwidth, and compression ratio and throughput on a Silesia corpus text file. |
 | [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | FFmpeg benchmark of aggregate transcoding throughput: frames per second for H.264/H.265 video encoding and decoding on CPUs and NVIDIA GPUs, and audio seconds processed per second for audio encoding on CPUs. |
-| [`benchmark-llm`](images/benchmark-llm) | Low-concurrency LLM inference speed benchmark with llama.cpp's llama-bench, measuring prompt processing and text generation across models and token counts. |
+| [`benchmark-llm`](images/benchmark-llm) | Single-stream LLM inference speed benchmark with llama.cpp's llama-bench, measuring prompt processing and text generation in tokens per second for six models at several token counts, on CPUs and NVIDIA GPUs. |
 | [`benchmark-passmark`](images/benchmark-passmark) | PassMark PerformanceTest benchmark of CPU and memory performance, reporting the CPU Mark and Memory Mark composite scores and the individual test results behind them. |
 | [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per minute and latency against a local or remote server. |
 | [`benchmark-redis`](images/benchmark-redis) | Redis 7.4 SET throughput and latency benchmark with memtier_benchmark, one server and client pair per CPU. |
@@ -76,7 +76,7 @@ output.
 | [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without AVX-512 (Advanced Vector Extensions 512), measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
 | [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on NVIDIA GPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. |
 | [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. |
-| [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory bandwidth benchmark with nvbandwidth, measuring host-to-device and device-to-device copy speeds. |
+| [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory copy bandwidth and latency benchmark with nvbandwidth, measuring copies between the host CPU and each GPU, between GPUs, and within one GPU. |
 | [`stress-ng`](images/stress-ng) | CPU, memory, and kernel-heavy workload benchmark with stress-ng, measuring bogo ops/s for 85 stressors on one and on all CPUs, and the multi-core scaling of the cpu stressor. |
 | [`stress-ng-longrun`](images/stress-ng-longrun) | Pinned stress-ng version for the 24-hour long-running benchmark. |
 
