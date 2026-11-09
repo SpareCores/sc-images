@@ -1,18 +1,15 @@
 # sc-images
 
-Container images that inspect hardware and benchmark the performance of cloud
-servers for [Spare Cores Navigator](https://docs.sparecores.com/overview). Its
-[Inspector](https://github.com/SpareCores/sc-inspector) runs them on each server
-type, and the Navigator publishes the results for over 5,000 cloud server
-types.
+Spare Cores container images inspect the hardware of cloud servers and
+benchmark their performance for the
+[Spare Cores Navigator](https://docs.sparecores.com/overview). The Navigator's
+[Inspector](https://github.com/SpareCores/sc-inspector) runs them on cloud
+servers, and the results are published in the Navigator, which lists over
+5,000 cloud server types.
 
-Each folder under [`images/`](images) is published as
-`ghcr.io/sparecores/<folder>:main`, built for amd64 and arm64 unless its
-README says otherwise. Each image's docs are at
-`https://docs.sparecores.com/images/<image>/`, linked from the
-[image list](https://docs.sparecores.com/images/). The GHCR (GitHub Container
-Registry) package page of every image shows this overview instead of the
-image's own docs.
+Each image is built for `amd64` and `arm64` unless its docs say otherwise. The
+docs of each image can be found linked from the [image list](#images),
+published at `https://docs.sparecores.com/images/<image>/`.
 
 ## Usage
 
@@ -31,10 +28,10 @@ Other images need extra parameters, such as environment variables or Docker
 options. The command and parameters that production passes to each image are
 in
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
-in the `sc-inspector` repository.
+in the `sc-inspector` repository. An image's README, where it has one, lists its settings, its output, and any
+extra Docker options it needs; otherwise, see its `Dockerfile`.
 
-An image's README, where it has one, lists its settings, its output, and any
-extra Docker options it needs; otherwise, see its `Dockerfile`. Benchmark
+Benchmark
 images run their workload under
 [`resource-tracker`](https://github.com/SpareCores/resource-tracker-rs), which
 samples CPU, memory, disk, network, and GPU usage once per second.
