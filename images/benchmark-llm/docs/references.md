@@ -1,9 +1,9 @@
 # References
 
 Terms specific to this image, alphabetized. Common terms, such as CUDA (Compute
-Unified Device Architecture), GGUF (GGML Universal File), and token, are
-defined in the [glossary](https://docs.sparecores.com/glossary) of the Spare
-Cores docs, which also lists the terms each image uses.
+Unified Device Architecture) and GGUF (GGML Universal File), are defined in the
+[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs, which
+also lists the terms each image uses.
 
 - **`-b`**: The llama.cpp option that sets the logical batch size: the maximum
   number of prompt tokens passed to the model in one call. Each logical batch
@@ -46,3 +46,7 @@ Cores docs, which also lists the terms each image uses.
   depending on the tokens before it. Every step reads all model weights and the
   key-value cache, so this phase is usually limited by memory bandwidth rather
   than compute, and runs much slower per token than prompt processing.
+- **token**, **tokens**: The unit of text that an LLM reads and writes, as
+  defined by the model's tokenizer, such as a word, part of a word, or a
+  punctuation mark. Prompt and output lengths are counted in tokens, and LLM
+  inference speed is usually measured in tokens per second.

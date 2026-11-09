@@ -26,7 +26,7 @@ See [CI and Build Internals](ci.md) for how CI builds, caches, tracks, and publi
 
 Spell out an acronym on its first use in each page, as `CRF (Constant Rate Factor)` or `Constant Rate Factor (CRF)`, without linking the expansion: put the link in the term's glossary entry instead. On [docs.sparecores.com](https://docs.sparecores.com/glossary), a term spelled out like this gets a tooltip with its glossary entry, and the docs build warns when the expansion differs from the glossary, links to a URL its glossary entry has already, or an image's docs never spell out a term they use.
 
-Common terms (e.g. AWS, vCPU, SMT) are defined in the docs site's [glossary](https://docs.sparecores.com/glossary), `glossary.yaml` in sc-docusaurus: terms used in several sections or images, and general computing, cloud, and Spare Cores Navigator terms even if one image uses them. They get tooltips on every page of the docs and in the sparecores.com articles.
+Common terms (e.g. AWS, vCPU, SMT) are defined in the docs site's [glossary](https://docs.sparecores.com/glossary), `glossary.yaml` in sc-docusaurus: terms used in several sections or images, and general computing, cloud, and Spare Cores Navigator terms even if one image uses them. They get tooltips on every page of the docs and in the sparecores.com articles, so a common term must mean the same thing on every page: a term that means something else in another field, such as token or decoding, goes in the `references.md` of the images that use it.
 
 Define the terms of an image's own tool or method in its `docs/references.md`, and the terms that the images of a shared manual use, such as the vLLM options, in the manual's `docs/references.md` (e.g. `vllm-common/docs/references.md`). These terms get tooltips only on the pages of their folder, and on the pages of the images that link to that `references.md` from any of their pages, which is also how readers on GitHub find them. Two folders may define the same term differently, but not a common term. Use one bullet per term, alphabetized, with wrapped lines indented:
 
@@ -37,7 +37,7 @@ Define the terms of an image's own tool or method in its `docs/references.md`, a
   [SRT cookbook](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
 ```
 
-The expansion, the description and the trailing links are each optional, but an entry needs at least one of them; write commands and tools as inline code. The docs site replaces the page with one listing every glossary term the image's docs use, so the file itself only needs the image's own terms. Describe each term in itself, in one paragraph of 1–5 sentences, like a short encyclopedia entry: the Glossary page lists it under its image or manual, so don't describe the term in relation to an image.
+The expansion, the description and the trailing links are each optional, but an entry needs at least one of them; write commands and tools as inline code. Further bold forms after the term are its aliases, such as a plural: `- **token**, **tokens**: …`. The docs site replaces the page with one listing every glossary term the image's docs use, so the file itself only needs the image's own terms. Describe each term in itself, in one paragraph of 1–5 sentences, like a short encyclopedia entry: the Glossary page lists it under its image or manual, so don't describe the term in relation to an image.
 
 Link an image's own `references.md` from its README, and a shared one wherever the image uses its terms, e.g. in the References section of the README:
 
