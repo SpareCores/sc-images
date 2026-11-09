@@ -19,18 +19,17 @@ Run an image via Docker:
 docker run --rm ghcr.io/sparecores/<image>:main
 ```
 
-**Note:** Some images, such as `benchmark`, `stress-ng`, `dmidecode`, and
-`hwinfo`, have no default command, so append the command to run after the image
-name: a script such as `openssl.sh` for `benchmark`, or
-`-c 'stress-ng --cpu 1'` for `stress-ng`, whose entrypoint is `sh`.
+Some images have no default command. Append a command after the image name.
+For example, run `benchmark` with a script such as `openssl.sh`. The
+`stress-ng` image uses `sh` as its entrypoint, so pass the stressor with
+`-c 'stress-ng --cpu 1'`.
 
 Other images need extra parameters, such as environment variables or Docker
-options. The command and parameters that production passes to each image are
-in
+options. See the production commands and parameters in
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
-in the `sc-inspector` repository. Where an image has docs, its main page
-lists its settings, its output, and any extra Docker options it needs;
-otherwise, see its `Dockerfile`.
+in the `sc-inspector` repository. Each image's main page lists its settings,
+output, and any additional Docker options. For images without docs, see the
+image's `Dockerfile`.
 
 Some images need the following extra Docker options:
 
@@ -71,18 +70,18 @@ read its output.
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
 | [`benchmark`](images/benchmark) | General CPU, memory, and compression benchmarks: Geekbench 6 scores, OpenSSL speed throughput, LMbench bw_mem memory bandwidth, and compression ratio and throughput on a Silesia corpus text file. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark/) |
-| [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | FFmpeg benchmark of aggregate transcoding throughput: frames per second for H.264/H.265 video encoding and decoding on CPUs and NVIDIA GPUs, and audio seconds processed per second for audio encoding on CPUs. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-ffmpeg/) |
+| [`benchmark-ffmpeg`](images/benchmark-ffmpeg) | Measures aggregate FFmpeg transcoding throughput in frames per second for H.264 and H.265 video encoding and decoding on CPUs and NVIDIA GPUs, and in audio seconds processed per second for CPU audio encoding. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-ffmpeg/) |
 | [`benchmark-llm`](images/benchmark-llm) | Single-stream LLM inference speed benchmark with llama.cpp's llama-bench, measuring prompt processing and text generation in tokens per second for six models at several token counts, on CPUs and NVIDIA GPUs. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-llm/) |
 | [`benchmark-passmark`](images/benchmark-passmark) | PassMark PerformanceTest benchmark of CPU and memory performance, reporting the CPU Mark and Memory Mark composite scores and the individual test results behind them. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-passmark/) |
 | [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per minute and latency against a local or remote server. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-pgbench-postgres/) |
 | [`benchmark-redis`](images/benchmark-redis) | Redis 7.4 SET throughput and latency benchmark with memtier_benchmark, one server and client pair per CPU. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-redis/) |
-| [`benchmark-storage`](images/benchmark-storage) | Raw block device benchmark with fio, measuring the IOPS (Input/Output Operations Per Second), bandwidth, and latency of a server's bundled disks, per disk type and across identical disks at once. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-storage/) |
-| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX-512 (Advanced Vector Extensions 512) and on Arm64 CPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-vllm-cpu/) |
-| [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without AVX-512 (Advanced Vector Extensions 512), measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-vllm-cpu-avx2/) |
-| [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | High-concurrency LLM inference benchmark with vLLM and GuideLLM on NVIDIA GPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput, from one request at a time up to peak load. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-vllm-gpu/) |
+| [`benchmark-storage`](images/benchmark-storage) | Measures raw block device performance with fio, reporting IOPS (Input/Output Operations Per Second), bandwidth, and latency for one disk per group and for groups of identical disks. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-storage/) |
+| [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | LLM serving benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX-512 (Advanced Vector Extensions 512) and Arm64 CPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput at loads from one request at a time to peak. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-vllm-cpu/) |
+| [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | LLM serving benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without AVX-512 (Advanced Vector Extensions 512), measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput at loads from one request at a time to peak. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-vllm-cpu-avx2/) |
+| [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | LLM serving benchmark with vLLM and GuideLLM on NVIDIA GPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput at loads from one request at a time to peak. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-vllm-gpu/) |
 | [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/benchmark-web/) |
 | [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory copy bandwidth and latency benchmark with nvbandwidth, measuring copies between the host CPU and each GPU, between GPUs, and within one GPU. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/nvbandwidth/) |
-| [`stress-ng`](images/stress-ng) | CPU, memory, and kernel-heavy workload benchmark with stress-ng, measuring bogo ops/s for 85 stressors on one and on all CPUs, and the multi-core scaling of the cpu stressor. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/stress-ng/) |
+| [`stress-ng`](images/stress-ng) | Measures bogo ops/s for 85 CPU, memory, and kernel stressors with stress-ng, in single-worker and all-CPU runs, and measures CPU scaling as worker counts increase. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/stress-ng/) |
 | [`stress-ng-longrun`](images/stress-ng-longrun) | Pinned stress-ng version for the 24-hour long-running benchmark. | [![Docs](https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg)](https://docs.sparecores.com/images/stress-ng-longrun/) |
 
 ### Hardware Discovery

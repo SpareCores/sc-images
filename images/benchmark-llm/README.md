@@ -1,11 +1,10 @@
 # benchmark-llm
 
-This benchmark measures how fast a server runs LLM inference for one request
-stream at a time, with `llama-bench` from llama.cpp.
-It downloads six 4-bit quantized models, from 135 million to 70 billion
-parameters, and benchmarks them from smallest to largest. It runs on NVIDIA
-GPUs when the CUDA (Compute Unified Device Architecture) build of llama.cpp
-can start, and on the CPU otherwise.
+This benchmark measures single-stream LLM inference with `llama-bench` from
+llama.cpp. It downloads six 4-bit quantized models, ranging from 135 million
+to 70 billion parameters, and tests them from smallest to largest. It uses
+NVIDIA GPUs when the CUDA (Compute Unified Device Architecture) build of
+llama.cpp starts successfully; otherwise, it runs on the CPU.
 
 This benchmark reports speed in tokens per second for two tasks, prompt
 processing and text generation, each at several token counts. It prints one
@@ -23,12 +22,11 @@ list by one of these scores, and each server's details page charts all of
 them, for example
 [for `m7i.2xlarge`](https://sparecores.com/server/aws/m7i.2xlarge#llm_prompt_chart).
 
-We needed one method that runs on every server type, from servers with less
-than 1 GB of RAM to servers with terabytes of memory, hundreds of CPU cores,
-and several GPUs. We chose llama.cpp because it runs inference on both CPUs
-and GPUs with minimal tuning. Its project also publishes container images for
-AMD64 and Arm64, a CUDA build, and `llama-bench`, a configurable benchmark
-tool.
+We needed one method that could run on every server type, from hosts with less
+than 1 GB of RAM to hosts with terabytes of memory, hundreds of CPU cores, and
+several GPUs. We chose llama.cpp because it runs inference on both CPUs and
+GPUs with minimal tuning. The project also publishes container images for
+AMD64 and Arm64, a CUDA build, and the configurable `llama-bench` tool.
 
 For a single user, llama.cpp is often the fastest self-hosted option, so
 this benchmark measures one request stream at a time. For shared serving
@@ -78,8 +76,8 @@ caches them in `/models`, a Docker volume. See
 to reuse downloaded models.
 
 To run on NVIDIA GPUs, the host needs the NVIDIA driver and the
-NVIDIA Container Toolkit. Pass the GPUs to the container. Only the AMD64 variant of `:main` includes
-the CUDA build:
+NVIDIA Container Toolkit. Pass the GPUs to the container. Only the AMD64
+variant of `:main` includes the CUDA build:
 
 ```bash
 docker run --rm --gpus all ghcr.io/sparecores/benchmark-llm:main > results.jsonl
@@ -170,21 +168,23 @@ how slow servers skip larger token counts and models.
 
 ## Design History
 
-We picked a diverse set of widely used LLMs, from 135 million to 70 billion
-parameters, and use their 4-bit quantized versions, which need much less memory
-and load faster. We chose llama.cpp because it runs on both CPUs and GPUs,
-from the smallest to the largest server types, and pinned build `b4753`, the
-most recent at the time, which worked in our initial tests. We do not plan to
-update it: comparable results would need a rerun on every server type already
-measured, potentially costing tens of thousands of US dollars. We would
-reconsider if a newer build materially changed the performance difference
-between server types, not only the overall speed.
+We selected widely used LLMs ranging from 135 million to 70 billion
+parameters. Their 4-bit quantized versions use less memory and load faster.
+We chose llama.cpp because it runs on CPUs and GPUs across the full range of
+server types. We pinned build `b4753`, the latest build that worked in our
+initial tests.
 
-Slow servers cannot spend hours on long prompts, so the expected speed rises
-with the token count: 1 token/s can be acceptable for a short
-response, but not for batch processing of long inputs. In our experiments on
-several cloud server types, speed usually rose with the token count up to
-1,024 tokens, so early stops start only from there.
+We do not plan to update the pinned build: comparable results would require
+rerunning the benchmark on every server type already measured, potentially
+costing tens of thousands of US dollars. We would reconsider if a newer build
+materially changed the performance differences between server types, not just
+their overall speed.
+
+Long prompts can take hours to process on slow servers. We therefore expect
+speed to increase with token count: 1 token/s may be acceptable for a short
+response, but not for batch processing long inputs. In experiments across
+several cloud server types, speed usually increased with token count up to
+1,024 tokens, so early stops begin at that size.
 
 In production, speed and download time limit how many models a server
 completes. On an AWS `c7g.large`, the 7B model timed out on its first scenario
