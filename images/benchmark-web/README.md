@@ -201,5 +201,4 @@ of `wrk`, which give the CPU columns of the row.
 
 ## References
 
-Common terms, such as `binserve`, `wrk`, and HTTP, are defined in the
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs.
+See [References](./docs/references.md) for the terms specific to this image.

@@ -5,12 +5,23 @@ Terms specific to this image, alphabetized. Common terms (e.g. PassMark, `nice`,
 [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs, which
 also lists the terms each image uses.
 
+- **CPU Mark**: The overall CPU score of PassMark PerformanceTest. It combines
+  the results of the CPU tests, such as integer and floating-point math, prime
+  numbers, sorting, encryption, compression, physics, and a single-threaded
+  test, into one unitless number, where higher is better. PassMark Software
+  publishes CPU Mark results submitted by users for thousands of processors.
+  [PassMark CPU Benchmarks](https://www.cpubenchmark.net/)
 - **Kops/s** (Thousand Operations/s): The throughput unit of the PassMark
   database operations test: thousands of operations per second, where higher is
   better.
 - **Kstrings/s** (Thousand Strings/s): The throughput unit of the PassMark
   string sorting test: thousands of strings sorted per second, where higher is
   better.
+- **Memory Mark**: The overall memory score of PassMark PerformanceTest. It
+  combines the results of the memory tests, such as database operations, cached
+  and uncached reads, writes, and latency, into one unitless number, where
+  higher is better.
+  [PassMark Memory Benchmarks](https://www.memorybenchmark.net/)
 - **Mmat/s** (Million Matrices/s): The throughput unit of the PassMark
   extended instructions test: millions of matrices processed per second, where
   higher is better.
