@@ -33,12 +33,9 @@ Before running, check the following prerequisites:
 
 - The host has an NVIDIA GPU, the NVIDIA driver, and the
   [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html).
-  The image ships no CUDA
-  (Compute Unified Device Architecture)
-  toolkit or driver libraries;
-  NVENC (NVIDIA Video Encoder)
-  and NVDEC (NVIDIA Video Decoder)
-  are loaded from the host driver at run time.
+  The image does not include the CUDA (Compute Unified Device Architecture)
+  toolkit or NVIDIA driver libraries. It loads NVENC (NVIDIA Video Encoder)
+  and NVDEC (NVIDIA Video Decoder) from the host driver at run time.
 - `nvidia-smi` works inside the container. The harness uses it to find the
   GPUs; without it, the GPU scenarios are skipped.
 
@@ -53,10 +50,9 @@ its `skip_reason`.
 
 ## Container Resource Limits
 
-This benchmark sizes its worker counts to the resources the container is
-allowed to use, read from the cgroup v2
-(control groups v2) files
-and the CPU affinity. The following
+This benchmark sets its worker counts based on the resources available to the
+container, as reported by cgroup v2 (control groups v2) and CPU affinity. The
+following
 [Docker resource limits](https://docs.docker.com/engine/containers/resource_constraints/)
 all lower the worker counts:
 
