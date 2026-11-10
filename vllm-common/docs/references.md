@@ -1,9 +1,8 @@
 # References
 
 Terms of the vLLM benchmarks, alphabetized: the options and environment
-variables of vLLM, and the LLM terms that mean something else on other Spare
-Cores pages, that the manual and the images' pages use. Common terms (e.g.
-GuideLLM, TTFT, tensor parallelism) are defined in the
+variables of vLLM that the manual and the images' pages use. Common terms
+(e.g. GuideLLM, TTFT, tensor parallelism) are defined in the
 [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs.
 
 - **`--dtype`**: The vLLM option that sets the data type of the model weights
@@ -42,10 +41,6 @@ GuideLLM, TTFT, tensor parallelism) are defined in the
   scheduling step. Further requests wait in a queue until a running sequence
   finishes. With data parallelism, each replica applies the limit on its own.
   [vLLM engine arguments](https://docs.vllm.ai/en/latest/configuration/engine_args.html)
-- **token**, **tokens**: The unit of text that an LLM reads and writes, as
-  defined by the model's tokenizer, such as a word, part of a word, or a
-  punctuation mark. Prompt and output lengths are counted in tokens, and LLM
-  inference speed is usually measured in tokens per second.
 - **`VLLM_CPU_OMP_THREADS_BIND`**: The environment variable of vLLM's CPU
   backend that sets which CPU cores the OpenMP threads of each worker run on. It
   takes CPU lists such as `0-31`, one per worker, separated by vertical bars, so

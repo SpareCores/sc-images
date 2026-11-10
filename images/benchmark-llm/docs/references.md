@@ -46,7 +46,3 @@ also lists the terms each image uses.
   depending on the tokens before it. Every step reads all model weights and the
   key-value cache, so this phase is usually limited by memory bandwidth rather
   than compute, and runs much slower per token than prompt processing.
-- **token**, **tokens**: The unit of text that an LLM reads and writes, as
-  defined by the model's tokenizer, such as a word, part of a word, or a
-  punctuation mark. Prompt and output lengths are counted in tokens, and LLM
-  inference speed is usually measured in tokens per second.
