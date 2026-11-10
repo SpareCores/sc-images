@@ -1,4 +1,4 @@
-# benchmark-web
+# Web Server
 
 This benchmark measures how fast one `binserve` process serves static files
 over HTTP, with `wrk` as the load generator. Server and client run in the same

@@ -1,4 +1,4 @@
-# benchmark-pgbench-postgres
+# PostgreSQL (pgbench)
 
 This benchmark measures cloud server database performance with `pgbench`. In
 standalone mode, the image starts a local PostgreSQL 18 server. In remote mode,

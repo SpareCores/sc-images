@@ -1,4 +1,4 @@
-# benchmark-vllm-cpu
+# vLLM CPU
 
 This benchmark measures how fast AMD64 CPUs with AVX-512 (Advanced Vector
 Extensions 512) and Arm64 CPUs serve LLMs to many concurrent requests. It is

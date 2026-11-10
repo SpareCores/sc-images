@@ -1,4 +1,4 @@
-# vLLM benchmarks
+# vLLM
 
 The vLLM benchmarks measure how fast CPUs and NVIDIA GPUs serve LLMs to many
 concurrent requests. Each run starts the default models with vLLM

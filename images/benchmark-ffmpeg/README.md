@@ -1,4 +1,4 @@
-# benchmark-ffmpeg
+# FFmpeg
 
 This benchmark measures how much audio and video a server can transcode with
 FFmpeg when many jobs are run at once. It starts independent, single-threaded

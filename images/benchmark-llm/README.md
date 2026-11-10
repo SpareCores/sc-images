@@ -1,4 +1,4 @@
-# benchmark-llm
+# llama.cpp
 
 This benchmark measures how fast a server runs LLM inference for one request
 stream at a time, with `llama-bench` from llama.cpp.
