@@ -20,8 +20,6 @@ IMAGES_DIR = Path("images")
 README = Path("README.md")
 # docs-site page of an image, linked from its Docs cell
 DOCS_URL = "https://docs.sparecores.com/images/{}/"
-# the Docs cell's icon, absolute because relative links break on GHCR
-DOCS_ICON = "https://raw.githubusercontent.com/SpareCores/sc-images/main/docs/img/docs.svg"
 # table heading in README.md of each CATEGORY value
 HEADINGS = {
     "benchmark": "Benchmarks",
@@ -44,7 +42,7 @@ def readme_rows() -> list[tuple[str, str, str, str | None]]:
     heading = None
     in_images = False
     link = re.compile(r"^\|\s*\[[^\]]*\]\(images/([^/)#]+)/?\)\s*\|(.*)\|\s*$")
-    docs = re.compile(rf"^(.*)\|\s*\[!\[Docs\]\({re.escape(DOCS_ICON)}\)\]\(([^)\s]+)\)\s*$")
+    docs = re.compile(r"^(.*)\|\s*\[Docs\]\(([^)\s]+)\)\s*$")
     for line in README.read_text().splitlines():
         if line.startswith("## "):
             in_images = line.strip() == "## Images"
@@ -94,7 +92,7 @@ def main() -> int:
         elif description != expected:
             errors.append(f"{image}: description differs from DESCRIPTION\n    README:      {description}\n    DESCRIPTION: {expected}")
         if docs_url is None:
-            errors.append(f"{image}: no Docs cell, [![Docs]({DOCS_ICON})]({DOCS_URL.format(image)}), at the end of its row")
+            errors.append(f"{image}: no Docs cell, [Docs]({DOCS_URL.format(image)}), at the end of its row")
         elif docs_url != DOCS_URL.format(image):
             errors.append(f"{image}: Docs links {docs_url} instead of {DOCS_URL.format(image)}")
 

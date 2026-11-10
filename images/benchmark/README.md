@@ -65,9 +65,9 @@ docker run --rm --privileged ghcr.io/sparecores/benchmark:main python /usr/local
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main geekbench.sh
 ```
 
-The `openssl.sh` and `bw_mem.sh` scripts run their tools at high priority with
-`nice -n -20`, which requires `--privileged`. Production also runs
-`compress.py` and `geekbench.sh` at high priority. See
+The `openssl.sh` and `bw_mem.sh` scripts run their tools under `nice -n -20`,
+which needs `--privileged`. Production also runs `compress.py` and `geekbench.sh` under
+`nice -n -20`, from its own command line. See
 [Production Setup](./docs/usage.md#production-setup) before comparing
 results with the Navigator's.
 
@@ -86,10 +86,10 @@ See [Run Duration](./docs/usage.md#run-duration) for the measured medians.
 
 ### Settings
 
-The scripts take no arguments; their benchmark settings are fixed in the
-scripts. The only optional setting is `BENCHMARK_SECRETS_PASSPHRASE`. It
-decrypts a Geekbench license shipped in the image. Geekbench runs without a
-license if the variable is unset.
+The scripts take no arguments, and all benchmark settings are fixed in the
+scripts. The only benchmark setting is `BENCHMARK_SECRETS_PASSPHRASE`, which
+is optional: it decrypts a Geekbench license shipped in the image, and
+Geekbench runs without a license if it is unset.
 
 According to Geekbench, the license does not affect the scores. See the
 [environment-variable reference](./docs/usage.md#environment-variables) for

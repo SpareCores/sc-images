@@ -142,25 +142,25 @@ worker counts, timing, and repetitions.
 
 ## Design History
 
-We designed this benchmark to measure aggregate capacity. The harness
-([`benchmark.py`](./benchmark.py)) times all `ffmpeg` processes together, from
-their shared start until the last worker exits. Unlike a sum of the speeds
-reported by each process, this measurement includes process startup and
-teardown.
+We built this benchmark around aggregate capacity. Instead of adding up the
+speed that each `ffmpeg` process reports for itself, the harness
+([`benchmark.py`](./benchmark.py)) times the whole group with one clock, from a
+shared start to the last worker's exit, so process startup and teardown count
+too.
 
-Worker counts follow physical cores rather than logical CPUs. Two
-single-threaded workers on sibling hyperthreads compete for the same core,
-which can lower throughput, especially for decoding.
+Worker counts follow physical cores rather than logical CPUs, because two
+single-threaded workers on the hyperthreads of one core compete for it and can
+lower throughput, especially for decoding.
 
-We later calibrated GPU encodes against CPU encodes. NVENC has no direct
-equivalent to the CPU encoders' quality setting, so we compared several NVENC
-quality levels on the test clip and chose the closest match. In harness
-version 3.3.0, the image also began requesting the NVIDIA driver's video
-libraries directly. Many earlier GPU runs could not load those libraries.
+GPU encodes were later calibrated against the CPU encodes: NVENC has no direct
+equivalent of the CPU encoders' quality setting, so we compared several NVENC
+quality levels on the test clip and picked the closest match. In harness
+version 3.3.0, the image also started requesting the NVIDIA driver's video
+libraries itself, which many earlier GPU runs could not load.
 
-This benchmark does not check output quality at run time, CPU and GPU encode
-quality only match approximately, and GPU results depend on the features each
-GPU and driver support. See the
+The remaining limits are that this benchmark checks no output quality at run
+time, that CPU and GPU encode quality match only approximately, and that GPU
+results depend on what each GPU and driver support. See the
 [changelog](./CHANGELOG.md) for the calibration data and the measurement-length
 study.
 

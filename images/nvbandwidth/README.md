@@ -210,9 +210,9 @@ archive with CUDA Toolkit 12.6.1.
 Each nvbandwidth test case uses one of the following copy methods, named by its
 suffix:
 
-- **CE:** `_ce` test cases copy with the GPU's copy engines, through CUDA's
+-- **CE:** `_ce` test cases copy with the GPU's copy engines, through CUDA's
   `memcpy` functions.
-- **SM:** `_sm` test cases copy with a kernel that runs on the GPU's
+-- **SM:** `_sm` test cases copy with a kernel that runs on the GPU's
   streaming multiprocessors, with 512 threads per block. The copy size is
   rounded down so that it divides evenly across the SMs.
 
