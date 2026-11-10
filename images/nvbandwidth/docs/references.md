@@ -12,13 +12,6 @@ also lists the terms each image uses.
   engines, which CUDA uses for memory copies, so data transfers can run at the
   same time as compute kernels.
   [CUDA programming guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#asynchronous-concurrent-execution)
-- **`nvbandwidth`**: An open-source NVIDIA tool that measures memory copy
-  bandwidth and latency between the CPU and NVIDIA GPUs, between GPUs, and
-  within one GPU. It copies with the GPU's copy engines or with kernels on its
-  streaming multiprocessors, and reports one matrix per test, with a row and a
-  column for each CPU or GPU taking part. It prints plain text or JSON, and an
-  optional multinode build measures GPUs across several servers.
-  [GitHub](https://github.com/NVIDIA/nvbandwidth)
 - **nvbandwidth test case**: One named measurement of the `nvbandwidth` tool,
   such as `host_to_device_memcpy_ce`, defined by its copy direction, the GPUs
   taking part, and its copy method, given by the `_ce` or `_sm` suffix. A
