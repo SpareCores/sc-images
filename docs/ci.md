@@ -34,7 +34,7 @@ do not appear in a shell-wrapper process tree; without a tracked PID,
 *"Leave unset [pid] to collect system-wide metrics only"*). Metrics are sent
 to [Sentinel](https://sentinel.sparecores.com) when the repo secret
 **`SENTINEL_API_TOKEN`** is set (Settings → Secrets and variables → Actions →
-Secrets). Without the secret, tracking runs locally only and Sentinel upload is
+Secrets). Without the token, tracking runs locally only and Sentinel upload is
 skipped.
 
 Job metadata (mirrors [sc-inspector](https://github.com/SpareCores/sc-inspector)
