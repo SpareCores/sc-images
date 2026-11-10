@@ -4,12 +4,6 @@ Terms specific to this image, alphabetized. Common terms (e.g. HTTPS, PyPI,
 SMT, zstd) are defined in the [glossary](https://docs.sparecores.com/glossary)
 of the Spare Cores docs, which also lists the terms each image uses.
 
-- **`brotli`**: A lossless compression format by Google, standardized in RFC
-  7932. It combines LZ77-style matching, Huffman coding, and context modeling
-  with a built-in dictionary of common web text, and is widely used to compress
-  HTTP responses. Its quality levels range from 0 (fastest) to 11 (smallest
-  output).
-  [RFC 7932](https://www.rfc-editor.org/rfc/rfc7932)
 - **`bw_mem`**: The memory bandwidth tool of LMbench. It moves data through a
   buffer of a given size in one of several modes, such as `rd` (read and sum an
   array), `wr` (write a constant to each element), `rdwr` (read, then write the
@@ -17,11 +11,6 @@ of the Spare Cores docs, which also lists the terms each image uses.
   buffer size in MB and the bandwidth in MB/s; with `-P`, it runs several
   processes, each with its own buffer, and reports their total bandwidth.
   [`bw_mem` manual](https://github.com/intel/lmbench/blob/master/doc/bw_mem.8)
-- **`bzip3`**: A lossless compressor by Kamila Szewczyk that, like bzip2, is
-  built on the Burrows-Wheeler transform, combined with context modeling. It
-  typically compresses text better than bzip2, and its configurable block size
-  trades memory use for compression ratio.
-  [bzip3 on GitHub](https://github.com/kspalaiologos/bzip3)
 - **Geekbench Browser**: The online database of Geekbench results run by
   Primate Labs. The free version of Geekbench uploads every result there, where
   it is public; the paid Pro version can also keep results offline.
@@ -43,9 +32,3 @@ of the Spare Cores docs, which also lists the terms each image uses.
   XML. Its `dickens` file holds the collected works of Charles Dickens, ~10 MB
   of English text.
   [Silesia corpus](https://sun.aei.polsl.pl/~sdeor/index.php?page=silesia)
-- **`zpaq`**: A lossless compressor and archive format by Matt Mahoney, based
-  on context mixing, which predicts each bit from many models and combines their
-  predictions. It reaches very high compression ratios, but compresses and
-  decompresses slowly, at about the same speed in both directions. Its methods
-  range from 1 (fastest) to 5 (smallest output).
-  [ZPAQ](https://mattmahoney.net/dc/zpaq.html)
