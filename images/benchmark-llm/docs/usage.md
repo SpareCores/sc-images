@@ -44,13 +44,13 @@ fit on the GPUs; see [GPU Layers](./workloads.md#gpu-layers).
 
 ## Model Downloads and Disk Space
 
-This benchmark downloads models from Hugging Face while it runs. It needs
-network access to `huggingface.co` and to the Hugging Face CDN (Content
-Delivery Network), such as `us.aws.cdn.hf.co`, unless the files are already in
-`--models-dir` (default: `/models`). Downloads run one at a time in the
-background while the benchmark measures models that have already finished
-downloading. Each file is first saved as `<file>.part` and renamed when the
-download completes.
+This benchmark downloads the models from Hugging Face while it runs, so it
+needs network access to the hostname `huggingface.co` and to the Hugging Face
+CDN (Content Delivery Network) host that it redirects the downloads to, such
+as `us.aws.cdn.hf.co`, unless the model files are already in `--models-dir`
+(default: `/models`). The downloads run in the background, one
+model after another, while the models already downloaded are measured. Each
+file is written as `<file>.part` and renamed when it is complete.
 
 The `/models` folder is a Docker volume, so a plain run downloads the models
 again each time. To reuse them across runs, mount a host directory on it:
