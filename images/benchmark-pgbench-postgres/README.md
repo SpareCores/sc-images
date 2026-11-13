@@ -1,4 +1,4 @@
-# benchmark-pgbench-postgres
+# PostgreSQL (pgbench)
 
 This benchmark uses `pgbench` to measure database performance, focusing on
 CPU and memory rather than disk. It supports two modes:

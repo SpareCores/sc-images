@@ -1,10 +1,11 @@
-# benchmark
+# Legacy Benchmarks
 
 This image bundles four independent benchmarking tools that measure general
 CPU and memory performance: OpenSSL's `openssl speed`, LMbench's `bw_mem`
 (memory bandwidth tool), a set of Python compression libraries, and
 Geekbench 6. Each tool has its own script, and each run of the image runs one
-script.
+script. These are the legacy benchmarks: the first ones Spare Cores collected,
+before each new benchmark got an image of its own.
 
 The tools report the following:
 

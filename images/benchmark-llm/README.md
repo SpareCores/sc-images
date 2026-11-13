@@ -1,4 +1,4 @@
-# benchmark-llm
+# llama.cpp
 
 This benchmark measures single-stream LLM inference with `llama-bench` from
 llama.cpp. It downloads six 4-bit quantized models, ranging from 135 million
