@@ -1,6 +1,7 @@
 name: Check README
 # The Images tables of README.md list every image under its CATEGORY with its
-# DESCRIPTION; they are written by hand, so check them on every change.
+# DESCRIPTION and Docs link; they are written by hand, so check them on every
+# change.
 on:
   pull_request:
   push:
