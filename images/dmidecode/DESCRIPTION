@@ -1,1 +1,1 @@
-Reads the server's DMI (Desktop Management Interface) and SMBIOS (System Management BIOS) tables with dmidecode to report hardware details such as memory modules and firmware.
+Reads the server's SMBIOS (System Management BIOS) tables, also called DMI (Desktop Management Interface) tables, with dmidecode to report hardware details such as memory modules and firmware.

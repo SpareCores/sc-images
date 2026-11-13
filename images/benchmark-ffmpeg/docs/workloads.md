@@ -5,7 +5,7 @@
 Every audio job decodes the bundled FLAC
 (Free Lossless Audio Codec) music sample, resamples
 it when needed, and encodes stereo output with one codec thread, using Vorbis,
-Opus, AAC (Advanced Audio Coding),
+Opus (audio codec), AAC (Advanced Audio Coding),
 MP3, or FLAC. The audio scenarios run on the CPU only; see
 [Audio on the CPU Only](./limitations.md#audio-on-the-cpu-only).
 
@@ -72,7 +72,7 @@ file is not. The files are the following:
 - **H.264 clip** (`source.mp4`): an excerpt of 30 seconds from the Blender
   Foundation's open movie [Tears of Steel](https://mango.blender.org/), cut at
   60 seconds from the 1080p release with stream copy. It is 1920x800 pixels at
-  24 fps. License: CC BY 3.0
+  24 fps (Frames Per Second). License: CC BY 3.0
   (Creative Commons Attribution 3.0),
   as stated on the
   [Tears of Steel sharing page](https://mango.blender.org/sharing/).

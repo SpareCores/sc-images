@@ -14,11 +14,6 @@ Spare Cores docs, which also lists the terms each image uses.
   table blocks. It is tiny compared to a B-tree, and works well on large tables
   whose values follow their physical order, such as timestamps of appended
   rows. [PostgreSQL docs](https://www.postgresql.org/docs/current/brin.html)
-- **CTE** (Common Table Expression): A named temporary result set, defined with
-  `WITH` at the start of a SQL statement, that the rest of the statement can
-  query like a table. CTEs make complex queries easier to read, and recursive
-  CTEs can walk hierarchies such as trees.
-  [PostgreSQL docs](https://www.postgresql.org/docs/current/queries-with.html)
 - **concurrency points**: The client counts at which a database benchmark
   measures throughput and latency, each with that number of connections open
   for a fixed time. Measuring several concurrency points, from one client up
@@ -40,16 +35,6 @@ Spare Cores docs, which also lists the terms each image uses.
   Db2, Oracle, PostgreSQL, MariaDB, and MySQL, so that results are comparable
   across database systems. Runs can be scripted and repeated automatically.
   [HammerDB](https://www.hammerdb.com/)
-- **JIT** (Just-in-Time Compilation): A PostgreSQL feature that compiles parts
-  of a query, such as its expressions, to machine code with LLVM at run time.
-  It speeds up long, CPU-bound analytical queries, but on short queries the
-  compile time can outweigh the gain.
-  [PostgreSQL docs](https://www.postgresql.org/docs/current/jit.html)
-- **`netem`** (Network Emulator): A Linux traffic control queueing discipline
-  that adds delay, jitter, packet loss, duplication or reordering to the
-  packets leaving a network interface. It is used to test how software behaves
-  on slow or unreliable networks.
-  [SRT cookbook](https://srtlab.github.io/srt-cookbook/how-to-articles/using-netem-to-emulate-networks.html)
 - **Parallel Query**: A PostgreSQL feature that splits one query across several
   worker processes, for example to scan, join or aggregate a large table on
   several CPU cores at once. The `max_parallel_workers_per_gather` setting limits
@@ -64,11 +49,6 @@ Spare Cores docs, which also lists the terms each image uses.
   handling to SQL. It is used to write functions, procedures and triggers that
   run inside the database server.
   [PostgreSQL docs](https://www.postgresql.org/docs/current/plpgsql.html)
-- **SSL** (Secure Sockets Layer): A protocol that encrypts network connections
-  and verifies the identity of the server, and optionally of the client, with
-  certificates. TLS has replaced it, but SSL is still the common name for both,
-  including in PostgreSQL's settings.
-  [PostgreSQL docs](https://www.postgresql.org/docs/current/ssl-tcp.html)
 - **`sysbench`**: A scriptable, multi-threaded benchmark tool built on LuaJIT.
   Its tests cover CPU, memory, file I/O, threads, and mutexes, and its Lua
   scripts run transactional database workloads against MySQL and PostgreSQL.
@@ -79,11 +59,6 @@ Spare Cores docs, which also lists the terms each image uses.
   compressing them, moving them out of line into a separate table, or both. It
   applies automatically to large values, such as long texts or JSON documents.
   [PostgreSQL docs](https://www.postgresql.org/docs/current/storage-toast.html)
-- **TPC-B** (Transaction Processing Performance Council Benchmark B): A
-  database benchmark of short, update-heavy banking transactions, each
-  updating an account, a teller and a branch balance and logging the change.
-  The TPC retired it in 1995, but the default script of `pgbench` is still
-  modeled on it. [TPC](https://www.tpc.org/tpcb/)
 - **TPM** (Transactions Per Minute): A throughput measure of transaction
   processing systems: the number of transactions they complete per minute.
   TPC-C reports a variant of it, tpmC, which counts only new-order
@@ -95,19 +70,3 @@ Spare Cores docs, which also lists the terms each image uses.
   order-entry system with warehouses, orders and payments. It is not an
   official TPC-C implementation, so its results are not comparable with
   published TPC-C results. [HammerDB docs](https://www.hammerdb.com/docs/)
-- **WAL** (Write-Ahead Logging): The log of changes that PostgreSQL writes to
-  durable storage before it changes the data files. After a crash, replaying
-  the WAL restores a consistent state, and shipping it to other servers drives
-  replication and point-in-time recovery. On write-heavy workloads, the speed
-  of WAL writes often limits throughput.
-  [PostgreSQL docs](https://www.postgresql.org/docs/current/wal-intro.html)
-- **YCSB** (Yahoo! Cloud Serving Benchmark): An open-source benchmark
-  framework, released by Yahoo! in 2010, for key-value and NoSQL databases. It
-  runs standard workloads that mix reads, updates, inserts and scans in
-  different proportions, and is widely used to compare cloud data stores.
-  [Wikipedia](https://en.wikipedia.org/wiki/YCSB)
-- **Zipfian**: A skewed probability distribution, named after Zipf's law, in
-  which an item's frequency is inversely proportional to its rank, so a few
-  items are accessed far more often than the rest. Benchmarks use it to model
-  real-world hot spots, such as popular products or users.
-  [Wikipedia](https://en.wikipedia.org/wiki/Zipf%27s_law)

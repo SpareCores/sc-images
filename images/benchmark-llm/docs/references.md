@@ -1,9 +1,9 @@
 # References
 
 Terms specific to this image, alphabetized. Common terms, such as CUDA (Compute
-Unified Device Architecture), GGUF (GGML Universal File), and token, are
-defined in the [glossary](https://docs.sparecores.com/glossary) of the Spare
-Cores docs, which also lists the terms each image uses.
+Unified Device Architecture) and GGUF (GGML Universal File), are defined in the
+[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs, which
+also lists the terms each image uses.
 
 - **`-b`**: The llama.cpp option that sets the logical batch size: the maximum
   number of prompt tokens passed to the model in one call. Each logical batch
@@ -23,12 +23,6 @@ Cores docs, which also lists the terms each image uses.
 - **`-ub`**: The llama.cpp option that sets the physical batch size: the number
   of tokens computed at once within a logical batch (`-b`). It trades memory
   use against the speed of prompt processing.
-  [llama-bench README](https://github.com/ggml-org/llama.cpp/tree/master/tools/llama-bench)
-- **`llama-bench`**: The benchmark tool of llama.cpp. It measures the speed of
-  prompt processing and text generation in tokens per second, for given
-  models, token counts, and settings. Each test is repeated several times, and
-  the tool reports the average and standard deviation, as a table or in
-  machine-readable formats such as JSON Lines.
   [llama-bench README](https://github.com/ggml-org/llama.cpp/tree/master/tools/llama-bench)
 - **`Q4_K_M`**: A llama.cpp quantization type of the k-quant family. It stores
   most weights with about 4 bits each, in blocks that share scale factors, and
