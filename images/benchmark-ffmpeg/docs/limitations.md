@@ -64,7 +64,7 @@ of it, one extra measurement at twice that count shows whether SMT helps; see
 ### Audio on the CPU Only
 
 FFmpeg's NVIDIA encoders and decoders handle video only, and there is no NVIDIA
-hardware encoder for Vorbis, Opus, AAC
+hardware encoder for Vorbis, Opus (audio codec), AAC
 (Advanced Audio Coding), MP3, or
 FLAC (Free Lossless Audio Codec).
 

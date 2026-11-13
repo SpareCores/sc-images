@@ -43,9 +43,9 @@ the Spare Cores docs, which also lists the terms each image uses.
   measure decoding, filtering or encoding speed, or to run analysis filters,
   without the cost of writing to disk.
   [FFmpeg formats](https://ffmpeg.org/ffmpeg-formats.html#null)
-- **Opus**: A royalty-free, lossy audio codec standardized by the IETF in 2012.
-  It covers speech and music from low to high bitrates with low delay, which
-  makes it common in voice and video calls and web streaming.
+- **Opus** (audio codec): A royalty-free, lossy audio codec standardized by the
+  IETF in 2012. It covers speech and music from low to high bitrates with low
+  delay, which makes it common in voice and video calls and web streaming.
   [Opus](https://opus-codec.org/)
 - **PSNR** (Peak Signal-to-Noise Ratio): A quality metric that compares a
   processed image or video to its source by the mean squared error of their

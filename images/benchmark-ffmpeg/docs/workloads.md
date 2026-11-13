@@ -5,7 +5,7 @@
 Every audio job decodes the bundled FLAC
 (Free Lossless Audio Codec) music sample, resamples
 it when needed, and encodes stereo output with one codec thread, using Vorbis,
-Opus, AAC (Advanced Audio Coding),
+Opus (audio codec), AAC (Advanced Audio Coding),
 MP3, or FLAC. The audio scenarios run on the CPU only; see
 [Audio on the CPU Only](./limitations.md#audio-on-the-cpu-only).
 
