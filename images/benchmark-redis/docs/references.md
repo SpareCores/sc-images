@@ -5,12 +5,6 @@ Terms specific to this image, alphabetized. Common terms (e.g. Redis, `nice`,
 [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs, which
 also lists the terms each image uses.
 
-- **`memtier_benchmark`**: An open-source load generator for Redis and
-  Memcached, developed by Redis Ltd. It runs many concurrent connections over
-  one or more threads, sends a configurable mix of SET and GET requests, and
-  reports operations per second, latency averages, and latency percentiles per
-  request type.
-  [memtier_benchmark on GitHub](https://github.com/RedisLabs/memtier_benchmark)
 - **Redis pipelining**: A technique in which a client sends several Redis
   commands without waiting for the reply to each one, then reads all replies
   together. It reduces the number of network round trips and system calls per
