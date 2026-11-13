@@ -83,13 +83,14 @@ hosts. The prompts are synthetic text of the workload's token counts. GuideLLM
 generates them from a fixed random seed (42), the starting value of its random
 number generator, so every run sends the same prompts.
 
-The sweep size, N, is the number of load stages a GuideLLM sweep runs. Each
-stage is recorded as a `strategy` in the output:
+The sweep size, `N`, is the number of load stages in a GuideLLM sweep. The
+output records each stage as a `strategy`:
 
 1. `synchronous`: one request at a time, for the baseline latency.
 2. `throughput`: as many concurrent requests as the maximum concurrency
    allows, for the peak throughput.
-3. `constant`: N - 2 stages at constant request rates between the two.
+3. `constant`: `N - 2` stages at constant request rates between the
+   synchronous and throughput stages.
 
 Each stage stops at its time limit, and the throughput stage ramps up its
 concurrency first. No stage has a request cap unless `GUIDELLM_MAX_REQUESTS`
@@ -107,10 +108,11 @@ of 6: one synchronous, one throughput, and four constant-rate stages
 
 ## Load Settings
 
-By default (`BENCHMARK_VLLM_AUTOCONFIG=1`), the harness derives the GuideLLM
-load from the host's vCPU count `v`, on GPUs too: not from the GPU count, the
-GPU model, or GPU memory. Set `BENCHMARK_VLLM_VCPUS` to use another count.
-Each line's `tuning` object records the settings below. See
+By default (`BENCHMARK_VLLM_AUTOCONFIG=1`), the harness uses the host's vCPU
+count (`v`) to set the GuideLLM load for both CPU and GPU runs. It does not
+derive the load from GPU count, model, or memory. Set
+`BENCHMARK_VLLM_VCPUS` to use a different vCPU count. Each output line's
+`tuning` object records the settings below. See
 [Environment Variables](./usage.md#environment-variables) to override them.
 
 ### On CPUs
