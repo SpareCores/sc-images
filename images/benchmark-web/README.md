@@ -1,4 +1,4 @@
-# benchmark-web
+# Web Server
 
 This benchmark measures how fast one `binserve` process serves static files
 over HTTP, with `wrk` as the load generator. Server and client run in the same
@@ -32,12 +32,12 @@ the loopback interface. Loopback is a virtual network interface that the
 operating system provides for traffic between programs on the same machine,
 so the requests never reach a network card or leave the server.
 
-This keeps provisioning simple and benchmarking costs lower, because a run
-needs only the server under test and no separate client machine, and it keeps
-network latency out of the results. The trade-off is that `wrk` uses CPU time
-that `binserve` could otherwise use. This benchmark records the CPU time of
-both, so the Navigator can estimate how fast `binserve` would serve with the
-CPUs to itself; see [Results](#results).
+This setup needs only the server under test, not a separate client machine,
+which reduces provisioning and benchmark costs. It also keeps network latency
+out of the results. However, `wrk` uses CPU time that `binserve` could
+otherwise use. This benchmark records both processes' CPU time so the
+Navigator can estimate `binserve` performance without the client's CPU cost;
+see [Results](#results).
 
 ## Limitations
 

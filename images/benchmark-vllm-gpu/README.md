@@ -1,4 +1,4 @@
-# benchmark-vllm-gpu
+# vLLM GPU
 
 This benchmark measures how fast NVIDIA GPUs serve LLMs to many concurrent
 requests. It is the GPU image of the vLLM benchmarks: it starts each default

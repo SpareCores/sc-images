@@ -1,4 +1,4 @@
-# benchmark-storage
+# Storage
 
 This benchmark measures the raw block device performance of a cloud server's
 bundled disks with `fio`. It finds the host's disks, groups identical ones, and
