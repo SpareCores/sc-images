@@ -30,19 +30,8 @@ also lists the terms each image uses.
   the tool reports the average and standard deviation, as a table or in
   machine-readable formats such as JSON Lines.
   [llama-bench README](https://github.com/ggml-org/llama.cpp/tree/master/tools/llama-bench)
-- **prompt processing**: The first phase of LLM inference, also called
-  prefill, in which the model reads all tokens of the input prompt and stores
-  their intermediate results in its key-value cache. The prompt's tokens are
-  processed together in batches, so this phase is usually limited by compute
-  and runs much faster per token than text generation. Its speed decides how
-  long a long input takes before the first output token appears.
 - **`Q4_K_M`**: A llama.cpp quantization type of the k-quant family. It stores
   most weights with about 4 bits each, in blocks that share scale factors, and
   keeps some tensors at higher precision. The M (medium) variant is a common
   compromise between file size and output quality.
   [Hugging Face GGUF docs](https://huggingface.co/docs/hub/gguf)
-- **text generation**: The second phase of LLM inference, also called
-  decoding, in which the model produces output tokens one at a time, each
-  depending on the tokens before it. Every step reads all model weights and the
-  key-value cache, so this phase is usually limited by memory bandwidth rather
-  than compute, and runs much slower per token than prompt processing.
