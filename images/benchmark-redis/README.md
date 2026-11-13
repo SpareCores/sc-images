@@ -1,4 +1,4 @@
-# benchmark-redis
+# Redis
 
 This benchmark measures Redis 7.4 SET throughput and latency with
 `memtier_benchmark`. It starts one `redis-server` and one `memtier_benchmark`

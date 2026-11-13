@@ -1,4 +1,4 @@
-# benchmark-vllm-cpu-avx2
+# vLLM CPU AVX2
 
 This benchmark measures how fast AMD64 CPUs with AVX2 (Advanced Vector
 Extensions 2) but without AVX-512 (Advanced Vector Extensions 512) serve LLMs

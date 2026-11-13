@@ -1,4 +1,4 @@
-# vllm-cpu-base-avx2
+# vLLM CPU Base (AVX2)
 
 amd64 vLLM `vllm-openai` CPU image built with **`VLLM_CPU_AVX2=true`** for hosts that have AVX2 (Advanced Vector Extensions 2) but not AVX-512 (Advanced Vector Extensions 512).
 

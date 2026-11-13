@@ -1,4 +1,4 @@
-# benchmark-passmark
+# PassMark
 
 This benchmark measures CPU and memory performance with PassMark's
 `pt_linux` (PerformanceTest for Linux). It runs PassMark's CPU and memory

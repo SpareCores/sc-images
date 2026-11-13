@@ -1,10 +1,13 @@
-# benchmark-pgbench-postgres
+# PostgreSQL (pgbench)
 
-This benchmark measures cloud server database performance with `pgbench`. In
-standalone mode, the image starts a local PostgreSQL 18 server. In remote mode,
-it connects to the configured host without checking or enforcing the remote
-server version. The image can run on the same node as the database or on a
-separate machine.
+This benchmark uses `pgbench` to measure database performance, focusing on
+CPU and memory rather than disk. It supports two modes:
+
+- In standalone mode, the image starts a local PostgreSQL 18 server.
+- In remote mode, it connects to a configured host without checking or
+  enforcing the server version.
+
+The image can run on the same node as the database or on a separate machine.
 
 This benchmarking tool reports throughput in TPM (Transactions Per Minute) and
 latency at several client counts. Together, they show peak performance and how
@@ -24,9 +27,9 @@ is not relational; and raw CPU speed and
 [memory bandwidth](../benchmark/docs/bw-mem.md), which are useful proxies but
 not database workloads.
 
-The main design goal is one methodology that scales across instance sizes, from
-small instances (e.g. 1 vCPU and 2 GiB of RAM) to large nodes with hundreds of
-vCPUs.
+The main design goal is one methodology that scales across server sizes, from
+small instances (for example, 1 vCPU and 2 GiB of RAM) to large nodes with
+hundreds of vCPUs.
 
 This benchmark measures two deployment models:
 
@@ -103,14 +106,13 @@ all options and defaults:
 
 - `SC_DB_HOST`, `SC_DB_PORT`, `SC_DB_USER`, and `SC_DB_PASSWORD` configure a
   remote connection; leave `SC_DB_PORT` and `SC_DB_USER` unset in standalone
-  mode. The `SC_DB_SSLMODE` variable sets the SSL (Secure Sockets
-  Layer) mode for the
-  dataset restore and dump connections and the connection that drops and
-  recreates the benchmark database, not for `pgbench`.
+  mode. `SC_DB_SSLMODE` sets the SSL (Secure Sockets Layer) mode for the
+  dataset restore and dump connections and for the connection that drops and
+  recreates the benchmark database. It does not set the mode for `pgbench`.
 - `SC_DB_VCPUS` sets the database vCPU count used to derive concurrency points
-  and the local server settings in standalone mode. Set it to the database
-  server's vCPU count for remote targets; the default is the client host's
-  logical CPU count.
+  and local server settings in standalone mode. For remote targets, set it to
+  the database server's vCPU count. The default is the client host's logical
+  CPU count.
 - `SC_CPU_SCALE` changes `pgbench_ro` transaction work.
 - `SC_RUN_SECONDS`, `SC_WARMUP_SECONDS`, and `SC_SETTLE_SECONDS` control
   measurement and warmup timing.
@@ -128,15 +130,15 @@ the run. The JSON object's main fields are the following:
 - Each `sizes[]` entry represents a workload size and has its own score and
   `profile`. Entries of `pgbench_ro` identify `cpu_scale`; entries of
   `pgbench_tpcb` identify `scalefactor`.
-- Each `profile[]` entry is one concurrency measurement. The `concurrency` field is
-  the client count and `jobs` is the worker count. For `pgbench_ro`,
-  [`benchmark.py`](./benchmark.py) uses fixed points `{1, V/2, V, 2·V}`, where
-  `V` is the database vCPU count (`V/2` rounded down), and caps worker jobs at
-  32. For how `pgbench_tpcb` picks its client counts, see
+- Each `profile[]` entry is one concurrency measurement. The `concurrency` field
+  is the client count, and `jobs` is the worker count. For `pgbench_ro`,
+  [`benchmark.py`](./benchmark.py) derives four fixed points from the database
+  vCPU count (`V`): `1`, `V/2` (rounded down), `V`, and `2·V`. It caps worker
+  jobs at 32. For how `pgbench_tpcb` picks its client counts, see
   [`pgbench_tpcb`](./docs/workloads.md#pgbench_tpcb).
 - `latency_ms` contains sampled p50, p95, and p99 (50th, 95th, and 99th
-  percentile) latency and an average in milliseconds. The harness samples 1% of
-  transaction latency logs.
+  percentile) latency, plus the average, in milliseconds. The harness samples
+  1% of transaction latency logs.
 - `schema_gib` (`0.17`) in `pgbench_ro` output is a legacy constant, not the
   dataset size; the restored database is about 303 MiB.
 
