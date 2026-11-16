@@ -80,7 +80,7 @@ read its output.
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
-| [`dmidecode`](images/dmidecode) | Reads the server's DMI (Desktop Management Interface) and SMBIOS (System Management BIOS) tables with dmidecode to report hardware details such as memory modules and firmware. | [Docs](https://docs.sparecores.com/images/dmidecode/) |
+| [`dmidecode`](images/dmidecode) | Reads the server's SMBIOS (System Management BIOS) tables, also called DMI (Desktop Management Interface) tables, with dmidecode to report hardware details such as memory modules and firmware. | [Docs](https://docs.sparecores.com/images/dmidecode/) |
 | [`hwinfo`](images/hwinfo) | Collects CPU, memory, and topology details with hwloc, likwid, and lshw. | [Docs](https://docs.sparecores.com/images/hwinfo/) |
 | [`virtualization`](images/virtualization) | Checks whether the server supports KVM (Kernel-based Virtual Machine) hardware virtualization and reports the result as JSON. | [Docs](https://docs.sparecores.com/images/virtualization/) |
 
