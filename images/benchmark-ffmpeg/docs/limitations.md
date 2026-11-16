@@ -25,8 +25,8 @@ limited by storage instead.
 ### A Specific Media Pipeline
 
 All jobs use the same pinned test media and fixed codec settings: a film clip
-of 30 seconds at 1920x800 pixels and 24 fps, and a music sample of about
-85 seconds. See [Test Media](./workloads.md#test-media) for details.
+of 30 seconds at 1920x800 pixels and 24 fps (Frames Per Second), and a music
+sample of about 85 seconds. See [Test Media](./workloads.md#test-media) for details.
 
 The results do *not* predict the speed of other resolutions, frame rates,
 content, codec settings, or codecs, such as AV1
@@ -64,7 +64,7 @@ of it, one extra measurement at twice that count shows whether SMT helps; see
 ### Audio on the CPU Only
 
 FFmpeg's NVIDIA encoders and decoders handle video only, and there is no NVIDIA
-hardware encoder for Vorbis, Opus, AAC
+hardware encoder for Vorbis, Opus (audio codec), AAC
 (Advanced Audio Coding), MP3, or
 FLAC (Free Lossless Audio Codec).
 

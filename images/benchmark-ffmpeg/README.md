@@ -125,7 +125,7 @@ check `skipped`, `skip_reason`, and `failed_workers` in the output.
 
 All scenarios run by default, in the following groups:
 
-- **[Audio Encoding](./docs/workloads.md#audio-encoding):** Vorbis, Opus, AAC
+- **[Audio Encoding](./docs/workloads.md#audio-encoding):** Vorbis, Opus (audio codec), AAC
   (Advanced Audio Coding), MP3,
   and FLAC (Free Lossless Audio Codec) encodes of one
   music sample, on the CPU.
