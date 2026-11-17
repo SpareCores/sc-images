@@ -1,1 +1,1 @@
-Pinned stress-ng version for the 24-hour long-running benchmark.
+Measures sustained CPU throughput in stress-ng bogo ops/s over 24 hours with a pinned stress-ng 0.17.08, running the cpu stressor once per minute at a load that rises from 5 to 55 seconds per minute.

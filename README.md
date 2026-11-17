@@ -74,7 +74,7 @@ read its output.
 | [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. | [Docs](https://docs.sparecores.com/images/benchmark-web/) |
 | [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory copy bandwidth and latency benchmark with nvbandwidth, measuring copies between the host CPU and each GPU, between GPUs, and within one GPU. | [Docs](https://docs.sparecores.com/images/nvbandwidth/) |
 | [`stress-ng`](images/stress-ng) | Measures bogo ops/s for 85 CPU, memory, and kernel stressors with stress-ng, in single-worker and all-CPU runs, and measures CPU scaling as worker counts increase. | [Docs](https://docs.sparecores.com/images/stress-ng/) |
-| [`stress-ng-longrun`](images/stress-ng-longrun) | Pinned stress-ng version for the 24-hour long-running benchmark. | [Docs](https://docs.sparecores.com/images/stress-ng-longrun/) |
+| [`stress-ng-longrun`](images/stress-ng-longrun) | Measures sustained CPU throughput in stress-ng bogo ops/s over 24 hours with a pinned stress-ng 0.17.08, running the cpu stressor once per minute at a load that rises from 5 to 55 seconds per minute. | [Docs](https://docs.sparecores.com/images/stress-ng-longrun/) |
 
 ### Hardware Discovery
 
