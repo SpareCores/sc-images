@@ -170,8 +170,9 @@ the next minute. The load time of each sample rises with its number as follows:
 | 540-599 | 50s |
 | 600-1,440 | 55s |
 
-The load time totals 62,750 seconds, about 17.4 hours of the 24. There is no
-warm-up: the first sample, with 5 seconds of load, counts like the others.
+The load time totals 62,750 seconds, about 17.4 of the run's 24 hours. There
+is no warm-up: the first sample, with 5 seconds of load, counts like the
+others.
 
 The load time and the time of day change together during a run, so the
 samples of one run do not tell their effects apart.
@@ -189,8 +190,9 @@ new runs stay comparable with them. We do not plan to update it.
 
 The terms on this page are defined in the following places:
 
-- The [references](../stress-ng/docs/references.md) of the stress-ng manual
-  define the terms of `stress-ng`, such as stress-ng bogo ops/s.
+- The [references](../stress-ng/docs/references.md) of the
+  [stress-ng manual](../stress-ng/README.md) define the terms of `stress-ng`,
+  such as stress-ng bogo ops/s.
 - The [references](./docs/references.md) of this image define the
   stress-ng YAML report and stress-ng bogo ops/s (real time).
 - The [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs
