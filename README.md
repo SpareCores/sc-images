@@ -90,12 +90,12 @@ read its output.
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
 | [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server with default settings, started with nice -n -20 under resource-tracker, for the pgbench PostgreSQL benchmark to target in remote mode. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
-| [`llama.cpp`](images/llama.cpp) | llama.cpp server (llama-server) with CUDA (Compute Unified Device Architecture) support, built from a pinned commit. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
 
 ### Base Images
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
+| [`llama.cpp`](images/llama.cpp) | llama.cpp server (llama-server) with CUDA (Compute Unified Device Architecture) support, built from a pinned commit. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
 | [`resource-tracker`](images/resource-tracker) | The resource-tracker binary of Spare Cores Navigator, copied into the other images to record resource usage while benchmarks run. | [Docs](https://docs.sparecores.com/images/resource-tracker/) |
 | [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 (Advanced Vector Extensions 2) but no AVX-512 (Advanced Vector Extensions 512), used as the base of benchmark-vllm-cpu-avx2. | [Docs](https://docs.sparecores.com/images/vllm-cpu-base-avx2/) |
 
