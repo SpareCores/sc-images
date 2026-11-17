@@ -10,8 +10,9 @@ image measures nothing itself.
 This image reports no results: its container log holds only the PostgreSQL
 server log. The
 [PostgreSQL (pgbench) manual](../benchmark-pgbench-postgres/README.md)
-describes the benchmark that can target this server in remote mode, and how
-to read its results. This page covers only how to run the server.
+describes the benchmark, which can run `pgbench` against this server in
+remote mode, and how to read its results. This page covers only how to run
+the server.
 
 ## Usage
 
@@ -127,7 +128,7 @@ The image differs from the upstream `postgres:18` image in the following ways:
 The terms on this page are defined in the following places:
 
 - The [references](../benchmark-pgbench-postgres/docs/references.md) of the
-  PostgreSQL (pgbench) manual define the terms of the benchmark, such as
-  concurrency points.
+  [PostgreSQL (pgbench) manual](../benchmark-pgbench-postgres/README.md)
+  define the terms of the benchmark, such as concurrency points.
 - The [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs
   defines common terms, such as `nice` and `resource-tracker`.
