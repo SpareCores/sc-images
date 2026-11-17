@@ -88,7 +88,7 @@ read its output.
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
-| [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server running at high priority, used as the remote target of database benchmarks. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
+| [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server with default settings, started with nice -n -20 under resource-tracker, for the pgbench PostgreSQL benchmark to target in remote mode. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
 | [`llama.cpp`](images/llama.cpp) | llama.cpp server (llama-server) with CUDA (Compute Unified Device Architecture) support, built from a pinned commit. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
 
 ### Base Images

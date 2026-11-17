@@ -1,0 +1,118 @@
+# PostgreSQL Server
+
+This image runs a PostgreSQL 18 server for a database benchmark to connect to.
+It is the upstream `postgres:18` image with `resource-tracker` added, and it
+starts the server with `nice -n -20` and default settings. The image measures
+nothing itself.
+
+This image reports no results: its container log holds only the PostgreSQL
+server log. The
+[PostgreSQL (pgbench) manual](../benchmark-pgbench-postgres/README.md)
+describes the benchmark that can target this server in remote mode, and how
+to read its results. This page covers only how to run the server.
+
+## Usage
+
+Start the server in the background via Docker:
+
+```bash
+docker run -d --rm --name postgres-server --privileged -p 5432:5432 \
+  -e POSTGRES_PASSWORD=<password> \
+  ghcr.io/sparecores/benchmark-postgres-server:main
+```
+
+Replace `<password>` with a password of your choice. The upstream
+`postgres:18` entrypoint requires `POSTGRES_PASSWORD`. The
+`--privileged` option lets `nice -n -20` raise the server's priority; without
+it, the server runs at normal priority.
+
+Then run the benchmark against the server in
+[remote mode](../benchmark-pgbench-postgres/docs/usage.md#remote-mode), from the
+same machine or another one, and save its JSON result:
+
+```bash
+docker run --rm \
+  -e SC_DB_HOST=<server-host> \
+  -e SC_DB_PASSWORD=<password> \
+  -e SC_DB_VCPUS=<server-vcpus> \
+  ghcr.io/sparecores/benchmark-pgbench-postgres:main > result.json
+```
+
+Fill in the following placeholders:
+
+- `<server-host>`: the hostname or network address of the machine that runs
+  the server container. On the same machine, use the host's network address,
+  not `localhost`, which points to the benchmark container itself.
+- `<password>`: the `POSTGRES_PASSWORD` value of the server container.
+- `<server-vcpus>`: the vCPU count of the server machine, as `nproc` prints it
+  there. The benchmark derives its client counts from it.
+
+`SC_DB_PORT` and `SC_DB_USER` keep their defaults, `5432` and `postgres`. The
+benchmark records `topology` as `multi_vm` in its output unless `SC_TOPOLOGY`
+is set, also when both containers run on one machine.
+
+Stop the server with `docker stop postgres-server`. Because of `--rm`, this
+also removes the container and its database.
+
+### Settings
+
+This image sets no PostgreSQL settings, and its only own environment variable
+is `TRACKER_QUIET` (default: `true`), which silences `resource-tracker`. The
+upstream `postgres:18` entrypoint reads the other variables, such as
+`POSTGRES_PASSWORD`, `POSTGRES_USER`, and `PGDATA`; see the
+[`postgres` image docs](https://hub.docker.com/_/postgres) on Docker Hub.
+
+To change a server setting, append `postgres` and one `-c <name>=<value>` pair
+per setting after the image name. For example, the following command raises
+`max_connections` to 242 for a server with 96 vCPUs:
+
+```bash
+docker run -d --rm --name postgres-server --privileged -p 5432:5432 \
+  -e POSTGRES_PASSWORD=<password> \
+  ghcr.io/sparecores/benchmark-postgres-server:main \
+  postgres -c max_connections=242
+```
+
+The benchmark drops the concurrency points above the server's
+`max_connections` minus 50. Its highest default point is twice the vCPU
+count, so set `max_connections` to at least twice the vCPU count plus 50 to
+keep all points.
+PostgreSQL's default leaves room for 50 clients, which drops the highest point
+on servers with more than 25 vCPUs.
+
+### Output
+
+The container log holds the PostgreSQL server log. Read it with
+`docker logs postgres-server`.
+
+The `resource-tracker` tool samples the server's resource usage, such as CPU,
+memory, disk, and network, once per second, and the Spare Cores team
+[streams it](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
+to the [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform for
+its own monitoring. This resource usage is not published.
+
+## Server Configuration
+
+The image differs from the upstream `postgres:18` image in the following ways:
+
+- **Process Tree:** The [`Dockerfile`](./Dockerfile) starts
+  `resource-tracker -- nice -n -20 docker-entrypoint.sh postgres`. The upstream
+  entrypoint and server run unchanged, under `resource-tracker`.
+- **No Tuning:** The image adds no configuration files, initialization
+  scripts, or settings, so the server runs with PostgreSQL defaults. In
+  [standalone mode](../benchmark-pgbench-postgres/docs/usage.md#standalone-mode),
+  the benchmark instead tunes its local server to the host's memory and
+  vCPUs.
+- **Minor Version:** The image builds on `postgres:18`, so only the major
+  version is fixed. Minor versions vary between builds, as described in
+  [Minor Engine Versions](../benchmark-pgbench-postgres/docs/limitations.md#minor-engine-versions).
+
+## References
+
+The terms on this page are defined in the following places:
+
+- The [references](../benchmark-pgbench-postgres/docs/references.md) of the
+  PostgreSQL (pgbench) manual define the terms of the benchmark, such as
+  concurrency points.
+- The [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs
+  defines common terms, such as `nice` and `resource-tracker`.
