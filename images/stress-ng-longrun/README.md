@@ -19,10 +19,10 @@ differently.
 [Spare Cores Navigator](https://docs.sparecores.com/overview) measures CPU
 speed with the [`stress-ng`](../stress-ng/README.md) image, which runs each
 stress-ng stressor for 15 seconds or less. A run that short does not show
-effects that build up over time. This benchmark keeps loading the CPU for 24
-hours to show the following:
+effects that build up over time. This benchmark loads the CPU once a minute
+for 24 hours, so that its results can expose the following effects:
 
-- sustained CPU throughput over time
+- changes in sustained CPU throughput over time
 - CPU-credit throttling on shared-core server types
 - noisy-neighbor variance by time of day
 
@@ -33,9 +33,11 @@ benchmark on only eight server types.
 
 ## Limitations
 
-The results of this image share the
-[limitations](../stress-ng/README.md#limitations) of the `stress-ng` image.
-Note the following limitations of this image in addition:
+Two limitations of the `stress-ng` image also apply to this benchmark:
+[bogo ops/s compare only for the same stressor](../stress-ng/docs/limitations.md#cross-stressor-comparison),
+and the
+[worker count is one per logical CPU, not per physical core](../stress-ng/docs/limitations.md#worker-count).
+This benchmark also has the following limitations:
 
 - **[Older `stress-ng` Version](#design-history):** This image pins
   `stress-ng` 0.17.08, not the 0.20.01 of the `stress-ng` image, and bogo ops/s
@@ -43,10 +45,10 @@ Note the following limitations of this image in addition:
 - **[CPU Only](#workload):** Every sample runs the same `cpu` stressor method,
   so this benchmark measures CPU throughput, not disk or network performance.
 - **[No Cause Attribution](#workload):** Within one run, both the load per
-  minute and the time of day change, and production keeps only the time,
-  duration, and bogo ops/s of each sample. A drop in throughput is therefore
-  not attributed to a specific cause, such as CPU credits or a neighboring
-  server.
+  minute and the time of day change, and no recorded field shows the cause of
+  a change, such as a CPU credit balance. A drop in throughput shows up in the
+  samples, but this benchmark does not attribute it to a specific cause, such
+  as CPU credits or a neighboring server.
 - **[Eight Server Types](#production-setup):** Production runs this benchmark
   on only eight server types, and its completed runs are from 2024. The image
   does not enforce this list.
