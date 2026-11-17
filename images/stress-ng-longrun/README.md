@@ -8,7 +8,7 @@ seconds per minute in the first hour, rising to 55 seconds per minute from the
 
 This benchmark reports stress-ng bogo ops/s (bogus operations per second) in
 real time for each one-minute sample, 1,440 samples in a full run, along with
-the time and duration of each sample.
+the end time and the load time of each sample.
 
 The [stress-ng manual](../stress-ng/README.md) describes `stress-ng`, its
 stressors, and their results, and this page covers only what this image does
@@ -44,11 +44,11 @@ This benchmark also has the following limitations:
   compare only within one `stress-ng` version.
 - **[CPU Only](#workload):** Every sample runs the same `cpu` stressor method,
   so this benchmark measures CPU throughput, not disk or network performance.
-- **[No Cause Attribution](#workload):** Within one run, both the load per
-  minute and the time of day change, and no recorded field shows the cause of
-  a change, such as a CPU credit balance. A drop in throughput shows up in the
-  samples, but this benchmark does not attribute it to a specific cause, such
-  as CPU credits or a neighboring server.
+- **[No Cause Attribution](#workload):** Within one run, both the load time of
+  each sample and the time of day change, and no recorded field shows the
+  cause of a change, such as a CPU credit balance. A drop in throughput shows
+  up in the samples, but this benchmark does not attribute it to a specific
+  cause, such as CPU credits or a neighboring server.
 - **[Eight Server Types](#production-setup):** Production runs this benchmark
   on only eight server types, and its completed runs are from 2024. The image
   does not enforce this list.
@@ -60,7 +60,7 @@ This benchmark also has the following limitations:
 
 The image has no default command: its entrypoint runs `sh` under
 `resource-tracker`, so pass the command to run with `-c`. The following command
-runs one sample of 5 seconds, with one worker per CPU, and saves its
+runs one sample with 5 seconds of load, with one worker per CPU, and saves its
 stress-ng YAML report from stderr:
 
 ```bash
@@ -114,7 +114,8 @@ main fields of the `cpu` stressor:
 
 - `bogo-ops-per-second-real-time`: the headline result, the bogo ops/s in real
   time, the total across all workers
-- `wall-clock-time`: the duration of the sample in seconds
+- `wall-clock-time`: the load time of the sample, the duration of the
+  stress-ng run in seconds
 - `bogo-ops`, `bogo-ops-per-second-usr-sys-time`, `user-time`, and
   `system-time`: the counts and times behind the result
 
@@ -139,21 +140,21 @@ of that run.
 The loop runs 1,440 samples, one per minute. Each sample runs the `cpu`
 stressor with the div16 method (`--cpu-method div16`) and one worker per
 logical CPU available to the container (`nproc`), then waits until the start of
-the next minute. The load of each sample rises with its number as follows:
+the next minute. The load time of each sample rises with its number as follows:
 
-| Samples | Load per minute |
-| ------- | --------------- |
+| Samples | Load time |
+| ------- | --------- |
 | 1-59 | 5s |
 | 60-119 | 10s |
 | Each next 60 samples | 5s more |
 | 540-599 | 50s |
 | 600-1,440 | 55s |
 
-The load totals 62,750 seconds, about 17.4 hours of the 24. There is no
-warm-up: the first sample, of 5 seconds, counts like the others.
+The load time totals 62,750 seconds, about 17.4 hours of the 24. There is no
+warm-up: the first sample, with 5 seconds of load, counts like the others.
 
-The load and the time of day change together during a run, so the samples of
-one run do not tell their effects apart.
+The load time and the time of day change together during a run, so the
+samples of one run do not tell their effects apart.
 
 ## Design History
 
