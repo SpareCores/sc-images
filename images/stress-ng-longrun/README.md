@@ -43,8 +43,8 @@ This benchmark also has the following limitations:
   `stress-ng` 0.17.08, while the `stress-ng` image uses 0.20.01, and bogo ops/s
   compare only within one `stress-ng` version.
 - **[CPU Only](#workload):** Every sample runs the same `cpu` stressor with
-  the div16 method, so this benchmark measures CPU throughput, not disk or
-  network performance.
+  the div16 method, so this benchmark measures CPU throughput, not
+  [disk](../benchmark-storage/README.md) or network performance.
 - **[No Cause Attribution](#workload):** Within one run, both the load time of
   each sample and the time of day change, and no recorded field shows the
   cause of a change, such as a CPU credit balance. A drop in throughput shows
@@ -86,7 +86,9 @@ production sets with its other Docker options.
 
 ### Production Setup
 
-The Navigator's Inspector runs the loop above as its `stressnglongrun` task,
+The Navigator's
+[Inspector](https://github.com/SpareCores/sc-inspector) runs the loop above as
+its `stressnglongrun` task,
 defined in
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py),
 with `--privileged` and `--network host`, and with the loop under
@@ -164,7 +166,7 @@ the next minute. The load time of each sample rises with its number as follows:
 | ------- | --------- |
 | 1-59 | 5s |
 | 60-119 | 10s |
-| Each next 60 samples | 5s more |
+| 120-539 | 15s-45s, 5s more every 60 samples |
 | 540-599 | 50s |
 | 600-1,440 | 55s |
 
