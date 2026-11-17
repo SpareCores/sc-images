@@ -3,8 +3,8 @@
 This benchmark measures how the sustained CPU throughput of a server type
 changes over 24 hours. Once a minute, it runs the `cpu` stressor of
 `stress-ng` with the stress-ng div16 method and one worker per CPU, for 5
-seconds per minute in the first hour, rising to 55 seconds per minute from the
-11th hour on.
+seconds per minute in the first hour, rising to 55 seconds per minute from about
+the 11th hour on.
 
 This benchmark reports stress-ng bogo ops/s (bogus operations per second),
 measured over wall-clock (real) time, for each one-minute sample, along with
@@ -51,8 +51,7 @@ This benchmark also has the following limitations:
   up in the samples, but this benchmark does not attribute it to a specific
   cause, such as CPU credits or a neighboring server.
 - **[Eight Server Types](#production-setup):** Production runs this benchmark
-  on only eight server types, and its completed runs are from 2024. The image
-  does not enforce this list.
+  on only eight server types, and its completed runs are from 2024.
 - **[Loop Not in the Image](#usage):** The image contains `stress-ng` and
   `resource-tracker` only. The loop of 24 hours is a command that the caller
   passes, and production, not the image, collects the samples.
@@ -137,8 +136,9 @@ main fields of the `cpu` stressor:
 The image does not extract a time series from the YAML reports, and leaves
 that to the caller. The Navigator's Inspector extracts it with its
 [`parse.stressnglongrun`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/parse.py)
-parser, which writes one line per sample to `parsed.csv`, a file with no
-header. Each line holds the time at the end of the sample, the
+parser, which writes one line per sample to
+[`parsed.csv`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/stressnglongrun/parsed.csv),
+a file with no header. Each line holds the time at the end of the sample, the
 `wall-clock-time`, and the `bogo-ops-per-second-real-time`. The first line
 of a production run on `c7g.large` is the following:
 
