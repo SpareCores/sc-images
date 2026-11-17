@@ -6,9 +6,9 @@ changes over 24 hours. Once a minute, it runs the `cpu` stressor of
 seconds per minute in the first hour, rising to 55 seconds per minute from the
 11th hour on.
 
-This benchmark reports stress-ng bogo ops/s (bogus operations per second) in
-real time for each one-minute sample, 1,440 samples in a full run, along with
-the end time and the load time of each sample.
+This benchmark reports stress-ng bogo ops/s (bogus operations per second),
+measured over wall-clock (real) time, for each one-minute sample, along with
+the end time and the load time of each sample. A full run has 1,440 samples.
 
 The [stress-ng manual](../stress-ng/README.md) describes `stress-ng`, its
 stressors, and their results, and this page covers only what this image does
@@ -40,10 +40,11 @@ and the
 This benchmark also has the following limitations:
 
 - **[Older `stress-ng` Version](#design-history):** This image pins
-  `stress-ng` 0.17.08, not the 0.20.01 of the `stress-ng` image, and bogo ops/s
+  `stress-ng` 0.17.08, while the `stress-ng` image uses 0.20.01, and bogo ops/s
   compare only within one `stress-ng` version.
-- **[CPU Only](#workload):** Every sample runs the same `cpu` stressor method,
-  so this benchmark measures CPU throughput, not disk or network performance.
+- **[CPU Only](#workload):** Every sample runs the same `cpu` stressor with
+  the div16 method, so this benchmark measures CPU throughput, not disk or
+  network performance.
 - **[No Cause Attribution](#workload):** Within one run, both the load time of
   each sample and the time of day change, and no recorded field shows the
   cause of a change, such as a CPU credit balance. A drop in throughput shows
@@ -78,9 +79,10 @@ docker run --rm --privileged --network host ghcr.io/sparecores/stress-ng-longrun
 
 In `bash` and other `sh`-compatible shells, the backslashes keep the host shell
 from expanding the `$` signs, so that the shell in the container evaluates them.
-The
-`nice -n -20` command needs `--privileged`. Without `--privileged`, remove
-`nice -n -20` from the command, and the loop runs at normal priority.
+The `nice -n -20` command needs `--privileged`. Without `--privileged`, remove
+`nice -n -20` from the command, and the loop runs at normal priority. The loop
+runs no network workload, so it does not need `--network host`, which
+production sets with its other Docker options.
 
 ### Production Setup
 
@@ -90,7 +92,10 @@ defined in
 with `--privileged` and `--network host`, and with the loop under
 `nice -n -20`. It runs no other
 benchmark in parallel with this one, and stops a run that lasts longer than
-26 hours. Full production runs took about 24 hours.
+26 hours. Full production runs took about 24 hours. Production retries failed
+runs, so the latest result of a server type can be a failed or partial run, as
+with the latest `cax11` attempts (2026-09-29 and 2026-10-23), which ended
+early.
 
 Production runs this benchmark on only the following server types:
 
@@ -122,8 +127,10 @@ main fields of the `cpu` stressor:
   wall-clock (real) time, summed across all workers
 - `wall-clock-time`: the load time of the sample, the duration of the
   stress-ng run in seconds
-- `bogo-ops`, `bogo-ops-per-second-usr-sys-time`, `user-time`, and
-  `system-time`: the counts and times behind the result
+- `bogo-ops-per-second-usr-sys-time`: the bogo ops/s over the user and system
+  CPU time of all workers
+- `bogo-ops`, `user-time`, and `system-time`: the count and times behind the
+  result
 
 The image does not extract a time series from the YAML reports, and leaves
 that to the caller. The Navigator's Inspector extracts it with its
