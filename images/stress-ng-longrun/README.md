@@ -2,13 +2,13 @@
 
 This benchmark measures how the sustained CPU throughput of a server type
 changes over 24 hours. Once a minute, it runs the `cpu` stressor of
-`stress-ng` with the stress-ng div16 method and one worker per CPU, for 5
-seconds per minute in the first hour, rising to 55 seconds per minute from about
-the 11th hour on.
+`stress-ng` with the stress-ng div16 method and one worker per CPU. The load
+lasts 5 seconds per minute in the first hour and rises to 55 seconds per minute
+from about the 11th hour on.
 
-This benchmark reports stress-ng bogo ops/s (bogus operations per second),
-measured over wall-clock (real) time, for each one-minute sample, along with
-the end time and the load time of each sample. A full run has 1,440 samples.
+For each one-minute sample, this benchmark reports stress-ng bogo ops/s
+(bogus operations per second) measured over wall-clock (real) time, along with
+the sample's end time and load time. A full run has 1,440 samples.
 
 The [stress-ng manual](../stress-ng/README.md) describes `stress-ng`, its
 stressors, and their results, and this page covers only what this image does
@@ -45,11 +45,11 @@ This benchmark also has the following limitations:
 - **[CPU Only](#workload):** Every sample runs the same `cpu` stressor with
   the div16 method, so this benchmark measures CPU throughput, not
   [disk](../benchmark-storage/README.md) or network performance.
-- **[No Cause Attribution](#workload):** Within one run, both the load time of
-  each sample and the time of day change, and no recorded field shows the
-  cause of a change, such as a CPU credit balance. A drop in throughput shows
-  up in the samples, but this benchmark does not attribute it to a specific
-  cause, such as CPU credits or a neighboring server.
+- **[No Cause Attribution](#workload):** Within a run, sample load times and
+  time of day both vary, and no recorded field shows the cause of a change,
+  such as a CPU credit balance. The samples show throughput drops, but this
+  benchmark does not attribute them to a specific cause, such as CPU credits
+  or a neighboring server.
 - **[Eight Server Types](#production-setup):** Production runs this benchmark
   on only eight server types, and its completed runs are from 2024.
 - **[Loop Not in the Image](#usage):** The image contains `stress-ng` and
@@ -59,17 +59,16 @@ This benchmark also has the following limitations:
 ## Usage
 
 The image has no default command: its [entrypoint](./Dockerfile) runs `sh`
-under `resource-tracker`, so pass the command to run with `-c`. The following
-command runs one sample with 5 seconds of load, with one worker per CPU, and
-saves its stress-ng YAML report from stderr:
+under `resource-tracker`, so pass the command to run with `-c`. To run one
+sample with 5 seconds of load and one worker per CPU and save its stress-ng
+YAML report from stderr:
 
 ```bash
 docker run --rm ghcr.io/sparecores/stress-ng-longrun:main \
   -c 'stress-ng --metrics --cpu $(nproc) --cpu-method div16 -t 5 -Y /dev/stderr' 2> sample.yaml
 ```
 
-The following command runs the full loop of 24 hours as production does, and
-saves stdout and stderr:
+To run the full 24-hour loop as production does and save stdout and stderr:
 
 ```bash
 docker run --rm --privileged --network host ghcr.io/sparecores/stress-ng-longrun:main \
@@ -77,7 +76,7 @@ docker run --rm --privileged --network host ghcr.io/sparecores/stress-ng-longrun
 ```
 
 In `bash` and other `sh`-compatible shells, the backslashes keep the host shell
-from expanding the `$` signs, so that the shell in the container evaluates them.
+from expanding the `$` signs; the shell in the container evaluates them.
 The `nice -n -20` command needs `--privileged`. Without `--privileged`, remove
 `nice -n -20` from the command, and the loop runs at normal priority. The loop
 runs no network workload, so it does not need `--network host`, which
@@ -87,16 +86,14 @@ production sets with its other Docker options.
 
 The Navigator's
 [Inspector](https://github.com/SpareCores/sc-inspector) runs the loop above as
-its `stressnglongrun` task,
-defined in
-[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py),
-with `--privileged` and `--network host`, and with the loop under
-`nice -n -20`. It runs no other
-benchmark in parallel with this one, and stops a run that lasts longer than
-26 hours. Full production runs took about 24 hours. Production retries failed
-runs, so the latest result of a server type can be a failed or partial run, as
-with the latest `cax11` attempts (2026-09-29 and 2026-10-23), which ended
-early.
+its `stressnglongrun` task, defined in
+[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py).
+It uses `--privileged` and `--network host` and runs the loop under
+`nice -n -20`. The Inspector runs no other benchmark in parallel with this
+one and stops a run that lasts longer than 26 hours. Full production runs took
+about 24 hours. Production retries failed runs, so a server type's latest
+result can be a failed or partial run. For example, the latest `cax11`
+attempts (2026-09-29 and 2026-10-23) ended early.
 
 Production runs this benchmark on only the following server types:
 
@@ -119,10 +116,10 @@ stress-ng: metrc: [9]                           (secs)    (secs)    (secs)   (re
 stress-ng: metrc: [9] cpu               15177      5.00      9.91      0.00      3035.31        1531.58        99.09          1192
 ```
 
-Each sample also writes one stress-ng YAML report to stderr. Its `system-info`
-section describes the run and the system, such as the `stress-ng` version and
-the time at the end of the sample. Its `metrics` section holds the following
-main fields of the `cpu` stressor:
+Each sample also writes one stress-ng YAML report to stderr. The report's
+`system-info` section describes the run and system, including the
+`stress-ng` version and the time at the end of the sample. Its `metrics`
+section holds the following main fields of the `cpu` stressor:
 
 - `bogo-ops-per-second-real-time`: the headline result: the bogo ops/s over
   wall-clock (real) time, summed across all workers
@@ -133,14 +130,14 @@ main fields of the `cpu` stressor:
 - `bogo-ops`, `user-time`, and `system-time`: the count and times behind the
   result
 
-The image does not extract a time series from the YAML reports, and leaves
-that to the caller. The Navigator's Inspector extracts it with its
+The image does not extract a time series from the YAML reports; it leaves
+that to the caller. The Navigator's Inspector extracts the time series with its
 [`parse.stressnglongrun`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/parse.py)
-parser, which writes one line per sample to
+parser. The parser writes one line per sample to
 [`parsed.csv`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/stressnglongrun/parsed.csv),
-a file with no header. Each line holds the time at the end of the sample, the
-`wall-clock-time`, and the `bogo-ops-per-second-real-time`. The first line
-of a production run on `c7g.large` is the following:
+which has no header. Each line holds the sample's end time, `wall-clock-time`,
+and `bogo-ops-per-second-real-time`. For example, the first line of a
+production run on `c7g.large` is:
 
 ```text
 2024-07-09T12:07:32,5.000142,3035.313593
@@ -160,7 +157,7 @@ The loop of the `stressnglongrun` task in
 runs 1,440 samples, one per minute. Each sample runs the `cpu`
 stressor with the div16 method (`--cpu-method div16`) and one worker per
 logical CPU available to the container (`nproc`), then waits until the start of
-the next minute. The load time of each sample rises with its number as follows:
+the next minute. The load time for each sample depends on its sample number:
 
 | Samples | Load time |
 | ------- | --------- |
@@ -170,21 +167,21 @@ the next minute. The load time of each sample rises with its number as follows:
 | 540-599 | 50s |
 | 600-1,440 | 55s |
 
-The load time totals 62,750 seconds, about 17.4 of the run's 24 hours. There
-is no warm-up: the first sample, with 5 seconds of load, counts like the
-others.
+The load times total 62,750 seconds, about 17.4 hours of the 24-hour run.
+There is no warm-up: the first sample, with 5 seconds of load, counts like
+the others.
 
-The load time and the time of day change together during a run, so the
-samples of one run do not tell their effects apart.
+The load time and the time of day change together during a run, so its samples
+do not show the separate effects of load time and time of day.
 
 ## Design History
 
 This image pins `stress-ng` 0.17.08 through the tag of its base image,
 `ghcr.io/colinianking/stress-ng`, in its [`Dockerfile`](./Dockerfile). The
-`stress-ng` image used 0.17.08 until it moved to 0.20.01 (see the `stress-ng`
-[changelog](../stress-ng/CHANGELOG.md#stressor-suite-and-stress-ng-02001)). The
-completed production runs from 2024 used this version, and we keep it so that
-new runs stay comparable with them. We do not plan to update it.
+`stress-ng` image used 0.17.08 until its update to 0.20.01 (see the
+`stress-ng` [changelog](../stress-ng/CHANGELOG.md#stressor-suite-and-stress-ng-02001)).
+The completed production runs from 2024 used this version, and we keep it so
+that new runs stay comparable with them. We do not plan to update it.
 
 ## References
 
