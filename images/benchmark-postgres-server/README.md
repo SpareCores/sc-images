@@ -26,9 +26,11 @@ Replace `<password>` with a password of your choice. The upstream
 `--privileged` option lets `nice -n -20` raise the server's priority; without
 it, the server runs at normal priority.
 
-Then run the benchmark against the server in
+Once the server accepts connections, run the benchmark against it in
 [remote mode](../benchmark-pgbench-postgres/docs/usage.md#remote-mode), from the
-same machine or another one, and save its JSON result:
+same machine or another one, and save its JSON result. The benchmark does not
+wait for the server, so check the server log with `docker logs postgres-server`
+first:
 
 ```bash
 docker run --rm \
@@ -47,9 +49,10 @@ Fill in the following placeholders:
 - `<server-vcpus>`: the vCPU count of the server machine, as `nproc` prints it
   there. The benchmark derives its client counts from it.
 
-`SC_DB_PORT` and `SC_DB_USER` keep their defaults, `5432` and `postgres`. The
-benchmark records `topology` as `multi_vm` in its output unless `SC_TOPOLOGY`
-is set, also when both containers run on one machine.
+`SC_DB_PORT` and `SC_DB_USER` keep their defaults, `5432` and `postgres`. When
+both containers run on one machine, add `-e SC_TOPOLOGY=single_vm` to the
+benchmark command; otherwise, the benchmark records `topology` as `multi_vm` in
+its output.
 
 Stop the server with `docker stop postgres-server`. Because of `--rm`, this
 also removes the container and its database.
@@ -77,8 +80,9 @@ The benchmark drops the concurrency points above the server's
 `max_connections` minus 50. Its highest default point is twice the vCPU
 count, so set `max_connections` to at least twice the vCPU count plus 50 to
 keep all points.
-PostgreSQL's default leaves room for 50 clients, which drops the highest point
-on servers with more than 25 vCPUs.
+PostgreSQL's default `max_connections` of 100 leaves room for 50 clients, so
+the benchmark drops every point above 50: the highest point on servers with
+more than 25 vCPUs, and more points on servers with more than 50.
 
 ### Output
 
@@ -86,10 +90,11 @@ The container log holds the PostgreSQL server log. Read it with
 `docker logs postgres-server`.
 
 The `resource-tracker` tool samples the server's resource usage, such as CPU,
-memory, disk, and network, once per second, and the Spare Cores team
-[streams it](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
+memory, disk, and network, once per second. In production runs, the Spare
+Cores team
+[streams these samples](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
 to the [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform for
-its own monitoring. This resource usage is not published.
+the team's own monitoring. This resource usage is not published.
 
 ## Server Configuration
 
