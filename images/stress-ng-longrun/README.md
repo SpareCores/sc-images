@@ -58,10 +58,10 @@ This benchmark also has the following limitations:
 
 ## Usage
 
-The image has no default command: its entrypoint runs `sh` under
-`resource-tracker`, so pass the command to run with `-c`. The following command
-runs one sample with 5 seconds of load, with one worker per CPU, and saves its
-stress-ng YAML report from stderr:
+The image has no default command: its [entrypoint](./Dockerfile) runs `sh`
+under `resource-tracker`, so pass the command to run with `-c`. The following
+command runs one sample with 5 seconds of load, with one worker per CPU, and
+saves its stress-ng YAML report from stderr:
 
 ```bash
 docker run --rm ghcr.io/sparecores/stress-ng-longrun:main \
@@ -84,8 +84,11 @@ The
 
 ### Production Setup
 
-The Navigator's Inspector runs the loop above with `--privileged` and
-`--network host`, and with the loop under `nice -n -20`. It runs no other
+The Navigator's Inspector runs the loop above as its `stressnglongrun` task,
+defined in
+[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py),
+with `--privileged` and `--network host`, and with the loop under
+`nice -n -20`. It runs no other
 benchmark in parallel with this one, and stops it after 26 hours. Full
 production runs took about 24 hours.
 
@@ -100,10 +103,13 @@ the server types it runs on.
 
 ### Results
 
-Each sample prints its stress-ng metrc line and other `info` lines to stdout,
-for example:
+Each sample prints a stress-ng metrc table to stdout, along with other `info`
+lines. The bogo ops/s (real time) column holds the headline result, as in the
+first sample of a production run on `c7g.large`:
 
 ```text
+stress-ng: metrc: [9] stressor       bogo ops real time  usr time  sys time   bogo ops/s     bogo ops/s CPU used per       RSS Max
+stress-ng: metrc: [9]                           (secs)    (secs)    (secs)   (real time) (usr+sys time) instance (%)          (KB)
 stress-ng: metrc: [9] cpu               15177      5.00      9.91      0.00      3035.31        1531.58        99.09          1192
 ```
 
@@ -119,10 +125,13 @@ main fields of the `cpu` stressor:
 - `bogo-ops`, `bogo-ops-per-second-usr-sys-time`, `user-time`, and
   `system-time`: the counts and times behind the result
 
-The Navigator's Inspector reads the YAML reports and writes one `parsed.csv`
-line per sample, with no header: the time at the end of the sample,
-`wall-clock-time`, and `bogo-ops-per-second-real-time`. The first line of a
-production run on `c7g.large` is the following:
+The image does not extract a time series from the YAML reports, and leaves
+that to the caller. The Navigator's Inspector extracts it with its
+[`parse.stressnglongrun`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/parse.py)
+parser, which writes one line per sample to `parsed.csv`, a file with no
+header. Each line holds the time at the end of the sample, the
+`wall-clock-time`, and the `bogo-ops-per-second-real-time`. The first line
+of a production run on `c7g.large` is the following:
 
 ```text
 2024-07-09T12:07:32,5.000142,3035.313593
@@ -137,7 +146,9 @@ of that run.
 
 ## Workload
 
-The loop runs 1,440 samples, one per minute. Each sample runs the `cpu`
+The loop of the `stressnglongrun` task in
+[`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
+runs 1,440 samples, one per minute. Each sample runs the `cpu`
 stressor with the div16 method (`--cpu-method div16`) and one worker per
 logical CPU available to the container (`nproc`), then waits until the start of
 the next minute. The load time of each sample rises with its number as follows:
@@ -158,7 +169,8 @@ samples of one run do not tell their effects apart.
 
 ## Design History
 
-This image pins `stress-ng` 0.17.08 through the tag of its base image, the
+This image pins `stress-ng` 0.17.08 through the tag of its base image,
+`ghcr.io/colinianking/stress-ng`, in its [`Dockerfile`](./Dockerfile): the
 version that the `stress-ng` image used before it moved to 0.20.01 (see its
 [changelog](../stress-ng/CHANGELOG.md)). The completed production runs from
 2024 used this version, and we keep it so that new runs stay comparable with
