@@ -2,10 +2,10 @@
 
 This image runs a PostgreSQL 18 server for the
 [PostgreSQL (pgbench) benchmark](../benchmark-pgbench-postgres/README.md) to
-connect to in remote mode.
-It is the upstream `postgres:18` image with `resource-tracker` added, and it
-starts the server with `nice -n -20` and default settings. The image measures
-nothing itself.
+connect to in remote mode. It is the upstream
+[`postgres:18`](https://hub.docker.com/_/postgres) image with `resource-tracker`
+added, and it starts the server with `nice -n -20` and default settings. The
+image measures nothing itself.
 
 This image reports no results: its container log holds only the PostgreSQL
 server log. The
