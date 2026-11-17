@@ -23,8 +23,10 @@ docker run -d --rm --name postgres-server --privileged -p 5432:5432 \
 
 Replace `<password>` with a password of your choice. The upstream
 `postgres:18` entrypoint requires `POSTGRES_PASSWORD`. The
-`--privileged` option lets `nice -n -20` raise the server's priority; without
-it, the server runs at normal priority.
+`--privileged` option is optional: the image needs it only so that
+`nice -n -20` can raise the server's priority, which takes only the
+`CAP_SYS_NICE` capability, while `--privileged` grants the container far more.
+Without it, the server runs at normal priority.
 
 Once the server accepts connections, run the benchmark against it in
 [remote mode](../benchmark-pgbench-postgres/docs/usage.md#remote-mode), from the
@@ -42,9 +44,11 @@ docker run --rm \
 
 Fill in the following placeholders:
 
-- `<server-host>`: the hostname or network address of the machine that runs
-  the server container. On the same machine, use the host's network address,
-  not `localhost`, which points to the benchmark container itself.
+- `<server-host>`: the hostname or IP address of the machine that runs the
+  server container. Port 5432 of that machine must be reachable from the
+  benchmark machine. On the same machine, use an IP address of the host, such
+  as its private IP address, not `localhost`, which points to the benchmark
+  container itself.
 - `<password>`: the `POSTGRES_PASSWORD` value of the server container.
 - `<server-vcpus>`: the vCPU count of the server machine, as `nproc` prints it
   there. The benchmark derives its client counts from it.
