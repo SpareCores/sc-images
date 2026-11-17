@@ -51,7 +51,7 @@ Fill in the following placeholders:
   container itself.
 - `<password>`: the `POSTGRES_PASSWORD` value of the server container.
 - `<server-vcpus>`: the vCPU count of the server machine, as `nproc` prints it
-  there. The benchmark derives its client counts from it.
+  on that machine. The benchmark derives its client counts from it.
 
 `SC_DB_PORT` and `SC_DB_USER` keep their defaults, `5432` and `postgres`. When
 both containers run on one machine, add `-e SC_TOPOLOGY=single_vm` to the
@@ -70,8 +70,19 @@ upstream `postgres:18` entrypoint reads the other variables, such as
 [`postgres` image docs](https://hub.docker.com/_/postgres) on Docker Hub.
 
 To change a server setting, append `postgres` and one `-c <name>=<value>` pair
-per setting after the image name. For example, the following command raises
-`max_connections` to 242 for a server with 96 vCPUs:
+per setting after the image name.
+
+The benchmark drops the concurrency points above the server's
+`max_connections` minus 50. Its highest default point is twice the vCPU
+count, so set `max_connections` to at least twice the vCPU count plus 50 to
+keep all points.
+
+PostgreSQL's default `max_connections` of 100 leaves room for 50 clients, so
+the benchmark drops every point above 50: the highest point on servers with
+more than 25 vCPUs, and more points on servers with more than 50.
+
+For example, the following command raises `max_connections` to 242 (twice 96,
+plus 50) for a server with 96 vCPUs:
 
 ```bash
 docker run -d --rm --name postgres-server --privileged -p 5432:5432 \
@@ -79,14 +90,6 @@ docker run -d --rm --name postgres-server --privileged -p 5432:5432 \
   ghcr.io/sparecores/benchmark-postgres-server:main \
   postgres -c max_connections=242
 ```
-
-The benchmark drops the concurrency points above the server's
-`max_connections` minus 50. Its highest default point is twice the vCPU
-count, so set `max_connections` to at least twice the vCPU count plus 50 to
-keep all points.
-PostgreSQL's default `max_connections` of 100 leaves room for 50 clients, so
-the benchmark drops every point above 50: the highest point on servers with
-more than 25 vCPUs, and more points on servers with more than 50.
 
 ### Output
 
