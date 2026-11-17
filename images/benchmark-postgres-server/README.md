@@ -106,7 +106,7 @@ Cores team
 to the [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform for
 the team's own monitoring. This resource usage is not published.
 
-## Server Configuration
+## Differences from the Upstream Image
 
 The image differs from the upstream `postgres:18` image in the following ways:
 
