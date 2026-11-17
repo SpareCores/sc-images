@@ -89,8 +89,8 @@ defined in
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py),
 with `--privileged` and `--network host`, and with the loop under
 `nice -n -20`. It runs no other
-benchmark in parallel with this one, and stops it after 26 hours. Full
-production runs took about 24 hours.
+benchmark in parallel with this one, and stops a run that lasts longer than
+26 hours. Full production runs took about 24 hours.
 
 Production runs this benchmark on only the following server types:
 
@@ -118,8 +118,8 @@ section describes the run and the system, such as the `stress-ng` version and
 the time at the end of the sample. Its `metrics` section holds the following
 main fields of the `cpu` stressor:
 
-- `bogo-ops-per-second-real-time`: the headline result, the bogo ops/s in real
-  time, the total across all workers
+- `bogo-ops-per-second-real-time`: the headline result: the bogo ops/s over
+  wall-clock (real) time, summed across all workers
 - `wall-clock-time`: the load time of the sample, the duration of the
   stress-ng run in seconds
 - `bogo-ops`, `bogo-ops-per-second-usr-sys-time`, `user-time`, and
@@ -170,11 +170,11 @@ samples of one run do not tell their effects apart.
 ## Design History
 
 This image pins `stress-ng` 0.17.08 through the tag of its base image,
-`ghcr.io/colinianking/stress-ng`, in its [`Dockerfile`](./Dockerfile): the
-version that the `stress-ng` image used before it moved to 0.20.01 (see its
-[changelog](../stress-ng/CHANGELOG.md)). The completed production runs from
-2024 used this version, and we keep it so that new runs stay comparable with
-them. We do not plan to update it.
+`ghcr.io/colinianking/stress-ng`, in its [`Dockerfile`](./Dockerfile). The
+`stress-ng` image used 0.17.08 until it moved to 0.20.01 (see the `stress-ng`
+[changelog](../stress-ng/CHANGELOG.md#stressor-suite-and-stress-ng-02001)). The
+completed production runs from 2024 used this version, and we keep it so that
+new runs stay comparable with them. We do not plan to update it.
 
 ## References
 
@@ -183,6 +183,6 @@ The terms on this page are defined in the following places:
 - The [references](../stress-ng/docs/references.md) of the stress-ng manual
   define the terms of `stress-ng`, such as stress-ng bogo ops/s.
 - The [references](./docs/references.md) of this image define the
-  stress-ng YAML report.
+  stress-ng YAML report and stress-ng bogo ops/s (real time).
 - The [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs
   defines common terms, such as CPU-credit throttling and shared-core.
