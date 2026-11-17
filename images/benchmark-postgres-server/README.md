@@ -1,6 +1,8 @@
 # PostgreSQL Server
 
-This image runs a PostgreSQL 18 server for a database benchmark to connect to.
+This image runs a PostgreSQL 18 server for the
+[PostgreSQL (pgbench) benchmark](../benchmark-pgbench-postgres/README.md) to
+connect to in remote mode.
 It is the upstream `postgres:18` image with `resource-tracker` added, and it
 starts the server with `nice -n -20` and default settings. The image measures
 nothing itself.
@@ -51,9 +53,10 @@ Fill in the following placeholders:
   container itself.
 - `<password>`: the `POSTGRES_PASSWORD` value of the server container.
 - `<server-vcpus>`: the vCPU count of the server machine, as `nproc` prints it
-  on that machine. The benchmark derives its client counts from it.
+  on that machine. The benchmark derives its concurrency points from it.
 
-`SC_DB_PORT` and `SC_DB_USER` keep their defaults, `5432` and `postgres`. When
+`SC_DB_PORT` and `SC_DB_USER` keep their defaults, `5432` and `postgres`. If
+you set `POSTGRES_USER` on the server, set `SC_DB_USER` to the same value. When
 both containers run on one machine, add `-e SC_TOPOLOGY=single_vm` to the
 benchmark command; otherwise, the benchmark records `topology` as `multi_vm` in
 its output.
@@ -63,7 +66,7 @@ also removes the container and its database.
 
 ### Settings
 
-This image sets no PostgreSQL settings, and its only own environment variable
+This image sets no PostgreSQL settings. The only environment variable it adds
 is `TRACKER_QUIET` (default: `true`), which silences `resource-tracker`. The
 upstream `postgres:18` entrypoint reads the other variables, such as
 `POSTGRES_PASSWORD`, `POSTGRES_USER`, and `PGDATA`; see the
