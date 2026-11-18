@@ -22,6 +22,8 @@ To print all SMBIOS structures of a host via Docker, as production does:
 docker run --rm --privileged ghcr.io/sparecores/dmidecode:main dmidecode
 ```
 
+The output describes the machine whose kernel runs the container.
+
 The image sets no default command, so pass `dmidecode` after the image name.
 The `--privileged` option is required. To pass `dmidecode` options, such as
 `-t memory`, append them after the command:
@@ -51,9 +53,11 @@ but its runs differ from the commands above in the following ways:
 - **Docker Options:** Production runs the container detached, with
   `--privileged` and host networking (`--network host`). The commands above
   use Docker's default network.
-- **Timeout:** Production stops the run after 5 minutes. A plain `docker run`
-  sets no time limit. The median production run took \~10 seconds, and 95% of
-  runs finished within \~27 seconds.
+- **Timeout:** Production stops the container if it still runs 5 minutes
+  after it starts. A plain `docker run` sets no time limit. Counted from when
+  the Inspector picks up the run (so including the image pull), the median
+  successful production run took \~10 seconds, and 95% of successful runs
+  finished within \~27 seconds.
 - **Version and Parsing:** Production records the output of
   `dmidecode --version` as the version of each run, and parses the text into
   JSON, as [Output](#output) describes. A plain `docker run` prints the text
@@ -103,7 +107,7 @@ following fields:
 | ------ | ------ |
 | `handle` | The `id`, `type`, and `bytes` of the structure's header line, all as strings |
 | `name` | The structure's name, such as `BIOS Information` or `Memory Device` |
-| `props` | The structure's fields as key-value pairs, with a list for a field with several values, and each size as a number with its unit in a separate `<key>:unit` field, such as `"ROM Size": 65536` and `"ROM Size:unit": "B"` |
+| `props` | The structure's fields as key-value pairs, with a list for a field with several values. Values with a unit, such as sizes, speeds, and widths, become numbers in the base unit (`B`, `Hz`, `T/s`, `bits`, `V`, or `s`), with the unit in a separate `<key>:unit` field, such as `"ROM Size": 65536` and `"ROM Size:unit": "B"`. Byte sizes use multiples of 1,024 (`8 GB` becomes `8589934592`), and other units multiples of 1,000 (`2666 MT/s` becomes `2666000000`). Dates become timestamps, such as `2017-10-16T00:00:00` |
 
 ### Production Results
 
