@@ -3,7 +3,7 @@
 This image bundles Linux command-line tools, such as `lshw` (Hardware Lister)
 and `lscpu`, that report a server's CPU, memory, disk, and topology details.
 The Inspector of [Spare Cores Navigator](https://docs.sparecores.com/overview)
-runs them on cloud servers. The image has no default command and no harness of
+runs them on cloud servers. This image has no default command and no harness of
 its own: each run executes the one command passed after the image name. This
 image is not a benchmark, so nothing is timed or repeated.
 
@@ -14,7 +14,7 @@ repository.
 
 ## Tools
 
-The image is built on `ubuntu:24.04` and includes the following tools:
+This image is built on `ubuntu:24.04` and includes the following tools:
 
 | Tool | Package | Version | Production task |
 | ------ | --------- | --------- | ----------------- |
@@ -49,7 +49,7 @@ empty.
 
 ## Usage
 
-The image sets no default command, so append the command to run after the
+This image sets no default command, so append the command to run after the
 image name. To print the CPU details as JSON, as the `lscpu` production task
 does:
 
@@ -72,10 +72,10 @@ docker run --rm --privileged --network host ghcr.io/sparecores/hwinfo:main \
   lstopo --of xml
 ```
 
-These commands use the same Docker options as production. The image reads no
+These commands use the same Docker options as production. This image reads no
 environment variables or configuration files of its own, and runs each command
 as root in `/`. Unlike the benchmark images, it does not run the command under
-`resource-tracker`. The image is built for AMD64 and Arm64.
+`resource-tracker`. This image is built for AMD64 and Arm64.
 
 ### Production Setup
 
@@ -107,7 +107,8 @@ Production runs also differ from a plain `docker run` in the following ways:
 - **Server Start:** The `lsblk`, `lsblk_discard`, `lsblk_topo`, and `lstopo`
   tasks never start a server on their own; they run only when another task,
   such as `lshw` or `lscpu`, has started the server. These four tasks have
-  results for fewer server types (\~2410) than `lshw` and `lscpu` (\~3790).
+  results for fewer server types (\~2410 as of November 2026) than `lshw` and
+  `lscpu` (\~3790).
 
 The commands and timeouts are in the six tasks above in
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
