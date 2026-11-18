@@ -4,11 +4,11 @@ Terms specific to this image, alphabetized. Common terms (e.g. `lscpu`,
 `lsblk`) are defined in the [glossary](https://docs.sparecores.com/glossary)
 of the Spare Cores docs, which also lists the terms each image uses.
 
-- **hwloc** (Portable Hardware Locality): An open-source library and set of
-  tools that detects the hardware topology of a machine: its processor
-  packages (sockets), NUMA (Non-Uniform Memory Access) nodes, caches, cores,
-  and hardware threads, and the devices attached to them. Parallel programs
-  use it to place their threads and memory close to each other. [hwloc](https://www.open-mpi.org/projects/hwloc/)
+- **hwloc** (Portable Hardware Locality): An open-source library, with
+  command-line tools, that detects the hardware topology of a machine: its
+  processor packages (sockets), NUMA (Non-Uniform Memory Access) nodes,
+  caches, cores, and hardware threads, and the devices attached to them.
+  Parallel programs use it to place their threads and memory close to each other. [hwloc](https://www.open-mpi.org/projects/hwloc/)
 - **LIKWID** (Like I Knew What I'm Doing): A set of command-line tools for
   performance-oriented programmers on Linux, developed at the Erlangen National
   High Performance Computing Center. Its tools show the topology of a machine,
