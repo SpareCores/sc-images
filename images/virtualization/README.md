@@ -73,11 +73,11 @@ not caused a problem in production outputs.
 
 ### Production Results
 
-As of October 2026, production runs in the
+Since January 2025, production runs in the
 [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data)
 repository have returned three distinct outputs.
 
-KVM can be used on 1,286 server types, such as
+KVM can be used on server types such as
 [`gcp/n2-standard-2`](https://sparecores.com/server/gcp/n2-standard-2)
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/gcp/n2-standard-2/0/virtualization/stdout)):
 
@@ -85,7 +85,7 @@ KVM can be used on 1,286 server types, such as
 {"kvm":true}
 ```
 
-On 1,839 server types, such as
+On server types such as
 [`aws/m7i.large`](https://sparecores.com/server/aws/m7i.large)
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7i.large/0/virtualization/stdout))
 and [`hcloud/cx22`](https://sparecores.com/server/hcloud/cx22)
@@ -96,7 +96,7 @@ the `kvm-ok` command reported that the CPU does not support KVM extensions:
 {"kvm":false,"kvm_error":"INFO: Your CPU does not support KVM extensions KVM acceleration can NOT be used"}
 ```
 
-On 493 server types, such as the Arm64 server type
+On server types such as the Arm64 server type
 [`aws/c7g.large`](https://sparecores.com/server/aws/c7g.large)
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/virtualization/stdout)),
 the `kvm-ok` command reported that `/dev/kvm` does not exist:
@@ -125,7 +125,8 @@ exists.
 
 The [`Dockerfile`](./Dockerfile) installs `cpu-checker` on `ubuntu:24.04`
 without a pinned version, so the `kvm-ok` version can change between image
-builds. Production records no tool version for this check.
+builds. As of November 2026, Ubuntu 24.04 ships `cpu-checker`
+0.7-1.3build2. Production records no tool version for this check.
 
 ## References
 

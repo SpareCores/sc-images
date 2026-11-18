@@ -97,7 +97,7 @@ Production runs also differ from a plain `docker run` in the following ways:
 - **Server Start:** The `lsblk`, `lsblk_discard`, `lsblk_topo`, and `lstopo`
   tasks never start a server on their own; they run only when another task
   has started it. These four tasks therefore have results for fewer server
-  types (\~2410) than `lshw` and `lscpu` (\~3790).
+  types than `lshw` and `lscpu`.
 
 The production settings are in the `lshw`, `lsblk`, `lsblk_discard`,
 `lsblk_topo`, `lscpu`, and `lstopo` tasks of
