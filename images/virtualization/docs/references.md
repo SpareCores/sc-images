@@ -9,4 +9,4 @@ of the Spare Cores docs, which also lists the terms each image uses.
   Intel or AMD hardware virtualization flag and whether `/dev/kvm` exists; on
   Arm and other architectures, it checks only for `/dev/kvm`. It prints what it
   found and exits 0 when KVM acceleration can be used.
-  [Ubuntu manpage](https://manpages.ubuntu.com/manpages/noble/man1/kvm-ok.1.html)
+  [Ubuntu man page](https://manpages.ubuntu.com/manpages/noble/man1/kvm-ok.1.html)

@@ -9,7 +9,8 @@ it does not measure virtualization performance.
 This image prints one line of JSON: `{"kvm":true}` when KVM can be used, or
 `kvm` set to `false` with the message of `kvm-ok` in `kvm_error`.
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes the
-`kvm` flag as the `hw_virt` attribute on each server type's details page. The
+`kvm` flag as its hardware virtualization attribute, `hw_virt`, on each server
+type's details page. The
 Navigator does not use `kvm_error`.
 
 ## Usage

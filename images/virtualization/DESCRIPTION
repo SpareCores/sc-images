@@ -1,1 +1,1 @@
-Checks with kvm-ok whether the server supports KVM hardware virtualization.
+Checks with kvm-ok whether a server supports KVM hardware virtualization.
