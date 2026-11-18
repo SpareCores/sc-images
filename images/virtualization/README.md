@@ -34,7 +34,9 @@ because the check uses almost no resources.
 
 ### Production Setup
 
-The Navigator's Inspector runs the same script with `--privileged`, but its
+The Navigator's [Inspector](https://github.com/SpareCores/sc-inspector), which
+runs the images on each server type, runs the same script with
+`--privileged`, but its
 runs differ from the command above in the following ways:
 
 - **Docker Options:** Production runs the container detached and with host
