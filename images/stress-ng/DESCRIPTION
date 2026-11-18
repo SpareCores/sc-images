@@ -1,1 +1,1 @@
-Measures bogo ops/s for 85 CPU, memory, and kernel stressors with stress-ng, in single-worker and all-CPU runs, and measures CPU scaling as worker counts increase.
+Measures CPU, memory, and kernel performance with stress-ng, from one worker up to all CPUs.

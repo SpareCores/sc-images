@@ -1,1 +1,1 @@
-PostgreSQL 18 server with default settings, started with nice -n -20 under resource-tracker, for the pgbench PostgreSQL benchmark to target in remote mode.
+PostgreSQL server for the pgbench PostgreSQL benchmark to test over the network.

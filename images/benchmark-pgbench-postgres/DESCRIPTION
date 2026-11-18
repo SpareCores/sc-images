@@ -1,1 +1,1 @@
-PostgreSQL database benchmark focusing on CPU and memory performance, measuring transactions per minute and latency against a local or remote server.
+PostgreSQL benchmark with pgbench that measures transaction speed and latency on a local or remote server.

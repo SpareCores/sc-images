@@ -1,1 +1,1 @@
-Checks with kvm-ok whether KVM (Kernel-based Virtual Machine) hardware virtualization can be used on the server, and reports the result as JSON.
+Checks with kvm-ok whether the server supports KVM hardware virtualization.
