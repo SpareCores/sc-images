@@ -14,7 +14,8 @@
 # Inputs: PEERS (space separated private IPs), $FC_RUN_DIR/heartbeats.json (written by the agent:
 # {"<node>": <heartbeat>, ..., "fetched_at": "<RFC3339>"}), $FC_STATE_DIR/probe-fail-since.
 # Outputs (globals, set on every call): INTERLOCK_REASON (empty on success),
-# INTERLOCK_HEALTHY_PEER (a peer whose /readyz answered 200, or empty).
+# INTERLOCK_HEALTHY_PEER (a peer whose /readyz answered 200 or 401, or empty; k3s runs the apiserver
+# with anonymous-auth=false, so a healthy apiserver answers 401 to the unauthenticated probe).
 #
 # Heartbeat age: the agent adds `last_modified` (the S3 LastModified of the heartbeat object, S3's
 # clock) to every heartbeat it caches; that is what is compared with the local clock. The heartbeat's
@@ -42,7 +43,9 @@ _interlock_fail_file() {
 }
 
 # Probes every peer once. Sets INTERLOCK_ANSWERED (first peer that answered, any status) and
-# INTERLOCK_HEALTHY_PEER (first peer answering 200).
+# INTERLOCK_HEALTHY_PEER (first peer answering 200 or 401). k3s starts kube-apiserver with
+# anonymous-auth=false, so /readyz never returns 200 to this unauthenticated probe: a 401 means the
+# authn layer, which runs before the handlers, answered over TLS on 6443, i.e. the apiserver serves.
 _interlock_probe_peers() {
   local peer code
   INTERLOCK_ANSWERED=""
@@ -55,8 +58,8 @@ _interlock_probe_peers() {
     if [ -z "$INTERLOCK_ANSWERED" ]; then
       INTERLOCK_ANSWERED="$peer"
     fi
-    if [ "$code" = "200" ] && [ -z "$INTERLOCK_HEALTHY_PEER" ]; then
-      INTERLOCK_HEALTHY_PEER="$peer"
+    if [ -z "$INTERLOCK_HEALTHY_PEER" ]; then
+      case "$code" in 200 | 401) INTERLOCK_HEALTHY_PEER="$peer" ;; esac
     fi
   done
 }

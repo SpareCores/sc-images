@@ -583,6 +583,31 @@ JSON
   [ "$(grep -c 'hc-ping' "$(fd cp1)/curl.log")" -eq 1 ]
 }
 
+@test "apiserver_serving: 200 and 401 serve; 503 and no answer do not" {
+  . "$IMAGE_DIR/lib/health.sh"
+  fb=$(fd cp1)
+  for c in 200 401; do
+    echo $c >"$fb/peer-10.0.0.9"
+    FAKE_DIR=$fb apiserver_serving https://10.0.0.9:6443/readyz
+  done
+  echo 503 >"$fb/peer-10.0.0.9"
+  not env FAKE_DIR=$fb bash -c ". '$IMAGE_DIR/lib/health.sh'; apiserver_serving https://10.0.0.9:6443/readyz"
+  rm "$fb/peer-10.0.0.9"
+  not env FAKE_DIR=$fb bash -c ". '$IMAGE_DIR/lib/health.sh'; apiserver_serving https://10.0.0.9:6443/readyz"
+}
+
+@test "health pings: the readyz ping fires on a 401 and not on a 503" {
+  agent cp1 full
+  echo 401 >"$(fd cp1)/peer-10.0.0.9"
+  put_desired '.health.readyz_urls = {cp1: "https://10.0.0.9:6443/readyz"} | .health.pings = {readyz: "https://hc-ping.example/rz"}'
+  settle cp1
+  grep -q 'hc-ping.example/rz' "$(fd cp1)/curl.log"
+  : >"$(fd cp1)/curl.log"
+  echo 503 >"$(fd cp1)/peer-10.0.0.9"
+  settle cp1
+  not grep -q 'hc-ping.example/rz' "$(fd cp1)/curl.log"
+}
+
 @test "agent.disabled in the desired doc: the holder lets go of the lease" {
   holder_ready
   agent cp1 lease
