@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Fake sqlite3: only `.backup '<dest>'`.
+db=$1
+dest=$(printf '%s' "$2" | sed "s/^\.backup '\(.*\)'$/\1/")
+cp "$db" "$dest"

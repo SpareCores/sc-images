@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Fake lego: logs the call and writes a real self-signed certificate for the domain.
+echo "lego $* | zone=${AWS_HOSTED_ZONE_ID:-}" >>"$FAKE_DIR/lego.log"
+[ -e "$FAKE_DIR/lego-fail" ] && exit 1
+path="" domain=""
+while [ $# -gt 0 ]; do
+  case "$1" in --path) path=$2; shift 2 ;; --domains) domain=$2; shift 2 ;; *) shift ;; esac
+done
+mkdir -p "$path/certificates"
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 90 \
+  -subj "/CN=$domain" -keyout "$path/certificates/$domain.key" -out "$path/certificates/$domain.crt" 2>/dev/null

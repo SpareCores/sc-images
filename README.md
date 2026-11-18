@@ -90,6 +90,8 @@ read its output.
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
 | [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server running at high priority, used as the remote target of database benchmarks. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
+| [`frankenscube-cp-agent`](images/frankenscube-cp-agent) | Control-plane node agent of the frankenscube cluster: the S3 lease that elects the one active headscale, its restore, certificate and bootstrap, and the node's heartbeats and directives. | [Docs](https://docs.sparecores.com/images/frankenscube-cp-agent/) |
+| [`frankenscube-derper`](images/frankenscube-derper) | Tailscale DERP relay (derper), built from a pinned tailscale version, serving the DERP regions of the frankenscube cluster's headscale. | [Docs](https://docs.sparecores.com/images/frankenscube-derper/) |
 | [`llama.cpp`](images/llama.cpp) | llama.cpp server (llama-server) with CUDA (Compute Unified Device Architecture) support, built from a pinned commit. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
 
 ### Base Images
