@@ -27,14 +27,14 @@ count and system memory size, using the following algorithm, implemented in
   with its form defaults: PostgreSQL 18, Linux, web application, SSD storage,
   database size mid-RAM, and an automatic connection count.
 - Set `shared_buffers` to `M/4` and `effective_cache_size` to `3M/4`.
-- Set `huge_pages` to `try` when `shared_buffers` is at least 2 GB, otherwise
+- Set `huge_pages` to `try` when `shared_buffers` is at least 2 GiB, otherwise
   `off`.
-- Set `maintenance_work_mem` to `M/16`, capped at 8 GB. Set
-  `autovacuum_work_mem` to 2 GB when `maintenance_work_mem` reaches 2 GB.
-- Set `work_mem` to `(M - shared_buffers) / (3 × (200 + W))`, with a 4 MB
+- Set `maintenance_work_mem` to `M/16`, capped at 8 GiB. Set
+  `autovacuum_work_mem` to 2 GiB when `maintenance_work_mem` reaches 2 GiB.
+- Set `work_mem` to `(M - shared_buffers) / (3 × (200 + W))`, with a 4 MiB
   minimum, where `W` is `C` when `C` ≥ 4 and 1 otherwise.
-- Set `wal_buffers` to 3% of `shared_buffers`, with a 32 kB minimum and a 16 MB
-  cap; values between 14 and 16 MB are rounded up to 16 MB.
+- Set `wal_buffers` to 3% of `shared_buffers`, with a 32 KiB minimum and a
+  16 MiB cap; values between 14 and 16 MiB are rounded up to 16 MiB.
 - Use fixed values for the following settings:
 
     - `min_wal_size`: `1 GB`

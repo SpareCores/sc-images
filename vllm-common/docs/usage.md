@@ -170,7 +170,7 @@ The [Inspector](https://docs.sparecores.com/overview#how-it-works) of
 Spare Cores Navigator runs one task, `vllm`, for the three vLLM images, on
 every server type except those on the
 [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
-blocklist. The blocklist also excludes server types with less than 2 GB of
+blocklist. The blocklist also excludes server types with less than 2 GiB of
 memory from this task. The task uses the following settings:
 
 | Setting | Production | Plain `docker run` |
