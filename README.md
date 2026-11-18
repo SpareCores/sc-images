@@ -72,15 +72,16 @@ read its output.
 | [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | LLM serving benchmark with vLLM and GuideLLM on AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without AVX-512 (Advanced Vector Extensions 512), measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput at loads from one request at a time to peak. | [Docs](https://docs.sparecores.com/images/benchmark-vllm-cpu-avx2/) |
 | [`benchmark-vllm-gpu`](images/benchmark-vllm-gpu) | LLM serving benchmark with vLLM and GuideLLM on NVIDIA GPUs, measuring time to first token, time per output token, inter-token latency, end-to-end request latency, and token and request throughput at loads from one request at a time to peak. | [Docs](https://docs.sparecores.com/images/benchmark-vllm-gpu/) |
 | [`benchmark-web`](images/benchmark-web) | Static web server benchmark, serving files with binserve and measuring throughput and latency with wrk. | [Docs](https://docs.sparecores.com/images/benchmark-web/) |
+| [`membench`](https://github.com/SpareCores/sc-membench) | Memory bandwidth and latency benchmark with the Spare Cores membench tool, measuring read, write, and copy bandwidth on all CPUs and single-thread pointer-chasing latency at per-thread buffer sizes from half the L1d cache to four times the L3 cache. | [Docs](https://github.com/SpareCores/sc-membench#readme) |
 | [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory copy bandwidth and latency benchmark with nvbandwidth, measuring copies between the host CPU and each GPU, between GPUs, and within one GPU. | [Docs](https://docs.sparecores.com/images/nvbandwidth/) |
 | [`stress-ng`](images/stress-ng) | Measures bogo ops/s for 85 CPU, memory, and kernel stressors with stress-ng, in single-worker and all-CPU runs, and measures CPU scaling as worker counts increase. | [Docs](https://docs.sparecores.com/images/stress-ng/) |
-| [`stress-ng-longrun`](images/stress-ng-longrun) | Pinned stress-ng version for the 24-hour long-running benchmark. | [Docs](https://docs.sparecores.com/images/stress-ng-longrun/) |
+| [`stress-ng-longrun`](images/stress-ng-longrun) | Measures sustained CPU throughput in stress-ng bogo ops/s over 24 hours with a pinned stress-ng 0.17.08, running the cpu stressor once per minute at a load that rises from 5 to 55 seconds per minute. | [Docs](https://docs.sparecores.com/images/stress-ng-longrun/) |
 
 ### Hardware Discovery
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
-| [`dmidecode`](images/dmidecode) | Reads the server's DMI (Desktop Management Interface) and SMBIOS (System Management BIOS) tables with dmidecode to report hardware details such as memory modules and firmware. | [Docs](https://docs.sparecores.com/images/dmidecode/) |
+| [`dmidecode`](images/dmidecode) | Reads the server's SMBIOS (System Management BIOS) tables, also called DMI (Desktop Management Interface) tables, with dmidecode to report hardware details such as memory modules and firmware. | [Docs](https://docs.sparecores.com/images/dmidecode/) |
 | [`hwinfo`](images/hwinfo) | Collects CPU, memory, and topology details with hwloc, likwid, and lshw. | [Docs](https://docs.sparecores.com/images/hwinfo/) |
 | [`virtualization`](images/virtualization) | Checks whether the server supports KVM (Kernel-based Virtual Machine) hardware virtualization and reports the result as JSON. | [Docs](https://docs.sparecores.com/images/virtualization/) |
 
@@ -88,13 +89,13 @@ read its output.
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
-| [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server running at high priority, used as the remote target of database benchmarks. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
-| [`llama.cpp`](images/llama.cpp) | llama.cpp server (llama-server) with CUDA (Compute Unified Device Architecture) support, built from a pinned commit. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
+| [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server with default settings, started with nice -n -20 under resource-tracker, for the pgbench PostgreSQL benchmark to target in remote mode. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
 
 ### Base Images
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
+| [`llama.cpp`](images/llama.cpp) | llama.cpp server (llama-server) with CUDA (Compute Unified Device Architecture) support, built from a pinned commit. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
 | [`resource-tracker`](images/resource-tracker) | The resource-tracker binary of Spare Cores Navigator, copied into the other images to record resource usage while benchmarks run. | [Docs](https://docs.sparecores.com/images/resource-tracker/) |
 | [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM CPU build for x86_64 hosts with AVX2 (Advanced Vector Extensions 2) but no AVX-512 (Advanced Vector Extensions 512), used as the base of benchmark-vllm-cpu-avx2. | [Docs](https://docs.sparecores.com/images/vllm-cpu-base-avx2/) |
 
