@@ -82,8 +82,9 @@ text on stdout starts with a header that gives the `dmidecode` and SMBIOS
 versions and the number of structures. Then comes one block per SMBIOS
 structure, with the following lines:
 
-1. A header line with the structure's handle, DMI type, and size in bytes,
-   such as `Handle 0x0009, DMI type 17, 34 bytes`.
+1. A header line with the structure's handle (the number other structures use
+   to refer to it, as `Array Handle` does), DMI type, and size in bytes, such
+   as `Handle 0x0009, DMI type 17, 34 bytes`.
 2. The structure's name, such as `Memory Device`.
 3. The structure's fields as indented `Key: Value` lines. A field with several
    values, such as `Characteristics`, lists one value per line, indented
