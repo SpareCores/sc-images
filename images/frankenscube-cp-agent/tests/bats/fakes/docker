@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Fake docker: containers are files under $FAKE_DIR/containers; every call is logged to docker.log.
+# `run --rm ... restore -config <cfg> ... <db>` simulates litestream restore: when
+# $FAKE_S3/.replicas/gen-N exists for the config's `path: gen-N`, the db file gets that content.
+echo "docker $*" >>"$FAKE_DIR/docker.log"
+mkdir -p "$FAKE_DIR/containers" "$FAKE_DIR/ls-cfg"
+cmd=$1
+shift
+case "$cmd" in
+  run)
+    detach=0 name="" image="" rm=0
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -d) detach=1; shift ;;
+        --rm) rm=1; shift ;;
+        --name | --network | -v | -e) [ "$1" = --name ] && name=$2; [ "$1" = -e ] && echo "env $2=${!2:-}" >>"$FAKE_DIR/docker.log"; shift 2 ;;
+        -*) shift ;;
+        *) image=$1; shift; break ;;
+      esac
+    done
+    args=("$@")
+    cfg=""
+    for ((i = 0; i < ${#args[@]}; i++)); do [ "${args[$i]}" = -config ] && cfg=${args[$((i + 1))]}; done
+    n=$(($(cat "$FAKE_DIR/ls-cfg/n" 2>/dev/null || echo 0) + 1))
+    echo "$n" >"$FAKE_DIR/ls-cfg/n"
+    [ -n "$cfg" ] && cp "$cfg" "$FAKE_DIR/ls-cfg/$n-${args[0]}"
+    [ -e "$FAKE_DIR/docker-fail-run" ] && exit 125
+    if [ "$rm" = 1 ] && [ "${args[0]}" = restore ]; then
+      gen=$(sed -n 's/.*path: \(gen-[0-9]*\)$/\1/p' "$cfg")
+      db=${args[$((${#args[@]} - 1))]}
+      if [ -e "$FAKE_S3/.replicas/$gen" ]; then
+        mkdir -p "$(dirname "$db")"
+        cp "$FAKE_S3/.replicas/$gen" "$db"
+      fi
+      exit 0
+    fi
+    if [ "$detach" = 1 ]; then
+      echo "$image ${args[*]}" >"$FAKE_DIR/containers/$name"
+      echo "fakeid-$name"
+    fi
+    ;;
+  rm)
+    for a in "$@"; do case "$a" in -*) ;; *) rm -f "$FAKE_DIR/containers/$a" ;; esac; done
+    ;;
+  inspect)
+    name=${*: -1}
+    if [ -e "$FAKE_DIR/containers/$name" ]; then echo true; else echo false; exit 1; fi
+    ;;
+  restart) echo "restart $1" >>"$FAKE_DIR/restarts.log" ;;
+esac
+exit 0

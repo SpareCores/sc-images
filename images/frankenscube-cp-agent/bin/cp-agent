@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# cp-agent: control-plane node agent (PLAN WP-03).
+#
+#   cp-agent agent   run the loop: a 10 s lease tick inside a 30 s full cycle
+#   cp-agent full    one full cycle (docs, markers, heartbeats, lease, holder, directives, ...)
+#   cp-agent lease   one lease tick (lease step and holder reconcile only)
+#
+# Fail-static: a failing step is logged and the loop continues with the last valid state. The one
+# exception is the headscale lease: a holder that cannot renew stops headscale (lease.sh).
+set -uo pipefail
+
+AGENT_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+AGENT_LIB="${AGENT_LIB:-$AGENT_HOME/lib}"
+FC_SHARED_LIB="${FC_SHARED_LIB:-$AGENT_LIB/shared}"
+export FC_SHARED_LIB
+
+# shellcheck source=/dev/null
+. "$FC_SHARED_LIB/common.sh"
+for f in agent s3 docs lease cert headscale tailscale directives health; do
+  # shellcheck source=/dev/null
+  . "$AGENT_LIB/$f.sh"
+done
+
+cycle_lease() {
+  # right after a start the first tick may come before the first full cycle
+  if ! desired_present; then
+    step docs docs_sync
+  fi
+  step lease lease_step
+  step holder holder_reconcile
+}
+
+cycle_full() {
+  step docs docs_sync
+  step markers markers_sync
+  step heartbeats-fetch heartbeats_fetch
+  step marker-uploads marker_requests_upload
+  step lease lease_step
+  step holder holder_reconcile
+  step holder-extras holder_extras
+  step tailscale tailscale_ensure
+  step reset reset_step
+  step health health_step
+  step heartbeat heartbeat_put
+}
+
+cmd_agent() {
+  local n=0 start left
+  if [ "$DISABLE_AGENT" = true ]; then
+    fc_log "DISABLE_AGENT=true: idle"
+    while true; do sleep 3600; done
+  fi
+  fc_log "starting (node $NODE_NAME, instance $INSTANCE_UUID)"
+  while true; do
+    start=$SECONDS
+    if [ $((n % 3)) -eq 0 ]; then
+      cycle_full
+    else
+      cycle_lease
+    fi
+    n=$((n + 1))
+    left=$((LEASE_RENEW_SECONDS - (SECONDS - start)))
+    if [ "$left" -gt 0 ]; then
+      sleep "$left"
+    fi
+  done
+}
+
+main() {
+  local cmd=${1:-agent}
+  agent_init
+  case "$cmd" in
+    agent) cmd_agent ;;
+    full) cycle_full ;;
+    lease) cycle_lease ;;
+    *)
+      echo "usage: cp-agent agent|full|lease" >&2
+      exit 2
+      ;;
+  esac
+}
+
+main "$@"

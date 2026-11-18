@@ -1,0 +1,41 @@
+name: Test frankenscube images
+# Shellcheck and bats of the cp-agent, and a build plus smoke test of both frankenscube images.
+# Publishing is push.yml's job (every image folder), not this workflow's.
+on:
+  pull_request:
+    paths:
+      - images/frankenscube-cp-agent/**
+      - images/frankenscube-derper/**
+      - .github/workflows/test-frankenscube.yml
+  push:
+    branches:
+      - main
+    paths:
+      - images/frankenscube-cp-agent/**
+      - images/frankenscube-derper/**
+      - .github/workflows/test-frankenscube.yml
+permissions:
+  contents: read
+jobs:
+  cp-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Install bats, shellcheck, jq
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bats shellcheck jq
+      - name: Shellcheck
+        run: |
+          d=images/frankenscube-cp-agent
+          shellcheck -x -P "$d/lib/shared" "$d/bin/cp-agent" "$d"/lib/*.sh "$d"/lib/shared/*.sh images/frankenscube-derper/tests/smoke.sh
+      - name: Bats
+        run: bats images/frankenscube-cp-agent/tests/bats
+      - name: Build (no push)
+        run: docker build -t frankenscube-cp-agent:test images/frankenscube-cp-agent
+  derper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Build (no push)
+        run: docker build -t frankenscube-derper:test images/frankenscube-derper
+      - name: Smoke test
+        run: bash images/frankenscube-derper/tests/smoke.sh frankenscube-derper:test

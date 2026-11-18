@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Fake aws: an in-memory S3 (a directory tree under $FAKE_S3) with ETag, If-Match and
+# If-None-Match semantics, plus `ssm put-parameter`. Errors read like the real CLI's. Calls are
+# serialised with flock so that two agents racing for a key see S3's linearisable behaviour.
+#   $FAKE_S3/.down      every call fails like a connection error
+#   $FAKE_S3/.down-r2   the same for calls with --endpoint-url (R2)
+#   $FAKE_S3/.calls     one line per call
+region="" endpoint=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --cli-connect-timeout | --cli-read-timeout) shift 2 ;;
+    --region) region=$2; shift 2 ;;
+    --endpoint-url) endpoint=$2; shift 2 ;;
+    *) break ;;
+  esac
+done
+svc=$1 op=$2
+shift 2
+: "$region"
+mkdir -p "$FAKE_S3"
+exec 9>"$FAKE_S3/.lock"
+flock 9
+if [ -e "$FAKE_S3/.down" ] || { [ -n "$endpoint" ] && [ -e "$FAKE_S3/.down-r2" ]; }; then
+  echo 'Could not connect to the endpoint URL: "https://s3.us-east-1.amazonaws.com/"' >&2
+  exit 255
+fi
+bucket="" key="" body="" ifmatch="" ifnone="" prefix="" delim="" name="" value="" overwrite=0 positional=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --bucket) bucket=$2; shift 2 ;;
+    --key) key=$2; shift 2 ;;
+    --body) body=$2; shift 2 ;;
+    --if-match) ifmatch=$2; shift 2 ;;
+    --if-none-match) ifnone=$2; shift 2 ;;
+    --prefix) prefix=$2; shift 2 ;;
+    --delimiter) delim=$2; shift 2 ;;
+    --name) name=$2; shift 2 ;;
+    --value) value=$2; shift 2 ;;
+    --type) shift 2 ;;
+    --overwrite) overwrite=1; shift ;;
+    *) positional+=("$1"); shift ;;
+  esac
+done
+if [ -e "$FAKE_S3/.down-certs" ] && [[ "$key" == */certs/* ]]; then
+  echo 'Could not connect to the endpoint URL: "https://s3.us-east-1.amazonaws.com/"' >&2
+  exit 255
+fi
+echo "${FAKE_WHO:-?} $svc $op bucket=$bucket key=$key endpoint=${endpoint:+r2} ifmatch=$ifmatch ifnone=$ifnone name=$name" >>"$FAKE_S3/.calls"
+etag_of() { printf '"%s"' "$(md5sum <"$1" | cut -d' ' -f1)"; }
+err() { echo "An error occurred ($1) when calling the $2 operation: $3" >&2; exit 254; }
+case "$svc $op" in
+  "s3api get-object")
+    f="$FAKE_S3/$bucket/$key"
+    [ -f "$f" ] || err NoSuchKey GetObject "The specified key does not exist."
+    cp "$f" "${positional[0]}"
+    jq -n --arg e "$(etag_of "$f")" '{ETag: $e, ContentLength: 1}'
+    ;;
+  "s3api put-object")
+    f="$FAKE_S3/$bucket/$key"
+    if [ -n "$ifnone" ] && [ -f "$f" ]; then
+      err PreconditionFailed PutObject "At least one of the pre-conditions you specified did not hold"
+    fi
+    if [ -n "$ifmatch" ]; then
+      [ -f "$f" ] || err NoSuchKey PutObject "The specified key does not exist."
+      cur=$(etag_of "$f")
+      [ "$cur" = "$ifmatch" ] || [ "${cur//\"/}" = "${ifmatch//\"/}" ] \
+        || err PreconditionFailed PutObject "At least one of the pre-conditions you specified did not hold"
+    fi
+    mkdir -p "$(dirname "$f")"
+    cp "$body" "$f"
+    jq -n --arg e "$(etag_of "$f")" '{ETag: $e}'
+    ;;
+  "s3api list-objects-v2")
+    dir="$FAKE_S3/$bucket"
+    keys=$(cd "$dir" 2>/dev/null && find . -type f | sed 's|^\./||' | sort || true)
+    keys=$(printf '%s\n' "$keys" | grep -E "^$prefix" || true)
+    if [ -n "$delim" ]; then
+      printf '%s\n' "$keys" | sed -n "s|^\($prefix[^$delim]*$delim\).*|\1|p" | sort -u \
+        | jq -R . | jq -s '{CommonPrefixes: map({Prefix: .})}'
+    else
+      printf '%s\n' "$keys" | grep -v '^$' | jq -R . | jq -s '{Contents: map({Key: .})}'
+    fi
+    ;;
+  "ssm put-parameter")
+    f="$FAKE_S3/.ssm/$(echo "$name" | tr / _)"
+    if [ -f "$f" ] && [ "$overwrite" = 0 ]; then
+      err ParameterAlreadyExists PutParameter "The parameter already exists. To overwrite this value, set the overwrite option in the request to true."
+    fi
+    mkdir -p "$FAKE_S3/.ssm"
+    cat "${value#file://}" >"$f"
+    echo '{"Version": 1, "Tier": "Standard"}'
+    ;;
+  *) echo "fake aws: unsupported $svc $op" >&2; exit 252 ;;
+esac
