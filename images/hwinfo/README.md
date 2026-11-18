@@ -4,8 +4,8 @@ This image bundles Linux command-line tools, such as `lshw` (Hardware Lister)
 and `lscpu`, that report a server's CPU, memory, disk, and topology details.
 The Inspector of [Spare Cores Navigator](https://docs.sparecores.com/overview)
 runs them on cloud servers. The image has no default command and no harness of
-its own: each run executes the one command passed after the image name. It is
-not a benchmark, so nothing is timed or repeated.
+its own: each run executes the one command passed after the image name. This
+image is not a benchmark, so nothing is timed or repeated.
 
 The output is whatever that command prints. In production, the Inspector runs
 up to six commands on each server type, and stores their JSON or XML output in
@@ -109,10 +109,9 @@ Production runs also differ from a plain `docker run` in the following ways:
   such as `lshw` or `lscpu`, has started the server. These four tasks have
   results for fewer server types (\~2410) than `lshw` and `lscpu` (\~3790).
 
-The production settings are in the `lshw`, `lsblk`, `lsblk_discard`,
-`lsblk_topo`, `lscpu`, and `lstopo` tasks of
+The commands and timeouts are in the six tasks above in
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
-in `sc-inspector`, with the default Docker options of
+in `sc-inspector`, and the default Docker options are in
 [`inspector/lib.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/lib.py).
 
 ### Output
@@ -124,7 +123,8 @@ commands print the following to stdout:
   `class`, `description`, `product`, `vendor`, `width`, `configuration`, and
   `capabilities`.
 - **`lscpu`:** A JSON object, `{"lscpu": [...]}`, with one `field` and `data`
-  pair per line of the `lscpu` table. The `-B` option prints sizes in bytes.
+  pair per line of the text table that `lscpu` prints by default. The `-B`
+  option prints sizes in bytes.
 - **`lsblk`, `lsblk_discard`, and `lsblk_topo`:** A JSON object,
   `{"blockdevices": [...]}`, with one entry per whole disk (`-d`) and sizes in
   bytes (`-b`). The `lsblk` task prints all columns (`-O`), `lsblk_discard`
