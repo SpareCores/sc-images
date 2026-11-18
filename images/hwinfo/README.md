@@ -75,8 +75,11 @@ docker run --rm --privileged --network host ghcr.io/sparecores/hwinfo:main \
 
 These commands use the same Docker options as production. This image reads no
 environment variables or configuration files of its own, and runs each command
-as root in `/`. Unlike the benchmark images, it does not run the command under
-`resource-tracker`. This image is built for AMD64 and Arm64.
+as root in `/`.
+
+Unlike the [benchmark images](https://github.com/SpareCores/sc-images#benchmarks),
+this image does not run the command under `resource-tracker`, so no resource
+usage is sampled. This image is built for AMD64 and Arm64.
 
 ### Production Setup
 
@@ -163,11 +166,11 @@ the `lscpu` task printed the following, shortened here:
 }
 ```
 
-The same server type has recorded outputs of the
-[`lshw`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lshw/stdout),
-[`lsblk`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lsblk/stdout),
-and [`lstopo`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lstopo/stdout)
-tasks, and the rendered
+The same server type has the recorded outputs of the
+[`lshw` task](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lshw/stdout),
+the [`lsblk` task](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lsblk/stdout),
+and the [`lstopo` task](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lstopo/stdout),
+and the rendered
 [`lstopo.svg`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lstopo/lstopo.svg).
 
 ## References
