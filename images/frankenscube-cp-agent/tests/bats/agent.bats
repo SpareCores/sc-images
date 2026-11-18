@@ -519,7 +519,8 @@ reset_directive() {
   echo NeedsLogin >"$(fd cp1)/ts-state"
   agent cp1 full
   line=$(grep 'tailscale up' "$(fd cp1)/host.log")
-  [[ "$line" == *"--advertise-tags=tag:frankenscube-cp"* ]]
+  [[ "$line" != *"--advertise-tags"* ]] # the key carries the tag; headscale rejects requested tags with a key
+  [[ "$line" == *"--reset"* ]]
   [[ "$line" == *"--advertise-routes=10.0.0.1/32"* ]]
   [[ "$line" == *"--accept-routes=false"* ]]
   [[ "$line" == *"--accept-dns=false"* ]]

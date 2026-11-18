@@ -14,8 +14,10 @@ tailscale_ensure() {
   fi
   keyfile="$FC_RUN_DIR/secrets/cp-key"
   printf '%s' "$key" >"$keyfile"
-  args=(--login-server "$(desired_jq -r '.headscale.url')" "--auth-key=file:$keyfile"
-    "--advertise-tags=tag:${CLUSTER}-cp" --accept-routes=false --accept-dns=false)
+  # No --advertise-tags: the key carries tag:<cluster>-cp, and headscale (0.28+) rejects any requested tags
+  # on a pre-auth key login. --reset clears tags a previous login may have left in the prefs.
+  args=(--reset --login-server "$(desired_jq -r '.headscale.url')" "--auth-key=file:$keyfile"
+    --accept-routes=false --accept-dns=false)
   if [ -n "$NODE_IP" ]; then
     args+=("--advertise-routes=${NODE_IP}/32")
   fi
