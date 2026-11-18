@@ -90,13 +90,16 @@ On server types such as
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7i.large/0/virtualization/stdout))
 and [`hcloud/cx22`](https://sparecores.com/server/hcloud/cx22)
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/cx22/0/virtualization/stdout)),
-the `kvm-ok` command reported that the CPU does not support KVM extensions:
+the `kvm-ok` command reported `Your CPU does not support KVM extensions`:
 
 ```json
 {"kvm":false,"kvm_error":"INFO: Your CPU does not support KVM extensions KVM acceleration can NOT be used"}
 ```
 
-On server types such as the Arm64 server type
+The `kvm-ok` command prints this message when the CPU flags in `/proc/cpuinfo`
+include neither `vmx` nor `svm`, a check it makes only on AMD64.
+
+On Arm64 server types such as
 [`aws/c7g.large`](https://sparecores.com/server/aws/c7g.large)
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/virtualization/stdout)),
 the `kvm-ok` command reported that `/dev/kvm` does not exist:
@@ -120,9 +123,10 @@ The [`check_virt.sh`](./check_virt.sh) script takes the following steps:
 3. It prints `{"kvm":true}` if `kvm-ok` exited 0, or `kvm` set to `false`
    with the output of `kvm-ok` in `kvm_error` otherwise.
 
-The result depends only on the host: whether the CPU exposes its
-hardware virtualization extensions to the server, and whether `/dev/kvm`
-exists.
+The result depends on the server and on whether `/dev/kvm` exists inside the
+container. On AMD64, `kvm-ok` checks that the CPU flags in `/proc/cpuinfo`
+include `vmx` (Intel) or `svm` (AMD), then that `/dev/kvm` exists. On Arm64,
+it checks only that `/dev/kvm` exists.
 
 The [`Dockerfile`](./Dockerfile) installs `cpu-checker` on `ubuntu:24.04`
 without a pinned version, so the `kvm-ok` version can change between image
