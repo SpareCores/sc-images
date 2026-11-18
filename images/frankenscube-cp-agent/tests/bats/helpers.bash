@@ -156,3 +156,12 @@ s3_set_lm() {
   mkdir -p "$FAKE_S3/.lm/$CTRL/frankenscube/$(dirname "$1")"
   echo "$2" >"$FAKE_S3/.lm/$CTRL/frankenscube/$1"
 }
+
+# not <command>: succeeds when the command fails. A plain `! cmd` never fails a bats test (errexit
+# ignores negated commands), so every negative assertion goes through this.
+not() {
+  if "$@"; then
+    return 1
+  fi
+  return 0
+}

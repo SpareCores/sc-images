@@ -42,6 +42,21 @@ _lease_state_write() {
 # lease_state_write <epoch> <etag> <monotonic time the successful request started>
 lease_state_write() { with_lease_lock _lease_state_write "$@"; }
 
+# Compare-and-set for a renewal: write only if the state still exists with the old epoch and etag. A
+# renewal that succeeds while the watchdog fences must not bring the cleared state back (headscale
+# would stay down under a lease that looks held).
+_lease_state_renew_cas() {
+  local epoch=$1 old_etag=$2 new_etag=$3 mono=$4
+  [ -r "$(lease_state_file)" ] || return 1
+  [ "$(lease_field epoch)" = "$epoch" ] && [ "$(lease_field etag)" = "$old_etag" ] || return 1
+  _lease_state_write "$epoch" "$new_etag" "$mono"
+}
+lease_state_renew_cas() { with_lease_lock _lease_state_renew_cas "$@"; }
+
+# does the state still hold the lease of this epoch?
+_lease_epoch_is() { [ -r "$(lease_state_file)" ] && [ "$(lease_field epoch)" = "$1" ]; }
+lease_epoch_is() { with_lease_lock _lease_epoch_is "$1"; }
+
 # seconds since the last successful renewal (monotonic)
 lease_age() {
   local last
@@ -53,7 +68,9 @@ lease_age() {
 _watchdog_locked() {
   local age
   [ -r "$(lease_state_file)" ] || return 0
-  age=$(lease_age) || return 0
+  # fail closed: a state file whose age cannot be read is as good as an expired one
+  age=$(lease_age) || age=$LEASE_FENCE_SECONDS
+  case "$age" in '' | *[!0-9-]*) age=$LEASE_FENCE_SECONDS ;; esac
   if [ "$age" -ge "$LEASE_FENCE_SECONDS" ]; then
     fc_log "WATCHDOG FENCE: last renewal ${age} s ago, stopping headscale and litestream"
     holder_stop
@@ -183,7 +200,11 @@ lease_renew() {
   new=$(AWS_CALL_TIMEOUT=$remaining s3_put "$LEASE_KEY" "$tmp" if-match "$etag") || rc=$?
   rm -f "$tmp"
   case "$rc" in
-    0) lease_state_write "$epoch" "$new" "$mono" ;;
+    0)
+      if ! lease_state_renew_cas "$epoch" "$etag" "$new" "$mono"; then
+        fc_log "renewal succeeded after a fence: the state stays cleared, the lease expires on its own"
+      fi
+      ;;
     "$S3_PRECONDITION") lease_fence "lease taken over (412 on renew)" ;;
     *) fc_log "lease renew failed (rc=$rc), last renewal ${age} s ago" ;;
   esac

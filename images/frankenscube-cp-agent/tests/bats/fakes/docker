@@ -36,6 +36,7 @@ case "$cmd" in
       exit 0
     fi
     if [ "$detach" = 1 ]; then
+      [ -r "$FAKE_DIR/run-slow" ] && sleep "$(cat "$FAKE_DIR/run-slow")"
       echo "$image ${args[*]}" >"$FAKE_DIR/containers/$name"
       echo "fakeid-$name"
     fi

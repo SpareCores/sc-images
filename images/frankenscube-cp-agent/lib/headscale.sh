@@ -103,6 +103,11 @@ start_containers() {
     _litestream_env docker run -d --name "$LS_CONTAINER" --network host -v "$FC_HS_DIR:$FC_HS_DIR" \
       -e LITESTREAM_ACCESS_KEY_ID -e LITESTREAM_SECRET_ACCESS_KEY \
       "$(litestream_image)" replicate -config "$FC_HS_DIR/litestream.yml" >/dev/null || return 1
+  fi  # the watchdog may have fenced while docker ran: nothing may keep running without the lease
+  if ! lease_epoch_is "$epoch"; then
+    fc_log "lease epoch $epoch is gone after the container start: stopping the containers"
+    containers_stop
+    return 1
   fi
 }
 

@@ -71,8 +71,8 @@ holder_ready() {
   hs_running cp1 # 10 s since the last renewal: still serving
   advance 10
   agent cp1 lease # 20 s: self-fence, without any S3 access
-  ! hs_running cp1
-  ! ls_running cp1
+  not hs_running cp1
+  not ls_running cp1
   [ ! -e "$TMP/cp1/run/agent/lease-state.json" ]
   # S3 is back at t0+20; cp2 must not take over before expires_at (t0+30) + 10 s skew
   rm "$FAKE_S3/.down"
@@ -113,7 +113,7 @@ holder_ready() {
   ls_running cp2
   grep -q 'path: gen-4' "$(fd cp2)"/ls-cfg/*-restore
   grep -q 'path: gen-5' "$(fd cp2)"/ls-cfg/*-replicate
-  ! grep -q 'path: gen-5' "$(fd cp2)"/ls-cfg/*-restore
+  not grep -q 'path: gen-5' "$(fd cp2)"/ls-cfg/*-restore
   [ "$(cat "$TMP/cp2/hs/db.sqlite")" = "replica of gen-4" ]
 }
 
@@ -126,8 +126,8 @@ holder_ready() {
   jq -n --arg e "$(iso $(($(now) + 30)))" '{holder: "cp2", instance_uuid: "u2", epoch: 2, expires_at: $e}' | s3_write lease/headscale.json
   advance 10
   agent cp1 lease
-  ! hs_running cp1
-  ! ls_running cp1
+  not hs_running cp1
+  not ls_running cp1
   # every litestream config cp1 ever used points at gen-1
   [ -z "$(grep -h 'path: gen-' "$(fd cp1)"/ls-cfg/* | grep -v 'gen-1$' || true)" ]
 }
@@ -138,7 +138,7 @@ holder_ready() {
   jq -n --arg e "$(iso $((START_NOW - 100)))" '{holder: "cp3", instance_uuid: "u3", epoch: 2, expires_at: $e}' | s3_write lease/headscale.json
   agent cp1 lease
   [ "$(lease_epoch)" -eq 3 ]
-  ! hs_running cp1
+  not hs_running cp1
 }
 
 @test "lease: pinned to another node means no acquisition, pinned to self does" {
@@ -146,7 +146,7 @@ holder_ready() {
   age_generation cp2
   put_desired '.headscale.mode = "pinned:cp2"'
   agent cp1 lease
-  ! s3_has lease/headscale.json
+  not s3_has lease/headscale.json
   agent cp2 lease
   [ "$(lease_holder)" = cp2 ]
 }
@@ -160,7 +160,7 @@ holder_ready() {
   put_desired '.headscale.mode = "pinned:cp2"'
   advance 10
   agent cp1 full
-  ! hs_running cp1
+  not hs_running cp1
   [ "$(lease | jq -r .holder)" = "" ]
   agent cp2 lease
   [ "$(lease_holder)" = cp2 ]
@@ -175,7 +175,7 @@ holder_ready() {
   put_desired '.headscale.mode = "stopped"'
   advance 10
   agent cp1 full
-  ! hs_running cp1
+  not hs_running cp1
   [ "$(lease | jq -r .holder)" = "" ]
   advance 100
   agent cp2 lease
@@ -188,10 +188,10 @@ holder_ready() {
 @test "lease: generation delay of 4 minutes after the generation is first seen" {
   # no age_generation: this instance has just started
   agent cp1 lease
-  ! s3_has lease/headscale.json
+  not s3_has lease/headscale.json
   advance 239
   agent cp1 lease
-  ! s3_has lease/headscale.json
+  not s3_has lease/headscale.json
   advance 1
   agent cp1 lease
   [ "$(lease_holder)" = cp1 ]
@@ -201,14 +201,14 @@ holder_ready() {
   age_generation cp1
   put_desired '.nodes.cp1.generation = 2'
   agent cp1 lease
-  ! s3_has lease/headscale.json
+  not s3_has lease/headscale.json
 }
 
 @test "lease: no acquisition without NTP sync" {
   age_generation cp1
   touch "$(fd cp1)/ntp-off"
   agent cp1 lease
-  ! s3_has lease/headscale.json
+  not s3_has lease/headscale.json
   rm "$(fd cp1)/ntp-off"
   agent cp1 lease
   [ "$(lease_holder)" = cp1 ]
@@ -235,8 +235,8 @@ holder_ready() {
   agent cp1 lease
   [ "$(lease_holder)" = cp1 ]
   agent cp3 lease
-  ! hs_running cp3
-  ! ls_running cp3
+  not hs_running cp3
+  not ls_running cp3
 }
 
 # --- empty replica, bootstrap (M7) -------------------------------------------------------------
@@ -246,8 +246,8 @@ holder_ready() {
   age_generation cp1
   agent cp1 full
   [ "$(lease_holder)" = cp1 ]
-  ! hs_running cp1
-  ! ls_running cp1
+  not hs_running cp1
+  not ls_running cp1
   grep -q 'ALERT empty headscale replica' "$TMP/cp1.log"
   [ "$(s3_cat heartbeats/cp1.json | jq -r .headscale)" = stopped ]
 }
@@ -266,7 +266,7 @@ holder_ready() {
   jq -e '.result == "ok"' "$(s3_path markers/headscale-bootstrap-hb1.json)"
   : >"$(fd cp1)/headscale.log"
   settle cp1
-  ! grep -q 'users create' "$(fd cp1)/headscale.log"
+  not grep -q 'users create' "$(fd cp1)/headscale.log"
 }
 
 @test "headscale bootstrap: waits while the CLI is not ready, mints keys once" {
@@ -274,7 +274,7 @@ holder_ready() {
   mkdir -p "$(fd cp1)/hs"
   touch "$(fd cp1)/hs/notready"
   agent cp1 full
-  ! s3_has markers/headscale-bootstrap-hb1.json
+  not s3_has markers/headscale-bootstrap-hb1.json
   rm "$(fd cp1)/hs/notready"
   settle cp1
   s3_has markers/headscale-bootstrap-hb1.json
@@ -286,7 +286,7 @@ holder_ready() {
   age_generation cp1
   put_desired ".directives.headscale_bootstrap = {id: \"old\", not_after: \"$(iso $((START_NOW - 5)))\"}"
   agent cp1 full
-  ! hs_running cp1
+  not hs_running cp1
 }
 
 @test "headscale bootstrap: a consumed directive (marker present) is not acted on" {
@@ -295,7 +295,7 @@ holder_ready() {
   bootstrap_hs_directive hb1
   echo '{"node":"cp2","instance_uuid":"x","ts":"2027-01-01T00:00:00Z","result":"ok"}' | s3_write markers/headscale-bootstrap-hb1.json
   agent cp1 full
-  ! hs_running cp1
+  not hs_running cp1
 }
 
 # --- certificate -------------------------------------------------------------------------------
@@ -313,7 +313,7 @@ holder_ready() {
   age_generation cp1
   age_generation cp2
   agent cp1 full
-  ! hs_running cp1 # waiting for the issuance
+  not hs_running cp1 # waiting for the issuance
   wait_bg cp1 lego
   settle cp1
   hs_running cp1
@@ -342,7 +342,7 @@ holder_ready() {
   settle cp1
   [ "$(grep -c '^lego' "$(fd cp1)/lego.log")" -eq 1 ]
   cmp "$TMP/cp1/hs/tls/fullchain.pem" "$(s3_path certs/hs/fullchain.pem)"
-  ! cmp -s "$TMP/cp1/hs/tls/fullchain.pem" "$TMP/cert-short.crt"
+  not cmp -s "$TMP/cp1/hs/tls/fullchain.pem" "$TMP/cert-short.crt"
   [ -s "$(fd cp1)/restarts.log" ]
 }
 
@@ -354,7 +354,7 @@ holder_ready() {
   [ "$(lease_holder)" = cp1 ]
   settle cp1
   [ ! -e "$(fd cp1)/lego.log" ]
-  ! hs_running cp1
+  not hs_running cp1
 }
 
 # --- reset directive ---------------------------------------------------------------------------
@@ -533,11 +533,11 @@ reset_directive() {
   put_secrets '.tailnet.cp_key = "k"'
   echo Running >"$(fd cp1)/ts-state"
   agent cp1 full
-  ! grep -q 'tailscale up' "$(fd cp1)/host.log"
+  not grep -q 'tailscale up' "$(fd cp1)/host.log"
   put_secrets '.tailnet.cp_key = null'
   echo NeedsLogin >"$(fd cp1)/ts-state"
   settle cp1
-  ! grep -q 'tailscale up' "$(fd cp1)/host.log"
+  not grep -q 'tailscale up' "$(fd cp1)/host.log"
 }
 
 @test "holder: deletes offline duplicate CP nodes by hostname, keeps online and unrelated ones" {
@@ -558,7 +558,7 @@ JSON
   settle cp1
   grep -q 'nodes delete --identifier 1 --force' "$(fd cp1)/headscale.log"
   grep -q 'nodes delete --identifier 2 --force' "$(fd cp1)/headscale.log"
-  ! grep -q 'nodes delete --identifier [45678] ' "$(fd cp1)/headscale.log"
+  not grep -q 'nodes delete --identifier [45678] ' "$(fd cp1)/headscale.log"
 }
 
 @test "daily backup: sqlite .backup to daily/<date>.sqlite3.gz once a day" {
@@ -590,7 +590,7 @@ JSON
   put_desired '.agent.disabled = true'
   advance 10
   agent cp1 full
-  ! hs_running cp1
+  not hs_running cp1
   [ "$(lease | jq -r .holder)" = "" ]
 }
 
@@ -617,10 +617,10 @@ JSON
   AGENT_RUN="$TMP/run"
   mkdir -p "$AGENT_RUN"
   _bad_since fsync 1 2>"$TMP/alert.log"
-  ! grep -q ALERT "$TMP/alert.log"
+  not grep -q ALERT "$TMP/alert.log"
   advance 899
   _bad_since fsync 1 2>"$TMP/alert.log"
-  ! grep -q ALERT "$TMP/alert.log"
+  not grep -q ALERT "$TMP/alert.log"
   advance 1
   _bad_since fsync 1 2>"$TMP/alert.log"
   grep -q 'ALERT fsync' "$TMP/alert.log"
@@ -644,8 +644,8 @@ JSON
   advance 1
   agent cp1 watchdog
   [ "$SECONDS" -lt 5 ]
-  ! hs_running cp1
-  ! ls_running cp1
+  not hs_running cp1
+  not ls_running cp1
   [ ! -e "$TMP/cp1/run/agent/lease-state.json" ]
   grep -q 'WATCHDOG FENCE' "$TMP/cp1.log"
 }
@@ -674,7 +674,7 @@ JSON
   # at 20 s the next check fences
   advance 2
   agent cp1 watchdog
-  ! hs_running cp1
+  not hs_running cp1
 }
 
 @test "renewal: a successful renewal moves the fence out by 20 s" {
@@ -687,7 +687,7 @@ JSON
   hs_running cp1
   advance 5
   agent cp1 watchdog
-  ! hs_running cp1
+  not hs_running cp1
 }
 
 @test "restore runs as a job: the lease tick returns at once and keeps renewing during a slow restore" {
@@ -699,7 +699,7 @@ JSON
   NOWAIT=1 agent cp2 lease
   [ "$SECONDS" -lt 3 ]
   [ "$(lease_holder)" = cp2 ]
-  ! hs_running cp2 # still restoring
+  not hs_running cp2 # still restoring
   advance 10
   NOWAIT=1 agent cp2 lease # the lease is renewed while the restore job runs
   [ "$(lease | jq -r .expires_at)" = "$(iso $(($(now) + 30)))" ]
@@ -717,8 +717,8 @@ JSON
   advance 20
   agent cp2 watchdog
   sleep 4
-  ! hs_running cp2
-  ! ls_running cp2
+  not hs_running cp2
+  not ls_running cp2
 }
 
 # --- derp map ----------------------------------------------------------------------------------
@@ -753,7 +753,7 @@ JSON
   mkdir -p "$FAKE_S3/sc-frankenscube-etcd/snapshots"
   for n in etcd-snapshot-cp1-100 etcd-snapshot-cp2-300 etcd-snapshot-cp3-200.zip; do echo x >"$FAKE_S3/sc-frankenscube-etcd/snapshots/$n"; done
   agent cp1 full
-  ! grep -q ETCD_S3_LATEST_SNAPSHOT "$TMP/cp1/run/secrets/restore.env" # no restore directive: no listing
+  not grep -q ETCD_S3_LATEST_SNAPSHOT "$TMP/cp1/run/secrets/restore.env" # no restore directive: no listing
   put_desired ".directives.restore = {id: \"r1\", target: \"cp1\", snapshot: \"latest\", not_after: \"$(iso $((START_NOW + 7200)))\"}"
   settle cp1
   grep -q '^ETCD_S3_LATEST_SNAPSHOT=etcd-snapshot-cp2-300$' "$TMP/cp1/run/secrets/restore.env"
@@ -792,4 +792,59 @@ JSON
   advance 30
   agent cp1 full
   jq -e --arg lm "$(iso $((START_NOW + 30)))" '.cp2.last_modified | startswith(($lm | sub("Z$"; "")))' "$TMP/cp1/run/heartbeats.json"
+}
+
+# --- races between the watchdog and the lease path ---------------------------------------------
+
+@test "race: containers started right after a fence are stopped again (epoch re-checked after docker run)" {
+  holder_ready
+  agent cp1 lease
+  hs_running cp1
+  rm "$(fd cp1)/containers/headscale" # headscale died: the next tick restarts it
+  echo 3 >"$(fd cp1)/run-slow"        # docker run takes 3 s
+  advance 5
+  NOWAIT=1 agent cp1 lease &          # renews, then starts headscale (slow)
+  bgpid=$!
+  sleep 1.2
+  advance 20                          # 20 s since the renewal of that tick: the watchdog fences
+  agent cp1 watchdog
+  wait "$bgpid"
+  not hs_running cp1
+  not ls_running cp1
+  [ ! -e "$TMP/cp1/run/agent/lease-state.json" ]
+}
+
+@test "race: a renewal that succeeds while the watchdog fences does not bring the cleared state back" {
+  holder_ready
+  agent cp1 lease
+  hs_running cp1
+  advance 18
+  echo 1.2 >"$FAKE_S3/.slow" # the renewal (2 s left) succeeds after 1.2 s
+  NOWAIT=1 agent cp1 lease &
+  bgpid=$!
+  sleep 0.4
+  advance 2 # the fence time passes while the renewal is in flight
+  agent cp1 watchdog
+  wait "$bgpid"
+  rm "$FAKE_S3/.slow"
+  not hs_running cp1
+  [ ! -e "$TMP/cp1/run/agent/lease-state.json" ]
+  grep -q 'renewal succeeded after a fence' "$TMP/cp1.log"
+  # the next ticks neither resurrect headscale nor refuse to start it later: once the lease expired
+  # it is taken with epoch + 1 and headscale starts again from the replica
+  put_replica 1
+  advance 45
+  agent cp1 lease
+  [ "$(lease_epoch)" -eq 2 ]
+  hs_running cp1
+}
+
+@test "watchdog fails closed: an unreadable lease state is fenced" {
+  holder_ready
+  agent cp1 lease
+  hs_running cp1
+  echo 'not json' >"$TMP/cp1/run/agent/lease-state.json"
+  agent cp1 watchdog
+  not hs_running cp1
+  [ ! -e "$TMP/cp1/run/agent/lease-state.json" ]
 }
