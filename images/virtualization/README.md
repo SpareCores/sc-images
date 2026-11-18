@@ -9,7 +9,7 @@ it does not measure virtualization performance.
 This image prints one line of JSON: `{"kvm":true}` when KVM can be used, or
 `kvm` set to `false` with the message of `kvm-ok` in `kvm_error`.
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes the
-`kvm` flag as the `hw_virt` attribute on each server's details page. The
+`kvm` flag as the `hw_virt` attribute on each server type's details page. The
 Navigator does not use `kvm_error`.
 
 ## Usage
@@ -22,12 +22,13 @@ docker run --rm --privileged ghcr.io/sparecores/virtualization:main \
 ```
 
 The check reports on the machine whose kernel runs the container. The check
-needs `--privileged`. The image sets no default command, so pass the script
-path, `/usr/local/bin/check_virt.sh`, after the image name. The
-script reads no environment variables, options, or arguments. Production runs
-take a few seconds.
+needs `--privileged`. This image keeps the `/bin/bash` default command of
+`ubuntu:24.04`, so pass the script path, `/usr/local/bin/check_virt.sh`, after
+the image name. The
+script reads no environment variables, options, or arguments.
+[Production runs](#production-setup) take a few seconds.
 
-The image is built for AMD64 and Arm64, and runs the check as root. Unlike
+This image is built for AMD64 and Arm64, and runs the check as root. Unlike
 the benchmark images, it does not run the check under `resource-tracker`,
 because the check uses almost no resources.
 
@@ -62,7 +63,7 @@ the following fields:
 | `kvm_error` | string | only when `kvm` is `false` | The stdout and stderr of `kvm-ok` together on one line, or `kvm-ok command not found` |
 
 The script exits 0 whenever `kvm-ok` ran, whether KVM can be used or not. It
-exits 1 only when `kvm-ok` is missing from the image, which means the image
+exits 1 only when `kvm-ok` is missing from this image, which means this image
 itself is broken. Read `kvm`, not the exit status, to tell whether KVM can be
 used.
 
@@ -137,7 +138,7 @@ builds. As of November 2026, Ubuntu 24.04 ships `cpu-checker`
 
 ## References
 
-The [references](./docs/references.md) define the terms of this image's own
-tool, such as `kvm-ok`. The [glossary](https://docs.sparecores.com/glossary)
+The [references](./docs/references.md) define `kvm-ok`, the tool of this
+image. The [glossary](https://docs.sparecores.com/glossary)
 of the Spare Cores docs defines common terms, such as KVM, `/dev/kvm`, and
 `modprobe`.
