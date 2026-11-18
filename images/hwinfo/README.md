@@ -130,7 +130,8 @@ commands print the following to stdout:
 - **`lsblk`, `lsblk_discard`, and `lsblk_topo`:** A JSON object,
   `{"blockdevices": [...]}`, with one entry per whole disk (`-d`) and sizes in
   bytes (`-b`). The `lsblk` task prints all columns (`-O`), `lsblk_discard`
-  the discard columns (`-D`), and `lsblk_topo` the topology columns (`-t`).
+  the discarding capabilities (TRIM, UNMAP) of each device (`-D`), and
+  `lsblk_topo` the block-device topology columns (`-t`).
 - **`lstopo`:** The hwloc topology as XML. The Inspector also renders it as an
   `lstopo.svg` image next to the XML.
 
