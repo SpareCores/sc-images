@@ -25,6 +25,7 @@ and (.headscale.config | type == "string")
 and (.headscale.litestream | type == "object")
 and (.headscale.litestream.bucket | type == "string")
 and (.headscale.litestream.endpoint | type == "string")
+and (.headscale.derp_map == null or (.headscale.derp_map | type == "string"))
 and (.headscale.acme | type == "object")
 and (.headscale.acme.zone_id | type == "string")
 and (.headscale.acme.email | type == "string")
@@ -86,12 +87,22 @@ docs_sync() {
   return "$rc"
 }
 
-# restore.env for prestart (0600).
+# restore.env for prestart (0600). ETCD_S3_LATEST_SNAPSHOT is the newest snapshot name, resolved from
+# the restore bucket while a restore directive exists; a failed resolution keeps the previous value.
 write_restore_env() {
-  local f="$FC_RUN_DIR/secrets/restore.env"
+  local f="$FC_RUN_DIR/secrets/restore.env" latest=""
+  if desired_present && [ "$(desired_jq -r '.directives.restore // empty | .id // empty')" != "" ]; then
+    latest=$(restore_latest_snapshot) || latest=""
+  fi
+  if [ -z "$latest" ] && [ -r "$f" ]; then
+    latest=$(sed -n 's/^ETCD_S3_LATEST_SNAPSHOT=//p' "$f")
+  fi
   (
     umask 077
     secrets_jq -r '.restore | "ETCD_S3_ENDPOINT=\(.endpoint)\nETCD_S3_BUCKET=\(.bucket)\nETCD_S3_REGION=\(.region // "auto")\nETCD_S3_ACCESS_KEY_ID=\(.access_key_id)\nETCD_S3_SECRET_ACCESS_KEY=\(.secret_access_key)\nETCD_S3_FOLDER=snapshots"' >"$f.tmp"
+    if [ -n "$latest" ]; then
+      printf 'ETCD_S3_LATEST_SNAPSHOT=%s\n' "$latest" >>"$f.tmp"
+    fi
     mv -f "$f.tmp" "$f"
   )
 }
@@ -220,6 +231,7 @@ heartbeats_fetch() {
   out=$(jq -n --arg f "$(fc_now_iso)" '{fetched_at: $f}')
   for node in $(desired_jq -r '.nodes | keys[]'); do
     rc=0
+    S3_LAST_MODIFIED=""
     s3_get "heartbeats/${node}.json" "$tmp" >/dev/null || rc=$?
     if [ "$rc" -eq "$S3_NOTFOUND" ]; then
       continue
@@ -230,7 +242,9 @@ heartbeats_fetch() {
       return 1
     fi
     if jq -e '.version == 1 and .etcd and .instance_uuid and .ts' "$tmp" >/dev/null 2>&1; then
-      out=$(printf '%s' "$out" | jq --arg n "$node" --slurpfile h "$tmp" '.[$n] = $h[0]')
+      # last_modified is S3's clock: the interlock ages heartbeats with it, not with the writer's ts
+      out=$(printf '%s' "$out" | jq --arg n "$node" --arg lm "$S3_LAST_MODIFIED" --slurpfile h "$tmp" \
+        '.[$n] = ($h[0] + (if $lm == "" then {} else {last_modified: $lm} end))')
       hb=$((hb + 1))
     fi
   done

@@ -28,6 +28,7 @@ case "$cmd" in
     if [ "$rm" = 1 ] && [ "${args[0]}" = restore ]; then
       gen=$(sed -n 's/.*path: \(gen-[0-9]*\)$/\1/p' "$cfg")
       db=${args[$((${#args[@]} - 1))]}
+      [ -r "$FAKE_DIR/restore-slow" ] && sleep "$(cat "$FAKE_DIR/restore-slow")"
       if [ -e "$FAKE_S3/.replicas/$gen" ]; then
         mkdir -p "$(dirname "$db")"
         cp "$FAKE_S3/.replicas/$gen" "$db"

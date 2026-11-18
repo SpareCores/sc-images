@@ -17,6 +17,7 @@ containers_stop() {
 
 # Stops everything the holder runs (fence, release).
 holder_stop() {
+  bg_kill hs-start # first: it must not start containers behind the stop
   containers_stop
   bg_kill lego
 }
@@ -70,10 +71,28 @@ _litestream_env() {
 litestream_image() { desired_jq -r '.images.litestream'; }
 headscale_image() { desired_jq -r '.images.headscale'; }
 
+# derp.yaml: the optional desired headscale.derp_map, written atomically. Returns 0 when the file
+# changed (headscale reads it at start, so a running one has to be restarted).
+derp_refresh() {
+  local f="$FC_HS_DIR/derp.yaml" tmp
+  tmp="$f.tmp"
+  desired_jq -r '.headscale.derp_map // empty' >"$tmp"
+  if [ ! -s "$tmp" ]; then
+    rm -f "$tmp"
+    return 1
+  fi
+  if [ -r "$f" ] && cmp -s "$tmp" "$f"; then
+    rm -f "$tmp"
+    return 1
+  fi
+  mv -f "$tmp" "$f"
+}
+
 start_containers() {
   local epoch=$1
   write_litestream_config "$FC_HS_DIR/litestream.yml" "$epoch"
   desired_jq -r '.headscale.config' >"$FC_HS_DIR/config.yaml"
+  derp_refresh || true
   if ! container_running "$HS_CONTAINER"; then
     docker rm -f "$HS_CONTAINER" >/dev/null 2>&1 || true
     docker run -d --name "$HS_CONTAINER" --network host -v "$FC_HS_DIR:$FC_HS_DIR" \
@@ -122,11 +141,20 @@ holder_start_full() {
       return 1
     fi
   fi
+  # the lease may have been fenced while this job restored: never start behind a stop
+  if [ "$(lease_field epoch)" != "$epoch" ]; then
+    fc_log "lease epoch $epoch is gone: not starting headscale"
+    return 1
+  fi
   start_containers "$epoch" || {
     fc_log "could not start the headscale containers"
     containers_stop
     return 1
   }
+  if [ "$(lease_field epoch)" != "$epoch" ]; then
+    containers_stop
+    return 1
+  fi
   echo "$epoch" >"$AGENT_RUN/started-epoch"
   if [ "$empty" = 1 ]; then
     printf '%s' "$directive" | jq -r '.id' >"$AGENT_RUN/empty-start"
@@ -134,38 +162,65 @@ holder_start_full() {
   fc_log "headscale serving under epoch $epoch"
 }
 
-# Everything the holder does after a lease step. Renewal calls in between keep the lease alive
-# during the slow parts.
+# The slow part of becoming the holder runs as a background job: certificate, restore, start.
+holder_start_job() {
+  local epoch=$1
+  cert_ensure || {
+    fc_log "no usable <hs> certificate yet: headscale not started"
+    return 1
+  }
+  holder_start_full "$epoch"
+}
+
+# Everything the holder does after a lease tick. Nothing here blocks for long: the restore is a
+# job, and the watchdog fences independently anyway.
 holder_reconcile() {
-  local epoch
+  local epoch state now rc
   if ! lease_held; then
     # a non-holder runs neither headscale nor litestream
-    if container_running "$HS_CONTAINER" || container_running "$LS_CONTAINER"; then
+    if container_running "$HS_CONTAINER" || container_running "$LS_CONTAINER" || [ "$(bg_state hs-start)" != none ]; then
       fc_log "not the lease holder: stopping headscale and litestream"
       holder_stop
     fi
     return 0
   fi
   epoch=$(lease_field epoch)
-  if ! cert_ensure; then
-    fc_log "no usable <hs> certificate yet: headscale not started"
-    return 0
-  fi
-  if [ "$(cat "$AGENT_RUN/started-epoch" 2>/dev/null)" != "$epoch" ]; then
-    holder_start_full "$epoch" || return 0
-    # the restore can take a while: renew right away
-    lease_renew "$(fc_now_epoch)"
-    lease_held || return 0
-  else
-    if [ "$CERT_CHANGED" = 1 ] && container_running "$HS_CONTAINER"; then
-      docker restart "$HS_CONTAINER" >/dev/null 2>&1 || true
+  if [ "$(cat "$AGENT_RUN/started-epoch" 2>/dev/null)" = "$epoch" ]; then
+    CERT_CHANGED=0
+    if ! cert_valid "$(CERT_DIR)/fullchain.pem" "$CERT_RENEW_BEFORE_SECONDS"; then
+      cert_ensure || true
+    fi
+    if derp_refresh || [ "$CERT_CHANGED" = 1 ]; then
+      if container_running "$HS_CONTAINER"; then
+        docker restart "$HS_CONTAINER" >/dev/null 2>&1 || true
+      fi
     fi
     if ! container_running "$HS_CONTAINER" || ! container_running "$LS_CONTAINER"; then
       fc_log "a headscale container is not running: starting it"
       start_containers "$epoch" || return 0
     fi
+    return 0
   fi
-  return 0
+  state=$(bg_state hs-start)
+  if [ "$state" = running ]; then
+    return 0
+  fi
+  now=$(fc_mono_epoch)
+  if [ "$state" = "done" ]; then
+    rc=$(bg_rc hs-start)
+    bg_clear hs-start
+    if [ "$rc" != 0 ]; then
+      echo "$now" >"$AGENT_RUN/hs-start-failed-at"
+    fi
+    if [ "$(cat "$AGENT_RUN/started-epoch" 2>/dev/null)" = "$epoch" ]; then
+      return 0
+    fi
+  fi
+  # retry a failed start every 10 s
+  if [ -r "$AGENT_RUN/hs-start-failed-at" ] && [ $((now - $(cat "$AGENT_RUN/hs-start-failed-at"))) -lt 10 ]; then
+    return 0
+  fi
+  bg_start hs-start holder_start_job "$epoch"
 }
 
 # --- bootstrap (M7) ----------------------------------------------------------------------------

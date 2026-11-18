@@ -38,14 +38,27 @@ agent() {
     FAKE_DIR="$TMP/$node/fake" FC_RUN_DIR="$TMP/$node/run" FC_STATE_DIR="$TMP/$node/state" FC_HS_DIR="$TMP/$node/hs" \
     FC_K3S_DIR="$TMP/$node/k3s" FC_LEGO_DIR="$TMP/$node/state/lego" FSYNC_SAMPLE_COUNT=3 \
     bash "$AGENT" "$cmd" "$@" 2>>"$TMP/$node.log"
+  local rc=$?
+  # the holder start is a background job: wait for it unless the test wants to look inside it
+  if [ -z "${NOWAIT:-}" ]; then wait_start_job "$node"; fi
+  return $rc
+}
+
+wait_start_job() {
+  local pidf="$TMP/$1/run/agent/bg/hs-start.pid" i
+  [ -e "$pidf" ] || return 0
+  for i in $(seq 1 100); do
+    kill -0 "$(cat "$pidf")" 2>/dev/null || return 0
+    sleep 0.1
+  done
 }
 
 # peers of cp1 are cp2, cp3 (and so on): the interlock probes these addresses
 peers_of() {
   case "$1" in
-    cp1) echo "10.0.0.2 10.0.0.3" ;;
-    cp2) echo "10.0.0.1 10.0.0.3" ;;
-    *) echo "10.0.0.1 10.0.0.2" ;;
+    cp1) echo "10.0.0.2,10.0.0.3" ;;
+    cp2) echo "10.0.0.1,10.0.0.3" ;;
+    *) echo "10.0.0.1,10.0.0.2" ;;
   esac
 }
 
@@ -136,4 +149,10 @@ settle() {
   agent "$1" lease
   advance 10
   agent "$1" full
+}
+
+# s3_set_lm <key> <epoch>: set S3's LastModified of a control-bucket object
+s3_set_lm() {
+  mkdir -p "$FAKE_S3/.lm/$CTRL/frankenscube/$(dirname "$1")"
+  echo "$2" >"$FAKE_S3/.lm/$CTRL/frankenscube/$1"
 }

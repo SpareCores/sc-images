@@ -6,7 +6,23 @@
 # shellcheck source=/dev/null
 . "${FC_SHARED_LIB}/interlock.sh"
 
+# like prestart: the private NIC must have the node IP before anything touches k3s (sdn mode)
+wait_node_ip() {
+  local i
+  if [ "$NODE_IP_MODE" = public ] || [ -z "$NODE_IP" ]; then
+    return 0
+  fi
+  for ((i = 0; i < 120; i++)); do
+    if host_exec ip -4 -o addr show 2>/dev/null | grep -q -E "[[:space:]]inet ${NODE_IP//./\\.}/"; then
+      return 0
+    fi
+    sleep "${FC_NIC_POLL:-5}"
+  done
+  return 1
+}
+
 reset_job() {
+  wait_node_ip || return 1
   host_exec systemctl stop k3s || return 1
   host_exec "$FC_K3S_BIN" server --cluster-reset || return 1
   host_exec systemctl start k3s

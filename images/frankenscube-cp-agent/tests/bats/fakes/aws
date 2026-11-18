@@ -17,6 +17,7 @@ done
 svc=$1 op=$2
 shift 2
 : "$region"
+[ -r "$FAKE_S3/.slow" ] && sleep "$(cat "$FAKE_S3/.slow")"
 mkdir -p "$FAKE_S3"
 exec 9>"$FAKE_S3/.lock"
 flock 9
@@ -46,6 +47,12 @@ if [ -e "$FAKE_S3/.down-certs" ] && [[ "$key" == */certs/* ]]; then
   exit 255
 fi
 echo "${FAKE_WHO:-?} $svc $op bucket=$bucket key=$key endpoint=${endpoint:+r2} ifmatch=$ifmatch ifnone=$ifnone name=$name" >>"$FAKE_S3/.calls"
+now_iso() { date -u -d "@$(cat "${FC_NOW_FILE:-/dev/null}" 2>/dev/null || date +%s)" +%Y-%m-%dT%H:%M:%S+00:00; }
+# LastModified is S3's clock: the fake clock at the time of the put, or $FAKE_S3/.lm/<bucket>/<key> (epoch) when a test sets it
+lm_of() {
+  local m="$FAKE_S3/.lm/$bucket/$key"
+  if [ -f "$m" ]; then date -u -d "@$(cat "$m")" +%Y-%m-%dT%H:%M:%S+00:00; else now_iso; fi
+}
 etag_of() { printf '"%s"' "$(md5sum <"$1" | cut -d' ' -f1)"; }
 err() { echo "An error occurred ($1) when calling the $2 operation: $3" >&2; exit 254; }
 case "$svc $op" in
@@ -53,7 +60,7 @@ case "$svc $op" in
     f="$FAKE_S3/$bucket/$key"
     [ -f "$f" ] || err NoSuchKey GetObject "The specified key does not exist."
     cp "$f" "${positional[0]}"
-    jq -n --arg e "$(etag_of "$f")" '{ETag: $e, ContentLength: 1}'
+    jq -n --arg e "$(etag_of "$f")" --arg lm "$(lm_of)" '{ETag: $e, ContentLength: 1, LastModified: $lm}'
     ;;
   "s3api put-object")
     f="$FAKE_S3/$bucket/$key"
@@ -68,6 +75,8 @@ case "$svc $op" in
     fi
     mkdir -p "$(dirname "$f")"
     cp "$body" "$f"
+    rm -f "$FAKE_S3/.lm/$bucket/$key"
+    [ -n "${FC_NOW_FILE:-}" ] && { mkdir -p "$(dirname "$FAKE_S3/.lm/$bucket/$key")"; cat "$FC_NOW_FILE" >"$FAKE_S3/.lm/$bucket/$key"; }
     jq -n --arg e "$(etag_of "$f")" '{ETag: $e}'
     ;;
   "s3api list-objects-v2")

@@ -627,3 +627,169 @@ JSON
   _bad_since fsync 0 2>"$TMP/alert.log"
   [ ! -e "$AGENT_RUN/bad-fsync" ]
 }
+
+# --- fencing: watchdog, bounded renewals, restore off the lease path ---------------------------
+
+@test "watchdog: fences a holder 20 s after its last renewal without any lease tick or S3 access" {
+  holder_ready
+  agent cp1 lease
+  hs_running cp1
+  ls_running cp1
+  touch "$FAKE_S3/.down"
+  echo 30 >"$FAKE_S3/.slow" # S3 would hang for 30 s: the watchdog must not care
+  advance 19
+  SECONDS=0
+  agent cp1 watchdog
+  hs_running cp1 # 19 s: still serving
+  advance 1
+  agent cp1 watchdog
+  [ "$SECONDS" -lt 5 ]
+  ! hs_running cp1
+  ! ls_running cp1
+  [ ! -e "$TMP/cp1/run/agent/lease-state.json" ]
+  grep -q 'WATCHDOG FENCE' "$TMP/cp1.log"
+}
+
+@test "watchdog: uses the monotonic clock, not the wall clock (a stepped wall clock changes nothing)" {
+  holder_ready
+  agent cp1 lease
+  hs_running cp1
+  # fc_mono_epoch is the only clock of the fence: the state records it, not wall time
+  jq -e '.last_renew_mono != null and .last_renew == null' "$TMP/cp1/run/agent/lease-state.json"
+  grep -q '/proc/uptime' "$IMAGE_DIR/lib/agent.sh"
+}
+
+@test "renewal is bounded by the time left until the fence (S3 hangs, the tick still returns before 20 s)" {
+  holder_ready
+  agent cp1 lease
+  hs_running cp1
+  advance 18 # 2 s left until the fence
+  echo 30 >"$FAKE_S3/.slow"
+  SECONDS=0
+  agent cp1 lease
+  [ "$SECONDS" -lt 6 ] # timeout(20 - 18) = 2 s, not the default 12 s
+  # no success: the state is unchanged (still held, last renewal 18 s ago) and headscale still serves
+  [ -e "$TMP/cp1/run/agent/lease-state.json" ]
+  hs_running cp1
+  # at 20 s the next check fences
+  advance 2
+  agent cp1 watchdog
+  ! hs_running cp1
+}
+
+@test "renewal: a successful renewal moves the fence out by 20 s" {
+  holder_ready
+  agent cp1 lease
+  advance 10
+  agent cp1 lease
+  advance 15 # 25 s after the first renewal, 15 s after the second
+  agent cp1 watchdog
+  hs_running cp1
+  advance 5
+  agent cp1 watchdog
+  ! hs_running cp1
+}
+
+@test "restore runs as a job: the lease tick returns at once and keeps renewing during a slow restore" {
+  holder_ready
+  put_replica 4
+  jq -n --arg e "$(iso $((START_NOW - 100)))" '{holder: "cp3", instance_uuid: "u3", epoch: 4, expires_at: $e}' | s3_write lease/headscale.json
+  echo 4 >"$(fd cp2)/restore-slow"
+  SECONDS=0
+  NOWAIT=1 agent cp2 lease
+  [ "$SECONDS" -lt 3 ]
+  [ "$(lease_holder)" = cp2 ]
+  ! hs_running cp2 # still restoring
+  advance 10
+  NOWAIT=1 agent cp2 lease # the lease is renewed while the restore job runs
+  [ "$(lease | jq -r .expires_at)" = "$(iso $(($(now) + 30)))" ]
+  wait_start_job cp2
+  hs_running cp2
+  [ "$(cat "$TMP/cp2/hs/db.sqlite")" = "replica of gen-4" ]
+}
+
+@test "fence while the start job is still restoring: nothing is started behind the stop" {
+  holder_ready
+  put_replica 4
+  jq -n --arg e "$(iso $((START_NOW - 100)))" '{holder: "cp3", instance_uuid: "u3", epoch: 4, expires_at: $e}' | s3_write lease/headscale.json
+  echo 3 >"$(fd cp2)/restore-slow"
+  NOWAIT=1 agent cp2 lease
+  advance 20
+  agent cp2 watchdog
+  sleep 4
+  ! hs_running cp2
+  ! ls_running cp2
+}
+
+# --- derp map ----------------------------------------------------------------------------------
+
+@test "derp map: written to derp.yaml atomically before headscale starts, rewritten and restarted on change" {
+  holder_ready
+  put_desired '.headscale.derp_map = "regions:\n  900: {regionid: 900}\n" | .directives.headscale_bootstrap = {id: "hb1", not_after: "2099-01-01T00:00:00Z"}'
+  agent cp1 full
+  hs_running cp1
+  [ "$(cat "$TMP/cp1/hs/derp.yaml")" = "$(printf 'regions:\n  900: {regionid: 900}')" ]
+  [ ! -e "$TMP/cp1/hs/derp.yaml.tmp" ]
+  [ ! -s "$(fd cp1)/restarts.log" ]
+  put_desired '.headscale.derp_map = "regions:\n  901: {regionid: 901}\n" | .directives.headscale_bootstrap = {id: "hb1", not_after: "2099-01-01T00:00:00Z"}'
+  settle cp1
+  [ "$(cat "$TMP/cp1/hs/derp.yaml")" = "$(printf 'regions:\n  901: {regionid: 901}')" ]
+  grep -q 'restart headscale' "$(fd cp1)/restarts.log"
+}
+
+@test "derp map: absent means no file; a non-string value makes the doc invalid" {
+  holder_ready
+  agent cp1 full
+  [ ! -e "$TMP/cp1/hs/derp.yaml" ]
+  cp "$TMP/cp1/run/desired.json" "$TMP/before.json"
+  put_desired '.headscale.derp_map = 5 | .headscale.mode = "stopped"'
+  settle cp1
+  cmp "$TMP/cp1/run/desired.json" "$TMP/before.json"
+}
+
+# --- restore.env: the newest snapshot, resolved by the agent ------------------------------------
+
+@test "restore.env: the agent resolves the newest etcd snapshot while a restore directive exists" {
+  mkdir -p "$FAKE_S3/sc-frankenscube-etcd/snapshots"
+  for n in etcd-snapshot-cp1-100 etcd-snapshot-cp2-300 etcd-snapshot-cp3-200.zip; do echo x >"$FAKE_S3/sc-frankenscube-etcd/snapshots/$n"; done
+  agent cp1 full
+  ! grep -q ETCD_S3_LATEST_SNAPSHOT "$TMP/cp1/run/secrets/restore.env" # no restore directive: no listing
+  put_desired ".directives.restore = {id: \"r1\", target: \"cp1\", snapshot: \"latest\", not_after: \"$(iso $((START_NOW + 7200)))\"}"
+  settle cp1
+  grep -q '^ETCD_S3_LATEST_SNAPSHOT=etcd-snapshot-cp2-300$' "$TMP/cp1/run/secrets/restore.env"
+  echo x >"$FAKE_S3/sc-frankenscube-etcd/snapshots/etcd-snapshot-cp1-400.zip"
+  settle cp1
+  grep -q '^ETCD_S3_LATEST_SNAPSHOT=etcd-snapshot-cp1-400.zip$' "$TMP/cp1/run/secrets/restore.env"
+  # a failed listing keeps the previous value
+  touch "$FAKE_S3/.down-r2"
+  settle cp1
+  grep -q '^ETCD_S3_LATEST_SNAPSHOT=etcd-snapshot-cp1-400.zip$' "$TMP/cp1/run/secrets/restore.env"
+}
+
+# --- reset waits for the private NIC -----------------------------------------------------------
+
+@test "reset: waits for the node IP on the private NIC before touching k3s" {
+  export FC_NIC_POLL=0.2
+  reset_directive nic1
+  age_generation cp1
+  touch "$(fd cp1)/ip-missing"
+  local i
+  for i in $(seq 1 9); do settle cp1; done
+  sleep 1
+  [ ! -e "$(fd cp1)/host.log" ] || ! grep -q 'systemctl stop k3s' "$(fd cp1)/host.log"
+  rm "$(fd cp1)/ip-missing"
+  sleep 1
+  settle cp1
+  grep -q 'systemctl stop k3s' "$(fd cp1)/host.log"
+}
+
+# --- heartbeat age: S3's clock -----------------------------------------------------------------
+
+@test "heartbeats.json carries S3's LastModified of each heartbeat as last_modified" {
+  agent cp1 full
+  advance 30
+  agent cp2 full
+  advance 30
+  agent cp1 full
+  jq -e --arg lm "$(iso $((START_NOW + 30)))" '.cp2.last_modified | startswith(($lm | sub("Z$"; "")))' "$TMP/cp1/run/heartbeats.json"
+}

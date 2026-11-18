@@ -8,6 +8,7 @@ shift
 case "$cmd" in
   timedatectl) if [ -e "$FAKE_DIR/ntp-off" ]; then echo no; else echo yes; fi ;;
   systemctl) exit 0 ;;
+  ip) [ -e "$FAKE_DIR/ip-missing" ] || echo "2: eth1    inet ${NODE_IP}/24 brd 10.0.0.255 scope global eth1" ;;
   k3s) exit "$(cat "$FAKE_DIR/k3s-rc" 2>/dev/null || echo 0)" ;;
   tailscale)
     case "$1" in

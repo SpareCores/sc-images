@@ -16,6 +16,10 @@
 # Outputs (globals, set on every call): INTERLOCK_REASON (empty on success),
 # INTERLOCK_HEALTHY_PEER (a peer whose /readyz answered 200, or empty).
 #
+# Heartbeat age: the agent adds `last_modified` (the S3 LastModified of the heartbeat object, S3's
+# clock) to every heartbeat it caches; that is what is compared with the local clock. The heartbeat's
+# own `ts` (the writer's clock) is only the fallback.
+#
 # Safety notes:
 # - The heartbeat cache must be fresh (fetched_at under 120 s old). A stale cache means the agent
 #   cannot reach S3, and "no member heartbeat" would be a guess: the interlock refuses.
@@ -107,7 +111,7 @@ _interlock_foreign_members() {
       to_entries[]
       | select((.value | type) == "object")
       | select(.value.etcd == "member" and .value.instance_uuid != $u)
-      | [.key, (.value.ts // "")] | @tsv' "$hb" 2>/dev/null)
+      | [.key, (.value.last_modified // .value.ts // "")] | @tsv' "$hb" 2>/dev/null)
   return 0
 }
 

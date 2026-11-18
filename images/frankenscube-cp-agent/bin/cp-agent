@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # cp-agent: control-plane node agent (PLAN WP-03).
 #
-#   cp-agent agent   run the loop: a 10 s lease tick inside a 30 s full cycle
-#   cp-agent full    one full cycle (docs, markers, heartbeats, lease, holder, directives, ...)
-#   cp-agent lease   one lease tick (lease step and holder reconcile only)
+#   cp-agent agent     three loops: watchdog (1 s), lease tick (10 s), everything else (30 s)
+#   cp-agent full      one pass of everything (docs, markers, heartbeats, lease, holder, directives, ...)
+#   cp-agent lease     one lease tick (lease step and holder reconcile only)
+#   cp-agent watchdog  one watchdog check (fences a holder whose last renewal is 20 s old)
 #
 # Fail-static: a failing step is logged and the loop continues with the last valid state. The one
 # exception is the headscale lease: a holder that cannot renew stops headscale (lease.sh).
@@ -21,6 +22,7 @@ for f in agent s3 docs lease cert headscale tailscale directives health; do
   . "$AGENT_LIB/$f.sh"
 done
 
+# The lease tick (every 10 s): lease step and holder reconcile. Nothing slow runs here.
 cycle_lease() {
   # right after a start the first tick may come before the first full cycle
   if ! desired_present; then
@@ -30,13 +32,14 @@ cycle_lease() {
   step holder holder_reconcile
 }
 
-cycle_full() {
+cycle_docs() {
   step docs docs_sync
   step markers markers_sync
   step heartbeats-fetch heartbeats_fetch
   step marker-uploads marker_requests_upload
-  step lease lease_step
-  step holder holder_reconcile
+}
+
+cycle_work() {
   step holder-extras holder_extras
   step tailscale tailscale_ensure
   step reset reset_step
@@ -44,26 +47,68 @@ cycle_full() {
   step heartbeat heartbeat_put
 }
 
+# The 30 s cycle of everything but the lease tick (own loop in production).
+cycle_slow() {
+  cycle_docs
+  cycle_work
+}
+
+# One pass of everything (tests, manual runs).
+cycle_full() {
+  cycle_docs
+  cycle_lease
+  cycle_work
+}
+
+loop_every() {
+  local period=$1 fn=$2 start left
+  while true; do
+    start=$SECONDS
+    "$fn"
+    left=$((period - (SECONDS - start)))
+    if [ "$left" -gt 0 ]; then
+      sleep "$left"
+    fi
+  done
+}
+
+loop_watchdog() {
+  while true; do
+    watchdog_check
+    sleep 1
+  done
+}
+
+LOOP_PIDS=()
+shutdown() {
+  local pid
+  trap - TERM INT
+  for pid in "${LOOP_PIDS[@]}"; do
+    kill "$pid" 2>/dev/null || true
+  done
+  # the containers must not outlive the agent
+  holder_stop
+  exit 0
+}
+
+# Three independent loops: the watchdog (1 s), the lease tick (10 s) and the rest (30 s). A slow or
+# stuck S3 call in one of them cannot delay the others, and the fence never waits for a renewal.
 cmd_agent() {
-  local n=0 start left
   if [ "$DISABLE_AGENT" = true ]; then
     fc_log "DISABLE_AGENT=true: idle"
     while true; do sleep 3600; done
   fi
   fc_log "starting (node $NODE_NAME, instance $INSTANCE_UUID)"
-  while true; do
-    start=$SECONDS
-    if [ $((n % 3)) -eq 0 ]; then
-      cycle_full
-    else
-      cycle_lease
-    fi
-    n=$((n + 1))
-    left=$((LEASE_RENEW_SECONDS - (SECONDS - start)))
-    if [ "$left" -gt 0 ]; then
-      sleep "$left"
-    fi
-  done
+  trap shutdown TERM INT
+  loop_watchdog &
+  LOOP_PIDS+=("$!")
+  loop_every "$LEASE_RENEW_SECONDS" cycle_lease &
+  LOOP_PIDS+=("$!")
+  loop_every 30 cycle_slow &
+  LOOP_PIDS+=("$!")
+  wait -n
+  fc_log "a loop exited: shutting down"
+  shutdown
 }
 
 main() {
@@ -73,8 +118,9 @@ main() {
     agent) cmd_agent ;;
     full) cycle_full ;;
     lease) cycle_lease ;;
+    watchdog) watchdog_check ;;
     *)
-      echo "usage: cp-agent agent|full|lease" >&2
+      echo "usage: cp-agent agent|full|lease|watchdog" >&2
       exit 2
       ;;
   esac

@@ -30,5 +30,5 @@ fc_now_iso() {
 # RFC 3339 UTC ("...Z", optional fraction) to epoch seconds. Prints nothing and fails when the
 # value is not parseable.
 fc_iso_to_epoch() {
-  jq -rn --arg t "$1" '$t | sub("\\.[0-9]+"; "") | fromdateiso8601' 2>/dev/null
+  jq -rn --arg t "$1" '$t | sub("\\.[0-9]+"; "") | sub("\\+00:00$"; "Z") | fromdateiso8601' 2>/dev/null
 }

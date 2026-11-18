@@ -23,9 +23,11 @@ agent_init() {
     . "$FC_NODE_ENV"
     set +a
   fi
-  # docker --env-file keeps the quotes of PEERS="a b"
+  # PEERS=a,b (docker --env-file keeps quotes literally, so none are used); space separated inside
   PEERS="${PEERS:-}"
   PEERS="${PEERS//\"/}"
+  PEERS="${PEERS//,/ }"
+  NODE_IP_MODE="${NODE_IP_MODE:-sdn}"
   : "${NODE_NAME:?NODE_NAME missing}"
   : "${CLUSTER:?CLUSTER missing}"
   : "${CONTROL_BUCKET:?CONTROL_BUCKET missing}"
@@ -45,6 +47,16 @@ agent_init() {
     cat /proc/sys/kernel/random/uuid >"$FC_STATE_DIR/instance-uuid"
   fi
   INSTANCE_UUID=$(head -n1 "$FC_STATE_DIR/instance-uuid")
+}
+
+# Monotonic seconds. Every fencing decision uses this clock, never the wall clock (NTP steps must
+# not stretch the 20 s). FC_NOW_FILE (tests) stands in for it.
+fc_mono_epoch() {
+  if [ -n "${FC_NOW_FILE:-}" ] && [ -r "$FC_NOW_FILE" ]; then
+    cat "$FC_NOW_FILE"
+  else
+    awk '{print int($1)}' /proc/uptime
+  fi
 }
 
 # Host actions (systemctl, tailscale, k3s) run in the host namespaces.
@@ -75,7 +87,7 @@ bg_start() {
   rm -f "$d/$name.rc"
   (
     rc=0
-    "$@" >>"$d/$name.log" 2>&1 || rc=$?
+    "$@" >>"$d/$name.log" || rc=$?
     echo "$rc" >"$d/$name.rc.tmp"
     mv -f "$d/$name.rc.tmp" "$d/$name.rc"
   ) &

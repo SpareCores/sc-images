@@ -11,16 +11,19 @@ and restore credentials, the tailnet key) in the desired-state documents at run 
 
 ## What it does
 
-Every 10 seconds the agent runs a lease tick inside a 30-second cycle:
+The agent runs three independent loops: a watchdog (every second), the lease tick (every 10 s) and
+the rest of the work (every 30 s):
 
 - **Documents:** fetches and validates `desired.json` and `desired-secrets.json`. An invalid
   document is logged and ignored, the last valid one stays in force.
 - **Lease:** holds one S3 object (`lease/headscale.json`) with conditional writes
   (`If-None-Match` to acquire, `If-Match` to take over or renew). The holder renews every 10 s
-  and stops headscale and litestream when its last renewal is over 20 s old, before anyone can
-  take the lease at 40 s.
+  and stops headscale and litestream when its last renewal is 20 s old, before anyone can take
+  the lease at 40 s. The watchdog does that on a monotonic clock, independently of the other
+  loops; every renewal call is bounded by the time left; the slow work of becoming the holder
+  (certificate, litestream restore, start) is a background job.
 - **Holder:** restores headscale from the highest `gen-*` litestream replica, replicates to the
-  prefix of its own lease epoch, serves with the certificate stored in S3 (issued once with
+  prefix of its own lease epoch, writes the optional `headscale.derp_map` to `derp.yaml`, serves with the certificate stored in S3 (issued once with
   `lego` through DNS-01 when none is stored or it has under 30 days left), and bootstraps an
   empty replica only under the `headscale_bootstrap` directive.
 - **Every node:** heartbeats, marker uploads for `k3s-prestart.sh`, the node's own `tailscale
@@ -28,6 +31,9 @@ Every 10 seconds the agent runs a lease tick inside a 30-second cycle:
 
 The host side of the same contract is `k3s-prestart.sh` in
 [sc-infra](https://github.com/SpareCores/sc-infra).
+
+Restore: while a `restore` directive exists, the agent resolves the newest etcd snapshot name from
+the restore bucket into `restore.env`, because `k3s etcd-snapshot ls` needs a running server.
 
 ## Run
 
@@ -49,8 +55,9 @@ Other commands: `full` runs one full cycle, `lease` one lease tick.
 - `lib/shared/`: `common.sh` and `interlock.sh`, the peer-health interlock that the host's
   `k3s-prestart.sh` uses too. They are vendored from sc-infra, where they live canonically
   (`prod/cluster/cluster/ignition/scripts/lib/`). `lib/shared/SHA256SUMS` lists their hashes;
-  the build and `tests/bats/shared.bats` fail when a file changes without its hash, and
-  sc-infra's CI compares its copy with this one.
+  the build and `tests/bats/shared.bats` fail when a file changes without its hash, and the
+  CI of both repos compares the copies (this repo's job needs the `SC_INFRA_READ_TOKEN`
+  secret, since sc-infra is private).
 
 ## Development
 

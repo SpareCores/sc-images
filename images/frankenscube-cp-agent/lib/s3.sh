@@ -21,7 +21,9 @@ _s3_classify() {
   fi
 }
 
-# s3_get <key> <outfile>: key relative to the prefix. Prints the ETag (with quotes).
+# s3_get <key> <outfile>: key relative to the prefix. Prints the ETag (with quotes) and sets
+# S3_LAST_MODIFIED (S3's clock) when called without a subshell.
+S3_LAST_MODIFIED=""
 s3_get() {
   local key=$1 out=$2 tmp err json kind
   tmp="$out.dl.$$"
@@ -29,6 +31,7 @@ s3_get() {
   if json=$(_aws --region "$AWS_REGION" s3api get-object --bucket "$CONTROL_BUCKET" --key "${PREFIX}${key}" "$tmp" 2>"$err"); then
     rm -f "$err"
     mv -f "$tmp" "$out"
+    S3_LAST_MODIFIED=$(printf '%s' "$json" | jq -r '.LastModified // empty')
     printf '%s' "$json" | jq -r '.ETag // empty'
     return 0
   fi
@@ -107,4 +110,21 @@ r2_put_new() {
   fi
   rm -f "$err"
   return 1
+}
+
+# restore_latest_snapshot: name of the newest etcd snapshot in the restore bucket (names end in
+# the unix time). `k3s etcd-snapshot ls` needs a running server, so the agent resolves it here.
+restore_latest_snapshot() {
+  local ep ak sk bucket region json
+  ep=$(secrets_jq -r '.restore.endpoint')
+  ak=$(secrets_jq -r '.restore.access_key_id')
+  sk=$(secrets_jq -r '.restore.secret_access_key')
+  bucket=$(secrets_jq -r '.restore.bucket')
+  region=$(secrets_jq -r '.restore.region // "auto"')
+  json=$(AWS_ACCESS_KEY_ID=$ak AWS_SECRET_ACCESS_KEY=$sk AWS_SESSION_TOKEN='' \
+    _aws --endpoint-url "$ep" --region "$region" s3api list-objects-v2 --bucket "$bucket" --prefix snapshots/) || return 1
+  printf '%s' "$json" | jq -r '
+    [.Contents[]?.Key | ltrimstr("snapshots/") | select(test("-[0-9]+(\\.zip)?$"))
+     | {k: ., t: (capture("-(?<t>[0-9]+)(\\.zip)?$").t | tonumber)}]
+    | max_by(.t) | .k // empty'
 }

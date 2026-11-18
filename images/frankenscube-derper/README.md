@@ -9,13 +9,14 @@ directory are run-time flags.
 
 ```shell
 docker run --rm --name derper --network=host -v /var/lib/derper:/var/lib/derper \
+  -v /var/run/tailscale:/var/run/tailscale \
   ghcr.io/sparecores/frankenscube-derper:main \
   -hostname derp1.example.com -a :8443 -http-port 80 -stun-port 3478 \
   -certmode letsencrypt -certdir /var/lib/derper -verify-clients
 ```
 
 `-verify-clients` makes the relay accept only nodes of the tailnet of the host's local
-`tailscaled`.
+`tailscaled`, which it asks through the socket in `/var/run/tailscale`.
 
 The tailscale version is the `TAILSCALE_VERSION` build argument in the `Dockerfile`.
 `tests/smoke.sh <image>` checks that the binary starts.
