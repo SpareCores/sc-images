@@ -106,8 +106,9 @@ the `kvm-ok` command reported that `/dev/kvm` does not exist:
 ```
 
 In this third message, `kvm-ok` suggests loading the `kvm` kernel module with
-`modprobe`, and then tries to run `modprobe` itself. The image does not
-include `modprobe`, so the message ends in `modprobe: not found`.
+`modprobe`. It then runs `modprobe` itself, not to load `kvm` but to load the
+`msr` module, which reads the CPU's model-specific registers. This image does
+not include `modprobe`, so `kvm-ok` stops with `modprobe: not found`.
 
 ## How the Check Works
 
