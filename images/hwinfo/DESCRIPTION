@@ -1,1 +1,1 @@
-Collects CPU, memory, and topology details with hwloc, likwid, and lshw.
+Bundles lshw, lscpu, lsblk, hwloc (Portable Hardware Locality), and LIKWID (Like I Knew What I'm Doing) to report a server's CPU, memory, disk, and topology details.
