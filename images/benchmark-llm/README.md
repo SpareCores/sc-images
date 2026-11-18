@@ -190,7 +190,7 @@ In production, speed and download time limit how many models a server
 completes. On an AWS `c7g.large`, the 7B model timed out on its first scenario
 ([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/llm/stderr)),
 and on a `c9g.48xlarge`, this benchmark gave up the 70B model's download at
-25.7 MB/s
+25.7 MiB/s
 ([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c9g.48xlarge/0/llm/stderr)).
 See the [LLM inference speed](https://sparecores.com/article/llm-inference-speed)
 article for the methodology and results in more detail.
