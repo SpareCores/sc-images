@@ -1,8 +1,8 @@
 # Virtualization
 
-This image checks whether KVM (Kernel-based Virtual Machine) hardware
-virtualization can be used on a server, from inside a container. It runs
-`kvm-ok` from Ubuntu's `cpu-checker` package once and reports its answer as
+This image runs in a container and checks whether KVM (Kernel-based Virtual
+Machine) hardware virtualization can be used on a server. It runs
+`kvm-ok` once (from Ubuntu's `cpu-checker` package) and reports its answer as
 JSON. It is a yes/no check, not a benchmark: nothing is timed or repeated, and
 it does not measure virtualization performance.
 
@@ -69,8 +69,9 @@ used.
 To fit the output of `kvm-ok` on one line, the script replaces each newline
 with a space and escapes double quotes. A blank line in the output therefore
 leaves a run of spaces, and a failure without output leaves `kvm_error` empty.
-The script escapes no other characters, such as backslashes or tabs; this has
-not caused a problem in production outputs.
+The script escapes no other characters, such as backslashes or tabs. An
+unescaped backslash or control character would make the line invalid JSON;
+none of the production outputs contains one.
 
 ### Production Results
 
