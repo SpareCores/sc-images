@@ -21,8 +21,9 @@ docker run --rm --privileged ghcr.io/sparecores/virtualization:main \
   /usr/local/bin/check_virt.sh
 ```
 
-The check needs `--privileged`. The image sets no default command, so pass
-the script path, `/usr/local/bin/check_virt.sh`, after the image name. The
+The check reports on the machine whose kernel runs the container. The check
+needs `--privileged`. The image sets no default command, so pass the script
+path, `/usr/local/bin/check_virt.sh`, after the image name. The
 script reads no environment variables, options, or arguments. Production runs
 take a few seconds.
 
