@@ -848,3 +848,12 @@ JSON
   not hs_running cp1
   [ ! -e "$TMP/cp1/run/agent/lease-state.json" ]
 }
+
+@test "litestream: sync-interval is pinned to 10s whatever the desired doc says" {
+  holder_ready
+  put_desired '.headscale.litestream.sync_interval = "1s" | .directives.headscale_bootstrap = {id: "hb1", not_after: "2099-01-01T00:00:00Z"}'
+  agent cp1 full
+  hs_running cp1
+  grep -q 'sync-interval: 10s' "$TMP/cp1/hs/litestream.yml"
+  not grep -q '1s$' "$TMP/cp1/hs/litestream.yml"
+}

@@ -44,10 +44,12 @@ headscale_status() {
 }
 
 write_litestream_config() {
-  local file=$1 gen=$2 bucket endpoint sync
+  local file=$1 gen=$2 bucket endpoint sync=10s
   bucket=$(desired_jq -r '.headscale.litestream.bucket')
   endpoint=$(desired_jq -r '.headscale.litestream.endpoint')
-  sync=$(desired_jq -r '.headscale.litestream.sync_interval // "10s"')
+  # sync-interval is pinned to 10s (owner decision): about 260k R2 Class A writes a month, inside the
+  # free tier; up to 10 s of headscale changes (mostly last-seen) can be lost on a failover. The
+  # desired doc's headscale.litestream.sync_interval is deliberately not read.
   cat >"$file" <<CFG
 dbs:
   - path: $HS_DB
