@@ -25,9 +25,18 @@ The image is built on `ubuntu:24.04` and includes the following tools:
 | `jq` | `jq` from Ubuntu | Ubuntu archive at build time | `lscpu` |
 | LIKWID (Like I Knew What I'm Doing) tools | built from source | 5.3.0 | none |
 
+Despite its name, this image does not install the `hwinfo` tool.
+
+The Inspector collects hardware details with two more images. The
+[`dmidecode`](../dmidecode/README.md) image prints the SMBIOS (System
+Management BIOS) tables, from which the Navigator takes the memory generation
+and speed of each server type. The
+[Virtualization](../virtualization/README.md) image checks whether KVM
+(Kernel-based Virtual Machine) can be used.
+
 The `hwloc-nox` package is the hwloc (Portable Hardware Locality) build
-without support for the X Window System (X11), and provides `lstopo`. In
-production, `jq` only reformats the JSON that `lscpu` prints.
+without graphical display support, and provides `lstopo`. In production, `jq`
+only reformats the JSON that `lscpu` prints.
 
 LIKWID is the only pinned tool: the [`Dockerfile`](./Dockerfile) builds
 release 5.3.0 from the upstream source, installs it under `/usr/local`, and
@@ -95,9 +104,9 @@ Production runs also differ from a plain `docker run` in the following ways:
   [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
   in `sc-crawler`.
 - **Server Start:** The `lsblk`, `lsblk_discard`, `lsblk_topo`, and `lstopo`
-  tasks never start a server on their own; they run only when another task
-  has started it. These four tasks therefore have results for fewer server
-  types than `lshw` and `lscpu`.
+  tasks never start a server on their own; they run only when another task,
+  such as `lshw` or `lscpu`, has started the server. These four tasks have
+  results for fewer server types (\~2410) than `lshw` and `lscpu` (\~3790).
 
 The production settings are in the `lshw`, `lsblk`, `lsblk_discard`,
 `lsblk_topo`, `lscpu`, and `lstopo` tasks of
