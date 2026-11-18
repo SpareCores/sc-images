@@ -90,8 +90,6 @@ read its output.
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
 | [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server running at high priority, used as the remote target of database benchmarks. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
-| [`frankenscube-cp-agent`](images/frankenscube-cp-agent) | Control-plane node agent of the frankenscube cluster: the S3 lease that elects the one active headscale, its restore, certificate and bootstrap, and the node's heartbeats and directives. | [Docs](https://docs.sparecores.com/images/frankenscube-cp-agent/) |
-| [`frankenscube-derper`](images/frankenscube-derper) | Tailscale DERP relay (derper), built from a pinned tailscale version, serving the DERP regions of the frankenscube cluster's headscale. | [Docs](https://docs.sparecores.com/images/frankenscube-derper/) |
 | [`llama.cpp`](images/llama.cpp) | llama.cpp server (llama-server) with CUDA (Compute Unified Device Architecture) support, built from a pinned commit. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
 
 ### Base Images
@@ -108,6 +106,16 @@ page of its own, that page describes only what differs:
   a published image, covers the vLLM family's benchmarks.
 - The `benchmark-pgbench-postgres` docs cover `benchmark-postgres-server`.
 - The `stress-ng` docs cover `stress-ng-longrun`.
+
+### Internal
+
+The following images are not part of the Navigator, so they have no page on
+the docs site.
+
+| Image | Description |
+| ----- | ----------- |
+| [`frankenscube-cp-agent`](images/frankenscube-cp-agent) | Control-plane node agent of the frankenscube cluster: the S3 lease that elects the one active headscale, its restore, certificate and bootstrap, and the node's heartbeats and directives. |
+| [`frankenscube-derper`](images/frankenscube-derper) | Tailscale DERP relay (derper), built from a pinned tailscale version, serving the DERP regions of the frankenscube cluster's headscale. |
 
 ## Contributing
 

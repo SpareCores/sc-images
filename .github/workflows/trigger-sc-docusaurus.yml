@@ -9,6 +9,9 @@ on:
       # shared manuals, with the files they show
       - '**.md'
       - '**/docs/**'
+      # the description of each image, and its category
+      - 'images/*/DESCRIPTION'
+      - 'images/*/CATEGORY'
 
 jobs:
   dispatch:
