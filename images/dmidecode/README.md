@@ -39,14 +39,13 @@ docker run --rm --privileged ghcr.io/sparecores/dmidecode:main \
 This image defines no environment variables or build arguments, and runs
 `dmidecode` as root. Unlike the benchmark images, it does not run
 `dmidecode` under `resource-tracker`: measuring the resource usage of a
-hardware inspection that takes seconds would add nothing. This image is built
-for AMD64 and Arm64.
+hardware inspection that takes seconds would add nothing.
 
 The [`Dockerfile`](./Dockerfile) installs `dmidecode` from the Ubuntu 24.04
 archive after an `apt-get upgrade`, without a pinned version, so the version
 can change between image builds. All successful production runs in the
 [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data)
-repository recorded version 3.5.
+repository recorded version 3.5. This image is built for AMD64 and Arm64.
 
 ### Production Setup
 
