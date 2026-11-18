@@ -81,6 +81,15 @@ health_sdn() {
   done
 }
 
+# True when the apiserver at <url> serves: HTTP 200 or 401. k3s runs kube-apiserver with
+# anonymous-auth=false, so the unauthenticated /readyz answers 401 (authn runs before the handlers);
+# same rule as the interlock's INTERLOCK_HEALTHY_PEER. Any other status or no answer is false.
+apiserver_serving() {
+  local code
+  code=$(curl -sk --max-time 3 -o /dev/null -w '%{http_code}' "$1" 2>/dev/null) || return 1
+  case "$code" in 200 | 401) return 0 ;; *) return 1 ;; esac
+}
+
 # Pings for the checks that pass; only URLs present in health.pings (Q5 open: none in v1).
 health_pings() {
   local name url ok readyz
@@ -92,7 +101,7 @@ health_pings() {
       agent) ok=1 ;;
       readyz)
         readyz=$(desired_jq -r --arg n "$NODE_NAME" '.health.readyz_urls[$n] // empty')
-        [ -n "$readyz" ] && curl -sk --max-time 3 -o /dev/null -f "$readyz" && ok=1
+        [ -n "$readyz" ] && apiserver_serving "$readyz" && ok=1
         ;;
       litestream)
         lease_held && container_running "$LS_CONTAINER" && ok=1
