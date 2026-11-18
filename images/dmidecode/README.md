@@ -9,11 +9,15 @@ harness or default command of its own. This image is not a benchmark, so
 nothing is timed or repeated.
 
 This image prints the `dmidecode` text on stdout, one block per SMBIOS
-structure. In production, the Inspector of
-[Spare Cores Navigator](https://docs.sparecores.com/overview) also parses the
-text into JSON. The Navigator takes the memory generation and speed of each
-server type from that JSON, and some processor details when `lscpu` reports
-none.
+structure. In production, the
+[Inspector](https://github.com/SpareCores/sc-inspector) of
+[Spare Cores Navigator](https://docs.sparecores.com/overview), which runs the
+images on each server type, also parses the text into JSON.
+
+The Navigator takes the memory generation and speed of each server type from
+that JSON, and some processor details when `lscpu` reports none. See
+[How the Navigator Uses the Output](#how-the-navigator-uses-the-output) for the
+fields it reads.
 
 ## Usage
 
@@ -95,8 +99,10 @@ On AWS (Amazon Web Services), the `System Information` structure gives
 `Amazon EC2` as the manufacturer and the server type, such as `m5.large`, as
 the product name. On Hetzner Cloud, it gives `Hetzner` and `vServer`. The
 SMBIOS version and the number of structures also vary by server type: for
-example, `aws/m5.large` reports SMBIOS 2.7 with 13 structures, and
-`hcloud/cx22` reports SMBIOS 2.8 with 11.
+example, [`aws/m5.large`](https://sparecores.com/server/aws/m5.large) reports
+SMBIOS 2.7 with 13 structures, and
+[`hcloud/cx22`](https://sparecores.com/server/hcloud/cx22) reports SMBIOS 2.8
+with 11.
 
 Fields that the vendor does not fill in read `Not Specified`, `Unknown`, or
 `Not Provided` on `aws/m5.large`, and the parser keeps them as text.
@@ -105,10 +111,11 @@ The output also includes identifiers of the individual server, such as the
 `Serial Number` and `UUID` fields and, on AWS, the instance ID as the
 baseboard's `Asset Tag`.
 
-Production parses the text with the Inspector's `parse.dmidecode` parser and
-saves the result as `parsed.json`, a JSON array with one object per SMBIOS
-structure. The parser is part of the Inspector, not of this image. Each object
-has the following fields:
+Production parses the text with the Inspector's
+[`parse.dmidecode`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/parse.py)
+parser and saves the result as `parsed.json`, a JSON array with one object per
+SMBIOS structure. The parser is part of the Inspector, not of this image. Each
+object has the following fields:
 
 | Field | Meaning |
 | ------ | ------ |
