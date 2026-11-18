@@ -2,8 +2,9 @@
 
 This image runs `dmidecode` to read a server's SMBIOS (System Management BIOS)
 tables, also called DMI (Desktop Management Interface) tables. The tables
-describe a server as the cloud vendor's firmware or hypervisor reports it, such
-as its firmware, system, baseboard, processors, and memory devices. The image
+describe the server's parts, such as its firmware, system, baseboard,
+processors, and memory devices, as the cloud vendor's firmware or hypervisor
+reports them. The image
 only installs `dmidecode` from Ubuntu 24.04, with no harness or default command
 of its own. This image is not a benchmark, so nothing is timed or repeated.
 
@@ -47,8 +48,9 @@ repository recorded version 3.5.
 
 ### Production Setup
 
-The Navigator's Inspector runs the same command, `dmidecode` with no options,
-but its runs differ from the commands above in the following ways:
+The Navigator's Inspector runs the same command as the first example above,
+`dmidecode` with no options. Its runs differ from the commands above in the
+following ways:
 
 - **Docker Options:** Production runs the container detached, with
   `--privileged` and host networking (`--network host`). The commands above
@@ -76,8 +78,8 @@ in `sc-inspector`, with the default Docker options of
 
 This image adds nothing to the output of `dmidecode`, and writes no files. The
 text on stdout starts with a header that gives the `dmidecode` and SMBIOS
-versions and the number of structures. One block per SMBIOS structure follows,
-with the following lines:
+versions and the number of structures. Then comes one block per SMBIOS structure, with the
+following lines:
 
 1. A header line with the structure's handle, DMI type, and size in bytes,
    such as `Handle 0x0009, DMI type 17, 34 bytes`.
@@ -98,10 +100,10 @@ The output also includes identifiers of the individual server, such as the
 `Serial Number` and `UUID` fields and, on AWS, the instance ID as the
 baseboard's `Asset Tag`.
 
-Production parses the text into a JSON array, `parsed.json`, with one object
-per SMBIOS structure, using the Inspector's `parse.dmidecode` parser. The
-parser is part of the Inspector, not of this image. Each object has the
-following fields:
+Production parses the text with the Inspector's `parse.dmidecode` parser and
+saves the result as `parsed.json`, a JSON array with one object per SMBIOS
+structure. The parser is part of the Inspector, not of this image. Each object
+has the following fields:
 
 | Field | Meaning |
 | ------ | ------ |
