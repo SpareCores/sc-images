@@ -8,8 +8,8 @@ reports them. This image only installs `dmidecode` from Ubuntu 24.04, with no
 harness or default command of its own. This image is not a benchmark, so
 nothing is timed or repeated.
 
-This image prints the `dmidecode` text on stdout, one block per SMBIOS
-structure. In production, the
+This image prints the text output of `dmidecode` on stdout, one block per
+SMBIOS structure. In production, the
 [Inspector](https://github.com/SpareCores/sc-inspector) of
 [Spare Cores Navigator](https://docs.sparecores.com/overview), which runs the
 images on each server type, also parses the text into JSON.
@@ -47,7 +47,8 @@ hardware inspection that takes seconds would add nothing.
 
 The [`Dockerfile`](./Dockerfile) installs `dmidecode` from the Ubuntu 24.04
 archive after an `apt-get upgrade`, without a pinned version, so the version
-can change between image builds. All successful production runs in the
+can change between image builds. As of November 2026, all successful
+production runs in the
 [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data)
 repository recorded version 3.5. This image is built for AMD64 and Arm64.
 
@@ -81,7 +82,7 @@ in `sc-inspector`, with the default Docker options of
 
 ### Output
 
-This image adds nothing to the output of `dmidecode`, and writes no files. The
+This image adds nothing to the output of `dmidecode` and writes no files. The
 text on stdout starts with a header that gives the `dmidecode` and SMBIOS
 versions and the number of structures. Then comes one block per SMBIOS
 structure, with the following lines:
