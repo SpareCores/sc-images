@@ -43,8 +43,9 @@ release 5.3.0 from the upstream source, installs it under `/usr/local`, and
 adds `/usr/local/bin` to `PATH`. No production task runs it. The other tools
 come from the Ubuntu 24.04 archive after an `apt-get upgrade`, so their
 versions can change between image builds. The versions marked "in production"
-are the ones that production runs recorded; the `lshw` task records an empty
-version string.
+come from the `version` field that each production run records in its
+`meta.json` file in `sc-inspector-data`; for the `lshw` task, the field is
+empty.
 
 ## Usage
 
@@ -124,9 +125,10 @@ commands print the following to stdout:
   `capabilities`.
 - **`lscpu`:** A JSON object, `{"lscpu": [...]}`, with one `field` and `data`
   pair per line of the `lscpu` table. The `-B` option prints sizes in bytes.
-- **`lsblk`:** A JSON object, `{"blockdevices": [...]}`, with one entry per
-  whole disk (`-d`) and sizes in bytes (`-b`). The `-O` option prints all
-  columns, `-D` the discard columns, and `-t` the topology columns.
+- **`lsblk`, `lsblk_discard`, and `lsblk_topo`:** A JSON object,
+  `{"blockdevices": [...]}`, with one entry per whole disk (`-d`) and sizes in
+  bytes (`-b`). The `lsblk` task prints all columns (`-O`), `lsblk_discard`
+  the discard columns (`-D`), and `lsblk_topo` the topology columns (`-t`).
 - **`lstopo`:** The hwloc topology as XML. The Inspector also renders it as an
   `lstopo.svg` image next to the XML.
 
