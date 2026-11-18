@@ -4,9 +4,9 @@ This image runs `dmidecode` to read a server's SMBIOS (System Management BIOS)
 tables, also called DMI (Desktop Management Interface) tables. The tables
 describe the server's parts, such as its firmware, system, baseboard,
 processors, and memory devices, as the cloud vendor's firmware or hypervisor
-reports them. The image
-only installs `dmidecode` from Ubuntu 24.04, with no harness or default command
-of its own. This image is not a benchmark, so nothing is timed or repeated.
+reports them. This image only installs `dmidecode` from Ubuntu 24.04, with no
+harness or default command of its own. This image is not a benchmark, so
+nothing is timed or repeated.
 
 This image prints the `dmidecode` text on stdout, one block per SMBIOS
 structure. In production, the Inspector of
@@ -17,7 +17,8 @@ none.
 
 ## Usage
 
-To print all SMBIOS structures of a host via Docker, as production does:
+To print all SMBIOS structures of a host via Docker, with the command
+production runs:
 
 ```shell
 docker run --rm --privileged ghcr.io/sparecores/dmidecode:main dmidecode
@@ -25,19 +26,20 @@ docker run --rm --privileged ghcr.io/sparecores/dmidecode:main dmidecode
 
 The output describes the machine whose kernel runs the container.
 
-The image sets no default command, so pass `dmidecode` after the image name.
-The `--privileged` option is required. To pass `dmidecode` options, such as
-`-t memory`, append them after the command:
+This image keeps the `bash` default command of `ubuntu:24.04`, so pass
+`dmidecode` after the image name. The `--privileged` option is required.
+To print only the memory structures, append a `dmidecode` option such as
+`-t memory` after the command:
 
 ```shell
 docker run --rm --privileged ghcr.io/sparecores/dmidecode:main \
   dmidecode -t memory
 ```
 
-The image defines no environment variables or build arguments, and runs
+This image defines no environment variables or build arguments, and runs
 `dmidecode` as root. Unlike the benchmark images, it does not run
 `dmidecode` under `resource-tracker`: measuring the resource usage of a
-hardware inspection that takes seconds would add nothing. The image is built
+hardware inspection that takes seconds would add nothing. This image is built
 for AMD64 and Arm64.
 
 The [`Dockerfile`](./Dockerfile) installs `dmidecode` from the Ubuntu 24.04
@@ -78,8 +80,8 @@ in `sc-inspector`, with the default Docker options of
 
 This image adds nothing to the output of `dmidecode`, and writes no files. The
 text on stdout starts with a header that gives the `dmidecode` and SMBIOS
-versions and the number of structures. Then comes one block per SMBIOS structure, with the
-following lines:
+versions and the number of structures. Then comes one block per SMBIOS
+structure, with the following lines:
 
 1. A header line with the structure's handle, DMI type, and size in bytes,
    such as `Handle 0x0009, DMI type 17, 34 bytes`.
@@ -95,6 +97,9 @@ the product name. On Hetzner Cloud, it gives `Hetzner` and `vServer`. The
 SMBIOS version and the number of structures also vary by server type: for
 example, `aws/m5.large` reports SMBIOS 2.7 with 13 structures, and
 `hcloud/cx22` reports SMBIOS 2.8 with 11.
+
+Fields that the vendor does not fill in read `Not Specified`, `Unknown`, or
+`Not Provided` on `aws/m5.large`, and the parser keeps them as text.
 
 The output also includes identifiers of the individual server, such as the
 `Serial Number` and `UUID` fields and, on AWS, the instance ID as the

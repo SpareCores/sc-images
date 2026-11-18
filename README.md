@@ -81,7 +81,7 @@ read its output.
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
-| [`dmidecode`](images/dmidecode) | Reports a server's hardware details, such as memory modules and firmware, with dmidecode. | [Docs](https://docs.sparecores.com/images/dmidecode/) |
+| [`dmidecode`](images/dmidecode) | Reports a server's hardware details, such as memory devices and firmware, with dmidecode. | [Docs](https://docs.sparecores.com/images/dmidecode/) |
 | [`hwinfo`](images/hwinfo) | Reports a server's CPU, memory, disk, and topology details with lshw, lscpu, and other hardware tools. | [Docs](https://docs.sparecores.com/images/hwinfo/) |
 | [`virtualization`](images/virtualization) | Checks with kvm-ok whether a server supports KVM hardware virtualization. | [Docs](https://docs.sparecores.com/images/virtualization/) |
 
