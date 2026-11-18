@@ -40,12 +40,13 @@ only reformats the JSON that `lscpu` prints.
 
 LIKWID is the only pinned tool: the [`Dockerfile`](./Dockerfile) builds
 release 5.3.0 from the upstream source, installs it under `/usr/local`, and
-adds `/usr/local/bin` to `PATH`. No production task runs it. The other tools
-come from the Ubuntu 24.04 archive after an `apt-get upgrade`, so their
-versions can change between image builds. The versions marked "in production"
-come from the `version` field that each production run records in its
-`meta.json` file in `sc-inspector-data`; for the `lshw` task, the field is
-empty.
+adds `/usr/local/bin` to `PATH`. No production task runs it.
+
+The other tools come from the Ubuntu 24.04 archive after an `apt-get
+upgrade`, so their versions can change between image builds. The versions
+marked "in production" come from the `version` field that each production run
+records in its `meta.json` file in `sc-inspector-data`; for the `lshw` task,
+the field is empty.
 
 ## Usage
 
@@ -115,7 +116,7 @@ The commands and timeouts are in the six tasks above in
 in `sc-inspector`, and the default Docker options are in
 [`inspector/lib.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/lib.py).
 
-### Output
+### Outputs
 
 This image adds nothing to the output of the command it runs. The production
 commands print the following to stdout:
