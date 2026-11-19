@@ -1,1 +1,1 @@
-PostgreSQL server for the pgbench PostgreSQL benchmark to test over the network.
+PostgreSQL 18 server with default settings, used as the remote target of the pgbench PostgreSQL benchmark.

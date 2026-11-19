@@ -1,1 +1,1 @@
-Measures sustained CPU performance with stress-ng over a 24-hour run.
+Measures how sustained CPU throughput changes over 24 hours with stress-ng, under a CPU load that rises during the run.

@@ -75,7 +75,7 @@ read its output.
 | [`membench`](https://github.com/SpareCores/sc-membench) | Measures memory bandwidth and latency with the Spare Cores membench tool. | [Docs](https://github.com/SpareCores/sc-membench#readme) |
 | [`nvbandwidth`](images/nvbandwidth) | Measures memory copy bandwidth and latency between CPUs and NVIDIA GPUs, and between GPUs, with nvbandwidth. | [Docs](https://docs.sparecores.com/images/nvbandwidth/) |
 | [`stress-ng`](images/stress-ng) | Measures CPU, memory, and kernel performance with stress-ng, from one worker up to all CPUs. | [Docs](https://docs.sparecores.com/images/stress-ng/) |
-| [`stress-ng-longrun`](images/stress-ng-longrun) | Measures sustained CPU performance with stress-ng over a 24-hour run. | [Docs](https://docs.sparecores.com/images/stress-ng-longrun/) |
+| [`stress-ng-longrun`](images/stress-ng-longrun) | Measures how sustained CPU throughput changes over 24 hours with stress-ng, under a CPU load that rises during the run. | [Docs](https://docs.sparecores.com/images/stress-ng-longrun/) |
 
 ### Hardware Discovery
 
@@ -89,7 +89,7 @@ read its output.
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
-| [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL server for the pgbench PostgreSQL benchmark to test over the network. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
+| [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server with default settings, used as the remote target of the pgbench PostgreSQL benchmark. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
 
 ### Base Images
 
