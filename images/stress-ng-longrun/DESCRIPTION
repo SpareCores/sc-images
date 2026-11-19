@@ -1,1 +1,1 @@
-Pinned stress-ng version for the 24-hour long-running benchmark.
+Measures how sustained CPU throughput changes over 24 hours with stress-ng, under a CPU load that rises during the run.

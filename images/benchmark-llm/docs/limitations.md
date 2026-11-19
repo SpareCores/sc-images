@@ -103,7 +103,7 @@ has scores for the smaller models only.
 
 The models are downloaded from Hugging Face during the run, not built into the
 image, so download speed affects which models a run reaches. In production, an
-AWS `c9g.48xlarge` downloaded at 25.7 MB/s and gave up the 70B model, whose
+AWS `c9g.48xlarge` downloaded at 25.7 MiB/s and gave up the 70B model, whose
 file is \~42 GB
 ([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c9g.48xlarge/0/llm/stderr)).
 Its [LLM scores](https://sparecores.com/server/aws/c9g.48xlarge#llm_prompt_chart)
