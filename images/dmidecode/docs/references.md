@@ -1,9 +1,9 @@
-# References
+# Glossary
 
 Terms specific to this image, alphabetized. Common terms (e.g. SMBIOS (System
 Management BIOS), `dmidecode`) are defined in the
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs, which
-also lists the terms each image uses.
+[Spare Cores Glossary](https://docs.sparecores.com/glossary), which also
+lists the terms each image uses.
 
 - **DMI type**: The number that identifies the kind of a structure in SMBIOS
   (System Management BIOS), as the SMBIOS specification assigns it, such as 0

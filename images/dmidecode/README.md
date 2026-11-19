@@ -32,31 +32,46 @@ The output describes the machine whose kernel runs the container.
 
 This image keeps the `bash` default command of `ubuntu:24.04`, so pass
 `dmidecode` after the image name. The `--privileged` option is required.
-To print only the memory structures, append a `dmidecode` option such as
-`-t memory` after the command:
+To change what it prints, append a `dmidecode` option after the command. For
+example, to print only the memory structures:
 
 ```shell
 docker run --rm --privileged ghcr.io/sparecores/dmidecode:main \
   dmidecode -t memory
 ```
 
-This image defines no environment variables or build arguments, and runs
-`dmidecode` as root. Unlike the benchmark images, it does not run
-`dmidecode` under `resource-tracker`: measuring the resource usage of a
-hardware inspection that takes seconds would add nothing.
+The main options are the following, and the
+[`dmidecode(8)`](https://manpages.ubuntu.com/manpages/noble/man8/dmidecode.8.html)
+man page lists all of them:
 
-The [`Dockerfile`](./Dockerfile) installs `dmidecode` from the Ubuntu 24.04
-archive after an `apt-get upgrade`, without a pinned version, so the version
-can change between image builds. As of November 2026, all successful
-production runs in the
+| Option | Prints |
+| ------ | ------ |
+| `-t <keyword>` | Only the structures of one kind: `bios`, `system`, `baseboard`, `chassis`, `processor`, `memory`, `cache`, `connector`, or `slot` |
+| `-t <number>` | Only the structures of one DMI type, such as `17` for the memory devices |
+| `-s <keyword>` | Only one string, such as `system-product-name` or `processor-version` |
+| `-q` | Less detail: no unknown, inactive, or OEM-specific entries, and no handles |
+| `-u` | The structures as hexadecimal dumps, without decoding them |
+
+This image defines no environment variables or build arguments, and runs
+`dmidecode` as root, the default user of `ubuntu:24.04`. Unlike the
+[benchmark images](../../README.md#benchmarks), it does not run `dmidecode`
+under `resource-tracker`, which checks that a benchmark uses the CPU or GPU
+cores as intended; a hardware inspection that takes seconds has no such load
+to check.
+
+This image is built for AMD64 and Arm64. The [`Dockerfile`](./Dockerfile)
+installs `dmidecode` from the Ubuntu 24.04 archive after an `apt-get upgrade`,
+without a pinned version, so the version can change between image builds.
+Since production started recording the version in May 2024, every successful
+run in the
 [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data)
-repository recorded version 3.5. This image is built for AMD64 and Arm64.
+repository has recorded version 3.5.
 
 ### Production Setup
 
-The Navigator's Inspector runs the same command as the first example above,
-`dmidecode` with no options. Its runs differ from the commands above in the
-following ways:
+The Navigator's Inspector runs the same command as the
+[first example](#usage) above, `dmidecode` with no options. Its runs differ
+from the commands above in the following ways:
 
 - **Docker Options:** Production runs the container detached, with
   `--privileged` and host networking (`--network host`). The commands above
@@ -73,11 +88,12 @@ following ways:
 - **Servers:** Production runs `dmidecode` on every server type, except those
   on the blocklist in
   [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
-  in `sc-crawler`.
+  in [`sc-crawler`](https://github.com/SpareCores/sc-crawler).
 
 The production settings are in the `dmidecode` task of
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
-in `sc-inspector`, with the default Docker options of
+in [`sc-inspector`](https://github.com/SpareCores/sc-inspector), with the
+default Docker options of
 [`inspector/lib.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/lib.py).
 
 ### Output
@@ -85,15 +101,14 @@ in `sc-inspector`, with the default Docker options of
 This image adds nothing to the output of `dmidecode` and writes no files. The
 text on stdout starts with a header that gives the `dmidecode` and SMBIOS
 versions and the number of structures. Then comes one block per SMBIOS
-structure, with the following lines:
+structure, with the following lines in this order, shown with the memory
+device of `aws/m5.large`:
 
-1. A header line with the structure's handle (the number other structures use
-   to refer to it, as `Array Handle` does), DMI type, and size in bytes, such
-   as `Handle 0x0009, DMI type 17, 34 bytes`.
-2. The structure's name, such as `Memory Device`.
-3. The structure's fields as indented `Key: Value` lines. A field with several
-   values, such as `Characteristics`, lists one value per line, indented
-   further.
+| Line | Contents | Example |
+| ------ | ------ | ------ |
+| Header | The structure's handle (the number other structures use to refer to it, as `Array Handle` does), DMI type, and size in bytes | `Handle 0x0009, DMI type 17, 34 bytes` |
+| Name | The structure's name | `Memory Device` |
+| Fields | One indented `Key: Value` line per field; a field with several values, such as `Characteristics`, lists one value per line, indented further | `Size: 8 GB` |
 
 The content depends on what the cloud vendor's firmware or hypervisor exposes.
 On AWS (Amazon Web Services), the `System Information` structure gives
@@ -112,17 +127,30 @@ The output also includes identifiers of the individual server, such as the
 `Serial Number` and `UUID` fields and, on AWS, the instance ID as the
 baseboard's `Asset Tag`.
 
-Production parses the text with the Inspector's
+In production, the Inspector's
 [`parse.dmidecode`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/parse.py)
-parser and saves the result as `parsed.json`, a JSON array with one object per
-SMBIOS structure. The parser is part of the Inspector, not of this image. Each
-object has the following fields:
+function turns the text into `parsed.json`, a JSON array with one object per
+SMBIOS structure. The function is part of the Inspector, not of this image.
+Each object has the following fields:
 
 | Field | Meaning |
 | ------ | ------ |
 | `handle` | The `id`, `type`, and `bytes` of the structure's header line, all as strings |
 | `name` | The structure's name, such as `BIOS Information` or `Memory Device` |
-| `props` | The structure's fields as key-value pairs, with a list for a field with several values. Values with a unit, such as sizes, speeds, and widths, become numbers in the base unit (`B`, `Hz`, `T/s`, `bits`, `V`, or `s`), with the unit in a separate `<key>:unit` field, such as `"ROM Size": 65536` and `"ROM Size:unit": "B"`. Byte sizes use multiples of 1,024 (`8 GB` becomes `8589934592`), and other units multiples of 1,000 (`2666 MT/s` becomes `2666000000`). Dates become timestamps, such as `2017-10-16T00:00:00` |
+| `props` | The structure's fields as key-value pairs, with a list for a field with several values |
+
+In `props`, a value with a unit, such as a size, speed, or width, becomes a
+number in the base unit (`B`, `Hz`, `T/s`, `bits`, `V`, or `s`), with the unit
+in a separate `<key>:unit` field, and a date becomes a timestamp. Byte sizes
+use multiples of 1,024, and other units multiples of 1,000, as the following
+examples from `aws/m5.large` show:
+
+| In the text | In `props` |
+| ------ | ------ |
+| `ROM Size: 64 kB` | `"ROM Size": 65536` and `"ROM Size:unit": "B"` |
+| `Size: 8 GB` | `"Size": 8589934592` |
+| `Speed: 2666 MT/s` | `"Speed": 2666000000` |
+| `Release Date: 10/16/2017` | `"Release Date": "2017-10-16T00:00:00"` |
 
 ### Production Results
 
@@ -192,7 +220,7 @@ output to fill in the attributes of each server type:
 
 ## References
 
-The [references](./docs/references.md) define the terms of this image's own
-tool, such as DMI type. The [glossary](https://docs.sparecores.com/glossary)
-of the Spare Cores docs defines common terms, such as SMBIOS, SMBIOS structure,
-and `dmidecode`.
+This image's [Glossary](./docs/references.md) defines the terms of its own
+tool, such as DMI type. The
+[Spare Cores Glossary](https://docs.sparecores.com/glossary) defines common
+terms, such as SMBIOS, SMBIOS structure, and `dmidecode`.
