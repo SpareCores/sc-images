@@ -75,7 +75,7 @@ read its output.
 | [`membench`](https://github.com/SpareCores/sc-membench) | Memory bandwidth and latency benchmark with the Spare Cores membench tool, measuring read, write, and copy bandwidth on all CPUs and single-thread pointer-chasing latency at per-thread buffer sizes from half the L1d cache to four times the L3 cache. | [Docs](https://github.com/SpareCores/sc-membench#readme) |
 | [`nvbandwidth`](images/nvbandwidth) | NVIDIA GPU memory copy bandwidth and latency benchmark with nvbandwidth, measuring copies between the host CPU and each GPU, between GPUs, and within one GPU. | [Docs](https://docs.sparecores.com/images/nvbandwidth/) |
 | [`stress-ng`](images/stress-ng) | Measures bogo ops/s for 85 CPU, memory, and kernel stressors with stress-ng, in single-worker and all-CPU runs, and measures CPU scaling as worker counts increase. | [Docs](https://docs.sparecores.com/images/stress-ng/) |
-| [`stress-ng-longrun`](images/stress-ng-longrun) | Measures sustained CPU throughput in stress-ng bogo ops/s over 24 hours with a pinned stress-ng 0.17.08, running the cpu stressor once per minute at a load that rises from 5 to 55 seconds per minute. | [Docs](https://docs.sparecores.com/images/stress-ng-longrun/) |
+| [`stress-ng-longrun`](images/stress-ng-longrun) | Measures how sustained CPU throughput changes over 24 hours with stress-ng, under a CPU load that rises during the run. | [Docs](https://docs.sparecores.com/images/stress-ng-longrun/) |
 
 ### Hardware Discovery
 
@@ -89,7 +89,7 @@ read its output.
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
-| [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server with default settings, started with nice -n -20 under resource-tracker, for the pgbench PostgreSQL benchmark to target in remote mode. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
+| [`benchmark-postgres-server`](images/benchmark-postgres-server) | PostgreSQL 18 server with default settings, used as the remote target of the pgbench PostgreSQL benchmark. | [Docs](https://docs.sparecores.com/images/benchmark-postgres-server/) |
 
 ### Base Images
 
