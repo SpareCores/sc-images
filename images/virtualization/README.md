@@ -6,9 +6,9 @@ Machine) hardware virtualization can be used on a server. It runs
 JSON. It is a yes/no check, not a benchmark: nothing is timed or repeated, and
 it does not measure virtualization performance.
 
-This image prints one line of JSON: `{"kvm":true}` when KVM can be used, or
-`kvm` set to `false` with the message of `kvm-ok` in `kvm_error`.
-[Spare Cores Navigator](https://docs.sparecores.com/overview) publishes the
+This image prints one line of JSON. When KVM can be used, the line is
+`{"kvm":true}`. When it cannot, `kvm` is `false` and `kvm_error` holds what
+`kvm-ok` printed. [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes the
 `kvm` flag as its hardware virtualization attribute, `hw_virt`, on each server
 type's details page. The
 Navigator does not use `kvm_error`.
@@ -30,8 +30,9 @@ script reads no environment variables, options, or arguments.
 [Production runs](#production-setup) take a few seconds.
 
 This image is built for AMD64 and Arm64, and runs the check as root. Unlike
-the benchmark images, it does not run the check under `resource-tracker`,
-because the check uses almost no resources.
+the [benchmark images](../../README.md#benchmarks), it
+does not run the check under `resource-tracker`, because the check uses almost
+no resources.
 
 ### Production Setup
 
@@ -48,11 +49,12 @@ runs differ from the command above in the following ways:
 - **Servers:** Production runs the check on every server type, except those
   on the blocklist in
   [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
-  in `sc-crawler`.
+  in [`sc-crawler`](https://github.com/SpareCores/sc-crawler).
 
 The production settings are in the `virtualization` task of
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
-in `sc-inspector`, with the default Docker options of
+in [`sc-inspector`](https://github.com/SpareCores/sc-inspector), with the
+default Docker options of
 [`inspector/lib.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/lib.py).
 
 ### Output
@@ -62,13 +64,13 @@ the following fields:
 
 | Field | Type | When | Meaning |
 | ------ | ------ | ------ | ------ |
-| `kvm` | boolean | always | `true` if `kvm-ok` exited 0, otherwise `false` |
-| `kvm_error` | string | only when `kvm` is `false` | The stdout and stderr of `kvm-ok` together on one line, or `kvm-ok command not found` |
+| `kvm` | boolean | always | `true` if KVM can be used (`kvm-ok` exited with code 0), otherwise `false` |
+| `kvm_error` | string | only when `kvm` is `false` | Everything `kvm-ok` printed to stdout and stderr, joined into one line. If `kvm-ok` is not installed, it reads `kvm-ok command not found`. |
 
-The script exits 0 whenever `kvm-ok` ran, whether KVM can be used or not. It
-exits 1 only when `kvm-ok` is missing from this image, which means this image
-itself is broken. Read `kvm`, not the exit status, to tell whether KVM can be
-used.
+To tell whether KVM can be used, read `kvm`, not the script's exit code. The
+script exits with code 0 whenever `kvm-ok` ran, whether KVM can be used or
+not, and with code 1 only when `kvm-ok` is not installed, which means this
+image is broken.
 
 To fit the output of `kvm-ok` on one line, the script replaces each newline
 with a space and escapes double quotes. A blank line in the output therefore
@@ -79,11 +81,12 @@ none of the production outputs contains one.
 
 ### Production Results
 
-Since January 2025, production runs in the
+Since production started running this check in January 2025, the runs in the
 [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data)
-repository have returned three distinct outputs.
+repository have returned only the following three outputs. Each comes with an
+example server type and its recorded output.
 
-KVM can be used on server types such as
+**KVM Can Be Used:** Server types such as
 [`gcp/n2-standard-2`](https://sparecores.com/server/gcp/n2-standard-2)
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/gcp/n2-standard-2/0/virtualization/stdout)):
 
@@ -91,43 +94,44 @@ KVM can be used on server types such as
 {"kvm":true}
 ```
 
-On server types such as
+**No CPU Virtualization Flags:** Server types such as
 [`aws/m7i.large`](https://sparecores.com/server/aws/m7i.large)
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7i.large/0/virtualization/stdout))
 and [`hcloud/cx22`](https://sparecores.com/server/hcloud/cx22)
-([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/cx22/0/virtualization/stdout)),
-the `kvm-ok` command reported `Your CPU does not support KVM extensions`:
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/cx22/0/virtualization/stdout)):
 
 ```json
 {"kvm":false,"kvm_error":"INFO: Your CPU does not support KVM extensions KVM acceleration can NOT be used"}
 ```
 
-The `kvm-ok` command prints this message when the CPU flags in `/proc/cpuinfo`
-include neither `vmx` nor `svm`, a check it makes only on AMD64.
+On AMD64, `kvm-ok` prints this message when the CPU flags in `/proc/cpuinfo`
+include neither `vmx` nor `svm`.
 
-On Arm64 server types such as
+**No `/dev/kvm`:** Arm64 server types such as
 [`aws/c7g.large`](https://sparecores.com/server/aws/c7g.large)
-([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/virtualization/stdout)),
-the `kvm-ok` command reported that `/dev/kvm` does not exist:
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/virtualization/stdout)):
 
 ```json
 {"kvm":false,"kvm_error":"INFO: /dev/kvm does not exist HINT:   sudo modprobe kvm /usr/sbin/kvm-ok: 93: modprobe: not found"}
 ```
 
-In this third message, `kvm-ok` suggests loading the `kvm` kernel module with
-`modprobe`. It then runs `modprobe` itself, not to load `kvm` but to load the
-`msr` module, which reads the CPU's model-specific registers. This image does
-not include `modprobe`, so `kvm-ok` stops with `modprobe: not found`.
+Here, `kvm-ok` suggests loading the `kvm` kernel module with `modprobe`. It
+then runs `modprobe` itself, not to load `kvm` but to load the `msr` module,
+which reads the CPU's model-specific registers. This image does not include
+`modprobe`, so `kvm-ok` stops with `modprobe: not found`.
 
 ## How the Check Works
 
 The [`check_virt.sh`](./check_virt.sh) script takes the following steps:
 
 1. It checks that `kvm-ok` is installed. If it is not, the script prints
-   `{"kvm":false,"kvm_error":"kvm-ok command not found"}` and exits 1.
-2. It runs `kvm-ok` once and captures its stdout and stderr together.
-3. It prints `{"kvm":true}` if `kvm-ok` exited 0, or `kvm` set to `false`
-   with the output of `kvm-ok` in `kvm_error` otherwise.
+   `{"kvm":false,"kvm_error":"kvm-ok command not found"}` and exits with
+   code 1.
+2. It runs `kvm-ok` once and keeps everything it prints to stdout and
+   stderr in a shell variable, for `kvm_error`.
+3. If `kvm-ok` exited with code 0, it prints `{"kvm":true}`. Otherwise, it
+   prints `kvm` as `false` and that output, joined into one line, as
+   `kvm_error`.
 
 The result depends on the server and on whether `/dev/kvm` exists inside the
 container. On AMD64, `kvm-ok` checks that the CPU flags in `/proc/cpuinfo`
@@ -136,12 +140,11 @@ it checks only that `/dev/kvm` exists.
 
 The [`Dockerfile`](./Dockerfile) installs `cpu-checker` on `ubuntu:24.04`
 without a pinned version, so the `kvm-ok` version can change between image
-builds. As of November 2026, Ubuntu 24.04 ships `cpu-checker`
-0.7-1.3build2. Production records no tool version for this check.
+builds. Ubuntu 24.04 ships `cpu-checker` 0.7-1.3build2, the version of its
+April 2024 release. Production records no tool version for this check.
 
 ## References
 
-The [references](./docs/references.md) define `kvm-ok`, the tool of this
-image. The [glossary](https://docs.sparecores.com/glossary)
-of the Spare Cores docs defines common terms, such as KVM, `/dev/kvm`, and
-`modprobe`.
+This image's [Glossary](./docs/references.md) defines its tool, `kvm-ok`.
+The [Spare Cores Glossary](https://docs.sparecores.com/glossary) defines
+common terms, such as KVM, `/dev/kvm`, and `modprobe`.
