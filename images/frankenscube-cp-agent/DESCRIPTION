@@ -1,0 +1,1 @@
+Control-plane node agent of the frankenscube cluster: the S3 lease that elects the one active headscale, its restore, certificate and bootstrap, and the node's heartbeats and directives.

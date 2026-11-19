@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Fake curl: readyz probes of peers ($FAKE_DIR/peer-<ip> = HTTP status) and health pings (logged).
+url=""
+want_code=0
+prev=""
+for a in "$@"; do
+  case "$a" in http://* | https://*) url=$a ;; esac
+  if [ "$prev" = "-w" ] && [ "$a" = '%{http_code}' ]; then want_code=1; fi
+  prev=$a
+done
+echo "curl $url" >>"$FAKE_DIR/curl.log"
+case "$url" in
+  https://*:6443/readyz)
+    peer=${url#https://}; peer=${peer%%:*}
+    if [ -r "$FAKE_DIR/peer-$peer" ]; then
+      [ "$want_code" = 1 ] && cat "$FAKE_DIR/peer-$peer"
+      exit 0
+    fi
+    [ "$want_code" = 1 ] && printf '000'
+    exit 28
+    ;;
+esac
+exit 0

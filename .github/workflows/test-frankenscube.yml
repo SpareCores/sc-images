@@ -1,0 +1,65 @@
+name: Test frankenscube images
+# Shellcheck and bats of the cp-agent, and a build plus smoke test of both frankenscube images.
+# Publishing is push.yml's job (every image folder), not this workflow's.
+on:
+  pull_request:
+    paths:
+      - images/frankenscube-cp-agent/**
+      - images/frankenscube-derper/**
+      - .github/workflows/test-frankenscube.yml
+  push:
+    branches:
+      - main
+    paths:
+      - images/frankenscube-cp-agent/**
+      - images/frankenscube-derper/**
+      - .github/workflows/test-frankenscube.yml
+  schedule:
+    - cron: '41 5 * * 1'
+permissions:
+  contents: read
+jobs:
+  cp-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Install bats, shellcheck, jq
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bats shellcheck jq
+      - name: Shellcheck
+        run: |
+          d=images/frankenscube-cp-agent
+          shellcheck -x -P "$d/lib/shared" "$d/bin/cp-agent" "$d"/lib/*.sh "$d"/lib/shared/*.sh images/frankenscube-derper/tests/smoke.sh
+      - name: Bats
+        run: bats images/frankenscube-cp-agent/tests/bats
+      - name: Build (no push)
+        run: docker build -t frankenscube-cp-agent:test images/frankenscube-cp-agent
+  derper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Build (no push)
+        run: docker build -t frankenscube-derper:test images/frankenscube-derper
+      - name: Smoke test
+        run: bash images/frankenscube-derper/tests/smoke.sh frankenscube-derper:test
+  shared-lib-drift:
+    # The shared interlock files are canonical in SpareCores/sc-infra (private). Compare the vendored
+    # copy and SHA256SUMS with sc-infra main. Needs the repository secret SC_INFRA_READ_TOKEN (a
+    # read-only token for sc-infra contents); without it the job only says so.
+    runs-on: ubuntu-latest
+    env:
+      SC_INFRA_READ_TOKEN: ${{ secrets.SC_INFRA_READ_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Compare lib/shared with sc-infra main
+        run: |
+          set -euo pipefail
+          if [ -z "$SC_INFRA_READ_TOKEN" ]; then
+            echo "::warning::SC_INFRA_READ_TOKEN is not set: cannot compare lib/shared with sc-infra"
+            exit 0
+          fi
+          base=https://raw.githubusercontent.com/SpareCores/sc-infra/main/prod/cluster/cluster/ignition/scripts/lib
+          for f in common.sh interlock.sh; do
+            curl -fsS -H "Authorization: Bearer $SC_INFRA_READ_TOKEN" -o "$RUNNER_TEMP/$f" "$base/$f"
+            diff -u "images/frankenscube-cp-agent/lib/shared/$f" "$RUNNER_TEMP/$f"
+          done
+          (cd "$RUNNER_TEMP" && sha256sum common.sh interlock.sh) | diff -u images/frankenscube-cp-agent/lib/shared/SHA256SUMS -
