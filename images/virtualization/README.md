@@ -15,7 +15,7 @@ Navigator does not use `kvm_error`.
 
 ## Usage
 
-To run the check via Docker:
+To check whether KVM can be used via Docker:
 
 ```bash
 docker run --rm --privileged ghcr.io/sparecores/virtualization:main \
@@ -36,10 +36,9 @@ no resources.
 
 ### Production Setup
 
-The Navigator's [Inspector](https://github.com/SpareCores/sc-inspector), which
-runs the images on each server type, runs the same script with
-`--privileged`, but its
-runs differ from the command above in the following ways:
+The Navigator's [Inspector](https://github.com/SpareCores/sc-inspector) runs
+the same script with `--privileged`. Its production runs differ from the
+command above in the following ways:
 
 - **Docker Options:** Production runs the container detached and with host
   networking (`--network host`). The command above uses Docker's default
@@ -68,9 +67,9 @@ the following fields:
 | `kvm_error` | string | only when `kvm` is `false` | Everything `kvm-ok` printed to stdout and stderr, joined into one line. If `kvm-ok` is not installed, it reads `kvm-ok command not found`. |
 
 To tell whether KVM can be used, read `kvm`, not the script's exit code. The
-script exits with code 0 whenever `kvm-ok` ran, whether KVM can be used or
-not, and with code 1 only when `kvm-ok` is not installed, which means this
-image is broken.
+script exits with code 0 whenever `kvm-ok` ran, regardless of whether KVM can
+be used. It exits with code 1 only when `kvm-ok` is not installed, which means
+this image is broken.
 
 To fit the output of `kvm-ok` on one line, the script replaces each newline
 with a space and escapes double quotes. A blank line in the output therefore
@@ -81,10 +80,11 @@ none of the production outputs contains one.
 
 ### Production Results
 
-Since production started running this check in January 2025, the runs in the
+The runs in the
 [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data)
-repository have returned only the following three outputs. Each comes with an
-example server type and its recorded output.
+repository have returned only the following three outputs since production
+started running this check in January 2025. The examples below pair each
+output with a server type and its recorded output.
 
 **KVM Can Be Used:** Server types such as
 [`gcp/n2-standard-2`](https://sparecores.com/server/gcp/n2-standard-2)
@@ -115,10 +115,10 @@ include neither `vmx` nor `svm`.
 {"kvm":false,"kvm_error":"INFO: /dev/kvm does not exist HINT:   sudo modprobe kvm /usr/sbin/kvm-ok: 93: modprobe: not found"}
 ```
 
-Here, `kvm-ok` suggests loading the `kvm` kernel module with `modprobe`. It
-then runs `modprobe` itself, not to load `kvm` but to load the `msr` module,
-which reads the CPU's model-specific registers. This image does not include
-`modprobe`, so `kvm-ok` stops with `modprobe: not found`.
+Although `kvm-ok` suggests loading the `kvm` kernel module with `modprobe`,
+it runs `modprobe` to load the `msr` module, which reads the CPU's
+model-specific registers. This image does not include `modprobe`, so `kvm-ok`
+stops with `modprobe: not found`.
 
 ## How the Check Works
 
@@ -127,11 +127,10 @@ The [`check_virt.sh`](./check_virt.sh) script takes the following steps:
 1. It checks that `kvm-ok` is installed. If it is not, the script prints
    `{"kvm":false,"kvm_error":"kvm-ok command not found"}` and exits with
    code 1.
-2. It runs `kvm-ok` once and keeps everything it prints to stdout and
-   stderr in a shell variable, for `kvm_error`.
+2. It runs `kvm-ok` once and stores everything it prints to stdout and
+   stderr in a shell variable for `kvm_error`.
 3. If `kvm-ok` exited with code 0, it prints `{"kvm":true}`. Otherwise, it
-   prints `kvm` as `false` and that output, joined into one line, as
-   `kvm_error`.
+   prints `kvm` as `false` and the output joined into one line as `kvm_error`.
 
 The result depends on the server and on whether `/dev/kvm` exists inside the
 container. On AMD64, `kvm-ok` checks that the CPU flags in `/proc/cpuinfo`

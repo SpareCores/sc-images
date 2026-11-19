@@ -8,9 +8,9 @@ runs them on cloud servers. This image has no default command and no harness of
 its own: each run executes the one command passed after the image name. This
 image is not a benchmark, so nothing is timed or repeated.
 
-In production, the Inspector runs up to six commands on each server type,
-which print JSON (`lshw`, `lscpu`, and three `lsblk` commands) or XML
-(`lstopo`), and stores the output in the
+In production, the Inspector runs up to six commands on each server type.
+The commands print JSON (`lshw`, `lscpu`, and three `lsblk` commands) or XML
+(`lstopo`). The Inspector stores their output in the
 [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data)
 repository. This image adds nothing to what the command prints.
 
@@ -56,8 +56,8 @@ The Inspector collects more hardware details with the following images:
 ## Usage
 
 This image sets no default command, so append the command to run after the
-image name. To print the CPU details as JSON, as the `lscpu` production task
-does:
+image name. To print the CPU details as JSON, matching the
+`lscpu` production task:
 
 ```shell
 docker run --rm --privileged --network host ghcr.io/sparecores/hwinfo:main \
@@ -171,11 +171,11 @@ the `lscpu` task printed the following, shortened here:
 }
 ```
 
-The same server type has the recorded outputs of the
+The same server type has recorded output for the
 [`lshw` task](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lshw/stdout),
 the [`lsblk` task](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lsblk/stdout),
 and the [`lstopo` task](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lstopo/stdout),
-and the rendered
+as well as the rendered
 [`lstopo.svg`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7g.large/0/lstopo/lstopo.svg).
 
 ## References

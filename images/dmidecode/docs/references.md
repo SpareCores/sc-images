@@ -5,9 +5,9 @@ Management BIOS), `dmidecode`) are defined in the
 [Spare Cores Glossary](https://docs.sparecores.com/glossary), which also
 lists the terms each image uses.
 
-- **DMI type**: The number that identifies the kind of a structure in SMBIOS
-  (System Management BIOS), as the SMBIOS specification assigns it, such as 0
-  for the firmware information, 4 for a processor, or 17 for a memory device.
+- **DMI type**: The number that the SMBIOS (System Management BIOS)
+  specification assigns to identify a structure's kind, such as 0 for the
+  firmware information, 4 for a processor, or 17 for a memory device.
   The `dmidecode` command prints
   it in the header line of each structure. Its `--type` (`-t`) option takes
   these numbers, or keywords such as `memory` or `processor` that stand for one

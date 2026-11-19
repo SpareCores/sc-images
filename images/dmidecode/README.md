@@ -15,14 +15,15 @@ SMBIOS structure. In production, the
 images on each server type, also parses the text into JSON.
 
 The Navigator takes the memory generation and speed of each server type from
-that JSON, and some processor details when `lscpu` reports none. See
+the JSON. It also takes some processor details from the JSON when `lscpu`
+reports none. See
 [How the Navigator Uses the Output](#how-the-navigator-uses-the-output) for the
 fields it reads.
 
 ## Usage
 
-To print all SMBIOS structures of a host via Docker, with the command
-production runs:
+To run the production command and print all SMBIOS structures of a host via
+Docker:
 
 ```shell
 docker run --rm --privileged ghcr.io/sparecores/dmidecode:main dmidecode
@@ -40,9 +41,9 @@ docker run --rm --privileged ghcr.io/sparecores/dmidecode:main \
   dmidecode -t memory
 ```
 
-The main options are the following, and the
+The main options are listed below. The
 [`dmidecode(8)`](https://manpages.ubuntu.com/manpages/noble/man8/dmidecode.8.html)
-man page lists all of them:
+man page lists all options:
 
 | Option | Prints |
 | ------ | ------ |
@@ -55,9 +56,9 @@ man page lists all of them:
 This image defines no environment variables or build arguments, and runs
 `dmidecode` as root, the default user of `ubuntu:24.04`. Unlike the
 [benchmark images](../../README.md#benchmarks), it does not run `dmidecode`
-under `resource-tracker`, which checks that a benchmark uses the CPU or GPU
-cores as intended; a hardware inspection that takes seconds has no such load
-to check.
+under `resource-tracker`. The tracker checks that a benchmark uses the CPU or
+GPU cores as intended. A hardware inspection takes seconds, so there is no
+benchmark load to check.
 
 This image is built for AMD64 and Arm64. The [`Dockerfile`](./Dockerfile)
 installs `dmidecode` from the Ubuntu 24.04 archive after an `apt-get upgrade`,
@@ -77,10 +78,10 @@ from the commands above in the following ways:
   `--privileged` and host networking (`--network host`). The commands above
   use Docker's default network.
 - **Timeout:** Production stops the container if it still runs 5 minutes
-  after it starts. A plain `docker run` sets no time limit. Counted from when
-  the Inspector picks up the run (so including the image pull), the median
-  successful production run took \~10 seconds, and 95% of successful runs
-  finished within \~27 seconds.
+  after it starts. A plain `docker run` sets no time limit. From when the
+  Inspector picks up a run (including the image pull), the median successful
+  production run took \~10 seconds, and 95% of successful runs finished
+  within \~27 seconds.
 - **Version and Parsing:** Production records the output of
   `dmidecode --version` as the version of each run, and parses the text into
   JSON, as [Output](#output) describes. A plain `docker run` prints the text
@@ -100,9 +101,9 @@ default Docker options of
 
 This image adds nothing to the output of `dmidecode` and writes no files. The
 text on stdout starts with a header that gives the `dmidecode` and SMBIOS
-versions and the number of structures. Then comes one block per SMBIOS
-structure, with the following lines in this order, shown with the memory
-device of `aws/m5.large`:
+versions and the number of structures. Each SMBIOS structure follows in a
+block with lines in the following order. The table shows the lines for the
+memory device of `aws/m5.large`:
 
 | Line | Contents | Example |
 | ------ | ------ | ------ |

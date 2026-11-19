@@ -5,7 +5,7 @@ Terms specific to this image, alphabetized. Common terms (e.g. KVM
 [Spare Cores Glossary](https://docs.sparecores.com/glossary), which also
 lists the terms each image uses.
 
-- **`kvm-ok`**: A command of Ubuntu's `cpu-checker` package that reports
+- **`kvm-ok`**: A command in Ubuntu's `cpu-checker` package that reports
   whether a system can run VMs accelerated by KVM (Kernel-based Virtual
   Machine). On x86 CPUs, it checks for the Intel or AMD hardware virtualization
   flag and whether `/dev/kvm` exists; on Arm and other architectures, it checks
