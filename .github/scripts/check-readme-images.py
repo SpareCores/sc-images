@@ -7,7 +7,8 @@ Every image folder (any dir under images/ with a Dockerfile or prepare.sh, as
 in resolve-build-plan.sh) must be listed exactly once, in the table under the
 heading of its CATEGORY, with its DESCRIPTION (wrapped lines joined, as by
 read_text in read-image-config.sh) as the description, and a Docs cell that
-links its docs-site page. The docs site (docs.sparecores.com/images) shows this
+links its docs-site page, except the internal images (CATEGORY internal),
+which are not part of the Navigator, and which the docs site leaves out. The docs site (docs.sparecores.com/images) shows this
 README, and groups its sidebar by these tables. GHCR package pages show it too,
 where the image links do not work, so the Docs links are the way to the docs.
 """
@@ -26,7 +27,10 @@ HEADINGS = {
     "hardware-discovery": "Hardware Discovery",
     "service": "Services",
     "base": "Base Images",
+    "internal": "Internal",
 }
+# images without a docs-site page, listed without a Docs cell
+NO_DOCS = {"internal"}
 
 
 def read_text(path: Path) -> str:
@@ -91,7 +95,10 @@ def main() -> int:
             errors.append(f"{image}: no DESCRIPTION file")
         elif description != expected:
             errors.append(f"{image}: description differs from DESCRIPTION\n    README:      {description}\n    DESCRIPTION: {expected}")
-        if docs_url is None:
+        if category in NO_DOCS:
+            if docs_url is not None:
+                errors.append(f"{image}: Docs cell, but its CATEGORY {category} has no docs-site page")
+        elif docs_url is None:
             errors.append(f"{image}: no Docs cell, [Docs]({DOCS_URL.format(image)}), at the end of its row")
         elif docs_url != DOCS_URL.format(image):
             errors.append(f"{image}: Docs links {docs_url} instead of {DOCS_URL.format(image)}")
@@ -99,7 +106,7 @@ def main() -> int:
     if errors:
         print(f"README.md does not match the image folders:\n  " + "\n  ".join(errors), file=sys.stderr)
         return 1
-    print(f"README.md lists all {len(images)} images, under their CATEGORY, with their DESCRIPTION and Docs link.")
+    print(f"README.md lists all {len(images)} images, under their CATEGORY, with their DESCRIPTION and Docs link (but the internal ones).")
     return 0
 
 

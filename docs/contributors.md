@@ -14,7 +14,7 @@ CI auto-discovers every folder under `images/` (any dir with a `Dockerfile` or `
 | `SCCACHE` | enable sccache S3 compile cache for source builds (`true`/`1`/`yes`) | off |
 | `prepare.sh` | pre-build hook (clone sources, patch Dockerfile, emit BuildKit secret + parallelism) | none |
 | `DESCRIPTION` | one-sentence summary; published as the `org.opencontainers.image.description` label and index annotation, so it shows on the GHCR package page | none (CI warns) |
-| `CATEGORY` | group name: `benchmark`, `hardware-discovery`, `service`, or `base`; published as the `com.sparecores.image.category` label and used to group the [Images](../README.md#images) tables | none (CI warns) |
+| `CATEGORY` | group name: `benchmark`, `hardware-discovery`, `service`, `base`, or `internal` (not part of the Navigator: no page on the docs site, and no Docs link in the README); published as the `com.sparecores.image.category` label and used to group the [Images](../README.md#images) tables | none (CI warns) |
 
 [`resolve-build-plan.sh`](../.github/scripts/resolve-build-plan.sh) topologically sorts folders by `DEPENDS_ON` into levels (0 = no deps). [`push.yml`](../.github/workflows/push.yml) builds each level via the reusable [`build-level.yml`](../.github/workflows/build-level.yml) and publishes it before the next, so a dependency is always available as a base image; [`read-image-config.sh`](../.github/scripts/read-image-config.sh) resolves each folder's config at build time. No image names are hardcoded in the workflow.
 

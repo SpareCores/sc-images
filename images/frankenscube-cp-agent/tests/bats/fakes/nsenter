@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Fake nsenter: runs a tiny model of the host (systemctl, k3s, tailscale, timedatectl).
+while [ $# -gt 0 ] && [ "$1" != "--" ]; do shift; done
+shift
+echo "host $*" >>"$FAKE_DIR/host.log"
+cmd=$(basename "$1")
+shift
+case "$cmd" in
+  timedatectl) if [ -e "$FAKE_DIR/ntp-off" ]; then echo no; else echo yes; fi ;;
+  systemctl) exit 0 ;;
+  ip) [ -e "$FAKE_DIR/ip-missing" ] || echo "2: eth1    inet ${NODE_IP}/24 brd 10.0.0.255 scope global eth1" ;;
+  k3s) exit "$(cat "$FAKE_DIR/k3s-rc" 2>/dev/null || echo 0)" ;;
+  tailscale)
+    case "$1" in
+      status) printf '{"BackendState":"%s"}\n' "$(cat "$FAKE_DIR/ts-state" 2>/dev/null || echo Running)" ;;
+      up)
+        for a in "$@"; do
+          case "$a" in --auth-key=file:*) echo "authkey=$(cat "${a#--auth-key=file:}")" >>"$FAKE_DIR/host.log" ;; esac
+        done
+        echo Running >"$FAKE_DIR/ts-state"
+        ;;
+    esac
+    ;;
+esac
+exit 0

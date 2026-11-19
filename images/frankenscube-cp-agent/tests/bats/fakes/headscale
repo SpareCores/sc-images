@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Fake headscale CLI (0.29-style JSON output).
+echo "headscale $*" >>"$FAKE_DIR/headscale.log"
+mkdir -p "$FAKE_DIR/hs"
+[ -e "$FAKE_DIR/hs/notready" ] && { echo "cannot connect to socket" >&2; exit 1; }
+[ "$1" = "-c" ] && shift 2
+case "$1 $2" in
+  "users list") cat "$FAKE_DIR/hs/users.json" 2>/dev/null || echo '[]' ;;
+  "users create") jq -n --arg n "$3" '[{id: 7, name: $n}]' >"$FAKE_DIR/hs/users.json"; echo '{}' ;;
+  "apikeys create") echo '"hskey-api-1"' ;;
+  "preauthkeys create") echo '{"key":"hskey-cp-1","id":1}' ;;
+  "nodes list") cat "$FAKE_DIR/hs/nodes.json" 2>/dev/null || echo '[]' ;;
+  "nodes delete") echo '{}' ;;
+esac
+exit 0

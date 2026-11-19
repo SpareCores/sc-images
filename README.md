@@ -107,6 +107,16 @@ page of its own, that page describes only what differs:
 - The `benchmark-pgbench-postgres` docs cover `benchmark-postgres-server`.
 - The `stress-ng` docs cover `stress-ng-longrun`.
 
+### Internal
+
+The following images are not part of the Navigator, so they have no page on
+the docs site.
+
+| Image | Description |
+| ----- | ----------- |
+| [`frankenscube-cp-agent`](images/frankenscube-cp-agent) | Control-plane node agent of the frankenscube cluster: the S3 lease that elects the one active headscale, its restore, certificate and bootstrap, and the node's heartbeats and directives. |
+| [`frankenscube-derper`](images/frankenscube-derper) | Tailscale DERP relay (derper), built from a pinned tailscale version, serving the DERP regions of the frankenscube cluster's headscale. |
+
 ## Contributing
 
 See the following pages for maintaining and extending the
