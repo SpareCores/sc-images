@@ -1,16 +1,18 @@
 # Hardware Info
 
 This image bundles Linux command-line tools, such as `lshw` (Hardware Lister)
-and `lscpu`, that report a server's CPU, memory, disk, and topology details.
+and `lscpu` (CPU architecture information), that report a server's CPU,
+memory, disk, and topology details.
 The Inspector of [Spare Cores Navigator](https://docs.sparecores.com/overview)
 runs them on cloud servers. This image has no default command and no harness of
 its own: each run executes the one command passed after the image name. This
 image is not a benchmark, so nothing is timed or repeated.
 
-The output is whatever that command prints. In production, the Inspector runs
-up to six commands on each server type, and stores their JSON or XML output in
-the [`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data)
-repository.
+In production, the Inspector runs up to six commands on each server type,
+which print JSON (`lshw`, `lscpu`, and three `lsblk` commands) or XML
+(`lstopo`), and stores the output in the
+[`sc-inspector-data`](https://github.com/SpareCores/sc-inspector-data)
+repository. This image adds nothing to what the command prints.
 
 ## Tools
 
@@ -25,14 +27,8 @@ This image is built on `ubuntu:24.04` and includes the following tools:
 | `jq` | `jq` from Ubuntu | Ubuntu archive at build time | `lscpu` |
 | LIKWID (Like I Knew What I'm Doing) tools | built from source | 5.3.0 | none |
 
-Despite its name, this image does not install the `hwinfo` tool.
-
-The Inspector collects hardware details with two more images. The
-[`dmidecode`](../dmidecode/README.md) image prints the SMBIOS (System
-Management BIOS) tables, from which the Navigator takes the memory generation
-and speed of each server type. The
-[Virtualization](../virtualization/README.md) image checks whether KVM
-(Kernel-based Virtual Machine) can be used.
+Despite its name, this image does not install the
+[`hwinfo`](https://github.com/openSUSE/hwinfo) tool.
 
 The `hwloc-nox` package is the hwloc (Portable Hardware Locality) build
 without graphical display support, and provides `lstopo`. In production, `jq`
@@ -47,6 +43,15 @@ upgrade`, so their versions can change between image builds. The versions
 marked "in production" come from the `version` field that each production run
 records in its `meta.json` file in `sc-inspector-data`; for the `lshw` task,
 the field is empty.
+
+The Inspector collects more hardware details with the following images:
+
+- **[`dmidecode`](../dmidecode/README.md):** Prints the SMBIOS (System
+  Management BIOS) tables, from which the Navigator takes the memory
+  generation and speed of each server type.
+- **[Virtualization](../virtualization/README.md):** Checks whether KVM
+  (Kernel-based Virtual Machine) can be used, which the Navigator shows as the
+  hardware virtualization attribute of each server type.
 
 ## Usage
 
@@ -77,9 +82,10 @@ These commands use the same Docker options as production. This image reads no
 environment variables or configuration files of its own, and runs each command
 as root in `/`.
 
-Unlike the [benchmark images](https://github.com/SpareCores/sc-images#benchmarks),
-this image does not run the command under `resource-tracker`, so no resource
-usage is sampled. This image is built for AMD64 and Arm64.
+This image is built for AMD64 and Arm64. Unlike the
+[benchmark images](../../README.md#benchmarks), it
+does not run the command under `resource-tracker`, so no resource usage is
+sampled.
 
 ### Production Setup
 
@@ -107,22 +113,21 @@ Production runs also differ from a plain `docker run` in the following ways:
 - **Servers:** Production runs the tasks on every server type, except those on
   the blocklist in
   [`inspector_rules.py`](https://github.com/SpareCores/sc-crawler/blob/main/src/sc_crawler/inspector_rules.py)
-  in `sc-crawler`.
+  in [`sc-crawler`](https://github.com/SpareCores/sc-crawler).
 - **Server Start:** The `lsblk`, `lsblk_discard`, `lsblk_topo`, and `lstopo`
   tasks never start a server on their own; they run only when another task,
   such as `lshw` or `lscpu`, has started the server. These four tasks have
-  results for fewer server types (\~2410 as of November 2026) than `lshw` and
-  `lscpu` (\~3790).
+  results for fewer server types than `lshw` and `lscpu`.
 
 The commands and timeouts are in the six tasks above in
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
-in `sc-inspector`, and the default Docker options are in
+in [`sc-inspector`](https://github.com/SpareCores/sc-inspector), and the
+default Docker options are in
 [`inspector/lib.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/lib.py).
 
 ### Outputs
 
-This image adds nothing to the output of the command it runs. The production
-commands print the following to stdout:
+The production commands print the following to stdout:
 
 - **`lshw`:** A JSON tree of hardware nodes, each with fields such as `id`,
   `class`, `description`, `product`, `vendor`, `width`, `configuration`, and
@@ -175,7 +180,7 @@ and the rendered
 
 ## References
 
-The [references](./docs/references.md) define the terms of this image's own
+This image's [Glossary](./docs/references.md) defines the terms of its own
 tools, such as `lshw`, hwloc, and LIKWID. The
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs
-defines common terms, such as `lscpu`, `lsblk`, and util-linux.
+[Spare Cores Glossary](https://docs.sparecores.com/glossary) defines common
+terms, such as `lscpu`, `lsblk`, and util-linux.
