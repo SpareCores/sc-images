@@ -2,7 +2,7 @@
 
 This image carries the `resource-tracker` binary of
 [Resource Tracker](https://github.com/SpareCores/resource-tracker-rs) and
-nothing else. The benchmark images of the
+nothing else. The [benchmark images](./docs/contributors.md#consumers) of the
 [`sc-images` repository](https://github.com/SpareCores/sc-images) copy the
 binary from this image and run their workload under it.
 

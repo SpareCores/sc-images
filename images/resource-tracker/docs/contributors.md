@@ -87,7 +87,7 @@ docker build --build-arg RESOURCE_TRACKER_VERSION=<version> -t resource-tracker 
 CI builds this image natively on each architecture: AMD64 on the
 `ubuntu-latest` runner and Arm64 on the `ubuntu-24.04-arm` runner, or on the
 self-hosted runners when the `self_hosted_x64` or `self_hosted_arm64` option of
-a manual run is on. Later levels of the
+a [manual run](../../../docs/ci.md) is on. Later levels of the
 [build plan](../../../docs/contributors.md) run only when no earlier level
 failed, so a failed build of this image stops the build of every image that
 depends on it.
@@ -123,7 +123,8 @@ per-architecture `ghcr.io/sparecores/resource-tracker:main-${ARCH}` tag, except
 
 ### Force Rebuild
 
-The `force_rebuild_resource_tracker` option of a manual run, or the
+The `force_rebuild_resource_tracker` option of a
+[manual run](../../../docs/ci.md), or the
 `FORCE_REBUILD_RESOURCE_TRACKER` variable of
 [`push.yml`](../../../.github/workflows/push.yml) on a push, rebuilds this
 image and all consumers with `--no-cache`, without importing or exporting the
