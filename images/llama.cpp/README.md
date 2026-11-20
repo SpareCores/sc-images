@@ -2,8 +2,8 @@
 
 This image runs `llama-server`, the HTTP server of llama.cpp, built from
 source with CUDA (Compute Unified Device Architecture) for NVIDIA GPUs. It
-contains only the server and the libraries of its build, on the CUDA 12.4.0
-runtime image of NVIDIA for Ubuntu 22.04.
+contains only the server and the libraries of its build, on NVIDIA's CUDA
+12.4.0 runtime image for Ubuntu 22.04.
 
 This image reports no results: its container prints the log of `llama-server`
 and serves the llama.cpp HTTP API on port 8080. The
@@ -26,8 +26,10 @@ docker run --rm --gpus all -p 8080:8080 -v <models>:/models ghcr.io/sparecores/l
 Replace `<models>` with the absolute path of the host folder that holds the
 model, and `<file>.gguf` with the file name of the model in that folder. The
 container entrypoint is `llama-server`, so the arguments after the image name
-go to `llama-server`. The `-m` option comes from llama.cpp, and `/models` is
-only an example mount point: the image defines no volume.
+go to `llama-server`. `-m` is the `llama-server` option that sets the model
+file.
+
+`/models` is only an example mount point: the image defines no volume.
 
 The build enables the llama.cpp support for loading models from a URL
 (`LLAMA_CURL=ON`), so `llama-server` can also download a model instead of
@@ -51,8 +53,8 @@ as the health status of the container.
 
 ### Settings
 
-This image sets one environment variable, `LLAMA_ARG_HOST=0.0.0.0`, so that
-`llama-server` listens on all interfaces of the container, and `-p` can
+The `Dockerfile` sets one environment variable, `LLAMA_ARG_HOST=0.0.0.0`, so
+that `llama-server` listens on all interfaces of the container, and `-p` can
 publish its port. The image does not declare the port with `EXPOSE`. All other
 settings are the options of `llama-server`, given after the image name or as
 `LLAMA_ARG_*` environment variables with `-e`. See the
@@ -67,6 +69,10 @@ The health check always requests port 8080 on `localhost`. When `--port` or
 `LLAMA_ARG_PORT` moves the server to another port, or `LLAMA_ARG_HOST` binds
 it to an address other than `0.0.0.0` or the loopback address, Docker marks
 the container `unhealthy`, while the server keeps running.
+
+To use another port on the host, change only the host side of `-p`, such as
+`-p 9000:8080`: the container port stays 8080, so the health check keeps
+working.
 
 ### Output
 
