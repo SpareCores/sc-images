@@ -89,9 +89,9 @@ The hook runs
 [`compute-build-parallelism.sh`](../../../.github/scripts/compute-build-parallelism.sh)
 with the `vllm-cpu` profile, which sizes the build as follows:
 
-- `MAX_JOBS` = min(32 × `effective_GiB` / 64, `nproc`, `MemTotal` /
-  `VLLM_CPU_COMPILE_GIB_PER_SLOT`, 32)
-- `CARGO_BUILD_JOBS` = min(32 × `effective_GiB` / 64, `MAX_JOBS`, 32)
+- `MAX_JOBS` = min((32 × `effective_GiB`) / 64, `nproc`,
+  `MemTotal` / `VLLM_CPU_COMPILE_GIB_PER_SLOT`, 32)
+- `CARGO_BUILD_JOBS` = min((32 × `effective_GiB`) / 64, `MAX_JOBS`, 32)
 - BuildKit `max-parallelism` = min(`MAX_JOBS`, 16)
 - `NVCC_THREADS` = 1
 
@@ -202,14 +202,18 @@ patched `Dockerfile` does the following with the cache:
   file name stem is `sccache` breaks the `openssl-sys` build. The stage also
   sets `CARGO_INCREMENTAL=0`, `CC=/usr/bin/gcc`, and `CXX=/usr/bin/g++`.
 - The vLLM build compiles through `/usr/local/bin/sccache-wrapper`, which
-  reruns a compile without `sccache` when the cache fails, and prints
+  reruns a compile without `sccache` when `sccache` fails with one of the
+  infrastructure errors that the wrapper lists, and prints
   `[sccache-wrapper] infrastructure failure rc=..., falling back`.
 
-Errors of the S3 storage do not fail the build: outside the verbose mode, the
-build sets `SCCACHE_IGNORE_SERVER_IO_ERROR=1`. The log then shows only the
-output of `sccache --show-stats` after each compile. With
-`SCCACHE_VERBOSE=1`, it also shows `[sccache-trace]` and `[sccache-debug]`
-lines and the S3 errors.
+Outside the verbose mode, the build sets `SCCACHE_IGNORE_SERVER_IO_ERROR=1`,
+so errors of the S3 storage do not fail the build, and the log shows only the
+output of `sccache --show-stats` after each compile.
+
+With `SCCACHE_VERBOSE=1`, the build sets `SCCACHE_IGNORE_SERVER_IO_ERROR=0`,
+and the log also shows `[sccache-trace]` and `[sccache-debug]` lines and the
+S3 errors. In this mode, the vLLM build still falls back to a plain compile on
+the errors that `sccache-wrapper` lists, but the Rust build has no fallback.
 
 ## Local Build
 
