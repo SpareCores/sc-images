@@ -18,5 +18,11 @@ docker run --rm --name derper --network=host -v /var/lib/derper:/var/lib/derper 
 `-verify-clients` makes the relay accept only nodes of the tailnet of the host's local
 `tailscaled`, which it asks through the socket in `/var/run/tailscale`.
 
+Upstream derper serves TLS only on `-a :443` or with `-certmode manual`; with
+`-certmode letsencrypt` on any other port it serves plain HTTP, which no DERP client accepts.
+The `Dockerfile` patches derper to always serve TLS, so `-a :8443` with Let's Encrypt works
+(certificates through HTTP-01 on `-http-port`, cached in `-certdir`).
+
 The tailscale version is the `TAILSCALE_VERSION` build argument in the `Dockerfile`.
-`tests/smoke.sh <image>` checks that the binary starts.
+`tests/smoke.sh <image>` checks that the binary starts and serves TLS on `:8443` with
+`-certmode letsencrypt`.
