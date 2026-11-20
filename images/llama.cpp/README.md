@@ -2,7 +2,7 @@
 
 This image runs `llama-server`, the HTTP server of llama.cpp, built from
 source with CUDA (Compute Unified Device Architecture) for NVIDIA GPUs. It
-contains the server and the libraries of its build, on NVIDIA's CUDA
+includes the server and the libraries of its build on NVIDIA's CUDA
 12.4.0 runtime image for Ubuntu 22.04. It is published for AMD64 and Arm64.
 
 This image reports no results: its container prints the log of `llama-server`
@@ -25,9 +25,8 @@ docker run --rm --gpus all -p 8080:8080 -v <models>:/models ghcr.io/sparecores/l
 
 Replace `<models>` with the absolute path of the host folder that holds the
 model, and `<file>.gguf` with the file name of the model in that folder. The
-container entrypoint is `llama-server`, so the arguments after the image name
-go to `llama-server`. `-m` is the `llama-server` option that sets the model
-file.
+container entrypoint is `llama-server`, so arguments after the image name go
+to that server. `-m` is the `llama-server` option that sets the model file.
 
 `/models` is only an example mount point: the image defines no volume.
 

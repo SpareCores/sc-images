@@ -1,7 +1,7 @@
 # vLLM CPU Base (AVX2)
 
-This image is a vLLM 0.27.1 server for AMD64 CPUs, built from source, and the
-base image of
+This image provides a vLLM 0.27.1 server built from source for AMD64 CPUs. It
+is the base image of
 [`benchmark-vllm-cpu-avx2`](../benchmark-vllm-cpu-avx2/README.md), the vLLM
 benchmark for AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without
 AVX-512 (Advanced Vector Extensions 512). It builds the `vllm-openai` stage of
