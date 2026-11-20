@@ -26,6 +26,10 @@ Replace `<owner>/<model>` with the Hugging Face model ID of the model to
 serve. The container entrypoint is `vllm serve`, so the arguments after the
 image name go to `vllm serve`.
 
+The image does not check which instruction sets the host CPU supports. The
+vLLM benchmarks test an AMD64 host for AVX-512 in their harness, which this
+image does not include, and `benchmark-vllm-cpu-avx2` skips that test.
+
 This image sets no Docker options for ports, shared memory, or the model
 cache. The vLLM benchmarks need `--shm-size=4g`, because they fail with
 Docker's default 64 MiB `/dev/shm`; see the manual's
@@ -46,13 +50,16 @@ and CI builds the `vllm-openai` stage of that file. The stage does the
 following:
 
 - installs the vLLM CPU build with its `audio` extra
+- installs the `triton-cpu` wheel
 - copies the `examples/` folder of vLLM
 - sets the container entrypoint to `vllm serve`
 
 The upstream `Dockerfile` builds on `ubuntu:22.04` and uses Python 3.12 by
-default. The hook patches only this file and its `.dockerignore`, not the
-vLLM source, for example to pin `ubuntu:22.04` by digest; see
-[Dockerfile Patches](./docs/contributors.md#dockerfile-patches).
+default. The hook patches only this file and its `.dockerignore`; for
+example, it pins `ubuntu:22.04` by digest. With the compiler cache on, as in
+CI, the build also points the compiler launchers in vLLM's `setup.py` at a
+wrapper. See [Dockerfile Patches](./docs/contributors.md#dockerfile-patches)
+and [Compiler Cache](./docs/contributors.md#compiler-cache) for the details.
 
 On AMD64, the vLLM 0.27.1 build compiles three variants of the vLLM CPU
 extension: one for AVX-512 with AMX (Advanced Matrix Extensions), one for

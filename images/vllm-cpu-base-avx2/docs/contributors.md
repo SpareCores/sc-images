@@ -158,6 +158,11 @@ The build imports its layer cache from the following sources:
 It exports all layers (`mode=max`) to the `buildcache-amd64` tag and to the
 same GitHub Actions cache scope. A new vLLM version starts a new scope.
 
+The first successful build fills both caches. When the `buildcache-amd64` tag
+does not exist yet, the build skips its import and still runs; see Docker's
+[registry cache](https://docs.docker.com/build/cache/backends/registry/)
+docs.
+
 The force rebuild option of the workflow does not affect this image, because
 it does not depend on `resource-tracker`: its cache stays on. The option
 rebuilds `benchmark-vllm-cpu-avx2` without cache, because that image does
