@@ -21,8 +21,10 @@ Resource Tracker is a separate Spare Cores product, not part of
 team uses it to check that each Navigator benchmark uses the CPU or GPU cores
 as intended.
 
-This image gives every benchmark image the same pinned version of the
-binary.
+Each benchmark image copies the binary from this image's `main` tag (in CI,
+from `main-amd64` or `main-arm64`) when it is built, so every image built after
+a version change gets the version that this image pins. This image publishes no
+version tags.
 
 ## Usage
 

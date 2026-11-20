@@ -101,9 +101,10 @@ Each of these images declares the following build argument in its
 
 ```dockerfile
 ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
-``` In CI, their
-`BUILD_ARGS` files set `RESOURCE_TRACKER_IMAGE` to the per-architecture
-`ghcr.io/sparecores/resource-tracker:main-${ARCH}` tag, except
+```
+
+In CI, their `BUILD_ARGS` files set `RESOURCE_TRACKER_IMAGE` to the
+per-architecture `ghcr.io/sparecores/resource-tracker:main-${ARCH}` tag, except
 `benchmark-ffmpeg`, which keeps the `main` default.
 
 CI counts an image as a `resource-tracker` consumer when it is this image or
