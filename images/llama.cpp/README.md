@@ -59,6 +59,10 @@ settings are the options of `llama-server`, given after the image name or as
 [llama.cpp server documentation](https://github.com/ggml-org/llama.cpp/tree/master/tools/server)
 for the options and their defaults.
 
+The image sets no API key, so the API accepts requests from any client that
+reaches the published port. To require a key, pass the `--api-key` option of
+`llama-server` or set `LLAMA_API_KEY`.
+
 The health check always requests port 8080 on `localhost`. When `--port` or
 `LLAMA_ARG_PORT` moves the server to another port, or `LLAMA_ARG_HOST` binds
 it to an address other than `0.0.0.0` or the loopback address, Docker marks
