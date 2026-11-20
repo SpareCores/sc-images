@@ -49,13 +49,14 @@ value:
 - the default of `ARG RESOURCE_TRACKER_VERSION` in the
   [`Dockerfile`](../Dockerfile), which a build without `--build-arg` uses
 
-CI reads `RESOURCE_TRACKER_VERSION` without comments (`#...`) and whitespace.
-When the file is empty or missing, CI still passes
+CI strips comments (`#...`) and whitespace from `RESOURCE_TRACKER_VERSION`
+before it uses the value. When the file is empty or missing, CI still passes
 `RESOURCE_TRACKER_VERSION=` to the build, which overrides the `Dockerfile`
 default with an empty string, so the download fails.
 
 The CI build tracking reads the same file to install `resource-tracker` on
-the build runners, but strips only whitespace from it, not comments. See
+the build runners, but strips only whitespace from it, so keep the file to the
+bare version, with no comment. See
 [CI Build Tracking](../../../docs/ci.md#ci-build-tracking).
 
 ## Local Build
