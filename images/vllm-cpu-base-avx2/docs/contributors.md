@@ -3,8 +3,9 @@
 ## Build Files
 
 This image has no `Dockerfile` of its own. CI builds the upstream vLLM CPU
-`Dockerfile` from a vLLM source tree that the [`prepare.sh`](../prepare.sh)
-hook clones and patches. The metadata files of the image folder set the
+[`Dockerfile`](https://github.com/vllm-project/vllm/blob/v0.27.1/docker/Dockerfile.cpu)
+from a vLLM source tree that the [`prepare.sh`](../prepare.sh) hook clones and
+patches. The metadata files of the image folder set the
 following:
 
 | File | Value | Effect |
@@ -122,15 +123,18 @@ the BuildKit parallelism at 2, but CI never builds this image there.
 
 ## CI Builds
 
-CI builds this image on every push to `main`, in the first level of the build
-plan, and then builds
+CI builds this image on every push to `main` ([`push.yml`](../../../.github/workflows/push.yml)),
+in the first level of the build plan that
+[`resolve-build-plan.sh`](../../../.github/scripts/resolve-build-plan.sh)
+resolves, and then builds
 [`benchmark-vllm-cpu-avx2`](../../benchmark-vllm-cpu-avx2/README.md) on top
 of it. The build runs as follows:
 
 - **Runner:** Always the self-hosted `[self-hosted, Linux, X64, workhorse]`
-  runner. The workflow notes that the build is too heavy for GitHub-hosted
-  runners, citing out-of-memory errors, disk pressure, and an unreliable
-  compiler cache.
+  runner. The
+  [workflow](../../../.github/workflows/build-level.yml) notes that the build
+  is too heavy for GitHub-hosted runners, citing out-of-memory errors, disk
+  pressure, and an unreliable compiler cache.
 - **Compressed swap:** CI runs
   [`setup-zram.sh`](../../../.github/scripts/setup-zram.sh) before the build,
   with the default `ZRAM_PERCENT=125`: a `zram` swap of 125% of the RAM,
@@ -139,7 +143,8 @@ of it. The build runs as follows:
   exits with code 0. It exits with code 1 when `zram` cannot start or no
   `zram` device shows in `swapon`.
 - **Build command:** CI prints the full `docker buildx build` command after
-  `build-push-image:`, and runs it under `run-with-resource-tracker.sh`.
+  `build-push-image:`, and runs it under
+  [`run-with-resource-tracker.sh`](../../../.github/scripts/run-with-resource-tracker.sh).
 
 ### Tags
 

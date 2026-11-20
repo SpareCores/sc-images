@@ -5,7 +5,9 @@ base image of
 [`benchmark-vllm-cpu-avx2`](../benchmark-vllm-cpu-avx2/README.md), the vLLM
 benchmark for AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without
 AVX-512 (Advanced Vector Extensions 512). It builds the `vllm-openai` stage of
-the upstream vLLM CPU `Dockerfile`, so its container starts `vllm serve`.
+the upstream vLLM CPU
+[`Dockerfile`](https://github.com/vllm-project/vllm/blob/v0.27.1/docker/Dockerfile.cpu),
+so its container starts `vllm serve`.
 
 This image reports no results: its container prints only the log of
 `vllm serve`. The [vLLM benchmarks manual](../../vllm-common/README.md)
@@ -21,8 +23,9 @@ docker run --rm ghcr.io/sparecores/vllm-cpu-base-avx2:main <owner>/<model>
 ```
 
 Replace `<owner>/<model>` with the Hugging Face model ID of the model to
-serve. The container entrypoint is `vllm serve`, so the arguments after the
-image name go to `vllm serve`.
+serve. The container
+[entrypoint](https://github.com/vllm-project/vllm/blob/v0.27.1/docker/Dockerfile.cpu#L307)
+is `vllm serve`, so the arguments after the image name go to `vllm serve`.
 
 The image does not check which instruction sets the host CPU supports. The
 vLLM benchmarks test an AMD64 host for AVX-512 in their harness, which this
