@@ -254,7 +254,14 @@ To build the image from the patched source, with the parallelism that the
 hook computed for this machine:
 
 ```bash
-docker buildx build --file vllm-common/.vllm-src/docker/Dockerfile.cpu --target vllm-openai --platform linux/amd64 --secret id=vllm_parallelism,src=.cache/vllm-parallelism.env --load -t vllm-cpu-base-avx2 vllm-common/.vllm-src
+docker buildx build \
+  --file vllm-common/.vllm-src/docker/Dockerfile.cpu \
+  --target vllm-openai \
+  --platform linux/amd64 \
+  --secret id=vllm_parallelism,src=.cache/vllm-parallelism.env \
+  --load \
+  -t vllm-cpu-base-avx2 \
+  vllm-common/.vllm-src
 ```
 
 To start a vLLM server from the local tag:
