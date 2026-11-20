@@ -36,7 +36,7 @@ the following, in order:
    `0.27.1`.
 2. Sizes the compile parallelism (see
    [Compile Parallelism](#compile-parallelism)), and writes the runtime
-   `MAX_JOBS`, `NVCC_THREADS`, and `CARGO_BUILD_JOBS` to
+   values of `MAX_JOBS`, `NVCC_THREADS`, and `CARGO_BUILD_JOBS` to
    `.cache/vllm-parallelism.env`, which the build mounts as the BuildKit
    secret `vllm_parallelism`.
 3. Clones the vLLM tag `v<VLLM_VERSION>` with depth 1 into
@@ -49,14 +49,14 @@ the following, in order:
 6. Changes the owner of the source tree to `0:0` with `sudo -n chown`, so that
    the BuildKit context hash is the same on GitHub-hosted and self-hosted
    runners. `CONTEXT_CANONICAL_OWNER` overrides the owner.
-7. Prints the `sccache`, install, and `FROM` lines of the patched file, in
-   collapsed log groups.
+7. Prints the `sccache` lines, the install lines, and the `FROM` lines of the
+   patched file, in collapsed log groups.
 8. Appends `max_jobs=32` and, when the compiler cache is on, its build
    arguments to `.cache/extra-build-args`.
 
 Without passwordless `sudo`, step 6 prints
 `normalize-context-ownership: WARNING could not chown ... layer cache will not be shared across runner types`
-and the hook continues. When the tree is missing, step 6 exits with code 1.
+and the hook continues.
 
 ## Dockerfile Patches
 
@@ -67,9 +67,10 @@ applied:
 - Adds `.git` to the `.dockerignore` file of the build context.
 - Sets `SETUPTOOLS_SCM_PRETEND_VERSION` to the vLLM version, and prints the
   resulting `ENV` line.
-- Sets `ARG max_jobs` and `ENV CARGO_BUILD_JOBS` to 32, the values of a
-  builder with 64 GiB of RAM (upstream `CARGO_BUILD_JOBS` is 4), so that the
-  `Dockerfile` text and its layer cache keys stay the same on every runner.
+- Sets `ARG max_jobs` and `ENV CARGO_BUILD_JOBS` to 32, the values the formula
+  gives a builder with 64 GiB of RAM. Upstream, `CARGO_BUILD_JOBS` is 4. Fixed
+  values keep the `Dockerfile` text and its layer cache keys the same on every
+  runner.
 - Makes the `RUN` steps of `setup.py bdist_wheel`, `build_rust.sh`, and
   `triton-cpu` read the runtime parallelism from the `vllm_parallelism`
   secret, whose content is not part of the layer cache key.
@@ -87,7 +88,10 @@ applied:
 
 The hook runs
 [`compute-build-parallelism.sh`](../../../.github/scripts/compute-build-parallelism.sh)
-with the `vllm-cpu` profile, which sizes the build as follows:
+with the `vllm-cpu` profile. `VLLM_CPU_COMPILE_GIB_PER_SLOT` is the memory of
+one compile job in GiB (default: 6). `MemTotal` is the physical RAM, and
+`effective_GiB` is `MemTotal` plus 50% of the swap, rounded to the nearest
+GiB. The script sizes the build as follows:
 
 - `MAX_JOBS` = min((32 × `effective_GiB`) / 64, `nproc`,
   `MemTotal` / `VLLM_CPU_COMPILE_GIB_PER_SLOT`, 32)
@@ -95,12 +99,9 @@ with the `vllm-cpu` profile, which sizes the build as follows:
 - BuildKit `max-parallelism` = min(`MAX_JOBS`, 16)
 - `NVCC_THREADS` = 1
 
-`VLLM_CPU_COMPILE_GIB_PER_SLOT` is the memory of one compile job in GiB
-(default: 6). `MemTotal` is the physical RAM, and `effective_GiB` is
-`MemTotal` plus 50% of the swap, rounded to the nearest GiB. The memory slots
-(the third term) count physical RAM only, so the compressed swap raises the
-first term but adds no slots. All divisions are integer divisions, and the
-scaled terms and the memory slots are at least 1.
+The memory slots (the third term) count physical RAM only, so the compressed
+swap raises the first term but adds no slots. All divisions are integer
+divisions, and the `effective_GiB` terms and the memory slots are at least 1.
 
 A `VLLM_CPU_COMPILE_GIB_PER_SLOT` of `0` or a value that is not an integer
 makes the script fail, and the hook with it. A negative value sets `MAX_JOBS`
@@ -129,9 +130,9 @@ of it. The build runs as follows:
 - **Compressed swap:** CI runs
   [`setup-zram.sh`](../../../.github/scripts/setup-zram.sh) before the build,
   with the default `ZRAM_PERCENT=125`: a `zram` swap of 125% of the RAM,
-  compressed with `zstd`. The script exits with code 0 without `zram`, and
-  keeps the existing swap, when the runner has no `apt-get` or the kernel has
-  no `zram` module. It exits with code 1 when `zram` cannot start or no
+  compressed with `zstd`. When the runner has no `apt-get` or the kernel has
+  no `zram` module, the script skips `zram`, keeps the existing swap, and
+  exits with code 0. It exits with code 1 when `zram` cannot start or no
   `zram` device shows in `swapon`.
 - **Build command:** CI prints the full `docker buildx build` command after
   `build-push-image:`, and runs it under `run-with-resource-tracker.sh`.
@@ -163,11 +164,12 @@ does not exist yet, the build skips its import and still runs; see Docker's
 [registry cache](https://docs.docker.com/build/cache/backends/registry/)
 docs.
 
-The force rebuild option of the workflow does not affect this image, because
-it does not depend on `resource-tracker`: its cache stays on. The option
-rebuilds `benchmark-vllm-cpu-avx2` without cache, because that image does
-depend on `resource-tracker`. The option is off on pushes, and on by default
-in a manual run.
+The `force_rebuild_resource_tracker` input of the manual workflow run
+([`.github/workflows/push.yml:12-15`](../../../.github/workflows/push.yml#L12-L15))
+does not affect this image. This image does not depend on `resource-tracker`,
+so its layer cache stays on. The input rebuilds `benchmark-vllm-cpu-avx2`
+without cache, because that image does depend on `resource-tracker`. The
+input is off on pushes, and on by default in a manual run.
 
 ## Compiler Cache
 
@@ -231,10 +233,11 @@ bash images/vllm-cpu-base-avx2/prepare.sh
 
 The hook leaves the source tree owned by root when passwordless `sudo` is
 available. Outside CI, the build gets only the build arguments given with
-`--build-arg`, and a local build needs none of those that CI passes: `VLLM_CPU_AVX2=true`
-has no effect, `max_jobs=32` is already the default of the patched
-`Dockerfile`, and without `SCCACHE_ENABLED=true`, the hook writes no compiler
-cache arguments.
+`--build-arg`. A local build needs none of the build arguments that CI passes:
+
+- `VLLM_CPU_AVX2=true` has no effect.
+- `max_jobs=32` is already the default of the patched `Dockerfile`.
+- Without `SCCACHE_ENABLED=true`, the hook writes no compiler cache arguments.
 
 To build the image from the patched source, with the parallelism that the
 hook computed for this machine:

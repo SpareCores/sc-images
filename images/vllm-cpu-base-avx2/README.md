@@ -35,14 +35,15 @@ cache. The vLLM benchmarks need `--shm-size=4g`, because they fail with
 Docker's default 64 MiB `/dev/shm`; see the manual's
 [Usage](../../vllm-common/README.md#usage).
 
-The image is published for AMD64 only, with two tags: `main`, and
-`main-amd64`, which `benchmark-vllm-cpu-avx2` builds on.
+The image is published for AMD64 only, under two tags: `main-amd64`, which
+`benchmark-vllm-cpu-avx2` builds on, and `main`, which CI creates from it.
 
 ## Build
 
 CI builds this image from the vLLM source at the version that
-[`VLLM_VERSION`](../../vllm-common/VLLM_VERSION) pins, the same version as the
-Docker Hub image of [`benchmark-vllm-cpu`](../benchmark-vllm-cpu/README.md).
+[`VLLM_VERSION`](../../vllm-common/VLLM_VERSION) pins.
+[`benchmark-vllm-cpu`](../benchmark-vllm-cpu/README.md) builds on the vLLM CPU
+image from Docker Hub at the same version.
 The image has no `Dockerfile` of its own. Its [`prepare.sh`](./prepare.sh)
 hook clones vLLM and patches the upstream
 [`docker/Dockerfile.cpu`](https://github.com/vllm-project/vllm/blob/v0.27.1/docker/Dockerfile.cpu),
