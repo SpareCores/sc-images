@@ -1,1 +1,1 @@
-The resource-tracker binary of Spare Cores Navigator, copied into the other images to record resource usage while benchmarks run.
+The Resource Tracker binary, which the benchmark images copy to record their resource usage while they run.
