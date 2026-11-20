@@ -1,1 +1,1 @@
-NVIDIA GPU memory copy bandwidth and latency benchmark with nvbandwidth, measuring copies between the host CPU and each GPU, between GPUs, and within one GPU.
+Measures memory copy bandwidth and latency between CPUs and NVIDIA GPUs, and between GPUs, with nvbandwidth.
