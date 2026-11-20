@@ -2,7 +2,7 @@
 
 ## resource-tracker
 
-Benchmark images copy the static
+Benchmark images copy the
 [resource-tracker](https://github.com/SpareCores/resource-tracker-rs) binary
 from [`ghcr.io/sparecores/resource-tracker`](../images/resource-tracker). The
 release version is defined in
@@ -20,8 +20,9 @@ cache, use one of the following:
 - For push builds, set the `FORCE_REBUILD_RESOURCE_TRACKER` env var in
   [`.github/workflows/push.yml`](../.github/workflows/push.yml) to `"true"`,
   and set it back to `"false"` once the consumers have been rebuilt.
-- For a manual build, tick `force_rebuild_resource_tracker` under **Actions →
-  Build and publish Spare Cores images → Run workflow**.
+- For a manual build, run **Actions → Build and publish Spare Cores images →
+  Run workflow**. It rebuilds without cache by default; untick
+  `force_rebuild_resource_tracker` to use the cache.
 
 ## CI Build Tracking
 
