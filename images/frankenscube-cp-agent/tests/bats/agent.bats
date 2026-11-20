@@ -541,25 +541,51 @@ reset_directive() {
   not grep -q 'tailscale up' "$(fd cp1)/host.log"
 }
 
-@test "holder: deletes offline duplicate CP nodes by hostname, keeps online and unrelated ones" {
+@test "holder: deletes offline duplicate CP nodes by hostname and renames the survivor to the bare hostname" {
   holder_ready
   mkdir -p "$(fd cp1)/hs"
+  # headscale 0.29: `name` is the registered hostname, `given_name` is unique (suffixed), and an
+  # offline node has no `online` key
   cat >"$(fd cp1)/hs/nodes.json" <<'JSON'
 [
- {"id": 1, "given_name": "cp2", "online": false, "tags": ["tag:frankenscube-cp"]},
- {"id": 4, "given_name": "cp2", "online": true,  "tags": ["tag:frankenscube-cp"]},
- {"id": 2, "given_name": "cp3", "online": false, "tags": ["tag:frankenscube-cp"]},
- {"id": 5, "given_name": "cp3", "online": false, "tags": ["tag:frankenscube-cp"]},
- {"id": 6, "given_name": "cp1", "online": false, "tags": ["tag:frankenscube-cp"]},
- {"id": 7, "given_name": "w1", "online": false, "tags": ["tag:frankenscube-node"]},
- {"id": 8, "given_name": "w1", "online": false, "tags": ["tag:frankenscube-node"]}
+ {"id": 1, "name": "cp2", "given_name": "cp2", "user": {"id": 2147455555, "name": "tagged-devices"}, "register_method": 1, "approved_routes": ["10.0.0.2/32"], "available_routes": ["10.0.0.2/32"], "tags": ["tag:frankenscube-cp"]},
+ {"id": 4, "name": "cp2", "given_name": "cp2-1", "user": {"id": 2147455555, "name": "tagged-devices"}, "register_method": 1, "online": true, "approved_routes": ["10.0.0.2/32"], "available_routes": ["10.0.0.2/32"], "subnet_routes": ["10.0.0.2/32"], "tags": ["tag:frankenscube-cp"]},
+ {"id": 2, "name": "cp3", "given_name": "cp3", "user": {"id": 2147455555, "name": "tagged-devices"}, "register_method": 1, "tags": ["tag:frankenscube-cp"]},
+ {"id": 5, "name": "cp3", "given_name": "cp3-1", "user": {"id": 2147455555, "name": "tagged-devices"}, "register_method": 1, "tags": ["tag:frankenscube-cp"]},
+ {"id": 6, "name": "cp1", "given_name": "cp1", "user": {"id": 2147455555, "name": "tagged-devices"}, "register_method": 1, "online": true, "tags": ["tag:frankenscube-cp"]},
+ {"id": 3, "name": "admin", "given_name": "admin", "user": {"id": 2147455555, "name": "tagged-devices"}, "register_method": 1, "tags": ["tag:frankenscube-admin"]},
+ {"id": 9, "name": "admin", "given_name": "admin-1", "user": {"id": 2147455555, "name": "tagged-devices"}, "register_method": 1, "online": true, "tags": ["tag:frankenscube-admin"]},
+ {"id": 7, "name": "w1", "given_name": "w1", "user": {"id": 2147455555, "name": "tagged-devices"}, "register_method": 1, "tags": ["tag:frankenscube-node"]},
+ {"id": 8, "name": "w1", "given_name": "w1-1", "user": {"id": 2147455555, "name": "tagged-devices"}, "register_method": 1, "tags": ["tag:frankenscube-node"]}
 ]
 JSON
   agent cp1 full
   settle cp1
-  grep -q 'nodes delete --identifier 1 --force' "$(fd cp1)/headscale.log"
-  grep -q 'nodes delete --identifier 2 --force' "$(fd cp1)/headscale.log"
-  not grep -q 'nodes delete --identifier [45678] ' "$(fd cp1)/headscale.log"
+  log="$(fd cp1)/headscale.log"
+  grep -q 'nodes delete --identifier 1 --force' "$log"
+  grep -q 'nodes delete --identifier 2 --force' "$log"
+  not grep -q 'nodes delete --identifier [3456789] ' "$log"
+  # the online survivor of cp2, and the newest of cp3 (none online), get the bare hostname back
+  grep -q 'nodes rename --identifier 4 cp2$' "$log"
+  grep -q 'nodes rename --identifier 5 cp3$' "$log"
+  not grep -q 'nodes rename --identifier [1236789] ' "$log"
+  # deletes come first: the bare name must be free before the rename
+  [ "$(grep -n 'delete --identifier 1 ' "$log" | head -n1 | cut -d: -f1)" -lt "$(grep -n 'rename --identifier 4 ' "$log" | head -n1 | cut -d: -f1)" ]
+}
+
+@test "holder: two online CP nodes with one hostname: no delete, no rename" {
+  holder_ready
+  mkdir -p "$(fd cp1)/hs"
+  cat >"$(fd cp1)/hs/nodes.json" <<'JSON'
+[
+ {"id": 1, "name": "cp2", "given_name": "cp2", "online": true, "tags": ["tag:frankenscube-cp"]},
+ {"id": 4, "name": "cp2", "given_name": "cp2-1", "online": true, "tags": ["tag:frankenscube-cp"]}
+]
+JSON
+  agent cp1 full
+  settle cp1
+  not grep -q 'nodes delete' "$(fd cp1)/headscale.log"
+  not grep -q 'nodes rename' "$(fd cp1)/headscale.log"
 }
 
 @test "daily backup: sqlite .backup to daily/<date>.sqlite3.gz once a day" {

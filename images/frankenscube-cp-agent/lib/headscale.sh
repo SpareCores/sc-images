@@ -286,27 +286,38 @@ hs_bootstrap_step() {
 
 # --- duplicate CP nodes ------------------------------------------------------------------------
 
-# Deletes offline nodes tagged tag:<name>-cp whose hostname is shared with a newer or an online
-# node (a replaced CP re-registers under the same hostname).
+# A replaced CP re-registers under the same hostname (`.name`), and headscale gives the new node a
+# suffixed `given_name` (cp1-1, cp1-2, ...), so <host>.<cluster>.internal would keep pointing at
+# the dead node. Per hostname among the nodes tagged tag:<name>-cp: delete the offline nodes when
+# one is online (or, with none online, all but the newest), then rename the survivor back to the
+# bare hostname. A hostname with more than one online node is left alone for the rename.
 hs_cleanup_duplicates() {
-  local json tag victims id
+  local json tag plan action id name
   container_running "$HS_CONTAINER" || return 0
   tag="tag:${CLUSTER}-cp"
   json=$(hs_cli nodes list -o json 2>/dev/null) || return 0
-  victims=$(printf '%s' "$json" | jq -r --arg tag "$tag" '
+  plan=$(printf '%s' "$json" | jq -r --arg tag "$tag" '
     [.[]? | select((((.tags // []) + (.forced_tags // [])) | index($tag)) != null)
-          | {id, host: (.given_name // .name), online: (.online // false)}]
+          | {id, host: .name, given: (.given_name // .name), online: (.online // false)}]
     | group_by(.host)[]
-    | select(length > 1)
-    | (map(select(.online)) | length) as $on
+    | (map(select(.online))) as $on
     | (max_by(.id) | .id) as $newest
-    | .[] | select(.online | not)
-    | select($on > 0 or .id != $newest)
-    | .id')
-  for id in $victims; do
-    fc_log "deleting offline duplicate CP node $id"
-    hs_cli nodes delete --identifier "$id" --force >/dev/null 2>&1 || true
-  done
+    | (.[] | select(.online | not) | select(($on | length) > 0 or .id != $newest)
+           | "delete \(.id)"),
+      ((if ($on | length) == 1 then $on[0] elif ($on | length) == 0 then max_by(.id) else empty end)
+           | select(.given != .host) | "rename \(.id) \(.host)")')
+  while read -r action id name; do
+    case $action in
+      delete)
+        fc_log "deleting offline duplicate CP node $id"
+        hs_cli nodes delete --identifier "$id" --force >/dev/null 2>&1 || true
+        ;;
+      rename)
+        fc_log "renaming CP node $id to $name"
+        hs_cli nodes rename --identifier "$id" "$name" >/dev/null 2>&1 || true
+        ;;
+    esac
+  done <<<"$plan"
 }
 
 # --- daily backup ------------------------------------------------------------------------------
