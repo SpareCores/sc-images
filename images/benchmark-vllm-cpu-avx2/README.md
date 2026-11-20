@@ -74,9 +74,9 @@ Face token, the model cache, and the 2-hour time budget.
 
 This image is built on
 [`vllm-cpu-base-avx2`](../vllm-cpu-base-avx2/README.md), which builds vLLM
-from source with the `VLLM_CPU_AVX2=true` build option. This image and its
-base are published for AMD64 only. This image and `benchmark-vllm-cpu` take
-the vLLM version from the same pin, 0.27.1.
+from source, including a variant of its CPU extension for AVX2. This image
+and its base are published for AMD64 only. This image and `benchmark-vllm-cpu`
+take the vLLM version from the same pin, 0.27.1.
 
 The [`Dockerfile`](./Dockerfile) sets `BENCHMARK_VLLM_ALLOW_AVX2_ONLY=true`,
 which skips the harness's AVX-512 check on AMD64.
