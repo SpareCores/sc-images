@@ -147,4 +147,4 @@ The image labels give the title, the description from
 `base`; the `main` tag carries the same values, and the source URL, as
 annotations. The layers are pushed compressed with `zstd`, at level 7. The
 layer cache is pushed to the same package, as the `buildcache-amd64` and
-`buildcache-arm64` tags, except in a force rebuild.
+`buildcache-arm64` tags, except in [a force rebuild](#force-rebuild).

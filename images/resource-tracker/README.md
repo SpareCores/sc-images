@@ -2,7 +2,7 @@
 
 This image carries the `resource-tracker` binary of
 [Resource Tracker](https://github.com/SpareCores/resource-tracker-rs) and
-nothing else. The [benchmark images](./docs/contributors.md#consumers) of the
+nothing else. [Other images](./docs/contributors.md#consumers) of the
 [`sc-images` repository](https://github.com/SpareCores/sc-images) copy the
 binary from this image and run their workload under it.
 
@@ -48,7 +48,7 @@ builds of Resource Tracker target glibc 2.17 and link it dynamically. With this
 entrypoint, the arguments after the image name in `docker run` are the command
 to track: the container runs `resource-tracker -- <command>`.
 
-The binary cannot run in this image itself. The final stage of the
+The binary cannot run inside this image. The final stage of the
 [`Dockerfile`](./Dockerfile) starts `FROM scratch` and copies in only
 `/usr/local/bin/resource-tracker`, so this image has no C library, shell,
 entrypoint, or default command.

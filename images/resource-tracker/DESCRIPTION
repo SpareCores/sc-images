@@ -1,1 +1,1 @@
-The Resource Tracker binary, which the benchmark images copy to record their resource usage while they run.
+The Resource Tracker binary, which other images copy to record their resource usage while they run.
