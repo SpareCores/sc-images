@@ -20,7 +20,7 @@ following:
 
 The folder has no `DEPENDS_ON` file. CI finds the folder by its `prepare.sh`,
 because it has no `Dockerfile`. Git ignores the cloned source tree and the
-`.cache/` folder of the hook's output.
+`.cache/` folder that the hook writes.
 
 The [build framework](../../../docs/contributors.md) of the
 [`sc-images` repository](https://github.com/SpareCores/sc-images) describes
@@ -28,8 +28,8 @@ the metadata files that all images share.
 
 ## Pre-Build Hook
 
-CI runs `prepare.sh` before the build, because the file exists. The hook does
-the following, in order:
+When an image folder has a `prepare.sh`, CI runs it before the build. The hook
+does the following, in order:
 
 1. Reads the vLLM version from
    [`vllm-common/VLLM_VERSION`](../../../vllm-common/VLLM_VERSION), currently
@@ -48,7 +48,8 @@ the following, in order:
 5. Prints `dockerfile_sha256=<hash>` of the patched file.
 6. Changes the owner of the source tree to `0:0` with `sudo -n chown`, so that
    the BuildKit context hash is the same on GitHub-hosted and self-hosted
-   runners. `CONTEXT_CANONICAL_OWNER` overrides the owner.
+   runners. The `CONTEXT_CANONICAL_OWNER` environment variable (a `uid:gid`
+   pair) overrides the owner.
 7. Prints the `sccache` lines, the install lines, and the `FROM` lines of the
    patched file, in collapsed log groups.
 8. Appends `max_jobs=32` and, when the compiler cache is on, its build
@@ -98,6 +99,9 @@ GiB. The script sizes the build as follows:
 - `CARGO_BUILD_JOBS` = min((32 × `effective_GiB`) / 64, `MAX_JOBS`, 32)
 - BuildKit `max-parallelism` = min(`MAX_JOBS`, 16)
 - `NVCC_THREADS` = 1
+
+CI sets the BuildKit `max-parallelism` in the builder configuration. The local
+build command in [Local Build](#local-build) does not.
 
 The memory slots (the third term) count physical RAM only, so the compressed
 swap raises the first term but adds no slots. All divisions are integer
@@ -239,11 +243,19 @@ available. Outside CI, the build gets only the build arguments given with
 - `max_jobs=32` is already the default of the patched `Dockerfile`.
 - Without `SCCACHE_ENABLED=true`, the hook writes no compiler cache arguments.
 
+The local command below builds without the compiler cache.
+
 To build the image from the patched source, with the parallelism that the
 hook computed for this machine:
 
 ```bash
 docker buildx build --file vllm-common/.vllm-src/docker/Dockerfile.cpu --target vllm-openai --platform linux/amd64 --secret id=vllm_parallelism,src=.cache/vllm-parallelism.env --load -t vllm-cpu-base-avx2 vllm-common/.vllm-src
+```
+
+To start a vLLM server from the local tag:
+
+```bash
+docker run --rm vllm-cpu-base-avx2 <owner>/<model>
 ```
 
 ## Version Changes

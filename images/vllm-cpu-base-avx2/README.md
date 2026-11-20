@@ -5,14 +5,12 @@ base image of
 [`benchmark-vllm-cpu-avx2`](../benchmark-vllm-cpu-avx2/README.md), the vLLM
 benchmark for AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without
 AVX-512 (Advanced Vector Extensions 512). It builds the `vllm-openai` stage of
-the upstream vLLM CPU `Dockerfile`, so its container starts `vllm serve`. The
-image measures nothing itself.
+the upstream vLLM CPU `Dockerfile`, so its container starts `vllm serve`.
 
 This image reports no results: its container prints only the log of
 `vllm serve`. The [vLLM benchmarks manual](../../vllm-common/README.md)
 describes how the benchmark built on this image measures LLM serving and how
-to read its results. This page covers only what the image contains and how to
-run it.
+to read its results.
 
 ## Usage
 
@@ -50,7 +48,7 @@ hook clones vLLM and patches the upstream
 and CI builds the `vllm-openai` stage of that file. The stage does the
 following:
 
-- installs the vLLM CPU build with its `audio` extra
+- installs the vLLM CPU build
 - installs the `triton-cpu` wheel
 - copies the `examples/` folder of vLLM
 - sets the container entrypoint to `vllm serve`
