@@ -3,7 +3,7 @@
 This image runs `llama-server`, the HTTP server of llama.cpp, built from
 source with CUDA (Compute Unified Device Architecture) for NVIDIA GPUs. It
 contains only the server and the libraries of its build, on NVIDIA's CUDA
-12.4.0 runtime image for Ubuntu 22.04.
+12.4.0 runtime image for Ubuntu 22.04. It is published for AMD64 and Arm64.
 
 This image reports no results: its container prints the log of `llama-server`
 and serves the llama.cpp HTTP API on port 8080. The
@@ -65,10 +65,12 @@ The image sets no API key, so the API accepts requests from any client that
 reaches the published port. To require a key, pass the `--api-key` option of
 `llama-server` or set `LLAMA_API_KEY`.
 
-The health check always requests port 8080 on `localhost`. When `--port` or
-`LLAMA_ARG_PORT` moves the server to another port, or `LLAMA_ARG_HOST` binds
-it to an address other than `0.0.0.0` or the loopback address, Docker marks
-the container `unhealthy`, while the server keeps running.
+The health check always requests port 8080 on `localhost`. Docker marks the
+container `unhealthy`, while the server keeps running, in the following cases:
+
+- `--port` or `LLAMA_ARG_PORT` moves the server to another port.
+- `LLAMA_ARG_HOST` binds the server to an address other than `0.0.0.0` or the
+  loopback address.
 
 To use another port on the host, change only the host side of `-p`, such as
 `-p 9000:8080`: the container port stays 8080, so the health check keeps
@@ -98,7 +100,7 @@ as root.
 
 The `Dockerfile` also defines a `full` stage with all llama.cpp tools and
 Python scripts, and a `light` stage with `llama-cli` only. CI builds the last
-stage, `server`, so only the server is published, for AMD64 and Arm64.
+stage, `server`, so only the server is published.
 
 ### llama.cpp Version
 
