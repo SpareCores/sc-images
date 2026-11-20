@@ -80,8 +80,9 @@ working.
 
 The container prints the log of `llama-server`. The HTTP API (its endpoints
 and their request and response formats) is that of llama.cpp, and this image
-does not change it; the llama.cpp server documentation linked in
-[Settings](#settings) describes it.
+does not change it; the
+[llama.cpp server documentation](https://github.com/ggml-org/llama.cpp/tree/master/tools/server)
+describes it.
 
 ## Build
 
