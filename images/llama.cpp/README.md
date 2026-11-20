@@ -29,6 +29,11 @@ container entrypoint is `llama-server`, so the arguments after the image name
 go to `llama-server`. The `-m` option comes from llama.cpp, and `/models` is
 only an example mount point: the image defines no volume.
 
+The build enables the llama.cpp support for loading models from a URL
+(`LLAMA_CURL=ON`), so `llama-server` can also download a model instead of
+reading a mounted file, with its `--model-url` or `--hf-repo` option; see the
+[llama.cpp server documentation](https://github.com/ggml-org/llama.cpp/tree/master/tools/server#common-params).
+
 The `--gpus all` option needs a host with an NVIDIA GPU, the NVIDIA driver,
 and the NVIDIA Container Toolkit. The [`Dockerfile`](./Dockerfile) notes that
 its CUDA version needs to "generally match the container host's environment",
@@ -43,10 +48,6 @@ curl -f http://localhost:8080/health
 Docker runs the same request inside the container as the image's health
 check, with Docker's default interval, timeout, and retries, and shows the
 result as the health status of the container.
-
-The build enables the llama.cpp support for loading models from a URL
-(`LLAMA_CURL=ON`), so `llama-server` can also download a model instead of
-reading a mounted file.
 
 ### Settings
 
@@ -76,8 +77,9 @@ The [`Dockerfile`](./Dockerfile) clones the
 [llama.cpp repository](https://github.com/ggml-org/llama.cpp) and builds it
 with CMake on `nvidia/cuda:12.4.0-devel-ubuntu22.04`, with the CUDA backend
 (`GGML_CUDA=ON`) and the support for loading models from a URL
-(`LLAMA_CURL=ON`). CI builds with the default `CUDA_DOCKER_ARCH`, which a
-comment in the `Dockerfile` describes as all supported CUDA architectures.
+(`LLAMA_CURL=ON`). CI builds with the default `CUDA_DOCKER_ARCH`, so the build
+passes no list of CUDA architectures to CMake, and the llama.cpp build files
+choose which NVIDIA GPU generations to compile for.
 
 The published image copies the shared libraries of the build and the
 `llama-server` binary onto `nvidia/cuda:12.4.0-runtime-ubuntu22.04`, and adds
