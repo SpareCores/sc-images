@@ -95,13 +95,14 @@ depends on it.
 The following images list `resource-tracker` in their `DEPENDS_ON` file,
 grouped by the manual that covers them:
 
-- **Own Manuals:** `benchmark`, `benchmark-ffmpeg`, `benchmark-llm`,
+- **Own Docs:** `benchmark`, `benchmark-ffmpeg`, `benchmark-llm`,
   `benchmark-passmark`, `benchmark-redis`, `benchmark-storage`,
   `benchmark-web`, `nvbandwidth`
-- **vLLM:** `benchmark-vllm-cpu`, `benchmark-vllm-cpu-avx2`,
-  `benchmark-vllm-gpu`
-- **PostgreSQL:** `benchmark-pgbench-postgres`, `benchmark-postgres-server`
-- **stress-ng:** `stress-ng`, `stress-ng-longrun`
+- **[vLLM](../../../vllm-common/README.md):** `benchmark-vllm-cpu`,
+  `benchmark-vllm-cpu-avx2`, `benchmark-vllm-gpu`
+- **[PostgreSQL](../../benchmark-pgbench-postgres/README.md):**
+  `benchmark-pgbench-postgres`, `benchmark-postgres-server`
+- **[stress-ng](../../stress-ng/README.md):** `stress-ng`, `stress-ng-longrun`
 
 Each of these images declares the following build argument in its
 `Dockerfile`, and copies the binary from the image it names:

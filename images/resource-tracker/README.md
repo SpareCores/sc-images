@@ -66,7 +66,7 @@ This image is published for AMD64 and Arm64, as the multi-architecture
 ## Build
 
 The [`Dockerfile`](./Dockerfile) downloads a prebuilt release of
-`resource-tracker-rs` from its GitHub releases, and does not build it from
+Resource Tracker from its GitHub releases, and does not build it from
 source. The version is 0.1.17, pinned in
 the [`RESOURCE_TRACKER_VERSION`](./RESOURCE_TRACKER_VERSION) file, which CI
 passes to the build as the build argument of the same name. A build without
