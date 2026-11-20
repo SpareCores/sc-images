@@ -208,6 +208,10 @@ lines and the S3 errors.
 
 ## Local Build
 
+The hook runs only on a host with `/proc/meminfo`, `nproc`, and `sha256sum`,
+such as Linux; it stops on macOS. It also needs `git` to clone vLLM, and the
+build needs Docker Buildx.
+
 The hook writes `vllm-common/.vllm-src` and `.cache/` relative to the current
 folder, so run it from the root of the `sc-images` repository. To clone and
 patch the vLLM source:
