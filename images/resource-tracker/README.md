@@ -8,11 +8,12 @@ binary from this image and run their workload under it. Resource Tracker
 samples the workload's CPU, memory, disk, network, GPU, and GPU memory use
 once per second. This image measures nothing itself.
 
-This image prints nothing, and other images use it only as a build stage to
-copy the binary from. In production, Resource Tracker
+Other images use this image only as a build stage, to copy the binary from. It
+prints nothing. In production, Resource Tracker
 [streams the samples](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
 to the [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform for
-the Spare Cores team's own monitoring. This resource usage is not published.
+the Spare Cores team's own monitoring. Spare Cores does not publish these
+samples.
 
 ## Purpose
 
@@ -67,8 +68,8 @@ This image is published for AMD64 and Arm64, as the multi-architecture
 The [`Dockerfile`](./Dockerfile) downloads a prebuilt release of
 `resource-tracker-rs` from its GitHub releases, and does not build it from
 source. The version is 0.1.17, pinned in
-[`RESOURCE_TRACKER_VERSION`](./RESOURCE_TRACKER_VERSION), which CI passes to
-the build as the `RESOURCE_TRACKER_VERSION` build argument. A build without
+the [`RESOURCE_TRACKER_VERSION`](./RESOURCE_TRACKER_VERSION) file, which CI
+passes to the build as the build argument of the same name. A build without
 that argument uses the default of the `Dockerfile`, also 0.1.17.
 
 CI builds this image before any image that copies the binary from it.

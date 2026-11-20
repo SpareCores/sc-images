@@ -9,15 +9,20 @@ page:
 | --- | --- | --- |
 | `Dockerfile` | Two stages | Downloads the release and copies the binary into an empty image; see [Build Steps](#build-steps) |
 | `RESOURCE_TRACKER_VERSION` | `0.1.17` | The release that CI builds; see [Version Changes](#version-changes) |
-| `BUILD_ARGS` | `RESOURCE_TRACKER_VERSION=${RESOURCE_TRACKER_VERSION}` | CI replaces the token with the content of `RESOURCE_TRACKER_VERSION` |
+| `BUILD_ARGS` | `RESOURCE_TRACKER_VERSION=${RESOURCE_TRACKER_VERSION}` | CI replaces `${RESOURCE_TRACKER_VERSION}` with the content of the `RESOURCE_TRACKER_VERSION` file |
 | `CATEGORY` | `base` | Image category label |
 | `DESCRIPTION` | One sentence | Image description on GHCR and in the root image list |
 
 The folder has no `DEPENDS_ON`, `PLATFORMS`, `CONTEXT`, `ZRAM`, or `SCCACHE`
-file, so CI builds it in the first level of the build plan, for the default
-AMD64 and Arm64, from the image folder, without compressed swap or a compiler
-cache. The
-[build framework](../../../docs/contributors.md) of the
+file, so CI builds it with the following defaults:
+
+- `DEPENDS_ON`: CI builds it in the first level of the build plan
+- `PLATFORMS`: CI builds for the default platforms, AMD64 and Arm64
+- `CONTEXT`: CI builds from the image folder
+- `ZRAM`: CI builds without compressed swap
+- `SCCACHE`: CI builds without a compiler cache
+
+The [build framework](../../../docs/contributors.md) of the
 [`sc-images` repository](https://github.com/SpareCores/sc-images) describes
 the metadata files that all images share.
 
@@ -36,9 +41,9 @@ The [`Dockerfile`](../Dockerfile) builds the image in two stages:
 4. The final stage starts `FROM scratch` and copies in only the binary, as
    `/usr/local/bin/resource-tracker`. It sets no `ENTRYPOINT` or `CMD`.
 
-The build fails when the release has no archive for the version or the
-architecture: `curl -f` stops at the missing file. Any `uname -m` value other
-than `x86_64` or `aarch64` goes into the file name unchanged.
+Any `uname -m` value other than `x86_64` or `aarch64` goes into the file name
+unchanged. The build fails when the release has no archive for the version or
+the architecture: `curl -f` stops at the missing file.
 
 ## Version Changes
 
@@ -69,18 +74,19 @@ the `sc-images` repository:
 docker build -t resource-tracker images/resource-tracker
 ```
 
-To build another release, pass its version without the leading `v`, such as
-`0.1.17`:
+To build a specific release, pass its version without the leading `v`:
 
 ```bash
-docker build --build-arg RESOURCE_TRACKER_VERSION=0.1.17 -t resource-tracker images/resource-tracker
+docker build --build-arg RESOURCE_TRACKER_VERSION=<version> -t resource-tracker images/resource-tracker
 ```
 
 ## CI Builds
 
-CI builds this image natively on each architecture: AMD64 on `ubuntu-latest`
-and Arm64 on `ubuntu-24.04-arm`, or on the self-hosted runners when the `self_hosted_x64` or `self_hosted_arm64`
-option of a manual run is on. Later levels run only when no earlier level
+CI builds this image natively on each architecture: AMD64 on the
+`ubuntu-latest` runner and Arm64 on the `ubuntu-24.04-arm` runner, or on the
+self-hosted runners when the `self_hosted_x64` or `self_hosted_arm64` option of
+a manual run is on. Later levels of the
+[build plan](../../../docs/contributors.md) run only when no earlier level
 failed, so a failed build of this image stops the build of every image that
 depends on it.
 
