@@ -2,7 +2,7 @@
 
 This image runs `llama-server`, the HTTP server of llama.cpp, built from
 source with CUDA (Compute Unified Device Architecture) for NVIDIA GPUs. It
-contains only the server and the libraries of its build, on NVIDIA's CUDA
+contains the server and the libraries of its build, on NVIDIA's CUDA
 12.4.0 runtime image for Ubuntu 22.04. It is published for AMD64 and Arm64.
 
 This image reports no results: its container prints the log of `llama-server`
@@ -118,7 +118,7 @@ different llama.cpp commits.
 
 ## References
 
-The terms of this image, such as `llama-server`, are defined in its
+The term `llama-server` is defined in its
 [Glossary](./docs/references.md). Common terms, such as CUDA, GGUF, and the
 NVIDIA Container Toolkit, are defined in the
 [Spare Cores Glossary](https://docs.sparecores.com/glossary).
