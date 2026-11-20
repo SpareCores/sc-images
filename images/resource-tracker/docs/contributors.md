@@ -127,9 +127,11 @@ The `force_rebuild_resource_tracker` option of a manual run, or the
 `FORCE_REBUILD_RESOURCE_TRACKER` variable of
 [`push.yml`](../../../.github/workflows/push.yml) on a push, rebuilds this
 image and all consumers with `--no-cache`, without importing or exporting the
-layer cache. The variable is `"false"`, so pushes use the cache. The option of
-a manual run is on by default, so a manual run rebuilds all consumers without
-cache unless it is turned off.
+layer cache.
+
+The variable is `"false"`, so pushes use the cache. The option of a manual run
+is on by default, so a manual run rebuilds all consumers without cache unless
+it is turned off.
 
 ### Tags
 

@@ -4,9 +4,10 @@ This image carries the `resource-tracker` binary of
 [Resource Tracker](https://github.com/SpareCores/resource-tracker-rs) and
 nothing else. The benchmark images of the
 [`sc-images` repository](https://github.com/SpareCores/sc-images) copy the
-binary from this image and run their workload under it. Resource Tracker
-samples the workload's CPU, memory, disk, network, GPU, and GPU memory use
-once per second. This image measures nothing itself.
+binary from this image and run their workload under it.
+
+Resource Tracker samples the workload's CPU, memory, disk, network, GPU, and
+GPU memory use once per second. This image measures nothing itself.
 
 Other images use this image only as a build stage, to copy the binary from. It
 prints nothing. In production, Resource Tracker
@@ -55,8 +56,10 @@ entrypoint, or default command.
 To run Resource Tracker on a host or in a project outside the `sc-images`
 repository, download the binary from the
 [`resource-tracker-rs` releases](https://github.com/SpareCores/resource-tracker-rs/releases)
-instead. The releases publish `linux-amd64` and `linux-arm64` archives, and
-the project's
+instead.
+
+The releases publish `linux-amd64` and `linux-arm64` archives, and the
+project's
 [documentation](https://github.com/SpareCores/resource-tracker-rs#readme)
 describes its command-line options.
 
