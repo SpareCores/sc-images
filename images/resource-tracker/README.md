@@ -69,8 +69,7 @@ The [`Dockerfile`](./Dockerfile) downloads a prebuilt release of
 Resource Tracker from its GitHub releases, and does not build it from
 source. The version is 0.1.17, pinned in
 the [`RESOURCE_TRACKER_VERSION`](./RESOURCE_TRACKER_VERSION) file, which CI
-passes to the build as the build argument of the same name. A build without
-that argument uses the default of the `Dockerfile`, also 0.1.17.
+passes to the build as the build argument of the same name.
 
 CI builds this image before any image that copies the binary from it.
 

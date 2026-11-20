@@ -30,15 +30,17 @@ the metadata files that all images share.
 
 The [`Dockerfile`](../Dockerfile) builds the image in two stages:
 
-1. The `fetch` stage starts from `alpine:3.21` and installs `curl` and `tar`.
-2. It maps the output of `uname -m` to the architecture names of the
-   releases: `x86_64` to `amd64`, and `aarch64` to `arm64`.
-3. It downloads
-   `resource-tracker-v<version>-linux-<arch>.tar.gz` from the
-   [`resource-tracker-rs` releases](https://github.com/SpareCores/resource-tracker-rs/releases),
-   extracts only the `resource-tracker` file, and installs it with mode
-   `0755`. The `tar -xvzf` command lists the extracted file in the build log.
-4. The final stage starts `FROM scratch` and copies in only the binary, as
+1. The `fetch` stage does the following:
+   1. It starts from `alpine:3.21` and installs `curl` and `tar`.
+   2. It maps the output of `uname -m` to the architecture names of the
+      releases: `x86_64` to `amd64`, and `aarch64` to `arm64`.
+   3. It downloads
+      `resource-tracker-v<version>-linux-<arch>.tar.gz` from the
+      [`resource-tracker-rs` releases](https://github.com/SpareCores/resource-tracker-rs/releases),
+      extracts only the `resource-tracker` file, and installs it with mode
+      `0755`. The `tar -xvzf` command lists the extracted file in the build
+      log.
+2. The final stage starts `FROM scratch` and copies in only the binary, as
    `/usr/local/bin/resource-tracker`. It sets no `ENTRYPOINT` or `CMD`.
 
 Any `uname -m` value other than `x86_64` or `aarch64` goes into the file name
@@ -92,8 +94,12 @@ depends on it.
 
 ### Consumers
 
-The following images list `resource-tracker` in their `DEPENDS_ON` file,
-grouped by the manual that covers them:
+CI counts an image as a `resource-tracker` consumer when it is this image or
+depends on it, directly or through other images. Consumers always build with
+`--pull`, so they pick up the newly pushed binary.
+
+The following images depend on it directly, by listing `resource-tracker` in
+their `DEPENDS_ON` file, grouped by the manual that covers them:
 
 - **Own Docs:** `benchmark`, `benchmark-ffmpeg`, `benchmark-llm`,
   `benchmark-passmark`, `benchmark-redis`, `benchmark-storage`,
@@ -114,10 +120,6 @@ ARG RESOURCE_TRACKER_IMAGE=ghcr.io/sparecores/resource-tracker:main
 In CI, their `BUILD_ARGS` files set `RESOURCE_TRACKER_IMAGE` to the
 per-architecture `ghcr.io/sparecores/resource-tracker:main-${ARCH}` tag, except
 `benchmark-ffmpeg`, which keeps the `main` default.
-
-CI counts an image as a `resource-tracker` consumer when it is this image or
-depends on it, directly or through other images. Consumers always build with
-`--pull`, so they pick up the newly pushed binary.
 
 ### Force Rebuild
 
