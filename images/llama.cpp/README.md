@@ -3,14 +3,14 @@
 This image runs `llama-server`, the HTTP server of llama.cpp, built from
 source with CUDA (Compute Unified Device Architecture) for NVIDIA GPUs. It
 contains only the server and the libraries of its build, on the CUDA 12.4.0
-runtime image of NVIDIA for Ubuntu 22.04. This image measures nothing itself.
+runtime image of NVIDIA for Ubuntu 22.04.
 
 This image reports no results: its container prints the log of `llama-server`
 and serves the llama.cpp HTTP API on port 8080. The
-[`benchmark-llm`](../benchmark-llm/README.md) benchmark, which measures LLM
-inference speed with llama.cpp for
-[Spare Cores Navigator](https://docs.sparecores.com/overview), runs the
-upstream llama.cpp images, not this one. No other image in the
+[`benchmark-llm`](../benchmark-llm/README.md) benchmark runs the upstream
+llama.cpp images, not this one. It measures LLM inference speed with llama.cpp
+for [Spare Cores Navigator](https://docs.sparecores.com/overview). No other
+image in the
 [`sc-images` repository](https://github.com/SpareCores/sc-images) builds on
 this image.
 
@@ -45,9 +45,9 @@ To check from the host that the server responds:
 curl -f http://localhost:8080/health
 ```
 
-Docker runs the same request inside the container as the image's health
-check, with Docker's default interval, timeout, and retries, and shows the
-result as the health status of the container.
+The image's health check runs the same request inside the container, with
+Docker's default interval, timeout, and retries, and Docker shows the result
+as the health status of the container.
 
 ### Settings
 
@@ -80,13 +80,13 @@ does not change it; the llama.cpp server documentation linked in
 The [`Dockerfile`](./Dockerfile) clones the
 [llama.cpp repository](https://github.com/ggml-org/llama.cpp) and builds it
 with CMake on `nvidia/cuda:12.4.0-devel-ubuntu22.04`, with the CUDA backend
-(`GGML_CUDA=ON`) and the support for loading models from a URL
-(`LLAMA_CURL=ON`). CI builds with the default `CUDA_DOCKER_ARCH`, so the build
-passes no list of CUDA architectures to CMake, and the llama.cpp build files
-choose which NVIDIA GPU generations to compile for.
+(`GGML_CUDA=ON`) and `LLAMA_CURL=ON`. CI builds with the default
+`CUDA_DOCKER_ARCH`, so the build passes no list of CUDA architectures to
+CMake, and the llama.cpp build files choose which NVIDIA GPU generations to
+compile for.
 
-The published image copies the shared libraries of the build and the
-`llama-server` binary onto `nvidia/cuda:12.4.0-runtime-ubuntu22.04`, and adds
+The published image has the shared libraries of the build and the
+`llama-server` binary on `nvidia/cuda:12.4.0-runtime-ubuntu22.04`, plus
 `curl` for the health check. The image sets no user, so `llama-server` runs
 as root.
 
