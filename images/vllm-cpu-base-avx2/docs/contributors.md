@@ -106,10 +106,14 @@ A `VLLM_CPU_COMPILE_GIB_PER_SLOT` of `0` or a value that is not an integer
 makes the script fail, and the hook with it. A negative value sets `MAX_JOBS`
 to 1.
 
-The script prints the runtime values and the values written to the
-`Dockerfile` to stderr, in a line that starts with `Parallelism (vllm-cpu):`.
-On GitHub-hosted runners, it caps `MAX_JOBS`, `CARGO_BUILD_JOBS`, and the
-BuildKit parallelism at 2, but CI never builds this image there.
+The script prints the following three lines to stderr:
+
+- the memory and CPU inputs, after `Parallelism (vllm-cpu):`
+- the runtime values, after `runtime:`
+- the values written to the `Dockerfile`, after `docker (cache-stable):`
+
+On GitHub-hosted runners, the script caps `MAX_JOBS`, `CARGO_BUILD_JOBS`, and
+the BuildKit parallelism at 2, but CI never builds this image there.
 
 ## CI Builds
 
@@ -186,10 +190,12 @@ patched `Dockerfile` does the following with the cache:
 
 - It downloads the `x86_64-unknown-linux-musl` build of `sccache` 0.15.0 from
   its GitHub releases, before the Rust and vLLM builds.
-- The `rust-build` stage runs `cargo` through the
-  `/usr/local/bin/sc-rust-wrap` script, because a wrapper whose file name
-  stem is `sccache` breaks the `openssl-sys` build. It also sets
-  `CARGO_INCREMENTAL=0`, `CC=/usr/bin/gcc`, and `CXX=/usr/bin/g++`.
+- In the `rust-build` stage, `cargo` runs each `rustc` call through the
+  `/usr/local/bin/sc-rust-wrap` script
+  ([`RUSTC_WRAPPER`](https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads)),
+  which runs `sccache`. The script has its own name because a wrapper whose
+  file name stem is `sccache` breaks the `openssl-sys` build. The stage also
+  sets `CARGO_INCREMENTAL=0`, `CC=/usr/bin/gcc`, and `CXX=/usr/bin/g++`.
 - The vLLM build compiles through `/usr/local/bin/sccache-wrapper`, which
   reruns a compile without `sccache` when the cache fails, and prints
   `[sccache-wrapper] infrastructure failure rc=..., falling back`.
