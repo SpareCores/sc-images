@@ -95,7 +95,7 @@ read its output.
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
-| [`llama.cpp`](images/llama.cpp) | llama.cpp server for running LLMs on NVIDIA GPUs. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
+| [`llama.cpp`](images/llama.cpp) | The llama.cpp server for running LLMs on NVIDIA GPUs, built from source. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
 | [`resource-tracker`](images/resource-tracker) | The Resource Tracker binary, which the benchmark images copy to record their resource usage while they run. | [Docs](https://docs.sparecores.com/images/resource-tracker/) |
 | [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM build for AMD64 CPUs with AVX2 but without AVX-512, used as the base of benchmark-vllm-cpu-avx2. | [Docs](https://docs.sparecores.com/images/vllm-cpu-base-avx2/) |
 
