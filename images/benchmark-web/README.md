@@ -88,9 +88,16 @@ The harness runs `binserve` and `wrk` at the highest scheduling priority
 grants. Without it, they run at normal priority. The harness also raises its
 open-file limit to 1,048,576 before starting them.
 
-Production runs the container the same way and also sets host networking
-(`--network host`). With host networking, `binserve` listens on port 8080 of
-the host's loopback interface, so that port must be free. If it is not,
+Production (k8s-inspector) runs the container the same way, but in its own Pod
+network namespace instead of the host's: with host networking, every loopback
+packet passes the host's netfilter rules (kube-proxy, conntrack, and similar),
+which slows this benchmark. On an Azure `Standard_D2ds_v5` (2 vCPU), the Pod
+namespace raised 1 KiB `rps` with 2 threads and 2 connections from 77186 to
+103235 (legacy VM: 84206) and with 32 connections from 106296 to 135849
+(legacy VM: 116874). The full table, with the other settings tried, is in the
+[k8s-inspector node profile](https://github.com/SpareCores/k8s-inspector/blob/main/docs/explanation/node-profile.md#measurement-conditions).
+Outside a Pod namespace, with host networking, `binserve` listens on port 8080
+of the host's loopback interface, so that port must be free. If it is not,
 `binserve` cannot listen on it, and this benchmark usually stops with
 `Couldn't start server` and exit code 1. Without host networking, the traffic
 stays on loopback inside the container.
