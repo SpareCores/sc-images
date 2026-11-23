@@ -59,9 +59,15 @@ docker run --rm --privileged ghcr.io/sparecores/benchmark-redis:main
 
 The harness runs the Redis servers and clients at the highest scheduling
 priority (`nice -n -20`), which needs the `CAP_SYS_NICE` capability that
-`--privileged` grants. Production runs the container the same way and also
-sets host networking (`--network host`); this benchmark's traffic itself stays
-on loopback inside the container.
+`--privileged` grants. Production (k8s-inspector) runs the container the same
+way, but in its own Pod network namespace instead of the host's: with host
+networking, every loopback packet passes the host's netfilter rules (kube-proxy,
+conntrack, and similar), which slows this benchmark. The traffic itself stays on
+loopback inside the container. On an Azure `Standard_D2ds_v5` (2 vCPU), the
+Pod namespace raised SET `rps` from 93266 to 122206 at pipeline depth 1 (legacy
+VM: 117537), with no gain at pipeline depth 512. The full table, with the other
+settings tried, is in the
+[k8s-inspector node profile](https://github.com/SpareCores/k8s-inspector/blob/main/docs/explanation/node-profile.md#measurement-conditions).
 
 The container entrypoint runs this benchmark under `resource-tracker`, which
 samples resource usage during the run. Its data is not published.

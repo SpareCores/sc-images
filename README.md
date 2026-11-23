@@ -43,6 +43,14 @@ Some images need the following extra Docker options:
   `benchmark`, `benchmark-passmark`, `benchmark-pgbench-postgres`,
   `benchmark-postgres-server`, `benchmark-redis`, and `benchmark-web`. Without
   it, the `nice` images run at normal priority.
+- **Production conditions:** k8s-inspector runs the benchmark Pods privileged,
+  with host networking (`benchmark-redis` and `benchmark-web` use their own Pod
+  network namespace instead, because the host's netfilter rules slow loopback
+  traffic), and leaves the kernel's CPU vulnerability mitigations on, as the
+  earlier VM-based inspector did. Booting with `mitigations=off` would raise
+  loopback- and syscall-heavy results by about 10-19 %, but then no result
+  would be comparable with the earlier ones. The measurements are in the
+  [k8s-inspector node profile](https://github.com/SpareCores/k8s-inspector/blob/main/docs/explanation/node-profile.md#measurement-conditions).
 - **Disk access:** `--privileged --pid=host` for `benchmark-storage`. It
   unmounts and overwrites every disk it may write to, so do not run it on a
   machine with data you need.
