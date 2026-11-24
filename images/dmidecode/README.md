@@ -56,9 +56,7 @@ man page lists all options:
 This image defines no environment variables or build arguments, and runs
 `dmidecode` as root, the default user of `ubuntu:24.04`. Unlike the
 [benchmark images](../../README.md#benchmarks), it does not run `dmidecode`
-under `resource-tracker`. The tracker checks that a benchmark uses the CPU or
-GPU cores as intended. A hardware inspection takes seconds, so there is no
-benchmark load to check.
+under `resource-tracker`.
 
 This image is built for AMD64 and Arm64. The [`Dockerfile`](./Dockerfile)
 installs `dmidecode` from the Ubuntu 24.04 archive after an `apt-get upgrade`,
