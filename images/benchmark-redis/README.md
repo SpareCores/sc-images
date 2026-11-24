@@ -108,7 +108,9 @@ The columns mean the following:
 - `client_usr` and `client_sys` are the user and system CPU seconds of the
   `memtier_benchmark` clients of the configuration.
 
-For example, on an `aws/m5.large` (2 vCPUs), `rps` rises from 69,962 at
+For example, on an
+[`aws/m5.large`](https://sparecores.com/server/aws/m5.large)
+(2 vCPUs), `rps` rises from 69,962 at
 pipeline 1 to 685,686 at pipeline 512, while `latency` rises from 1.43 ms to
 74.36 ms
 ([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/redis/stdout)).

@@ -103,7 +103,8 @@ This image adds nothing to the output of `dmidecode` and writes no files. The
 text on stdout starts with a header that gives the `dmidecode` and SMBIOS
 versions and the number of structures. Each SMBIOS structure follows in a
 block with lines in the following order. The table shows the lines for the
-memory device of `aws/m5.large`:
+memory device of
+[`aws/m5.large`](https://sparecores.com/server/aws/m5.large):
 
 | Line | Contents | Example |
 | ------ | ------ | ------ |

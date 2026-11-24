@@ -106,7 +106,9 @@ The container entrypoint runs this benchmark under `resource-tracker`, which
 samples resource usage during the run. Its data is not published.
 
 Measurement takes about 12 minutes: 69 configurations of 10 seconds each, plus
-server startup. A production run on an `aws/m5.large` took 11 minutes 42 seconds
+server startup. A production run on an
+[`aws/m5.large`](https://sparecores.com/server/aws/m5.large)
+took 11 minutes 42 seconds
 ([run metadata](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/static_web/meta.json)).
 
 The run metadata also records the tool versions in its `version` field, as one

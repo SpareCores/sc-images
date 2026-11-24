@@ -101,7 +101,9 @@ For example, on an AWS (Amazon Web Services)
 each sweep had a size of 3, with 80 seconds per stage
 ([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
 
-On an AWS `g5.16xlarge` with one NVIDIA A10G GPU, the `chat` sweep had a size
+On an AWS
+[`g5.16xlarge`](https://sparecores.com/server/aws/g5.16xlarge)
+with one NVIDIA A10G GPU, the `chat` sweep had a size
 of 6: one synchronous, one throughput, and four constant-rate stages
 ([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)).
 
@@ -175,7 +177,7 @@ sweep size times the seconds per stage:
 | AWS `g5.8xlarge` | 32 | 64 | 16 | 5 x 48s | 5 x 48s | 2 x 120s |
 
 The `long` workload also ran two stages of 120 seconds on the UpCloud
-`GPU-32xCPU-384GB-3xL40S`
+[`GPU-32xCPU-384GB-3xL40S`](https://sparecores.com/server/upcloud/GPU-32xCPU-384GB-3xL40S)
 ([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
 Its minimum of 88 seconds per stage leaves room for only two stages in a run
 budget of 240 seconds.

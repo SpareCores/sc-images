@@ -74,7 +74,8 @@ Production runs the container privileged and with host networking; a plain
 results with production runs.
 
 A production run on an AWS (Amazon Web Services)
-`m9g.16xlarge` took about 10 minutes. Run time grows with each worker count
+[`m9g.16xlarge`](https://sparecores.com/server/aws/m9g.16xlarge)
+took about 10 minutes. Run time grows with each worker count
 measured, and with GPU scenarios. See
 [Run Duration](./docs/usage.md#run-duration) for the steps and timeouts.
 
