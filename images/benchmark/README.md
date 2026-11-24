@@ -56,13 +56,30 @@ following:
 
 ## Usage
 
-Run the image via Docker with the script to run as the command; the image has
-no default command:
+Run the image via Docker with one script as the command; the image has no
+default command.
+
+To run the OpenSSL speed benchmark:
 
 ```shell
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main openssl.sh
+```
+
+To run the memory bandwidth benchmark:
+
+```shell
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main bw_mem.sh
+```
+
+To run the compression benchmark:
+
+```shell
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main python /usr/local/bin/compress.py
+```
+
+To run Geekbench:
+
+```shell
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main geekbench.sh
 ```
 
