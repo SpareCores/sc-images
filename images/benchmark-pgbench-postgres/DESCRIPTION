@@ -1,1 +1,1 @@
-PostgreSQL benchmark with pgbench that measures transaction speed and latency on a local or remote server.
+PostgreSQL benchmark with pgbench that measures read-only transaction speed and latency on a local or remote server.

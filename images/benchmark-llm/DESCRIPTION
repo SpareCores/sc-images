@@ -1,1 +1,1 @@
-Measures LLM inference speed with llama.cpp on CPUs and NVIDIA GPUs.
+Measures low-concurrency LLM inference speed with llama.cpp on CPUs and NVIDIA GPUs.
