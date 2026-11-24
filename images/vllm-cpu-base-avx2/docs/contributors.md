@@ -193,11 +193,20 @@ as its storage. The hook reads the following environment variables:
 | `SCCACHE_PREFIX` | Key prefix of this image in the bucket | `vllm-cpu-base-avx2/amd64` |
 | `SCCACHE_VERBOSE` | `1` turns on the trace logs | Unset |
 
-From these, the hook writes the build arguments `USE_SCCACHE=1`,
-`RUSTC_WRAPPER=/usr/local/bin/sc-rust-wrap`, `SCCACHE_BUCKET_NAME`,
-`SCCACHE_REGION_NAME`, `SCCACHE_S3_NO_CREDENTIALS=0`,
-`SCCACHE_S3_KEY_PREFIX`, and, when set, `SCCACHE_VERBOSE=1`. Without
-`USE_SCCACHE=1`, the build skips the `sccache` install and its wrappers.
+From these, the hook writes the following build arguments:
+
+| Build argument | Value |
+| --- | --- |
+| `USE_SCCACHE` | `1` |
+| `RUSTC_WRAPPER` | `/usr/local/bin/sc-rust-wrap` |
+| `SCCACHE_BUCKET_NAME` | The value of `SCCACHE_BUCKET` |
+| `SCCACHE_REGION_NAME` | The value of `SCCACHE_REGION` |
+| `SCCACHE_S3_NO_CREDENTIALS` | `0` |
+| `SCCACHE_S3_KEY_PREFIX` | The value of `SCCACHE_PREFIX` |
+| `SCCACHE_VERBOSE` | `1`, only when `SCCACHE_VERBOSE` is `1` |
+
+Without `USE_SCCACHE=1`, the build skips the `sccache` install and its
+wrappers.
 
 CI writes the AWS credentials of an assumed role to `.cache/aws-credentials`
 and mounts them as an optional BuildKit secret. The
