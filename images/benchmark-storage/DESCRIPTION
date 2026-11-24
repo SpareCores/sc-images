@@ -1,1 +1,1 @@
-Measures raw block device performance with fio, reporting IOPS (Input/Output Operations Per Second), bandwidth, and latency for one disk per group and for groups of identical disks.
+Measures raw disk speed and latency with fio, for single disks and groups of identical disks.

@@ -1,1 +1,1 @@
-Single-stream LLM inference speed benchmark with llama.cpp's llama-bench, measuring prompt processing and text generation in tokens per second for six models at several token counts, on CPUs and NVIDIA GPUs.
+Measures low-concurrency LLM inference speed with llama.cpp on CPUs and NVIDIA GPUs.

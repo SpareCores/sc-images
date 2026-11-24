@@ -1,1 +1,1 @@
-Redis 7.4 SET throughput and latency benchmark with memtier_benchmark, one server and client pair per CPU.
+Measures Redis throughput and latency with memtier_benchmark, one server and client pair per CPU.
