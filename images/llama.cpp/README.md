@@ -76,11 +76,9 @@ server keeps running.
 
 ### Output
 
-The container prints the log of `llama-server`. The HTTP API (its endpoints
-and their request and response formats) is that of llama.cpp, and this image
-does not change it; the
-[llama.cpp server documentation](https://github.com/ggml-org/llama.cpp/tree/master/tools/server)
-describes it.
+The container prints the `llama-server` log. Requests get the standard
+llama.cpp responses, such as the generated text from
+[`/completion`](https://github.com/ggml-org/llama.cpp/tree/master/tools/server#post-completion-given-a-prompt-it-returns-the-predicted-completion).
 
 ## Build
 
