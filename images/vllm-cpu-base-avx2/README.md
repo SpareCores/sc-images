@@ -33,8 +33,8 @@ image does not include, and `benchmark-vllm-cpu-avx2` skips that test.
 
 This image sets no Docker options for ports, shared memory, or the model
 cache. The vLLM benchmarks need `--shm-size=4g`, because they fail with
-Docker's default 64 MiB `/dev/shm`; see the manual's
-[Usage](../../vllm-common/README.md#usage).
+Docker's default 64 MiB `/dev/shm`; see the family manual's
+[usage page](../../vllm-common/docs/usage.md#shared-memory-and-versions).
 
 The image is published for AMD64 only, under two tags: `main-amd64`, which
 `benchmark-vllm-cpu-avx2` builds on, and `main`, which CI creates from it.
