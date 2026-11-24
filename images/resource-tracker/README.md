@@ -47,6 +47,9 @@ ENV TRACKER_QUIET=true
 ENTRYPOINT ["/usr/local/bin/resource-tracker", "--"]
 ```
 
+This image is published for AMD64 and Arm64, as the multi-architecture
+`main` tag and the per-architecture `main-amd64` and `main-arm64` tags.
+
 Replace `ubuntu:24.04` with the base image of the target image. The base
 image needs glibc (GNU C Library) version 2.17 or newer, because the release
 builds of Resource Tracker target glibc 2.17 and link it dynamically. With this
@@ -67,9 +70,6 @@ The releases publish `linux-amd64` and `linux-arm64` archives, and the
 project's
 [documentation](https://github.com/SpareCores/resource-tracker-rs#readme)
 describes its command-line options.
-
-This image is published for AMD64 and Arm64, as the multi-architecture
-`main` tag and the per-architecture `main-amd64` and `main-arm64` tags.
 
 ## Build
 
