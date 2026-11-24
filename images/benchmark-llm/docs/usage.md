@@ -90,16 +90,16 @@ its production output:
 
 - [`c7g.large`](https://sparecores.com/server/aws/c7g.large#llm_prompt_chart):
   18 min, stopped at the 7B model
-  ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/llm/meta.json))
+  ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/llm/meta.json))
 - [`c9g.48xlarge`](https://sparecores.com/server/aws/c9g.48xlarge#llm_prompt_chart):
   26 min, stopped at the 70B model's download
-  ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c9g.48xlarge/0/llm/meta.json))
+  ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c9g.48xlarge/0/llm/meta.json))
 - [`m7i.2xlarge`](https://sparecores.com/server/aws/m7i.2xlarge#llm_prompt_chart):
   31 min
-  ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7i.2xlarge/0/llm/meta.json))
+  ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m7i.2xlarge/0/llm/meta.json))
 - [`g4dn.xlarge`](https://sparecores.com/server/aws/g4dn.xlarge#llm_prompt_chart)
   with an NVIDIA GPU: 32 min
-  ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g4dn.xlarge/0/llm/meta.json))
+  ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g4dn.xlarge/0/llm/meta.json))
 
 To give slower servers more time, raise `--benchmark-timeout-scale`, which
 multiplies every measurement's timeout without changing the `llama-bench`

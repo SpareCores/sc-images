@@ -99,13 +99,13 @@ its options are in the [harness](../benchmark.py).
 For example, on an AWS (Amazon Web Services)
 [`c8a.12xlarge`](https://sparecores.com/server/aws/c8a.12xlarge) CPU server,
 each sweep had a size of 3, with 80 seconds per stage
-([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
 
 On an AWS
 [`g5.16xlarge`](https://sparecores.com/server/aws/g5.16xlarge)
 with one NVIDIA A10G GPU, the `chat` sweep had a size
 of 6: one synchronous, one throughput, and four constant-rate stages
-([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)).
 
 ## Load Settings
 
@@ -178,7 +178,7 @@ sweep size times the seconds per stage:
 
 The `long` workload also ran two stages of 120 seconds on the UpCloud
 [`GPU-32xCPU-384GB-3xL40S`](https://sparecores.com/server/upcloud/GPU-32xCPU-384GB-3xL40S)
-([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
 Its minimum of 88 seconds per stage leaves room for only two stages in a run
 budget of 240 seconds.
 
@@ -200,7 +200,7 @@ A run has an overall budget of 2 hours. The harness splits it as follows:
 
 For example, on the `g5.16xlarge`, the log shows
 `overall=7200s reserve=1320s runs=12 per_run=240s`
-([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stderr)).
+([recorded log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stderr)).
 
 Before it starts each model, workload, and GuideLLM process, the harness
 checks the elapsed time. After 2 hours, it starts nothing new: it logs
@@ -259,7 +259,7 @@ For example, on the `c8a.12xlarge`, `smol-135m` ran as three replicas: 48
 physical cores divided by 16 cores per worker. They were bound to
 `0-15|16-31|32-46`, that is, 16, 16, and 15 cores, with one CPU left for the
 frontend
-([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
 
 ## GPU Parallelism
 
@@ -278,9 +278,9 @@ each model across the GPUs as follows:
 For example, on the UpCloud server with three NVIDIA L40S GPUs, `smol-135m`
 (9 attention heads) ran on all three GPUs, and `qwen-0.5b` (14 heads) and the
 models up to `phi-4` on two
-([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
 The `llama-70b` model ran with `--pipeline-parallel-size 3`
-([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stderr)).
+([recorded log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stderr)).
 
 For `llama-70b` on more than one GPU, read `pipeline_parallel` in the output:
 `tensor_parallel` still shows the size that the head-count rule gives, and the
@@ -344,7 +344,7 @@ model is skipped.
 
 For example, on the `g5.16xlarge`, whose A10G GPU has 22 GiB of memory,
 `phi-4` and `llama-70b` were skipped for insufficient memory
-([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stderr)).
+([recorded log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stderr)).
 Run the image with `--plan-only` to see the plan of each model on a host.
 
 ## Data Type

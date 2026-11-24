@@ -109,7 +109,8 @@ the server types it runs on.
 Each sample prints a stress-ng metrc table to stdout, along with other `info`
 lines. The bogo ops/s (real time) column holds the headline result, as in the
 first sample of a production run on
-[`c7g.large`](https://sparecores.com/server/aws/c7g.large):
+[`c7g.large`](https://sparecores.com/server/aws/c7g.large)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/stressnglongrun/stdout)):
 
 ```text
 stress-ng: metrc: [9] stressor       bogo ops real time  usr time  sys time   bogo ops/s     bogo ops/s CPU used per       RSS Max

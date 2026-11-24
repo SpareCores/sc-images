@@ -176,9 +176,11 @@ stdout or stderr. The main fields of each line are the following:
 See [Output Fields](./docs/usage.md#output-fields) for the CPU-only and
 GPU-only fields. For full examples, see the production output of an AWS
 (Amazon Web Services)
-[`c8a.12xlarge`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)
+[`c8a.12xlarge`](https://sparecores.com/server/aws/c8a.12xlarge)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout))
 on CPUs and of an AWS
-[`g5.16xlarge`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)
+[`g5.16xlarge`](https://sparecores.com/server/aws/g5.16xlarge)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout))
 with one NVIDIA A10G GPU.
 
 The process exits with code 0 even when it skipped models or workloads, so

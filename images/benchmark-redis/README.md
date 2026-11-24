@@ -113,7 +113,7 @@ For example, on an
 (2 vCPUs), `rps` rises from 69,962 at
 pipeline 1 to 685,686 at pipeline 512, while `latency` rises from 1.43 ms to
 74.36 ms
-([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/redis/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/redis/stdout)).
 
 The Navigator publishes the following three scores for each pipeline depth:
 

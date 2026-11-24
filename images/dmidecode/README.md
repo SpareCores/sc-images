@@ -104,7 +104,8 @@ text on stdout starts with a header that gives the `dmidecode` and SMBIOS
 versions and the number of structures. Each SMBIOS structure follows in a
 block with lines in the following order. The table shows the lines for the
 memory device of
-[`aws/m5.large`](https://sparecores.com/server/aws/m5.large):
+[`aws/m5.large`](https://sparecores.com/server/aws/m5.large)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/dmidecode/stdout)):
 
 | Line | Contents | Example |
 | ------ | ------ | ------ |

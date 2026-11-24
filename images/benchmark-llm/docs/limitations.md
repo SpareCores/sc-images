@@ -108,7 +108,7 @@ AWS
 [`c9g.48xlarge`](https://sparecores.com/server/aws/c9g.48xlarge)
 downloaded at 25.7 MiB/s and gave up the 70B model, whose
 file is \~42 GB
-([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c9g.48xlarge/0/llm/stderr)).
+([recorded log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c9g.48xlarge/0/llm/stderr)).
 Its [LLM scores](https://sparecores.com/server/aws/c9g.48xlarge#llm_prompt_chart)
 stop at the 14B model.
 

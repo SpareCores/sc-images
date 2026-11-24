@@ -64,10 +64,10 @@ runs took the following times:
 
 | Server type | Image | Duration |
 | --- | --- | --- |
-| AWS (Amazon Web Services) [`c8a.large`](https://sparecores.com/server/aws/c8a.large) | `benchmark-vllm-cpu` | 28 minutes ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.large/0/vllm/meta.json)) |
-| AWS [`c8a.16xlarge`](https://sparecores.com/server/aws/c8a.16xlarge) | `benchmark-vllm-cpu` | 1 hour 5 minutes ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.16xlarge/0/vllm/meta.json)) |
-| AWS [`g5.16xlarge`](https://sparecores.com/server/aws/g5.16xlarge), one NVIDIA A10G GPU | `benchmark-vllm-gpu` | 1 hour 14 minutes ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/meta.json)) |
-| UpCloud [`GPU-32xCPU-384GB-3xL40S`](https://sparecores.com/server/upcloud/GPU-32xCPU-384GB-3xL40S), three NVIDIA L40S GPUs | `benchmark-vllm-gpu` | 1 hour 40 minutes ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/meta.json)) |
+| AWS (Amazon Web Services) [`c8a.large`](https://sparecores.com/server/aws/c8a.large) | `benchmark-vllm-cpu` | 28 minutes ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.large/0/vllm/meta.json)) |
+| AWS [`c8a.16xlarge`](https://sparecores.com/server/aws/c8a.16xlarge) | `benchmark-vllm-cpu` | 1 hour 5 minutes ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.16xlarge/0/vllm/meta.json)) |
+| AWS [`g5.16xlarge`](https://sparecores.com/server/aws/g5.16xlarge), one NVIDIA A10G GPU | `benchmark-vllm-gpu` | 1 hour 14 minutes ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/meta.json)) |
+| UpCloud [`GPU-32xCPU-384GB-3xL40S`](https://sparecores.com/server/upcloud/GPU-32xCPU-384GB-3xL40S), three NVIDIA L40S GPUs | `benchmark-vllm-gpu` | 1 hour 40 minutes ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/meta.json)) |
 
 The `--benchmark-timeout-scale` option takes a whole number of 1 or more, and
 mainly extends the time limit of each GuideLLM process. It does not let a run
