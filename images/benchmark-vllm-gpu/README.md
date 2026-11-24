@@ -6,7 +6,7 @@ model with vLLM (`vllm serve`), from the smallest to the largest, and sends
 synthetic requests to it with GuideLLM, from one request at a time up to peak
 load.
 
-The [vLLM benchmarks manual](../../vllm-common/README.md) describes the
+The [vLLM family manual](../../vllm-common/README.md) describes the
 methodology, settings, and output that all vLLM benchmarks share, and this
 page covers only what this image does differently.
 
@@ -65,10 +65,10 @@ later, such as the NVIDIA A10G or L40S, but not the older T4G. If every
 visible GPU is below 8.0, it logs an error and exits with code 1. A GPU whose
 compute capability cannot be read is allowed.
 
-If no GPU is visible, for example without `--gpus`, the check passes, but no
-model fits the
-[GPU memory check](../../vllm-common/docs/workloads.md#gpu-memory-fit). This
-benchmark then logs each model as skipped for insufficient memory and exits
+If no GPU is visible (for example, when `--gpus` is missing), the check
+passes. Every model then fails the
+[GPU memory check](../../vllm-common/docs/workloads.md#gpu-memory-fit), so
+this benchmark logs each model as skipped for insufficient memory and exits
 with code 1.
 
 ### Results
@@ -89,9 +89,9 @@ settings of production runs on GPU server types.
 ## References
 
 The terms of the vLLM benchmarks, such as `--max-model-len`, are defined in
-their [references](../../vllm-common/docs/references.md).
+their [Glossary](../../vllm-common/docs/references.md).
 Common terms, such as GuideLLM, CUDA, and tensor parallelism, are defined in
-the [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs.
-To change or rebuild this image, see the
+the [Spare Cores Glossary](https://docs.sparecores.com/glossary). To change
+or rebuild this image, see the
 [contributor guide](../../vllm-common/docs/contributors.md) of the vLLM
 benchmarks.

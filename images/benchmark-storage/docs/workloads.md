@@ -123,12 +123,12 @@ step has a ramp.
 The queue depths above are the nominal number of I/Os in flight per disk.
 [`benchmark.py`](../benchmark.py) splits them across jobs as follows:
 
-- Tests with a queue depth of 1 and the fill use one job per disk. Other tests
-  use up to four jobs per disk, and no more than the CPU count divided by the
-  number of disks in the test.
-- Each job's `iodepth` is the queue depth divided by the number of jobs.
-- `iodepth` is then capped so that no test has more than 256 MiB in flight
-  across all its jobs and disks.
+1. Tests with a queue depth of 1 and the fill use one job per disk. Other
+   tests use up to four jobs per disk, and no more than the CPU count divided
+   by the number of disks in the test.
+2. Each job's `iodepth` is the queue depth divided by the number of jobs.
+3. `iodepth` is then capped so that no test has more than 256 MiB in flight
+   across all its jobs and disks.
 
 Because of this cap, large block sizes run at a lower queue depth. The test
 name shows the effective queue depth. For example, on a server with 16 vCPUs,

@@ -90,9 +90,10 @@ The following is an excerpt from a production run on a server with 2 vCPUs:
 ```
 
 The value is the bogo ops/s (real time) column of the stress-ng metrc line
-that `stress-ng --metrics-brief` prints for each stress-ng stressor. See
-[`data/hcloud/ccx13/0/stressng_benchmarks/stdout`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/ccx13/0/stressng_benchmarks/stdout)
-for a full document.
+that `stress-ng --metrics-brief` prints for each stress-ng stressor. For a
+full document, see a run on a Hetzner Cloud
+[`ccx13`](https://sparecores.com/server/hcloud/ccx13)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/ccx13/0/stressng_benchmarks/stdout)).
 
 The script exits with code 0 even when some stressors fail. If `stress-ng`
 cannot list its stressors, it prints `{"error": "could not get stressor list"}`
@@ -108,9 +109,9 @@ for example:
 2,3062.79
 ```
 
-See
-[`data/hcloud/ccx13/0/stressngfull/stdout`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/ccx13/0/stressngfull/stdout)
-for a production example.
+For a production example, see a run on a Hetzner Cloud
+[`ccx13`](https://sparecores.com/server/hcloud/ccx13)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/hcloud/ccx13/0/stressngfull/stdout)).
 
 ## Environment Variables
 

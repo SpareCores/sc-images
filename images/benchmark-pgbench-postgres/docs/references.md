@@ -1,13 +1,15 @@
-# References
+# Glossary
 
 Terms specific to this image, alphabetized. Common terms (e.g. AWS, CV, I/O,
-SQL) are defined in the [glossary](https://docs.sparecores.com/glossary) of the
-Spare Cores docs, which also lists the terms each image uses.
+SQL) are defined in the
+[Spare Cores Glossary](https://docs.sparecores.com/glossary), which also
+lists the terms each image uses.
 
 - **BenchBase**: A framework that benchmarks SQL databases, the successor to
-  OLTPBench. It runs workloads such as YCSB and a Wikipedia workload against
-  any relational database with a JDBC (Java Database Connectivity) driver, and
-  collects per-transaction-type latency and throughput logs.
+  OLTPBench. It runs workloads such as YCSB (Yahoo! Cloud Serving Benchmark)
+  and a Wikipedia workload against any relational database with a JDBC (Java
+  Database Connectivity) driver, and collects per-transaction-type latency and
+  throughput logs.
   [GitHub](https://github.com/cmu-db/benchbase)
 - **BRIN** (Block Range Index): A PostgreSQL index type that stores only a
   summary, such as the minimum and maximum value, of each range of consecutive

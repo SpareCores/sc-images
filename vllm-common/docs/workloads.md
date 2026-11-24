@@ -4,8 +4,7 @@
 
 Each workload sends synthetic prompts of a fixed length and asks for a fixed
 number of output tokens. The harness starts `vllm serve` with a context
-length (`--max-model-len`), the most tokens that one request can hold, prompt
-and output together. Each workload gets a context length that fits it,
+length (`--max-model-len`). Each workload gets a context length that fits it,
 because a shorter one needs a smaller key-value cache:
 
 | Workload | Prompt tokens | Output tokens | Context length | Runs on |
@@ -64,8 +63,8 @@ The following rules skip models or stop the run early:
 
 - If a model does not fit in memory, it is skipped, and the run continues with
   the next model.
-- If a model's server does not pass its health check, the run stops, and no
-  larger model is tried.
+- If a model's server fails its health check, the run stops, and no larger
+  model is tried.
 - If a model's highest mean output throughput is above 0 but below 1 token per
   second, the run stops after that model.
 - If a GuideLLM run fails or times out, the lines of its partial results are
@@ -93,18 +92,20 @@ output records each stage as a `strategy`:
    synchronous and throughput stages.
 
 Each stage stops at its time limit, and the throughput stage ramps up its
-concurrency first. No stage has a request cap unless `GUIDELLM_MAX_REQUESTS`
+concurrency first. A stage has a request cap only when `GUIDELLM_MAX_REQUESTS`
 or, on CPUs, `GUIDELLM_MAX_REQUESTS_CPU` sets one. The GuideLLM command and
 its options are in the [harness](../benchmark.py).
 
 For example, on an AWS (Amazon Web Services)
 [`c8a.12xlarge`](https://sparecores.com/server/aws/c8a.12xlarge) CPU server,
 each sweep had a size of 3, with 80 seconds per stage
-([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
 
-On an AWS `g5.16xlarge` with one NVIDIA A10G GPU, the `chat` sweep had a size
+On an AWS
+[`g5.16xlarge`](https://sparecores.com/server/aws/g5.16xlarge)
+with one NVIDIA A10G GPU, the `chat` sweep had a size
 of 6: one synchronous, one throughput, and four constant-rate stages
-([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)).
 
 ## Load Settings
 
@@ -176,8 +177,8 @@ sweep size times the seconds per stage:
 | AWS `g5.8xlarge` | 32 | 64 | 16 | 5 x 48s | 5 x 48s | 2 x 120s |
 
 The `long` workload also ran two stages of 120 seconds on the UpCloud
-`GPU-32xCPU-384GB-3xL40S`
-([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
+[`GPU-32xCPU-384GB-3xL40S`](https://sparecores.com/server/upcloud/GPU-32xCPU-384GB-3xL40S)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
 Its minimum of 88 seconds per stage leaves room for only two stages in a run
 budget of 240 seconds.
 
@@ -199,7 +200,7 @@ A run has an overall budget of 2 hours. The harness splits it as follows:
 
 For example, on the `g5.16xlarge`, the log shows
 `overall=7200s reserve=1320s runs=12 per_run=240s`
-([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stderr)).
+([recorded log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stderr)).
 
 Before it starts each model, workload, and GuideLLM process, the harness
 checks the elapsed time. After 2 hours, it starts nothing new: it logs
@@ -216,7 +217,7 @@ The `--benchmark-timeout-scale` option takes a whole number, and values below
 - The time limit of each GuideLLM process.
 - With `BENCHMARK_VLLM_AUTOCONFIG=0`, the time limit of each stage.
 
-The option does not scale the 2-hour stop, so a value above 1 does not let a
+The option leaves the 2-hour stop as it is, so a value above 1 does not let a
 run go on longer.
 
 ## CPU Parallelism
@@ -232,9 +233,9 @@ cores as follows:
   follows:
   - At least one replica per NUMA node when the tensor-parallel size is below
     the NUMA node count.
-  - On every host, more replicas if the physical core count, divided by the
-    tensor-parallel size and by the cores per worker for the model size (see
-    the table below), gives more.
+  - On every host, more replicas if physical core count / (tensor-parallel
+    size × cores per worker for the model size) gives more; see the table
+    below.
   - At most 32 replicas, and only as many as fit in the memory of each NUMA
     node.
 - **Thread binding:** The harness sets `VLLM_CPU_OMP_THREADS_BIND` to an
@@ -258,7 +259,7 @@ For example, on the `c8a.12xlarge`, `smol-135m` ran as three replicas: 48
 physical cores divided by 16 cores per worker. They were bound to
 `0-15|16-31|32-46`, that is, 16, 16, and 15 cores, with one CPU left for the
 frontend
-([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)).
 
 ## GPU Parallelism
 
@@ -277,9 +278,9 @@ each model across the GPUs as follows:
 For example, on the UpCloud server with three NVIDIA L40S GPUs, `smol-135m`
 (9 attention heads) ran on all three GPUs, and `qwen-0.5b` (14 heads) and the
 models up to `phi-4` on two
-([output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stdout)).
 The `llama-70b` model ran with `--pipeline-parallel-size 3`
-([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stderr)).
+([recorded log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/stderr)).
 
 For `llama-70b` on more than one GPU, read `pipeline_parallel` in the output:
 `tensor_parallel` still shows the size that the head-count rule gives, and the
@@ -302,8 +303,8 @@ memory that the container cannot use. The check works as follows:
   float32; see [Data Type](#data-type).
 - Before each workload, the same check runs with the workload's context
   length, and a workload whose key-value cache does not fit is skipped.
-- If the Hugging Face metadata cannot be read, the model is skipped, unless
-  `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set.
+- If the Hugging Face metadata cannot be read and
+  `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is unset, the model is skipped.
 
 On CPUs, vLLM reuses its `--gpu-memory-utilization` option, despite the name,
 to set the fraction of the NUMA node's total memory that each worker reserves
@@ -327,8 +328,7 @@ needs on each GPU, without downloading the weights:
   count, attention and key-value heads, hidden size, and data type from the
   model's `config.json`.
 - Each GPU needs the following, added together:
-  - the weight size plus 10%, divided by the tensor-parallel size times the
-    pipeline-parallel size
+  - (weight size × 1.1) / (tensor-parallel size × pipeline-parallel size)
   - the key-value cache of one sequence of the full context length, rounded
     up to blocks of 16 tokens
   - 0.5 GiB
@@ -339,12 +339,12 @@ needs on each GPU, without downloading the weights:
 A model that does not fit is skipped, and the run continues with the next one.
 Before each workload, the same check runs with the workload's context length,
 and a workload that does not fit is skipped. If the Hugging Face metadata
-cannot be read, the model is skipped, unless
-`BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set.
+cannot be read and `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is unset, the
+model is skipped.
 
 For example, on the `g5.16xlarge`, whose A10G GPU has 22 GiB of memory,
 `phi-4` and `llama-70b` were skipped for insufficient memory
-([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stderr)).
+([recorded log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stderr)).
 Run the image with `--plan-only` to see the plan of each model on a host.
 
 ## Data Type

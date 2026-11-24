@@ -52,10 +52,12 @@ limitations are the following:
   once, with no repetitions.
 - **[Number of Test Processes](./docs/usage.md#results):** PassMark chooses
   how many test processes to run; this benchmark does not set it. On
-  `aws/a1.2xlarge` (8 vCPUs), PassMark ran eight processes.
-- **Exit Status:** The exit status is that of printing the results file, not
+  [`aws/a1.2xlarge`](https://sparecores.com/server/aws/a1.2xlarge) (8 vCPUs),
+  PassMark ran eight processes
+  ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/a1.2xlarge/0/passmark/stdout)).
+- **Exit Code:** The exit code is that of printing the results file, not
   of PassMark. A run that writes no results file exits with an error, but a
-  failed PassMark run that still writes the file exits with status 0.
+  failed PassMark run that still writes the file exits with code 0.
 
 ## Usage
 
@@ -75,7 +77,7 @@ samples resource usage during the run. Its data is not published.
 
 The image is built for `amd64` and `arm64`. A run took about 3 minutes on
 `aws/a1.2xlarge`
-([production run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/a1.2xlarge/0/passmark/meta.json)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/a1.2xlarge/0/passmark/meta.json)).
 Production allows up to 1 hour, because PassMark can be slow on some servers.
 
 ### Settings
@@ -127,5 +129,8 @@ directory.
 
 ## References
 
-See [References](./docs/references.md) for the terms specific to this image.
+This image's [Glossary](./docs/references.md) defines its own terms.
+
+## Contributing
+
 See the [contributor guide](./docs/contributors.md) for building the image.

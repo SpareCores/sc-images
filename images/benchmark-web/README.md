@@ -106,8 +106,10 @@ The container entrypoint runs this benchmark under `resource-tracker`, which
 samples resource usage during the run. Its data is not published.
 
 Measurement takes about 12 minutes: 69 configurations of 10 seconds each, plus
-server startup. A production run on an `aws/m5.large` took 11 minutes 42 seconds
-([run metadata](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/static_web/meta.json)).
+server startup. A production run on an
+[`aws/m5.large`](https://sparecores.com/server/aws/m5.large)
+took 11 minutes 42 seconds
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/static_web/meta.json)).
 
 The run metadata also records the tool versions in its `version` field, as one
 string, for example `binserve 0.2.1, wrk 4.2.0`. The image builds `binserve`
@@ -146,7 +148,7 @@ The columns mean the following:
 For example, on an `aws/m5.large` (2 vCPUs), serving the `1k` file with two
 threads, `rps` rises from 43,808 with two connections to 64,606 with 32
 connections, while `latency` rises from 0.05 ms to 0.55 ms
-([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/static_web/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/static_web/stdout)).
 
 The Navigator groups the rows by file size and by connections per vCPU
 (`connections` divided by the server's vCPU count), so that servers with
@@ -155,8 +157,8 @@ highest `rps`, whatever its thread count, and publishes the following five
 scores from it:
 
 - **`static_web:rps`:** `rps` in requests per second.
-- **`static_web:rps-extrapolated`:** `rps` multiplied by the ratio of all CPU
-  time (server and client) to the server's CPU time in requests per second.
+- **`static_web:rps-extrapolated`:** `rps` × (CPU time of server and client /
+  CPU time of server), in requests per second.
 - **`static_web:throughput` and `static_web:throughput-extrapolated`:** the
   two scores above multiplied by the file size in bytes per second.
 - **`static_web:latency`:** `latency` of the same row in seconds; lower is
@@ -209,4 +211,4 @@ of `wrk`, which give the CPU columns of the row.
 ## References
 
 Common terms, such as `binserve`, `wrk`, and HTTP, are defined in the
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs.
+[Spare Cores Glossary](https://docs.sparecores.com/glossary).

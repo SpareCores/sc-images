@@ -25,8 +25,7 @@ hypervisor overhead. These stressors are meant to expose differences in
 virtualization overhead across providers.
 
 The Navigator's Inspector uses the scaling mode to determine a server type's
-SCore (Spare Cores score): its raw multi-core CPU speed, for comparing the
-speed of server types. See
+SCore (Spare Cores score). See
 [CPU Scaling Loop](./docs/workloads.md#cpu-scaling-loop).
 
 The [`stress-ng-longrun`](../stress-ng-longrun) image pins an older
@@ -123,7 +122,8 @@ expected: on a server with 2 vCPUs and SMT, some reached up to 1.8 times the
 single-worker throughput with two workers, while `div16` stayed at about the
 single-worker throughput.
 
-The stressor suite came with an upgrade from `stress-ng` 0.17.08 to 0.20.01.
+The stressor suite came with
+[an upgrade from `stress-ng` 0.17.08 to 0.20.01](./CHANGELOG.md#stressor-suite-and-stress-ng-02001).
 At first, only a subset of 23 stressors also ran with all CPUs; now every
 stressor does.
 
@@ -131,5 +131,4 @@ See the [changelog](./CHANGELOG.md) for the changes to this benchmark.
 
 ## References
 
-See the full list of [references](./docs/references.md) used in this
-documentation.
+This image's [Glossary](./docs/references.md) defines its own terms.

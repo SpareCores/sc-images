@@ -3,8 +3,9 @@
 This image runs `dmidecode` to read a server's SMBIOS (System Management BIOS)
 tables, also called DMI (Desktop Management Interface) tables. The tables
 describe the server's parts, such as its firmware, system, baseboard,
-processors, and memory devices, as the cloud vendor's firmware or hypervisor
-reports them. This image only installs `dmidecode` from Ubuntu 24.04, with no
+processors, and memory devices. The cloud vendor's firmware or hypervisor
+reports these details. This image only installs `dmidecode` from Ubuntu
+24.04, with no
 harness or default command of its own. This image is not a benchmark, so
 nothing is timed or repeated.
 
@@ -101,7 +102,9 @@ This image adds nothing to the output of `dmidecode` and writes no files. The
 text on stdout starts with a header that gives the `dmidecode` and SMBIOS
 versions and the number of structures. Each SMBIOS structure follows in a
 block with lines in the following order. The table shows the lines for the
-memory device of `aws/m5.large`:
+memory device of
+[`aws/m5.large`](https://sparecores.com/server/aws/m5.large)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/dmidecode/stdout)):
 
 | Line | Contents | Example |
 | ------ | ------ | ------ |

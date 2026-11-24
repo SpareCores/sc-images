@@ -27,9 +27,9 @@ For example, run `benchmark` with a script such as `openssl.sh`. The
 Other images need extra parameters, such as environment variables or Docker
 options. See the production commands and parameters in
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
-in the `sc-inspector` repository. Each image's main page lists its settings,
-output, and any additional Docker options. For images without docs, see the
-image's `Dockerfile`.
+in the `sc-inspector` repository. Where an image has docs, its main page
+lists its settings, its output, and any extra Docker options it needs;
+otherwise, see its `Dockerfile`.
 
 Some images need the following extra Docker options:
 
@@ -103,14 +103,14 @@ read its output.
 
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
-| [`llama.cpp`](images/llama.cpp) | llama.cpp server for running LLMs on NVIDIA GPUs. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
-| [`resource-tracker`](images/resource-tracker) | The resource-tracker binary of Spare Cores Navigator, copied into the other images to record resource usage while benchmarks run. | [Docs](https://docs.sparecores.com/images/resource-tracker/) |
-| [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | vLLM build for AMD64 CPUs with AVX2 but without AVX-512, used as the base of benchmark-vllm-cpu-avx2. | [Docs](https://docs.sparecores.com/images/vllm-cpu-base-avx2/) |
+| [`llama.cpp`](images/llama.cpp) | Runs llama.cpp's server on NVIDIA GPUs, built from source. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
+| [`resource-tracker`](images/resource-tracker) | Provides the Resource Tracker binary, which other images copy and run their workloads under. | [Docs](https://docs.sparecores.com/images/resource-tracker/) |
+| [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | Provides a vLLM build for AMD64 CPUs with AVX2 but without AVX-512, for benchmark-vllm-cpu-avx2 to use as a base. | [Docs](https://docs.sparecores.com/images/vllm-cpu-base-avx2/) |
 
 The following docs cover more than one image. Where a covered image has a main
 page of its own, that page describes only what differs:
 
-- The [vLLM benchmarks manual](vllm-common) in `vllm-common/`, which is not
+- The [vLLM family manual](vllm-common) in `vllm-common/`, which is not
   a published image, covers the vLLM family's benchmarks.
 - The `benchmark-pgbench-postgres` docs cover `benchmark-postgres-server`.
 - The `stress-ng` docs cover `stress-ng-longrun`.

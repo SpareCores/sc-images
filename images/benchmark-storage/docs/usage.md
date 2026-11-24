@@ -65,12 +65,13 @@ apart from other disks.
 ## Run Duration
 
 A run took about 21 minutes on GCP (Google Cloud Platform)
-`c4a-standard-16-lssd`, with four local NVMe (Non-Volatile Memory Express)
-drives, and about 22 minutes on OVHcloud `i1-90`, with two NVMe drives. See
-[`gcp/c4a-standard-16-lssd`](https://github.com/SpareCores/sc-inspector-data/tree/main/data/gcp/c4a-standard-16-lssd/0/storage)
-and
-[`ovh/i1-90`](https://github.com/SpareCores/sc-inspector-data/tree/main/data/ovh/i1-90/0/storage)
-for the run outputs.
+[`c4a-standard-16-lssd`](https://sparecores.com/server/gcp/c4a-standard-16-lssd)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/gcp/c4a-standard-16-lssd/0/storage)),
+with four local NVMe (Non-Volatile Memory Express) drives, and about 22
+minutes on OVHcloud
+[`i1-90`](https://sparecores.com/server/ovh/i1-90)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/ovh/i1-90/0/storage)),
+with two NVMe drives.
 
 The following settings make up most of the time:
 

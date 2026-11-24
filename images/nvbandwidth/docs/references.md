@@ -1,10 +1,10 @@
-# References
+# Glossary
 
 Terms specific to this image, alphabetized. Common terms, such as CUDA (Compute
 Unified Device Architecture), GPU, NVLink, and PCIe (Peripheral Component
 Interconnect Express), are defined in the
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs, which
-also lists the terms each image uses.
+[Spare Cores Glossary](https://docs.sparecores.com/glossary), which also lists
+the terms each image uses.
 
 - **nvbandwidth test case**: One named measurement of the `nvbandwidth` tool,
   such as `host_to_device_memcpy_ce`, defined by its copy direction, the GPUs

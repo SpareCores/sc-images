@@ -89,7 +89,8 @@ successful run. See
 timeouts.
 
 The Navigator shows "no data" for a missing score, because the cause is not
-recorded: the server can be too slow, or the run can have failed or not tried.
+recorded: the server can be too slow, the run can have failed, or the model
+can have been skipped.
 The Navigator's LLM workload profile includes a penalty when the smaller models
 have scores but the larger ones are missing, because then the larger models
 could not load or finish in time. For example, the
@@ -103,9 +104,11 @@ has scores for the smaller models only.
 
 The models are downloaded from Hugging Face during the run, not built into the
 image, so download speed affects which models a run reaches. In production, an
-AWS `c9g.48xlarge` downloaded at 25.7 MiB/s and gave up the 70B model, whose
+AWS
+[`c9g.48xlarge`](https://sparecores.com/server/aws/c9g.48xlarge)
+downloaded at 25.7 MiB/s and gave up the 70B model, whose
 file is \~42 GB
-([log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c9g.48xlarge/0/llm/stderr)).
+([recorded log](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c9g.48xlarge/0/llm/stderr)).
 Its [LLM scores](https://sparecores.com/server/aws/c9g.48xlarge#llm_prompt_chart)
 stop at the 14B model.
 

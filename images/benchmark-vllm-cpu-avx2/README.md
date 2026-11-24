@@ -7,7 +7,7 @@ these CPUs: it starts each default model with `vllm serve` on the CPU and
 sends synthetic requests to it with GuideLLM, from one request at a time up to
 peak load.
 
-The [vLLM benchmarks manual](../../vllm-common/README.md) describes the
+The [vLLM family manual](../../vllm-common/README.md) describes the
 methodology, settings, and output that all vLLM benchmarks share, and this
 page covers only what this image does differently.
 
@@ -38,8 +38,8 @@ on CPUs. Note the following limitations of this image in addition:
 
 - **[No CPU Feature Check](#requirements-and-versions):** This image skips the
   harness's AVX-512 check and does not check for AVX2 either. Production tries
-  it on every AMD64 server type where the two vLLM images before it in the
-  probe order fail their probe, without checking the CPU flags first. See also
+  this image on every AMD64 server type where the two earlier vLLM images
+  fail their probes, without checking the CPU flags first. See also
   [Production Setup](#production-setup).
 - **[Data Type and Memory](#data-type):** On CPUs without AVX-512, the models
   run in float32 by default. The memory check counts the weights of a
@@ -74,9 +74,9 @@ Face token, the model cache, and the 2-hour time budget.
 
 This image is built on
 [`vllm-cpu-base-avx2`](../vllm-cpu-base-avx2/README.md), which builds vLLM
-from source with the `VLLM_CPU_AVX2=true` build option. This image and its
-base are published for AMD64 only. This image and `benchmark-vllm-cpu` take
-the vLLM version from the same pin, 0.27.1.
+from source, including a variant of its CPU extension for AVX2. This image
+and its base are published for AMD64 only. This image and `benchmark-vllm-cpu`
+take the vLLM version from the same pin, 0.27.1.
 
 The [`Dockerfile`](./Dockerfile) sets `BENCHMARK_VLLM_ALLOW_AVX2_ONLY=true`,
 which skips the harness's AVX-512 check on AMD64.
@@ -163,9 +163,9 @@ docker run --rm -e HF_TOKEN ghcr.io/sparecores/benchmark-vllm-cpu-avx2:main --pl
 ## References
 
 The terms of the vLLM benchmarks, such as `--max-model-len`, are defined in
-their [references](../../vllm-common/docs/references.md).
+their [Glossary](../../vllm-common/docs/references.md).
 Common terms, such as AVX2, AVX-512, and float32, are defined in the
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs. To
-change or rebuild this image, see the
+[Spare Cores Glossary](https://docs.sparecores.com/glossary). To change or
+rebuild this image, see the
 [contributor guide](../../vllm-common/docs/contributors.md) of the vLLM
 benchmarks.

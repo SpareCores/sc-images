@@ -10,9 +10,8 @@ docker run --rm ghcr.io/sparecores/benchmark-ffmpeg:main > results.json
 ```
 
 The four GPU scenarios are skipped with `skip_reason` `no_cuda_gpu_detected`.
-No environment variables are required, and the image needs no network access at
-run time: the test media is downloaded and checksum-verified when the image is
-built.
+The image needs no environment variables or network access at run time: the
+test media is downloaded and checksum-verified when the image is built.
 
 The `--version` option prints the versions of the harness
 ([`benchmark.py`](../benchmark.py)) and FFmpeg, and exits:
@@ -132,7 +131,9 @@ started by then are reported as skipped with `overall_timeout`.
 
 Total run time therefore depends on the number of scenarios that run and the
 worker counts each one measures. A production run on an AWS
-(Amazon Web Services) `m9g.16xlarge` with 64 vCPUs and no GPUs
+(Amazon Web Services)
+[`m9g.16xlarge`](https://sparecores.com/server/aws/m9g.16xlarge)
+with 64 vCPUs and no GPUs
 measured every CPU and audio scenario at 1, 32, and 64 workers and took about
 10 minutes
 ([recorded output](https://github.com/SpareCores/sc-inspector-data/tree/main/data/aws/m9g.16xlarge/0/ffmpeg)).

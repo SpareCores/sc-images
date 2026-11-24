@@ -2,7 +2,9 @@
 
 ## resource-tracker
 
-Benchmark images copy the static
+Benchmark images and the
+[`benchmark-postgres-server`](../images/benchmark-postgres-server) service
+image copy the
 [resource-tracker](https://github.com/SpareCores/resource-tracker-rs) binary
 from [`ghcr.io/sparecores/resource-tracker`](../images/resource-tracker). The
 release version is defined in
@@ -20,15 +22,16 @@ cache, use one of the following:
 - For push builds, set the `FORCE_REBUILD_RESOURCE_TRACKER` env var in
   [`.github/workflows/push.yml`](../.github/workflows/push.yml) to `"true"`,
   and set it back to `"false"` once the consumers have been rebuilt.
-- For a manual build, tick `force_rebuild_resource_tracker` under **Actions →
-  Build and publish Spare Cores images → Run workflow**.
+- For a manual build, run **Actions → Build and publish Spare Cores images →
+  Run workflow**. It rebuilds without cache by default; untick
+  `force_rebuild_resource_tracker` to use the cache.
 
 ## CI Build Tracking
 
 Every image build job runs `resource-tracker` in **standalone mode** (no
 wrapped command, no `--pid`) while `docker buildx build` runs in parallel.
 The `docker buildx` command only drives `buildkitd` over the API, so compiles
-do not appear in a shell-wrapper process tree; without a tracked PID,
+do not appear in a shell-wrapper process tree. Without a tracked PID,
 `resource-tracker` collects system-wide CPU, memory, disk, and network (see
 [`Usage.md`](https://github.com/SpareCores/resource-tracker-rs/blob/main/resource-tracker-rs-book/src/Usage.md):
 *"Leave unset [pid] to collect system-wide metrics only"*). Metrics are sent
@@ -123,12 +126,14 @@ Coverage when enabled:
 
 | Stage | Mechanism |
 |-------|-----------|
-| `rust-build` | `RUSTC_WRAPPER=/usr/bin/sccache` for `cargo`; `CC`/`CXX` absolute paths for build-script C compiles (`openssl-sys`, etc.) |
-| `csrc-build` / `vllm-build` wheel | CMake compiler launchers via `setup.py` (`CMAKE_*_COMPILER_LAUNCHER=sccache`); `RUSTC_WRAPPER` unset so C++ is not double-wrapped |
+| `rust-build` | `RUSTC_WRAPPER=/usr/local/bin/sc-rust-wrap` for `cargo`, a script that runs `sccache`; `CC`/`CXX` absolute paths for build-script C compiles (`openssl-sys`, etc.) |
+| `csrc-build` / `vllm-build` wheel | CMake compiler launchers via `setup.py`, which the build rewrites from `CMAKE_*_COMPILER_LAUNCHER=sccache` to `/usr/local/bin/sccache-wrapper`; `RUSTC_WRAPPER` unset so C++ is not double-wrapped |
 
-Version 0.15.0 of `sccache` is installed to `/usr/bin/sccache`. The
-`SCCACHE_IGNORE_SERVER_IO_ERROR=1` setting falls back to local compiles if the
-cache server is unreachable.
+Version 0.15.0 of `sccache` is installed to `/usr/bin/sccache`. By default,
+the build sets `SCCACHE_IGNORE_SERVER_IO_ERROR=1`, so errors of the S3 storage
+do not fail the build. With `SCCACHE_VERBOSE=1`, it sets the variable to `0`:
+the vLLM build still falls back to a plain compile on the errors that
+`sccache-wrapper` lists, but the Rust build has no fallback.
 
 Currently enabled for `vllm-cpu-base-avx2`.
 

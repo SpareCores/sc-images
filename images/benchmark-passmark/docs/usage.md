@@ -49,9 +49,10 @@ mainly reflect the hardware generation and memory characteristics.
 The other `Results` fields, such as `CPU_avx`, `m_CPU_enc_AES`, `ME_LARGE`,
 and `ME_THREADED`, are in the output but not published.
 
-For example, on `aws/a1.2xlarge` (8 vCPUs), `SUMM_CPU` is \~3170 and `SUMM_ME`
+For example, on [`aws/a1.2xlarge`](https://sparecores.com/server/aws/a1.2xlarge)
+(8 vCPUs), `SUMM_CPU` is \~3170 and `SUMM_ME`
 is \~1418
-([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/a1.2xlarge/0/passmark/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/a1.2xlarge/0/passmark/stdout)).
 
 ## Environment Variables
 

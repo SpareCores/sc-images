@@ -77,8 +77,8 @@ per setting after the image name.
 
 The benchmark drops the concurrency points above the server's
 `max_connections` minus 50. Its highest default point is twice the vCPU
-count, so set `max_connections` to at least twice the vCPU count plus 50 to
-keep all points.
+count, so set `max_connections` to at least (2 × vCPU count) + 50 to keep all
+points.
 
 PostgreSQL's default `max_connections` of 100 leaves room for 50 clients. The
 benchmark therefore drops every point above 50: the highest point on servers
@@ -126,8 +126,8 @@ The image differs from the upstream `postgres:18` image in the following ways:
 
 The terms on this page are defined in the following places:
 
-- The [references](../benchmark-pgbench-postgres/docs/references.md) of the
+- The [Glossary](../benchmark-pgbench-postgres/docs/references.md) of the
   [PostgreSQL (pgbench) manual](../benchmark-pgbench-postgres/README.md)
-  define the terms of the benchmark, such as concurrency points.
-- The [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs
-  defines common terms, such as `nice` and `resource-tracker`.
+  defines the terms of the benchmark, such as concurrency points.
+- The [Spare Cores Glossary](https://docs.sparecores.com/glossary) defines
+  common terms, such as `nice` and `resource-tracker`.

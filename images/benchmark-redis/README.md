@@ -108,17 +108,18 @@ The columns mean the following:
 - `client_usr` and `client_sys` are the user and system CPU seconds of the
   `memtier_benchmark` clients of the configuration.
 
-For example, on an `aws/m5.large` (2 vCPUs), `rps` rises from 69,962 at
+For example, on an
+[`aws/m5.large`](https://sparecores.com/server/aws/m5.large)
+(2 vCPUs), `rps` rises from 69,962 at
 pipeline 1 to 685,686 at pipeline 512, while `latency` rises from 1.43 ms to
 74.36 ms
-([production output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/redis/stdout)).
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/m5.large/0/redis/stdout)).
 
 The Navigator publishes the following three scores for each pipeline depth:
 
 - **Redis server+client speed:** `rps` in operations per second.
-- **Redis server (extrapolated) speed:** `rps` multiplied by the ratio of all
-  CPU time (servers and clients) to the servers' CPU time in operations per
-  second.
+- **Redis server (extrapolated) speed:** `rps` × (CPU time of servers and
+  clients / CPU time of servers), in operations per second.
 - **Redis latency:** `latency` in milliseconds; lower is better.
 
 Each score carries a note with the server and client CPU seconds. Production
@@ -165,4 +166,4 @@ regardless of the thread count.
 
 ## References
 
-See [References](./docs/references.md) for the terms specific to this image.
+This image's [Glossary](./docs/references.md) defines its own terms.

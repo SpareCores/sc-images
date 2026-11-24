@@ -24,8 +24,8 @@ It runs every compressor at the following levels and extra arguments:
 | `brotli` | `brotli` | 0, 4, 8, 11 | None |
 | `gzip` | `gzip` | 1, 5, 9 | None |
 | `bzip2` | `bz2` | 1, 5, 9 | None |
-| `lzma` | `lzma` | 1, 5, 9 | None |
-| `zstd` | `pyzstd` | 1, 7, 14, 22 | None |
+| `lzma` (Lempel-Ziv-Markov chain Algorithm) | `lzma` | 1, 5, 9 | None |
+| `zstd` (Zstandard) | `pyzstd` | 1, 7, 14, 22 | None |
 | `bzip3` | `bz3` | No level | `block_size` 1 MiB (default) and 64 MiB |
 | `zpaq` | `pyzpaq` | 1, 3, 5 | None |
 | `lz4` | `lz4.frame` | 1, 6, 12, 16 | `block_size` 64 KiB (default), 1 MiB, and 4 MiB |
@@ -47,8 +47,7 @@ follows:
    independently. The processes wait for a shared start signal, sent after
    1 second.
 3. Takes the mean of the per-process times as the elapsed time, and computes
-   throughput as the input size times the thread count, divided by the elapsed
-   time.
+   throughput as (input size × thread count) / elapsed time.
 4. Repeats steps 2 and 3 once more and keeps the faster run.
 5. Measures decompression the same way.
 

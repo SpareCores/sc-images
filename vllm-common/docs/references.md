@@ -1,10 +1,10 @@
-# References
+# Glossary
 
 Terms of the vLLM benchmarks, alphabetized: the options and environment
 variables of vLLM, and the LLM serving terms that the manual and the images'
 pages use. Common terms
 (e.g. GuideLLM, TTFT, tensor parallelism) are defined in the
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs.
+[Spare Cores Glossary](https://docs.sparecores.com/glossary).
 
 - **`bitsandbytes`**: An open-source Python library that quantizes the weights
   of PyTorch models to 8 or 4 bits, so that large models need less GPU memory.

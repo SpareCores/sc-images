@@ -79,8 +79,8 @@ In `bash` and other `sh`-compatible shells, the backslashes keep the host shell
 from expanding the `$` signs; the shell in the container evaluates them.
 The `nice -n -20` command needs `--privileged`. Without `--privileged`, remove
 `nice -n -20` from the command, and the loop runs at normal priority. The loop
-runs no network workload, so it does not need `--network host`, which
-production sets with its other Docker options.
+runs no network workload, so `--network host`, which production sets with its
+other Docker options, is optional.
 
 ### Production Setup
 
@@ -108,7 +108,9 @@ the server types it runs on.
 
 Each sample prints a stress-ng metrc table to stdout, along with other `info`
 lines. The bogo ops/s (real time) column holds the headline result, as in the
-first sample of a production run on `c7g.large`:
+first sample of a production run on
+[`c7g.large`](https://sparecores.com/server/aws/c7g.large)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c7g.large/0/stressnglongrun/stdout)):
 
 ```text
 stress-ng: metrc: [9] stressor       bogo ops real time  usr time  sys time   bogo ops/s     bogo ops/s CPU used per       RSS Max
@@ -187,10 +189,10 @@ that new runs stay comparable with them. We do not plan to update it.
 
 The terms on this page are defined in the following places:
 
-- The [references](../stress-ng/docs/references.md) of the
-  [stress-ng manual](../stress-ng/README.md) define the terms of `stress-ng`,
+- The [Glossary](../stress-ng/docs/references.md) of the
+  [stress-ng manual](../stress-ng/README.md) defines the terms of `stress-ng`,
   such as stress-ng bogo ops/s.
-- The [references](./docs/references.md) of this image define the
-  stress-ng YAML report and stress-ng bogo ops/s (real time).
-- The [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs
-  defines common terms, such as CPU-credit throttling and shared-core.
+- This image's [Glossary](./docs/references.md) defines the stress-ng YAML
+  report and stress-ng bogo ops/s (real time).
+- The [Spare Cores Glossary](https://docs.sparecores.com/glossary) defines
+  common terms, such as CPU-credit throttling and shared-core.

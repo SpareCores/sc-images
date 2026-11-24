@@ -36,8 +36,8 @@ access token too.
 
 The [default models](./workloads.md#models) `gemma-2b` and `llama-8b` are gated
 models, so they need an access token from an account that has accepted their
-licenses. Without one, the harness cannot read a gated model's metadata: it
-logs `metadata lookup failed for <model_id>`, skips the model unless
+licenses. The harness needs one to read a gated model's metadata. Otherwise,
+it logs `metadata lookup failed for <model_id>`, skips the model unless
 `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set, and continues with the next
 model.
 
@@ -64,10 +64,10 @@ runs took the following times:
 
 | Server type | Image | Duration |
 | --- | --- | --- |
-| AWS (Amazon Web Services) [`c8a.large`](https://sparecores.com/server/aws/c8a.large) | `benchmark-vllm-cpu` | 28 minutes ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.large/0/vllm/meta.json)) |
-| AWS [`c8a.16xlarge`](https://sparecores.com/server/aws/c8a.16xlarge) | `benchmark-vllm-cpu` | 1 hour 5 minutes ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.16xlarge/0/vllm/meta.json)) |
-| AWS `g5.16xlarge`, one NVIDIA A10G GPU | `benchmark-vllm-gpu` | 1 hour 14 minutes ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/meta.json)) |
-| UpCloud `GPU-32xCPU-384GB-3xL40S`, three NVIDIA L40S GPUs | `benchmark-vllm-gpu` | 1 hour 40 minutes ([run](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/meta.json)) |
+| AWS (Amazon Web Services) [`c8a.large`](https://sparecores.com/server/aws/c8a.large) | `benchmark-vllm-cpu` | 28 minutes ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.large/0/vllm/meta.json)) |
+| AWS [`c8a.16xlarge`](https://sparecores.com/server/aws/c8a.16xlarge) | `benchmark-vllm-cpu` | 1 hour 5 minutes ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.16xlarge/0/vllm/meta.json)) |
+| AWS [`g5.16xlarge`](https://sparecores.com/server/aws/g5.16xlarge), one NVIDIA A10G GPU | `benchmark-vllm-gpu` | 1 hour 14 minutes ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/meta.json)) |
+| UpCloud [`GPU-32xCPU-384GB-3xL40S`](https://sparecores.com/server/upcloud/GPU-32xCPU-384GB-3xL40S), three NVIDIA L40S GPUs | `benchmark-vllm-gpu` | 1 hour 40 minutes ([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/upcloud/GPU-32xCPU-384GB-3xL40S/0/vllm/meta.json)) |
 
 The `--benchmark-timeout-scale` option takes a whole number of 1 or more, and
 mainly extends the time limit of each GuideLLM process. It does not let a run

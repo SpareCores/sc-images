@@ -74,7 +74,8 @@ Production runs the container privileged and with host networking; a plain
 results with production runs.
 
 A production run on an AWS (Amazon Web Services)
-`m9g.16xlarge` took about 10 minutes. Run time grows with each worker count
+[`m9g.16xlarge`](https://sparecores.com/server/aws/m9g.16xlarge)
+took about 10 minutes. Run time grows with each worker count
 measured, and with GPU scenarios. See
 [Run Duration](./docs/usage.md#run-duration) for the steps and timeouts.
 
@@ -154,8 +155,9 @@ which can lower throughput, especially for decoding.
 
 We later calibrated GPU encodes against CPU encodes. NVENC has no direct
 equivalent to the CPU encoders' quality setting, so we compared several NVENC
-quality levels on the test clip and chose the closest match. In harness
-version 3.3.0, the image also began requesting the NVIDIA driver's video
+quality levels on the test clip and chose the closest match. In
+[harness version 3.3.0](./CHANGELOG.md#nvenc-quality-matched-to-cpu-encodes-and-gpu-driver-libraries-mounted),
+the image also began requesting the NVIDIA driver's video
 libraries directly. Many earlier GPU runs could not load those libraries.
 
 This benchmark does not check output quality at run time, CPU and GPU encode
@@ -166,6 +168,9 @@ study.
 
 ## References
 
-See the full list of [references](./docs/references.md) used in this
-documentation. To change, rebuild, or test this image, see the
+This image's [Glossary](./docs/references.md) defines its own terms.
+
+## Contributing
+
+To change, rebuild, or test this image, see the
 [contributor guide](./docs/contributors.md).

@@ -6,7 +6,7 @@ the CPU image of the vLLM benchmarks: it starts each default model with vLLM
 (`vllm serve`) on the CPU and sends synthetic requests to it with GuideLLM,
 from one request at a time up to peak load.
 
-The [vLLM benchmarks manual](../../vllm-common/README.md) describes the
+The [vLLM family manual](../../vllm-common/README.md) describes the
 methodology, settings, and output that all vLLM benchmarks share, and this
 page covers only what this image does differently.
 
@@ -98,9 +98,10 @@ the five default models that run on CPUs; see the manual's
 ## References
 
 The terms of the vLLM benchmarks, such as `--max-model-len`, are defined in
-their [references](../../vllm-common/docs/references.md).
+their [Glossary](../../vllm-common/docs/references.md).
 Common terms, such as GuideLLM, NUMA (Non-Uniform Memory Access), and
-AVX-512, are defined in the [glossary](https://docs.sparecores.com/glossary)
-of the Spare Cores docs. To change or rebuild this image, see the
+AVX-512, are defined in the
+[Spare Cores Glossary](https://docs.sparecores.com/glossary). To change or
+rebuild this image, see the
 [contributor guide](../../vllm-common/docs/contributors.md) of the vLLM
 benchmarks.

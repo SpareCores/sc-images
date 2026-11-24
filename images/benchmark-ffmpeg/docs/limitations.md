@@ -80,7 +80,7 @@ The FFmpeg build in this image enables only NVIDIA's video acceleration: NVENC
 (NVIDIA Video Encoder)
 and NVDEC
 (NVIDIA Video Decoder).
-It enables no other GPU backend, so other vendors' GPUs are not used. Within
+Other vendors' GPUs are not used. Within
 NVIDIA, the build targets datacenter GPUs; Jetson devices are not supported.
 
 ### Raw Results Only

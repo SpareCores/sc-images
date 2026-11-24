@@ -3,12 +3,29 @@
 ## Running a Script
 
 The image has no default command. Pass one script as the command; the
-scripts are in `/usr/local/bin`, which is on `PATH`:
+scripts are in `/usr/local/bin`, which is on `PATH`.
+
+To run the OpenSSL speed benchmark:
 
 ```shell
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main openssl.sh
+```
+
+To run the memory bandwidth benchmark:
+
+```shell
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main bw_mem.sh
+```
+
+To run the compression benchmark:
+
+```shell
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main python /usr/local/bin/compress.py
+```
+
+To run Geekbench:
+
+```shell
 docker run --rm --privileged ghcr.io/sparecores/benchmark:main geekbench.sh
 ```
 
@@ -35,8 +52,7 @@ differs from it as noted below.
 All four tasks run privileged with host networking, and each has a 1 hour
 timeout. Production runs `compress.py` and `geekbench.sh` under
 `nice -n -20` from its own command line; `openssl.sh` and `bw_mem.sh` set it
-themselves. A plain `docker run` without `--privileged` cannot raise the
-priority.
+themselves. Raising the priority needs `docker run --privileged`.
 
 The `geekbench` task also sets the following:
 

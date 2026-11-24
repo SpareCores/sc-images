@@ -2,9 +2,9 @@
 
 The vLLM benchmarks measure how fast CPUs and NVIDIA GPUs serve LLMs to many
 concurrent requests. Each run starts the default models with vLLM
-(`vllm serve`), from the smallest to the largest, and sends synthetic
-requests to each over HTTP with GuideLLM, from one request at a time up to
-peak load. Three images run the same [harness](./benchmark.py), each on its
+(`vllm serve`), from the smallest to the largest. GuideLLM sends synthetic
+requests to each over HTTP, from one request at a time up to peak load.
+Three images run the same [harness](./benchmark.py), each on its
 own hardware.
 
 The vLLM benchmarks write one JSON line per model, workload, load stage,
@@ -46,9 +46,9 @@ them:
 - [`benchmark-vllm-cpu-avx2`](../images/benchmark-vllm-cpu-avx2/README.md):
   AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without AVX-512
 
-Each image's own page covers what only that image does: its base image, its
-hardware check, and its run command. This manual covers the rest, with CPU
-and GPU sections where the two differ.
+Each image's own page covers what differs: its base image, hardware check, and
+run command. This manual covers the shared methodology, with CPU and GPU
+sections where they differ.
 
 ## Limitations
 
@@ -176,9 +176,11 @@ stdout or stderr. The main fields of each line are the following:
 See [Output Fields](./docs/usage.md#output-fields) for the CPU-only and
 GPU-only fields. For full examples, see the production output of an AWS
 (Amazon Web Services)
-[`c8a.12xlarge`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout)
+[`c8a.12xlarge`](https://sparecores.com/server/aws/c8a.12xlarge)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/c8a.12xlarge/0/vllm/stdout))
 on CPUs and of an AWS
-[`g5.16xlarge`](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout)
+[`g5.16xlarge`](https://sparecores.com/server/aws/g5.16xlarge)
+([recorded output](https://github.com/SpareCores/sc-inspector-data/blob/main/data/aws/g5.16xlarge/0/vllm/stdout))
 with one NVIDIA A10G GPU.
 
 The process exits with code 0 even when it skipped models or workloads, so
@@ -247,8 +249,11 @@ both changes.
 ## References
 
 The terms of the vLLM benchmarks, such as `--max-model-len`, are defined in
-the [References](./docs/references.md).
+this manual's [Glossary](./docs/references.md).
 Common terms, such as GuideLLM, TTFT, and tensor parallelism, are defined in
-the [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs.
+the [Spare Cores Glossary](https://docs.sparecores.com/glossary).
+
+## Contributing
+
 To change or rebuild the vLLM images, see the
 [contributor guide](./docs/contributors.md).
