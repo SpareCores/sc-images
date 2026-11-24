@@ -35,8 +35,7 @@ differs from it as noted below.
 All four tasks run privileged with host networking, and each has a 1 hour
 timeout. Production runs `compress.py` and `geekbench.sh` under
 `nice -n -20` from its own command line; `openssl.sh` and `bw_mem.sh` set it
-themselves. A plain `docker run` without `--privileged` cannot raise the
-priority.
+themselves. Raising the priority needs `docker run --privileged`.
 
 The `geekbench` task also sets the following:
 

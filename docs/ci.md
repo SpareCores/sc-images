@@ -31,7 +31,7 @@ cache, use one of the following:
 Every image build job runs `resource-tracker` in **standalone mode** (no
 wrapped command, no `--pid`) while `docker buildx build` runs in parallel.
 The `docker buildx` command only drives `buildkitd` over the API, so compiles
-do not appear in a shell-wrapper process tree; without a tracked PID,
+do not appear in a shell-wrapper process tree. Without a tracked PID,
 `resource-tracker` collects system-wide CPU, memory, disk, and network (see
 [`Usage.md`](https://github.com/SpareCores/resource-tracker-rs/blob/main/resource-tracker-rs-book/src/Usage.md):
 *"Leave unset [pid] to collect system-wide metrics only"*). Metrics are sent

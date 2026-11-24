@@ -140,8 +140,8 @@ of it. The build runs as follows:
   with the default `ZRAM_PERCENT=125`: a `zram` swap of 125% of the RAM,
   compressed with `zstd`. When the runner has no `apt-get` or the kernel has
   no `zram` module, the script skips `zram`, keeps the existing swap, and
-  exits with code 0. It exits with code 1 when `zram` cannot start or no
-  `zram` device shows in `swapon`.
+  exits with code 0. It exits with code 1 when `zram` fails to start or
+  `swapon` shows no `zram` device.
 - **Build command:** CI prints the full `docker buildx build` command after
   `build-push-image:`, and runs it under
   [`run-with-resource-tracker.sh`](../../../.github/scripts/run-with-resource-tracker.sh).
@@ -254,7 +254,7 @@ available. Outside CI, the build gets only the build arguments given with
 
 - `VLLM_CPU_AVX2=true` has no effect.
 - `max_jobs=32` is already the default of the patched `Dockerfile`.
-- Without `SCCACHE_ENABLED=true`, the hook writes no compiler cache arguments.
+- The hook writes compiler cache arguments only with `SCCACHE_ENABLED=true`.
 
 The local command below builds without the compiler cache.
 

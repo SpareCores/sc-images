@@ -64,8 +64,8 @@ The following rules skip models or stop the run early:
 
 - If a model does not fit in memory, it is skipped, and the run continues with
   the next model.
-- If a model's server does not pass its health check, the run stops, and no
-  larger model is tried.
+- If a model's server fails its health check, the run stops, and no larger
+  model is tried.
 - If a model's highest mean output throughput is above 0 but below 1 token per
   second, the run stops after that model.
 - If a GuideLLM run fails or times out, the lines of its partial results are
@@ -93,7 +93,7 @@ output records each stage as a `strategy`:
    synchronous and throughput stages.
 
 Each stage stops at its time limit, and the throughput stage ramps up its
-concurrency first. No stage has a request cap unless `GUIDELLM_MAX_REQUESTS`
+concurrency first. A stage has a request cap only when `GUIDELLM_MAX_REQUESTS`
 or, on CPUs, `GUIDELLM_MAX_REQUESTS_CPU` sets one. The GuideLLM command and
 its options are in the [harness](../benchmark.py).
 
@@ -216,7 +216,7 @@ The `--benchmark-timeout-scale` option takes a whole number, and values below
 - The time limit of each GuideLLM process.
 - With `BENCHMARK_VLLM_AUTOCONFIG=0`, the time limit of each stage.
 
-The option does not scale the 2-hour stop, so a value above 1 does not let a
+The option leaves the 2-hour stop as it is, so a value above 1 does not let a
 run go on longer.
 
 ## CPU Parallelism
@@ -302,8 +302,8 @@ memory that the container cannot use. The check works as follows:
   float32; see [Data Type](#data-type).
 - Before each workload, the same check runs with the workload's context
   length, and a workload whose key-value cache does not fit is skipped.
-- If the Hugging Face metadata cannot be read, the model is skipped, unless
-  `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set.
+- If the Hugging Face metadata cannot be read and
+  `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is unset, the model is skipped.
 
 On CPUs, vLLM reuses its `--gpu-memory-utilization` option, despite the name,
 to set the fraction of the NUMA node's total memory that each worker reserves
@@ -339,8 +339,8 @@ needs on each GPU, without downloading the weights:
 A model that does not fit is skipped, and the run continues with the next one.
 Before each workload, the same check runs with the workload's context length,
 and a workload that does not fit is skipped. If the Hugging Face metadata
-cannot be read, the model is skipped, unless
-`BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is set.
+cannot be read and `BENCHMARK_VLLM_ALLOW_ESTIMATED_METADATA` is unset, the
+model is skipped.
 
 For example, on the `g5.16xlarge`, whose A10G GPU has 22 GiB of memory,
 `phi-4` and `llama-70b` were skipped for insufficient memory

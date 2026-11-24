@@ -79,8 +79,8 @@ In `bash` and other `sh`-compatible shells, the backslashes keep the host shell
 from expanding the `$` signs; the shell in the container evaluates them.
 The `nice -n -20` command needs `--privileged`. Without `--privileged`, remove
 `nice -n -20` from the command, and the loop runs at normal priority. The loop
-runs no network workload, so it does not need `--network host`, which
-production sets with its other Docker options.
+runs no network workload, so `--network host`, which production sets with its
+other Docker options, is optional.
 
 ### Production Setup
 

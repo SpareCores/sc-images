@@ -143,8 +143,8 @@ directions. Their `sum` and `bandwidth_description` cover only the last, total
 matrix.
 
 The 17 test cases between GPUs need P2P access between at least two GPUs.
-Without it, on a server with one GPU or with GPUs that cannot access each
-other, they report `"status": "Waived"` and have no matrix. In production,
+On a server with one GPU, or with GPUs that cannot access each other, they
+report `"status": "Waived"` and have no matrix. In production,
 16 of 27 runs with `nvbandwidth` v0.8 on servers with two to four GPUs waived
 all 17.
 

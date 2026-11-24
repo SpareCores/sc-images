@@ -10,9 +10,8 @@ docker run --rm ghcr.io/sparecores/benchmark-ffmpeg:main > results.json
 ```
 
 The four GPU scenarios are skipped with `skip_reason` `no_cuda_gpu_detected`.
-No environment variables are required, and the image needs no network access at
-run time: the test media is downloaded and checksum-verified when the image is
-built.
+The image needs no environment variables or network access at run time: the
+test media is downloaded and checksum-verified when the image is built.
 
 The `--version` option prints the versions of the harness
 ([`benchmark.py`](../benchmark.py)) and FFmpeg, and exits:

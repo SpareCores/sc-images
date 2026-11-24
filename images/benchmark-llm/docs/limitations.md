@@ -89,7 +89,8 @@ successful run. See
 timeouts.
 
 The Navigator shows "no data" for a missing score, because the cause is not
-recorded: the server can be too slow, or the run can have failed or not tried.
+recorded: the server can be too slow, the run can have failed, or the model
+can have been skipped.
 The Navigator's LLM workload profile includes a penalty when the smaller models
 have scores but the larger ones are missing, because then the larger models
 could not load or finish in time. For example, the

@@ -84,8 +84,7 @@ as root in `/`.
 
 This image is built for AMD64 and Arm64. Unlike the
 [benchmark images](../../README.md#benchmarks), it
-does not run the command under `resource-tracker`, so no resource usage is
-sampled.
+runs the command outside `resource-tracker`, so no resource usage is sampled.
 
 ### Production Setup
 

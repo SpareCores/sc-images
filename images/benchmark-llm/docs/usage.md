@@ -70,10 +70,10 @@ directory yourself.
 The `--download-timeout` option (default: 900s) limits the wait for each
 model. Once at least one download has finished, this benchmark also estimates
 from the average download speed whether the next model can finish downloading
-within that time. If a model would not finish, or has not finished when the
-wait ends, this benchmark stops the downloads and exits with code 0, skipping
-that model and all larger ones. The check runs only after all earlier models
-have been measured, so their results are complete.
+within that time. If a model would miss that limit, or is still downloading
+when the wait ends, this benchmark stops the downloads and exits with code 0,
+skipping that model and all larger ones. The check runs only after all
+earlier models have been measured, so their results are complete.
 
 On `SIGINT` or `SIGTERM`, this benchmark deletes the incomplete `.part` files
 and exits with code 128 plus the signal number.
