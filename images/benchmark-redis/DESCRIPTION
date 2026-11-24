@@ -1,1 +1,1 @@
-Measures Redis throughput and latency with memtier_benchmark.
+Measures Redis throughput and latency with memtier_benchmark, one server and client pair per CPU.
