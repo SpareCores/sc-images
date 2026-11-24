@@ -19,8 +19,12 @@ samples.
 
 ## Purpose
 
-Resource Tracker is a separate Spare Cores product, not part of
-[Spare Cores Navigator](https://docs.sparecores.com/overview). The Spare Cores
+[Resource Tracker](https://github.com/SpareCores/resource-tracker) is a
+separate Spare Cores product, not part of
+[Spare Cores Navigator](https://docs.sparecores.com/overview). This image
+carries its Rust implementation,
+[`resource-tracker-rs`](https://github.com/SpareCores/resource-tracker-rs).
+The Spare Cores
 team uses it to check that each Navigator benchmark uses the CPU or GPU cores
 as intended.
 
