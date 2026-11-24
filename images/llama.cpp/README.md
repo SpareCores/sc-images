@@ -5,14 +5,12 @@ source with CUDA (Compute Unified Device Architecture) for NVIDIA GPUs. It
 includes the server and the libraries of its build on NVIDIA's CUDA
 12.4.0 runtime image for Ubuntu 22.04. It is published for AMD64 and Arm64.
 
-This image reports no results: its container prints the log of `llama-server`
-and serves the llama.cpp HTTP API on port 8080. The
-[`benchmark-llm`](../benchmark-llm/README.md) benchmark runs the upstream
-llama.cpp images, not this one. It measures LLM inference speed with llama.cpp
-for [Spare Cores Navigator](https://docs.sparecores.com/overview). No other
-image in the
+This image runs a server, not a benchmark, so it produces no benchmark
+results. Its container prints the log of `llama-server` and serves the
+llama.cpp HTTP API on port 8080. No other image in the
 [`sc-images` repository](https://github.com/SpareCores/sc-images) builds on
-this image.
+this one: the [`benchmark-llm`](../benchmark-llm/README.md) benchmark runs
+the upstream llama.cpp images instead.
 
 ## Usage
 
