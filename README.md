@@ -74,7 +74,7 @@ read its output.
 | [`benchmark-llm`](images/benchmark-llm) | Measures low-concurrency LLM inference speed with llama.cpp on CPUs and NVIDIA GPUs. | [Docs](https://docs.sparecores.com/images/benchmark-llm/) |
 | [`benchmark-passmark`](images/benchmark-passmark) | Measures CPU and memory performance with PassMark PerformanceTest. | [Docs](https://docs.sparecores.com/images/benchmark-passmark/) |
 | [`benchmark-pgbench-postgres`](images/benchmark-pgbench-postgres) | PostgreSQL benchmark with pgbench that measures read-only transaction speed and latency on a local or remote server. | [Docs](https://docs.sparecores.com/images/benchmark-pgbench-postgres/) |
-| [`benchmark-redis`](images/benchmark-redis) | Measures Redis throughput and latency with memtier_benchmark. | [Docs](https://docs.sparecores.com/images/benchmark-redis/) |
+| [`benchmark-redis`](images/benchmark-redis) | Measures Redis throughput and latency with memtier_benchmark, one server and client pair per CPU. | [Docs](https://docs.sparecores.com/images/benchmark-redis/) |
 | [`benchmark-storage`](images/benchmark-storage) | Measures raw disk speed and latency with fio, for single disks and groups of identical disks. | [Docs](https://docs.sparecores.com/images/benchmark-storage/) |
 | [`benchmark-vllm-cpu`](images/benchmark-vllm-cpu) | Measures LLM serving speed and latency with vLLM on Arm64 CPUs and on AMD64 CPUs with AVX-512. | [Docs](https://docs.sparecores.com/images/benchmark-vllm-cpu/) |
 | [`benchmark-vllm-cpu-avx2`](images/benchmark-vllm-cpu-avx2) | Measures LLM serving speed and latency with vLLM on AMD64 CPUs with AVX2 but without AVX-512. | [Docs](https://docs.sparecores.com/images/benchmark-vllm-cpu-avx2/) |
