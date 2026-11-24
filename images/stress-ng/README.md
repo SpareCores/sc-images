@@ -25,8 +25,7 @@ hypervisor overhead. These stressors are meant to expose differences in
 virtualization overhead across providers.
 
 The Navigator's Inspector uses the scaling mode to determine a server type's
-SCore (Spare Cores score): its raw multi-core CPU speed, for comparing the
-speed of server types. See
+SCore (Spare Cores score). See
 [CPU Scaling Loop](./docs/workloads.md#cpu-scaling-loop).
 
 The [`stress-ng-longrun`](../stress-ng-longrun) image pins an older

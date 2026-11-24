@@ -4,8 +4,7 @@
 
 Each workload sends synthetic prompts of a fixed length and asks for a fixed
 number of output tokens. The harness starts `vllm serve` with a context
-length (`--max-model-len`), the most tokens that one request can hold, prompt
-and output together. Each workload gets a context length that fits it,
+length (`--max-model-len`). Each workload gets a context length that fits it,
 because a shorter one needs a smaller key-value cache:
 
 | Workload | Prompt tokens | Output tokens | Context length | Runs on |
