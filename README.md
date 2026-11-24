@@ -110,7 +110,7 @@ read its output.
 The following docs cover more than one image. Where a covered image has a main
 page of its own, that page describes only what differs:
 
-- The [vLLM benchmarks manual](vllm-common) in `vllm-common/`, which is not
+- The [vLLM family manual](vllm-common) in `vllm-common/`, which is not
   a published image, covers the vLLM family's benchmarks.
 - The `benchmark-pgbench-postgres` docs cover `benchmark-postgres-server`.
 - The `stress-ng` docs cover `stress-ng-longrun`.

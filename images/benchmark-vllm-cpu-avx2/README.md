@@ -7,7 +7,7 @@ these CPUs: it starts each default model with `vllm serve` on the CPU and
 sends synthetic requests to it with GuideLLM, from one request at a time up to
 peak load.
 
-The [vLLM benchmarks manual](../../vllm-common/README.md) describes the
+The [vLLM family manual](../../vllm-common/README.md) describes the
 methodology, settings, and output that all vLLM benchmarks share, and this
 page covers only what this image does differently.
 
