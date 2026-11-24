@@ -9,10 +9,10 @@ the upstream vLLM CPU
 [`Dockerfile`](https://github.com/vllm-project/vllm/blob/v0.27.1/docker/Dockerfile.cpu),
 so its container starts `vllm serve`.
 
-This image reports no results: its container prints only the log of
-`vllm serve`. The [vLLM benchmarks manual](../../vllm-common/README.md)
-describes how the benchmark built on this image measures LLM serving and how
-to read its results.
+This image runs a server, not a benchmark, so it produces no benchmark
+results. Its container prints only the log of `vllm serve`. The
+[vLLM family manual](../../vllm-common/README.md) describes how the benchmark
+built on this image measures LLM serving and how to read its results.
 
 ## Usage
 
