@@ -21,22 +21,24 @@ Docker:
 docker run --rm --gpus all -p 8080:8080 -v <models>:/models ghcr.io/sparecores/llama.cpp:main -m /models/<file>.gguf
 ```
 
-Replace `<models>` with the absolute path of the host folder that holds the
-model, and `<file>.gguf` with the file name of the model in that folder. The
-container entrypoint is `llama-server`, so arguments after the image name go
-to that server. `-m` is the `llama-server` option that sets the model file.
+The command has the following parts:
 
-`/models` is only an example mount point: the image defines no volume.
+- **`--gpus all`:** Needs a host with an NVIDIA GPU, the NVIDIA driver, and
+  the NVIDIA Container Toolkit. The [`Dockerfile`](./Dockerfile) notes that
+  its CUDA version needs to "generally match the container host's
+  environment", so check that the host's NVIDIA driver supports CUDA 12.4.
+- **`-v <models>:/models`:** Mounts the host folder that holds the model.
+  Replace `<models>` with its absolute path. `/models` is only an example
+  mount point: the image defines no volume.
+- **`-m /models/<file>.gguf`:** The `llama-server` option that sets the model
+  file. Replace `<file>.gguf` with the file name of the model. The container
+  entrypoint is `llama-server`, so the arguments after the image name go to
+  that server.
 
 The build enables the llama.cpp support for loading models from a URL
 (`LLAMA_CURL=ON`), so `llama-server` can also download a model instead of
 reading a mounted file, with its `--model-url` or `--hf-repo` option; see the
 [llama.cpp server documentation](https://github.com/ggml-org/llama.cpp/tree/master/tools/server#common-params).
-
-The `--gpus all` option needs a host with an NVIDIA GPU, the NVIDIA driver,
-and the NVIDIA Container Toolkit. The [`Dockerfile`](./Dockerfile) notes that
-its CUDA version needs to "generally match the container host's environment",
-so check that the host's NVIDIA driver supports CUDA 12.4.
 
 To check from the host that the server responds:
 
