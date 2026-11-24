@@ -67,9 +67,8 @@ repository, download the binary from the
 instead.
 
 The releases publish `linux-amd64` and `linux-arm64` archives, and the
-project's
-[documentation](https://github.com/SpareCores/resource-tracker-rs#readme)
-describes its command-line options.
+[CLI flags](https://sparecores.github.io/resource-tracker-rs/Usage.html#cli-flags)
+section of the project's Usage Guide describes its command-line options.
 
 ## Build
 
