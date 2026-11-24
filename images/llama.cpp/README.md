@@ -99,10 +99,10 @@ CI builds with the default
 CMake, and the llama.cpp build files choose which NVIDIA GPU generations to
 compile for.
 
-The published image has the shared libraries of the build and the
-`llama-server` binary on `nvidia/cuda:12.4.0-runtime-ubuntu22.04`, plus
-`curl` for the health check. The image sets no user, so `llama-server` runs
-as root.
+The published image is based on `nvidia/cuda:12.4.0-runtime-ubuntu22.04`
+and contains the `llama-server` binary, the shared libraries of the build,
+and `curl` for the health check. The image sets no user, so `llama-server`
+runs as root.
 
 The `Dockerfile` also defines a `full` stage with all llama.cpp tools and
 Python scripts, and a `light` stage with `llama-cli` only. CI builds the last
