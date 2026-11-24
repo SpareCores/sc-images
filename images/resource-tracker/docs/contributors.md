@@ -148,11 +148,20 @@ The defaults differ by trigger:
 
 ### Tags
 
-The build pushes `ghcr.io/sparecores/resource-tracker:main-amd64` and
-`main-arm64`, and a merge job then creates the multi-architecture `main` tag
-from them. The merge job runs even when a build fails. When either tag is
-missing, it leaves the `main` tag unchanged and prints
-`Skipping <tag>: missing <ref>`. The merge job also makes the package public.
+Each architecture's build pushes its own tag of
+`ghcr.io/sparecores/resource-tracker`, `main-amd64` or `main-arm64`. A merge
+job then combines the two into the multi-architecture `main` tag, from which
+`docker pull` takes the image of the host's architecture.
+
+The merge job runs even when a build fails, and combines the two tags as they
+are in the registry at that point. A failed build leaves its tag from the
+previous run in place, so after a version change `main` can pair the new
+binary for one architecture with the old binary for the other. The merge job
+skips `main` and prints `Skipping <tag>: missing <ref>` only when a tag has
+never been pushed.
+
+The merge job also makes the package public on GHCR, so pulling the image
+needs no login.
 
 The image labels give the title, the description from
 [`DESCRIPTION`](../DESCRIPTION), the documentation URL, and the category
