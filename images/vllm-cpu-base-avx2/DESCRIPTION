@@ -1,1 +1,1 @@
-vLLM build for AMD64 CPUs with AVX2 but without AVX-512, used as the base of benchmark-vllm-cpu-avx2.
+Provides a vLLM build for AMD64 CPUs with AVX2 but without AVX-512, for benchmark-vllm-cpu-avx2 to use as a base.

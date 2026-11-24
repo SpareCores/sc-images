@@ -104,7 +104,7 @@ read its output.
 | Image | Description | Docs |
 | ----- | ----------- | ---- |
 | [`llama.cpp`](images/llama.cpp) | Runs llama.cpp's server on NVIDIA GPUs, built from source. | [Docs](https://docs.sparecores.com/images/llama.cpp/) |
-| [`resource-tracker`](images/resource-tracker) | Provides the Resource Tracker binary for other images to copy and run under their workloads. | [Docs](https://docs.sparecores.com/images/resource-tracker/) |
+| [`resource-tracker`](images/resource-tracker) | Provides the Resource Tracker binary, which other images copy and run their workloads under. | [Docs](https://docs.sparecores.com/images/resource-tracker/) |
 | [`vllm-cpu-base-avx2`](images/vllm-cpu-base-avx2) | Provides a vLLM build for AMD64 CPUs with AVX2 but without AVX-512, for benchmark-vllm-cpu-avx2 to use as a base. | [Docs](https://docs.sparecores.com/images/vllm-cpu-base-avx2/) |
 
 The following docs cover more than one image. Where a covered image has a main

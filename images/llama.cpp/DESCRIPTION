@@ -1,1 +1,1 @@
-The llama.cpp server for running LLMs on NVIDIA GPUs, built from source.
+Runs llama.cpp's server on NVIDIA GPUs, built from source.
