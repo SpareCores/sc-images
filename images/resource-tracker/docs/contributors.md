@@ -139,9 +139,12 @@ The `force_rebuild_resource_tracker` option of a
 image and all consumers with `--no-cache`, without importing or exporting the
 layer cache.
 
-The variable is `"false"`, so pushes use the cache. The option of a manual run
-is on by default, so a manual run rebuilds all consumers without cache unless
-it is turned off.
+The defaults differ by trigger:
+
+- **Push:** `FORCE_REBUILD_RESOURCE_TRACKER` is `"false"`, so CI uses the
+  layer cache.
+- **Manual run:** `force_rebuild_resource_tracker` is on, so CI rebuilds this
+  image and all consumers without cache. Turn it off to use the cache.
 
 ### Tags
 
