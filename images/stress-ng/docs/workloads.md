@@ -75,7 +75,7 @@ Multiple Data) vector operations:
 | [`vecshuf`](https://manpages.debian.org/testing/stress-ng/stress-ng.1.en.html#vecshuf) | Shuffles and repacks the elements of vectors |
 | [`vecwide`](https://manpages.debian.org/testing/stress-ng/stress-ng.1.en.html#vecwide) | Runs 8-bit math on vectors of 4 to 2,048 bytes, showing how well the compiler vectorizes it |
 | [`monte-carlo`](https://manpages.debian.org/testing/stress-ng/stress-ng.1.en.html#monte) | Estimates pi and e with Monte Carlo experiments |
-| [`mpfr`](https://manpages.debian.org/testing/stress-ng/stress-ng.1.en.html#mpfr) | Runs multi-precision floating-point math with a GNU library |
+| [`mpfr`](https://manpages.debian.org/testing/stress-ng/stress-ng.1.en.html#mpfr) | Runs multi-precision floating-point math with the GNU (GNU's Not Unix!) MPFR library |
 | [`expmath`](https://manpages.debian.org/testing/stress-ng/stress-ng.1.en.html#expmath) | Computes exponential functions |
 | [`logmath`](https://manpages.debian.org/testing/stress-ng/stress-ng.1.en.html#logmath) | Computes logarithms |
 | [`powmath`](https://manpages.debian.org/testing/stress-ng/stress-ng.1.en.html#powmath) | Computes power functions |
