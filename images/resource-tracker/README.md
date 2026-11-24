@@ -6,8 +6,9 @@ nothing else. [Other images](./docs/contributors.md#consumers) of the
 [`sc-images` repository](https://github.com/SpareCores/sc-images) copy the
 binary from this image and run their workload under it.
 
-Resource Tracker samples the workload's CPU, memory, disk, network, GPU, and
-GPU memory use once per second. This image measures nothing itself.
+The `resource-tracker` binary samples the workload's CPU, memory, disk,
+network, GPU, and GPU memory use once per second. This image measures nothing
+by itself.
 
 Other images copy the binary from this image and run their workloads under it.
 This image prints nothing. In production, Resource Tracker
