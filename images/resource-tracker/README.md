@@ -10,7 +10,6 @@ The `resource-tracker` binary samples the workload's CPU, memory, disk,
 network, GPU, and GPU memory use once per second. This image measures nothing
 by itself.
 
-Other images copy the binary from this image and run their workloads under it.
 This image prints nothing. In production, Resource Tracker
 [streams the samples](https://sparecores.com/article/resource-tracker-rs#streaming-to-sentinel)
 to the [Spare Cores Sentinel](https://sentinel.sparecores.com/) platform for

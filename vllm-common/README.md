@@ -2,9 +2,9 @@
 
 The vLLM benchmarks measure how fast CPUs and NVIDIA GPUs serve LLMs to many
 concurrent requests. Each run starts the default models with vLLM
-(`vllm serve`), from the smallest to the largest, and sends synthetic
-requests to each over HTTP with GuideLLM, from one request at a time up to
-peak load. Three images run the same [harness](./benchmark.py), each on its
+(`vllm serve`), from the smallest to the largest. GuideLLM sends synthetic
+requests to each over HTTP, from one request at a time up to peak load.
+Three images run the same [harness](./benchmark.py), each on its
 own hardware.
 
 The vLLM benchmarks write one JSON line per model, workload, load stage,
@@ -46,9 +46,9 @@ them:
 - [`benchmark-vllm-cpu-avx2`](../images/benchmark-vllm-cpu-avx2/README.md):
   AMD64 CPUs with AVX2 (Advanced Vector Extensions 2) but without AVX-512
 
-Each image's own page covers what only that image does: its base image, its
-hardware check, and its run command. This manual covers the rest, with CPU
-and GPU sections where the two differ.
+Each image's own page covers what differs: its base image, hardware check, and
+run command. This manual covers the shared methodology, with CPU and GPU
+sections where they differ.
 
 ## Limitations
 

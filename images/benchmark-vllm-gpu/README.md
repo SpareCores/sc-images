@@ -65,10 +65,10 @@ later, such as the NVIDIA A10G or L40S, but not the older T4G. If every
 visible GPU is below 8.0, it logs an error and exits with code 1. A GPU whose
 compute capability cannot be read is allowed.
 
-If no GPU is visible, for example when `--gpus` is missing, the check passes,
-but every model fails the
-[GPU memory check](../../vllm-common/docs/workloads.md#gpu-memory-fit). This
-benchmark then logs each model as skipped for insufficient memory and exits
+If no GPU is visible (for example, when `--gpus` is missing), the check
+passes. Every model then fails the
+[GPU memory check](../../vllm-common/docs/workloads.md#gpu-memory-fit), so
+this benchmark logs each model as skipped for insufficient memory and exits
 with code 1.
 
 ### Results

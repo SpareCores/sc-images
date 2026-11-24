@@ -38,8 +38,8 @@ on CPUs. Note the following limitations of this image in addition:
 
 - **[No CPU Feature Check](#requirements-and-versions):** This image skips the
   harness's AVX-512 check and does not check for AVX2 either. Production tries
-  it on every AMD64 server type where the two vLLM images before it in the
-  probe order fail their probe, without checking the CPU flags first. See also
+  this image on every AMD64 server type where the two earlier vLLM images
+  fail their probes, without checking the CPU flags first. See also
   [Production Setup](#production-setup).
 - **[Data Type and Memory](#data-type):** On CPUs without AVX-512, the models
   run in float32 by default. The memory check counts the weights of a

@@ -21,7 +21,7 @@ Docker:
 docker run --rm --gpus all -p 8080:8080 -v <models>:/models ghcr.io/sparecores/llama.cpp:main -m /models/<file>.gguf
 ```
 
-The command has the following parts:
+The command uses the following options:
 
 - **`--gpus all`:** Needs a host with an NVIDIA GPU, the NVIDIA driver, and
   the NVIDIA Container Toolkit. The [`Dockerfile`](./Dockerfile) notes that
