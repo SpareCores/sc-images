@@ -52,28 +52,27 @@ as the health status of the container.
 
 ### Settings
 
-The `Dockerfile` sets one environment variable, `LLAMA_ARG_HOST=0.0.0.0`, so
-that `llama-server` listens on all interfaces of the container, and `-p` can
-publish its port. The image does not declare the port with `EXPOSE`. All other
-settings are the options of `llama-server`, given after the image name or as
-`LLAMA_ARG_*` environment variables with `-e`. See the
+The settings are the options of `llama-server`, given after the image name or
+as `LLAMA_ARG_*` environment variables with `-e`. The
 [llama.cpp server documentation](https://github.com/ggml-org/llama.cpp/tree/master/tools/server)
-for the options and their defaults.
+lists the options and their defaults. The image sets or depends on the
+following:
 
-The image sets no API key, so the API accepts requests from any client that
-reaches the published port. To require a key, pass the `--api-key` option of
-`llama-server` or set `LLAMA_API_KEY`.
+- **Host:** The `Dockerfile` sets `LLAMA_ARG_HOST=0.0.0.0`, so `llama-server`
+  listens on all interfaces of the container, and `-p` can publish its port.
+  Binding the server to another address than `0.0.0.0` or the loopback
+  address makes the health check fail.
+- **Port:** The server listens on port 8080, which the image does not declare
+  with `EXPOSE`. The health check always requests port 8080 on `localhost`,
+  so moving the server with `--port` or `LLAMA_ARG_PORT` makes it fail. To use
+  another port on the host, change only the host side of `-p`, such as
+  `-p 9000:8080`.
+- **API key:** The image sets none, so the API accepts requests from any
+  client that reaches the published port. To require a key, pass the
+  `--api-key` option of `llama-server` or set `LLAMA_API_KEY`.
 
-The health check always requests port 8080 on `localhost`. Docker marks the
-container `unhealthy`, while the server keeps running, in the following cases:
-
-- `--port` or `LLAMA_ARG_PORT` moves the server to another port.
-- `LLAMA_ARG_HOST` binds the server to an address other than `0.0.0.0` or the
-  loopback address.
-
-To use another port on the host, change only the host side of `-p`, such as
-`-p 9000:8080`: the container port stays 8080, so the health check keeps
-working.
+When the health check fails, Docker marks the container `unhealthy`, while the
+server keeps running.
 
 ### Output
 
