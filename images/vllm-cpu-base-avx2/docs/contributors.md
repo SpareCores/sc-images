@@ -173,12 +173,11 @@ does not exist yet, the build skips its import and still runs; see Docker's
 [registry cache](https://docs.docker.com/build/cache/backends/registry/)
 docs.
 
-The `force_rebuild_resource_tracker` input of the manual workflow run
-([`.github/workflows/push.yml:12-15`](../../../.github/workflows/push.yml#L12-L15))
-does not affect this image. This image does not depend on `resource-tracker`,
-so its layer cache stays on. The input rebuilds `benchmark-vllm-cpu-avx2`
-without cache, because that image does depend on `resource-tracker`. The
-input is off on pushes, and on by default in a manual run.
+A [force rebuild](../../resource-tracker/docs/contributors.md#force-rebuild)
+of the `resource-tracker` consumers, the default in a manual run, keeps this
+image's layer cache, because this image does not depend on `resource-tracker`.
+It rebuilds [`benchmark-vllm-cpu-avx2`](../../benchmark-vllm-cpu-avx2/README.md)
+without cache, because that image does.
 
 ## Compiler Cache
 
