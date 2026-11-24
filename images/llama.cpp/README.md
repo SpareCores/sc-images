@@ -3,7 +3,9 @@
 This image runs `llama-server`, the HTTP server of llama.cpp, built from
 source with CUDA (Compute Unified Device Architecture) for NVIDIA GPUs. It
 includes the server and the libraries of its build on NVIDIA's CUDA
-12.4.0 runtime image for Ubuntu 22.04. It is published for AMD64 and Arm64.
+12.4.0 runtime image for Ubuntu 22.04. It is published for AMD64 and Arm64:
+the upstream llama.cpp CUDA images were built only for AMD64 when this image
+was created, so it clones their build to add Arm64.
 
 This image runs a server, not a benchmark, so it produces no benchmark
 results. Its container prints the log of `llama-server` and serves the
