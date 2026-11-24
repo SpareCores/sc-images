@@ -53,9 +53,9 @@ limitations are the following:
 - **[Number of Test Processes](./docs/usage.md#results):** PassMark chooses
   how many test processes to run; this benchmark does not set it. On
   `aws/a1.2xlarge` (8 vCPUs), PassMark ran eight processes.
-- **Exit Status:** The exit status is that of printing the results file, not
+- **Exit Code:** The exit code is that of printing the results file, not
   of PassMark. A run that writes no results file exits with an error, but a
-  failed PassMark run that still writes the file exits with status 0.
+  failed PassMark run that still writes the file exits with code 0.
 
 ## Usage
 

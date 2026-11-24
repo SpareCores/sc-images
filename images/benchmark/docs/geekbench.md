@@ -48,7 +48,7 @@ The script edits `/etc/hosts`, installs a certificate, and binds port 443, so
 it must run as root, the image's default user. With host networking, as in
 production, port 443 on the host's loopback interface must be free.
 
-The script's exit status is that of the `egrep` filter on Geekbench's stdout,
+The script's exit code is that of the `egrep` filter on Geekbench's stdout,
 not Geekbench's own. To confirm that a run produced results, check stderr for
 the `GEEKBENCH_UPLOAD_DOCUMENT` block.
 

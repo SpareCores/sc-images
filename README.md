@@ -27,9 +27,9 @@ For example, run `benchmark` with a script such as `openssl.sh`. The
 Other images need extra parameters, such as environment variables or Docker
 options. See the production commands and parameters in
 [`inspector/tasks.py`](https://github.com/SpareCores/sc-inspector/blob/main/inspector/tasks.py)
-in the `sc-inspector` repository. Each image's main page lists its settings,
-output, and any additional Docker options. For images without docs, see the
-image's `Dockerfile`.
+in the `sc-inspector` repository. Where an image has docs, its main page
+lists its settings, its output, and any extra Docker options it needs;
+otherwise, see its `Dockerfile`.
 
 Some images need the following extra Docker options:
 
