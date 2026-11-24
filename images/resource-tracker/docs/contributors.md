@@ -101,14 +101,23 @@ depends on it, directly or through other images. Consumers always build with
 The following images depend on it directly, by listing `resource-tracker` in
 their `DEPENDS_ON` file, grouped by the manual that covers them:
 
-- **Own Docs:** `benchmark`, `benchmark-ffmpeg`, `benchmark-llm`,
-  `benchmark-passmark`, `benchmark-redis`, `benchmark-storage`,
-  `benchmark-web`, `nvbandwidth`
-- **[vLLM](../../../vllm-common/README.md):** `benchmark-vllm-cpu`,
-  `benchmark-vllm-cpu-avx2`, `benchmark-vllm-gpu`
-- **[PostgreSQL](../../benchmark-pgbench-postgres/README.md):**
-  `benchmark-pgbench-postgres`, `benchmark-postgres-server`
-- **[stress-ng](../../stress-ng/README.md):** `stress-ng`, `stress-ng-longrun`
+- **Standalone:** [`benchmark`](../../benchmark/README.md),
+  [`benchmark-ffmpeg`](../../benchmark-ffmpeg/README.md),
+  [`benchmark-llm`](../../benchmark-llm/README.md),
+  [`benchmark-passmark`](../../benchmark-passmark/README.md),
+  [`benchmark-redis`](../../benchmark-redis/README.md),
+  [`benchmark-storage`](../../benchmark-storage/README.md),
+  [`benchmark-web`](../../benchmark-web/README.md),
+  [`nvbandwidth`](../../nvbandwidth/README.md)
+- **[vLLM](../../../vllm-common/README.md):**
+  [`benchmark-vllm-cpu`](../../benchmark-vllm-cpu/README.md),
+  [`benchmark-vllm-cpu-avx2`](../../benchmark-vllm-cpu-avx2/README.md),
+  [`benchmark-vllm-gpu`](../../benchmark-vllm-gpu/README.md)
+- **PostgreSQL:**
+  [`benchmark-pgbench-postgres`](../../benchmark-pgbench-postgres/README.md),
+  [`benchmark-postgres-server`](../../benchmark-postgres-server/README.md)
+- **stress-ng:** [`stress-ng`](../../stress-ng/README.md),
+  [`stress-ng-longrun`](../../stress-ng-longrun/README.md)
 
 Each of these images declares the following build argument in its
 `Dockerfile`, and copies the binary from the image it names:
