@@ -92,8 +92,8 @@ The hook runs
 [`compute-build-parallelism.sh`](../../../.github/scripts/compute-build-parallelism.sh)
 with the `vllm-cpu` profile. `VLLM_CPU_COMPILE_GIB_PER_SLOT` is the memory of
 one compile job in GiB (default: 6). `MemTotal` is the physical RAM, and
-`effective_GiB` is `MemTotal` plus 50% of the swap, rounded to the nearest
-GiB. The script sizes the build as follows:
+`effective_GiB` is `MemTotal` + (swap × 0.5), rounded to the nearest GiB.
+The script sizes the build as follows:
 
 - `MAX_JOBS` = min((32 × `effective_GiB`) / 64, `nproc`,
   `MemTotal` / `VLLM_CPU_COMPILE_GIB_PER_SLOT`, 32)

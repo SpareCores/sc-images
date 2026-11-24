@@ -77,8 +77,8 @@ per setting after the image name.
 
 The benchmark drops the concurrency points above the server's
 `max_connections` minus 50. Its highest default point is twice the vCPU
-count, so set `max_connections` to at least twice the vCPU count plus 50 to
-keep all points.
+count, so set `max_connections` to at least (2 × vCPU count) + 50 to keep all
+points.
 
 PostgreSQL's default `max_connections` of 100 leaves room for 50 clients. The
 benchmark therefore drops every point above 50: the highest point on servers

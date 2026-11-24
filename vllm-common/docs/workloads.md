@@ -232,9 +232,9 @@ cores as follows:
   follows:
   - At least one replica per NUMA node when the tensor-parallel size is below
     the NUMA node count.
-  - On every host, more replicas if the physical core count, divided by the
-    tensor-parallel size and by the cores per worker for the model size (see
-    the table below), gives more.
+  - On every host, more replicas if physical core count / (tensor-parallel
+    size × cores per worker for the model size) gives more; see the table
+    below.
   - At most 32 replicas, and only as many as fit in the memory of each NUMA
     node.
 - **Thread binding:** The harness sets `VLLM_CPU_OMP_THREADS_BIND` to an
@@ -327,8 +327,7 @@ needs on each GPU, without downloading the weights:
   count, attention and key-value heads, hidden size, and data type from the
   model's `config.json`.
 - Each GPU needs the following, added together:
-  - the weight size plus 10%, divided by the tensor-parallel size times the
-    pipeline-parallel size
+  - (weight size × 1.1) / (tensor-parallel size × pipeline-parallel size)
   - the key-value cache of one sequence of the full context length, rounded
     up to blocks of 16 tokens
   - 0.5 GiB

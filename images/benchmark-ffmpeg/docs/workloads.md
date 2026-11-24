@@ -108,8 +108,8 @@ the following steps:
 3. It records each worker's exit time and exit code. The wall time is the time
    from the release to the last exit, so process startup and teardown are
    included.
-4. It computes the rate: successful workers × media length per worker, divided
-   by the wall time. For video, the media length is converted to frames with
+4. It computes the rate: (successful workers × media length per worker) /
+   wall time. For video, the media length is converted to frames with
    the clip's frame rate.
 
 The harness never adds up the speed that each `ffmpeg` process reports for

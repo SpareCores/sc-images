@@ -116,9 +116,8 @@ pipeline 1 to 685,686 at pipeline 512, while `latency` rises from 1.43 ms to
 The Navigator publishes the following three scores for each pipeline depth:
 
 - **Redis server+client speed:** `rps` in operations per second.
-- **Redis server (extrapolated) speed:** `rps` multiplied by the ratio of all
-  CPU time (servers and clients) to the servers' CPU time in operations per
-  second.
+- **Redis server (extrapolated) speed:** `rps` × (CPU time of servers and
+  clients / CPU time of servers), in operations per second.
 - **Redis latency:** `latency` in milliseconds; lower is better.
 
 Each score carries a note with the server and client CPU seconds. Production

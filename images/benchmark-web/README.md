@@ -155,8 +155,8 @@ highest `rps`, whatever its thread count, and publishes the following five
 scores from it:
 
 - **`static_web:rps`:** `rps` in requests per second.
-- **`static_web:rps-extrapolated`:** `rps` multiplied by the ratio of all CPU
-  time (server and client) to the server's CPU time in requests per second.
+- **`static_web:rps-extrapolated`:** `rps` × (CPU time of server and client /
+  CPU time of server), in requests per second.
 - **`static_web:throughput` and `static_web:throughput-extrapolated`:** the
   two scores above multiplied by the file size in bytes per second.
 - **`static_web:latency`:** `latency` of the same row in seconds; lower is

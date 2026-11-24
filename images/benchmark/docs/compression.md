@@ -47,8 +47,7 @@ follows:
    independently. The processes wait for a shared start signal, sent after
    1 second.
 3. Takes the mean of the per-process times as the elapsed time, and computes
-   throughput as the input size times the thread count, divided by the elapsed
-   time.
+   throughput as (input size × thread count) / elapsed time.
 4. Repeats steps 2 and 3 once more and keeps the faster run.
 5. Measures decompression the same way.
 
