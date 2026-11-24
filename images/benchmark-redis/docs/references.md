@@ -1,9 +1,9 @@
-# References
+# Glossary
 
 Terms specific to this image, alphabetized. Common terms (e.g. Redis, `nice`,
 `resource-tracker`) are defined in the
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs, which
-also lists the terms each image uses.
+[Spare Cores Glossary](https://docs.sparecores.com/glossary), which also lists
+the terms each image uses.
 
 - **Redis pipelining**: A technique in which a client sends several Redis
   commands without waiting for the reply to each one, then reads all replies

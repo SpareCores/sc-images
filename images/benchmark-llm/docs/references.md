@@ -1,9 +1,9 @@
-# References
+# Glossary
 
 Terms specific to this image, alphabetized. Common terms, such as CUDA (Compute
 Unified Device Architecture) and GGUF (GGML Universal File), are defined in the
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs, which
-also lists the terms each image uses.
+[Spare Cores Glossary](https://docs.sparecores.com/glossary), which also lists
+the terms each image uses.
 
 - **`-b`**: The llama.cpp option that sets the logical batch size: the maximum
   number of prompt tokens passed to the model in one call. Each logical batch

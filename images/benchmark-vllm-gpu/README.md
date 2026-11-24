@@ -89,9 +89,9 @@ settings of production runs on GPU server types.
 ## References
 
 The terms of the vLLM benchmarks, such as `--max-model-len`, are defined in
-their [references](../../vllm-common/docs/references.md).
+their [Glossary](../../vllm-common/docs/references.md).
 Common terms, such as GuideLLM, CUDA, and tensor parallelism, are defined in
-the [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs.
-To change or rebuild this image, see the
+the [Spare Cores Glossary](https://docs.sparecores.com/glossary). To change
+or rebuild this image, see the
 [contributor guide](../../vllm-common/docs/contributors.md) of the vLLM
 benchmarks.

@@ -127,5 +127,8 @@ directory.
 
 ## References
 
-See [References](./docs/references.md) for the terms specific to this image.
+This image's [Glossary](./docs/references.md) defines its own terms.
+
+## Contributing
+
 See the [contributor guide](./docs/contributors.md) for building the image.

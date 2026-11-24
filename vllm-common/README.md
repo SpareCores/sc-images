@@ -247,8 +247,11 @@ both changes.
 ## References
 
 The terms of the vLLM benchmarks, such as `--max-model-len`, are defined in
-the [References](./docs/references.md).
+this manual's [Glossary](./docs/references.md).
 Common terms, such as GuideLLM, TTFT, and tensor parallelism, are defined in
-the [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs.
+the [Spare Cores Glossary](https://docs.sparecores.com/glossary).
+
+## Contributing
+
 To change or rebuild the vLLM images, see the
 [contributor guide](./docs/contributors.md).

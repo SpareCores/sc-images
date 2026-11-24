@@ -1,9 +1,9 @@
-# References
+# Glossary
 
 Terms specific to this image, alphabetized. Common terms (e.g. PassMark, `nice`,
 `resource-tracker`, YAML) are defined in the
-[glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs, which
-also lists the terms each image uses.
+[Spare Cores Glossary](https://docs.sparecores.com/glossary), which also lists
+the terms each image uses.
 
 - **Kops/s** (Thousand Operations/s): The throughput unit of the PassMark
   database operations test: thousands of operations per second, where higher is

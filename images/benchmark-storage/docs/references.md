@@ -1,8 +1,9 @@
-# References
+# Glossary
 
 Terms specific to this image, alphabetized. Common terms (e.g. GCP, I/O, IOPS,
-PID) are defined in the [glossary](https://docs.sparecores.com/glossary) of the
-Spare Cores docs, which also lists the terms each image uses.
+PID) are defined in the
+[Spare Cores Glossary](https://docs.sparecores.com/glossary), which also
+lists the terms each image uses.
 
 - **`fio`**: The Flexible I/O Tester, an open-source storage benchmark and I/O
   workload generator. Each job describes an access pattern, such as random or

@@ -197,6 +197,9 @@ article for the methodology and results in more detail.
 
 ## References
 
-See the full list of [references](./docs/references.md) used in this
-documentation. To change or rebuild this image, see the
+This image's [Glossary](./docs/references.md) defines its own terms.
+
+## Contributing
+
+To change or rebuild this image, see the
 [contributor guide](./docs/contributors.md).

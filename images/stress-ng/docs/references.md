@@ -1,8 +1,9 @@
-# References
+# Glossary
 
 Terms specific to this image, alphabetized. Common terms (e.g. SCore, SIMD,
-vCPU) are defined in the [glossary](https://docs.sparecores.com/glossary) of
-the Spare Cores docs, which also lists the terms each image uses.
+vCPU) are defined in the
+[Spare Cores Glossary](https://docs.sparecores.com/glossary), which also
+lists the terms each image uses.
 
 - **stress-ng bogo ops/s** (bogus operations per second): The throughput
   metric of `stress-ng`: how many times a stressor completes its own unit of

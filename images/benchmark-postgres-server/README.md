@@ -126,8 +126,8 @@ The image differs from the upstream `postgres:18` image in the following ways:
 
 The terms on this page are defined in the following places:
 
-- The [references](../benchmark-pgbench-postgres/docs/references.md) of the
+- The [Glossary](../benchmark-pgbench-postgres/docs/references.md) of the
   [PostgreSQL (pgbench) manual](../benchmark-pgbench-postgres/README.md)
-  define the terms of the benchmark, such as concurrency points.
-- The [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs
-  defines common terms, such as `nice` and `resource-tracker`.
+  defines the terms of the benchmark, such as concurrency points.
+- The [Spare Cores Glossary](https://docs.sparecores.com/glossary) defines
+  common terms, such as `nice` and `resource-tracker`.

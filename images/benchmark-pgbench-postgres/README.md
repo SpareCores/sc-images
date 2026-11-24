@@ -186,5 +186,4 @@ calibration details.
 
 ## References
 
-See the full list of [references](./docs/references.md) used in this
-documentation.
+This image's [Glossary](./docs/references.md) defines its own terms.

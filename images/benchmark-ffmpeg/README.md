@@ -166,6 +166,9 @@ study.
 
 ## References
 
-See the full list of [references](./docs/references.md) used in this
-documentation. To change, rebuild, or test this image, see the
+This image's [Glossary](./docs/references.md) defines its own terms.
+
+## Contributing
+
+To change, rebuild, or test this image, see the
 [contributor guide](./docs/contributors.md).

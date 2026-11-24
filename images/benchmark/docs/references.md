@@ -1,8 +1,9 @@
-# References
+# Glossary
 
 Terms specific to this image, alphabetized. Common terms (e.g. HTTPS, PyPI,
-SMT, zstd) are defined in the [glossary](https://docs.sparecores.com/glossary)
-of the Spare Cores docs, which also lists the terms each image uses.
+SMT, zstd) are defined in the
+[Spare Cores Glossary](https://docs.sparecores.com/glossary), which also
+lists the terms each image uses.
 
 - **Geekbench Browser**: The online database of Geekbench results run by
   Primate Labs. The free version of Geekbench uploads every result there, where

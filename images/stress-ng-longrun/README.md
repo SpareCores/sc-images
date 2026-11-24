@@ -187,10 +187,10 @@ that new runs stay comparable with them. We do not plan to update it.
 
 The terms on this page are defined in the following places:
 
-- The [references](../stress-ng/docs/references.md) of the
-  [stress-ng manual](../stress-ng/README.md) define the terms of `stress-ng`,
+- The [Glossary](../stress-ng/docs/references.md) of the
+  [stress-ng manual](../stress-ng/README.md) defines the terms of `stress-ng`,
   such as stress-ng bogo ops/s.
-- The [references](./docs/references.md) of this image define the
-  stress-ng YAML report and stress-ng bogo ops/s (real time).
-- The [glossary](https://docs.sparecores.com/glossary) of the Spare Cores docs
-  defines common terms, such as CPU-credit throttling and shared-core.
+- This image's [Glossary](./docs/references.md) defines the stress-ng YAML
+  report and stress-ng bogo ops/s (real time).
+- The [Spare Cores Glossary](https://docs.sparecores.com/glossary) defines
+  common terms, such as CPU-credit throttling and shared-core.
