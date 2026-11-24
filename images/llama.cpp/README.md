@@ -84,8 +84,17 @@ llama.cpp responses, such as the generated text from
 
 The [`Dockerfile`](./Dockerfile) clones the
 [llama.cpp repository](https://github.com/ggml-org/llama.cpp) and builds it
-with CMake on `nvidia/cuda:12.4.0-devel-ubuntu22.04`, with the CUDA backend
-(`GGML_CUDA=ON`) and `LLAMA_CURL=ON`. CI builds with the default
+with CMake on `nvidia/cuda:12.4.0-devel-ubuntu22.04`, with the following
+options:
+
+- `GGML_CUDA=ON` builds the CUDA backend, which runs the model on NVIDIA GPUs.
+- `LLAMA_CURL=ON` builds the support for loading a model from a URL,
+  described in [Usage](#usage).
+- `GGML_NATIVE=OFF` does not tune the CPU code for the processor of the
+  build machine, so the binaries also run on other CPUs of the same
+  architecture.
+
+CI builds with the default
 `CUDA_DOCKER_ARCH`, so the build passes no list of CUDA architectures to
 CMake, and the llama.cpp build files choose which NVIDIA GPU generations to
 compile for.
