@@ -8,8 +8,10 @@ servers, and the [docs site](https://docs.sparecores.com/images) publishes their
 ## Repository Layout
 
 - Each image is a folder under `images/`. CI builds every folder that has a `Dockerfile`
-  or `prepare.sh`, and publishes it as `ghcr.io/sparecores/<folder>:main`. There are no
-  versioned tags.
+  or `prepare.sh`, and publishes it as `ghcr.io/sparecores/<folder>:main`, plus the
+  per-arch tags `main-amd64` and `main-arm64` that dependent images build from (e.g.
+  `resource-tracker:main-<arch>`); see [CI and Build Internals](docs/ci.md). There are
+  no versioned tags.
 - Shared manuals that cover a family of images, and are not images themselves, live in
   top-level `<family>-common/` folders (e.g. `vllm-common/`).
 - `docs/` holds the pages for maintainers: [Adding an Image](docs/contributors.md) and

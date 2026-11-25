@@ -14,9 +14,9 @@ measure, and when results changed.
   or GPU support; fixes that change results or make a benchmark run where it failed.
 - Skip docs, glossary, CI, build and caching changes, refactors without an effect on the
   image's output, and the `internal` images.
-- Describe the net change of a batch of related work, not each commit: when an image is
-  reworked over many commits or weeks, write one entry for the settled result, in the
-  month it settled.
+- Describe the net change of a PR, not each of its commits. A later PR that changes
+  something already merged adds its own entry in its own month; earlier entries stay
+  as they are.
 - Months are listed newest first. Skip a month with no entries.
 
 ## Subsections
@@ -27,9 +27,11 @@ measure, and when results changed.
   - `Breaking changes:`
   - `Improvements:`
   - `Fixes:`
-- A breaking change is a removed or renamed image, a changed output format or schema,
-  a dropped architecture, or a change that makes results incomparable with earlier runs
-  (e.g. a new workload version or scoring method).
+- A breaking change is a removed or renamed image; a removed or renamed output field, a
+  field with a changed type, unit or meaning, or a changed output structure; a dropped
+  architecture; or a change that makes results incomparable with earlier runs (e.g. a
+  new workload version or scoring method). New output fields that leave the existing
+  ones unchanged are improvements, not breaking changes.
 
 ## Entries
 
