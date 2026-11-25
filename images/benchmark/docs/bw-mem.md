@@ -1,5 +1,9 @@
 # Memory Bandwidth
 
+The `bw_mem.sh` script measures memory read, write, and read-write bandwidth
+with LMbench's `bw_mem`, across all logical CPUs and over a range of buffer
+sizes.
+
 ## Running the Script
 
 ```shell

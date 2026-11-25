@@ -1,5 +1,9 @@
 # Geekbench
 
+The `geekbench.sh` script runs Geekbench 6's Single-Core and Multi-Core suites
+with their default settings, and keeps the results inside the container
+instead of uploading them to the Geekbench Browser.
+
 ## Running the Script
 
 ```shell
