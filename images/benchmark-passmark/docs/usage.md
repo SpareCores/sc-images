@@ -1,5 +1,7 @@
 # Usage
 
+The results the PassMark image prints, and the environment variables it reads.
+
 ## Results
 
 This benchmark prints PassMark's YAML results file to stdout:

@@ -1,5 +1,8 @@
 # Contributor Guide
 
+How the Resource Tracker image is built, locally and in CI, and how to change
+its version.
+
 ## Build Files
 
 The image folder has the following files besides this guide and the main

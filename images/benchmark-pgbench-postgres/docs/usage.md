@@ -1,5 +1,8 @@
 # Usage
 
+How to run the pgbench image in standalone and remote mode, its workload
+settings, how production runs it, and its environment variables.
+
 ## Standalone Mode
 
 Leave `SC_DB_HOST` empty to automatically start a local PostgreSQL server inside

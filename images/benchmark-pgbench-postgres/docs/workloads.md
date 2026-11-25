@@ -1,5 +1,8 @@
 # Workloads
 
+The `pgbench_ro` and `pgbench_tpcb` workloads of the pgbench image: the test
+data and transactions of each.
+
 ## `pgbench_ro`
 
 The `pgbench_ro` workload is a custom read-only workload with one transaction

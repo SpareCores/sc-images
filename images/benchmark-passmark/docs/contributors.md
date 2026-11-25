@@ -1,5 +1,8 @@
 # Contributor Guide
 
+How to build the PassMark image locally, how it downloads PassMark, and its
+terminal libraries.
+
 ## Local Development
 
 Build the image locally from the `sc-images` root:

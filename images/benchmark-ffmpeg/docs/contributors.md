@@ -1,5 +1,8 @@
 # Contributor Guide
 
+How to test the FFmpeg image locally, and how its FFmpeg build, image metadata,
+and test media are set up.
+
 ## Local Development
 
 Run the unit tests and a syntax check from the `sc-images` root:

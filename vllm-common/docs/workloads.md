@@ -1,5 +1,8 @@
 # Workloads
 
+The prompt lengths, models, and run sequence of the vLLM images, and how they
+set load, parallelism, and memory fit on CPUs and GPUs.
+
 ## Prompt and Output Lengths
 
 Each workload sends synthetic prompts of a fixed length and asks for a fixed

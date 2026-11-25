@@ -1,5 +1,8 @@
 # Contributor Guide
 
+How CI builds the vLLM CPU Base (AVX2) image from the patched upstream vLLM
+`Dockerfile`, how to build it locally, and how to change its version.
+
 ## Build Files
 
 This image has no `Dockerfile` of its own. CI builds the upstream vLLM CPU

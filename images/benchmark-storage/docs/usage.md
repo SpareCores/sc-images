@@ -1,5 +1,8 @@
 # Usage
 
+How to run the Storage image safely, how production runs it, how long a run
+takes, its output, and its environment variables.
+
 ## Disk Safety
 
 This benchmark decides for each disk whether it may write to it. Disks it may

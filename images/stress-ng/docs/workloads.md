@@ -1,5 +1,7 @@
 # Workloads
 
+The stressors the stress-ng image runs, by category, and its CPU scaling loop.
+
 ## Stressor Suite
 
 [`run_stressng_benchmarks.py`](../run_stressng_benchmarks.py) runs the

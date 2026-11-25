@@ -1,5 +1,8 @@
 # Contributor Guide
 
+How the llama.cpp image is laid out and built, and the build arguments it
+takes.
+
 ## Image Layout
 
 The [`Dockerfile`](../Dockerfile) builds the image from the official llama.cpp

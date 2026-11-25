@@ -1,5 +1,8 @@
 # Contributor Guide
 
+How the vLLM images are laid out and built, their build arguments, how to
+change their versions, and their tests.
+
 ## Image Layout
 
 The three vLLM images differ only in their `Dockerfile` and base image. Each
