@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import atexit
 import re
 from argparse import ArgumentParser
 from functools import cache
@@ -107,6 +108,8 @@ BENCHMARKS = [
     },
 ]
 
+DISK_HEADROOM_MB = 20 * 1024  # free disk left untouched next to a model download
+
 # #############################################################################
 
 
@@ -198,12 +201,14 @@ def download_models(
             logger.debug(f"Model {model_name} already exists, skipping download")
             skip_download = True
         else:
-            # make sure we have enough disk space for the model + 10% extra
-            model_size = float(get_model_url_size(model_url)) * 1.1
-            if disk_usage("/").free / 1024**2 < model_size:
+            # make sure we have enough disk space for the model + 10% extra + headroom for the node (the
+            # kubelet evicts pods when the disk is nearly full)
+            model_size = float(get_model_url_size(model_url)) * 1.1 + DISK_HEADROOM_MB
+            free = disk_usage(models_dir).free / 1024**2
+            if free < model_size:
                 logger.info(
                     f"Not enough free disk space for model {model_name} "
-                    f"({disk_usage('/').free / 1024**2:.2f} MB free, {model_size:.2f} MB needed), skipping download"
+                    f"({free:.2f} MB free, {model_size:.2f} MB needed), skipping download"
                 )
                 skip_download = True
         if not skip_download:
@@ -243,6 +248,13 @@ def download_models_background(model_urls: list[str], models_dir: str):
     )
     process.start()
     return process, model_events, download_speeds
+
+
+def remove_models(models_dir: str):
+    """Delete the downloaded models: the following benchmarks (vllm) need the disk space."""
+    for filename in listdir(models_dir):
+        if filename.endswith((".gguf", ".part")):
+            unlink(path.join(models_dir, filename))
 
 
 def cleanup_partially_downloaded_models(models_dir: str):
@@ -323,6 +335,8 @@ if cli_args.version:
     version = get_llama_cpp_version()
     print(version)
     sys_exit(0)
+
+atexit.register(remove_models, cli_args.models_dir)  # every exit path, including sys_exit and exceptions
 
 models_download_process, models_downloaded, download_speeds = (
     download_models_background(
@@ -489,3 +503,6 @@ for model_url in cli_args.model_urls:
                         f"as it's unlikely to hit the expected {benchmark['expected_tps'][i + 1]} tokens/sec."
                     )
                     break
+
+    # free the disk for the next models: they are downloaded in the background ahead of the benchmarks
+    unlink(model_path)
