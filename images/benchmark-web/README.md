@@ -13,7 +13,9 @@ configuration, together with the CPU time the server and the client used.
 requests per second, throughput in bytes per second, and latency for each file
 size and number of connections per vCPU. It also publishes extrapolated
 requests per second and throughput, which estimate how fast `binserve` would
-serve if `wrk` did not share its CPUs; see [Results](#results).
+serve if `wrk` did not share its CPUs; see [Results](#results). The
+[Static Web Server Workloads](https://sparecores.com/article/benchmark-static-webserver)
+article presents the first results.
 
 ## Purpose
 

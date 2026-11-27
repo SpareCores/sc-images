@@ -18,8 +18,9 @@ hardware.
 
 [Spare Cores Navigator](https://docs.sparecores.com/overview) publishes
 empirical performance measurements for more than 5,000 cloud server types. We
-needed an RDBMS (Relational Database Management System) benchmark that measures
-database throughput and latency directly rather than relying on proxies.
+needed an RDBMS (Relational Database Management System) [benchmark that measures
+database throughput and latency directly](https://sparecores.com/article/benchmark-pgbench-postgres)
+rather than relying on proxies.
 
 The Navigator previously relied on stand-ins: PassMark database operations,
 which do not scale above 32 vCPUs; [Redis](../benchmark-redis/README.md), which
