@@ -4,7 +4,8 @@ This benchmark measures the throughput of CPU, memory, and kernel-heavy
 workloads with `stress-ng`. It runs 85 curated stressors in seven categories,
 each for 5 seconds (15 seconds for `stream`), first with one worker and then
 with one worker per available CPU. A second mode runs the `cpu` stressor at
-increasing worker counts to trace how throughput scales across cores.
+increasing worker counts to trace
+[how throughput scales across cores](https://sparecores.com/article/multi-core-scalability).
 
 This benchmark reports stress-ng bogo ops/s (bogus operations per second) for
 each stress-ng stressor and worker count, as one JSON document. The scaling
@@ -26,7 +27,9 @@ virtualization overhead across providers.
 
 The Navigator's Inspector uses the scaling mode to determine a server type's
 SCore (Spare Cores score). See
-[CPU Scaling Loop](./docs/workloads.md#cpu-scaling-loop).
+[CPU Scaling Loop](./docs/workloads.md#cpu-scaling-loop). The
+[stress-ng CPU methods](https://sparecores.com/article/stress-ng-cpu-methods)
+article compares the `cpu` stressor's methods.
 
 The [`stress-ng-longrun`](../stress-ng-longrun) image pins an older
 `stress-ng` version for an experimental 24-hour run on a few server types. The
