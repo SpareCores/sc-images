@@ -1,5 +1,8 @@
 # Workloads
 
+How the Storage image discovers and groups disks, preconditions them, and runs
+its single-disk and group tests with `fio`.
+
 ## Disk Discovery and Grouping
 
 [`benchmark.py`](../benchmark.py) lists the host's block devices with

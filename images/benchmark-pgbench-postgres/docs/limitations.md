@@ -1,5 +1,8 @@
 # Limitations
 
+What the pgbench image does not deliver, the scope decisions behind it, and its
+design constraints.
+
 ## Disclaimer: What This Benchmark Does *Not* Deliver
 
 ### A Production Workload

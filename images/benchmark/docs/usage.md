@@ -1,5 +1,8 @@
 # Usage
 
+How to run each script of the Legacy Benchmarks image, how production runs
+it, and the image's environment variables.
+
 ## Running a Script
 
 The image has no default command. Pass one script as the command; the

@@ -1,5 +1,8 @@
 # Workloads
 
+How a run of the llama.cpp image works: its models, prompt processing and text
+generation tests, llama-bench settings, GPU layers, and timeouts.
+
 ## How a Run Works
 
 Each run of the [harness](../benchmark.py) goes through the following steps:

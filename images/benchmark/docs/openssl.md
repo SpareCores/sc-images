@@ -1,5 +1,8 @@
 # OpenSSL Speed
 
+The `openssl.sh` script measures hash and cipher throughput with
+`openssl speed`, one algorithm at a time, across all logical CPUs.
+
 ## Running the Script
 
 ```shell

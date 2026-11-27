@@ -1,5 +1,8 @@
 # Workloads
 
+The audio, CPU video, and NVIDIA video scenarios of the FFmpeg image, the test
+media they encode, and how a measurement works.
+
 ## Audio Encoding
 
 Every audio job decodes the bundled FLAC

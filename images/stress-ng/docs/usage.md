@@ -1,5 +1,8 @@
 # Usage
 
+How to run the stress-ng image, how production runs it, how long a run takes,
+its output, and its environment variables.
+
 ## Running the Image
 
 The container entrypoint runs `sh` under `resource-tracker`, and has no default

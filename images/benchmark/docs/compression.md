@@ -1,5 +1,9 @@
 # Compression
 
+The `compress.py` script measures the compression ratio and speed of Python
+compression libraries, such as `gzip`, `zstd`, and `lz4`, on one text file,
+with one thread and with up to one thread per physical core.
+
 ## Running the Script
 
 ```shell

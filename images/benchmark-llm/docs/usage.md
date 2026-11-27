@@ -1,5 +1,8 @@
 # Usage
 
+How to run the llama.cpp image on CPUs and GPUs, the disk space its models
+need, how long a run takes, how production runs it, and its options.
+
 ## CPU Run
 
 Run the image via Docker without options to measure the default models on the

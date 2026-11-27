@@ -1,5 +1,8 @@
 # Usage
 
+How to run the FFmpeg image on CPUs and GPUs, how long a run takes, how
+production runs it, and its environment variables.
+
 ## CPU Run
 
 Run the image via Docker without options to measure the audio and CPU video

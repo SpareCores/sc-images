@@ -1,5 +1,8 @@
 # Usage
 
+How to run the vLLM images, with enough shared memory and Hugging Face access,
+their output and exit codes, and how production runs them.
+
 ## Shared Memory and Versions
 
 The vLLM benchmarks fail with Docker's default 64 MiB `/dev/shm`, so pass
