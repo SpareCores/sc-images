@@ -40,6 +40,8 @@ VLLM_PORT = 8000
 HEALTH_URL = f"http://127.0.0.1:{VLLM_PORT}/health"
 TARGET_URL = f"http://127.0.0.1:{VLLM_PORT}"
 OVERALL_TIMEOUT_SEC = 2 * 60 * 60
+# Free disk kept untouched next to a model download; the kubelet starts evicting pods below 1 % free.
+DISK_HEADROOM_GB = 20
 SERVER_START_TIMEOUT_GPU_SEC = 5 * 60
 SERVER_START_TIMEOUT_CPU_SEC = 10 * 60
 SERVER_START_TIMEOUT_PROBE_GPU_SEC = 8 * 60
@@ -1915,6 +1917,32 @@ def model_fits(spec: ModelSpec, mode: str) -> bool:
     return bool(plan["runnable"])
 
 
+def model_fits_disk(spec: ModelSpec) -> bool:
+    """True when the weights fit the free space of `models_dir` with `DISK_HEADROOM_GB` to spare.
+
+    Without it a large-RAM host walks the ladder until the node disk is full and the kubelet evicts the pod.
+    """
+    need = model_memory_gb(spec) * 1.07374  # GiB to GB, the unit of `free`
+    free = disk_usage(cli_args.models_dir).free / 1e9
+    fits = need + DISK_HEADROOM_GB <= free
+    logger.info(
+        "disk check %s: weights=%.1f GB free=%.1f GB headroom=%d GB fits=%s",
+        spec.short_name,
+        need,
+        free,
+        DISK_HEADROOM_GB,
+        fits,
+    )
+    return fits
+
+
+def remove_model_cache(spec: ModelSpec) -> None:
+    """Delete the model's Hugging Face cache folder: the next rungs need the space more than a re-download costs."""
+    folder = Path(cli_args.models_dir) / ("models--" + spec.model_id.replace("/", "--"))
+    shutil.rmtree(folder, ignore_errors=True)
+    logger.info("removed model cache %s", folder)
+
+
 def workload_kv_fits(
     spec: ModelSpec,
     mode: str,
@@ -2933,9 +2961,15 @@ def main() -> None:
         if not model_fits(spec, mode):
             logger.info("Skipping %s — insufficient memory", spec.short_name)
             continue
+        if not model_fits_disk(spec):
+            logger.info("Skipping %s — insufficient disk space", spec.short_name)
+            continue
         attempted += 1
-        if not run_model(spec, mode, start):
-            stop_ladder = True
+        try:
+            if not run_model(spec, mode, start):
+                stop_ladder = True
+        finally:
+            remove_model_cache(spec)
 
     if attempted == 0:
         logger.error("No models runnable on this host (memory/mode); not recording empty success")

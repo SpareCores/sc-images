@@ -536,5 +536,32 @@ class CpuDtypeAndGpuCompatTest(unittest.TestCase):
         self.assertTrue(b.gpu_supports_current_image({"compute_capabilities": []}))
 
 
+class DiskLadderTests(unittest.TestCase):
+    def test_model_fits_disk_uses_free_space_and_headroom(self) -> None:
+        weights_gib = 10.0
+        with (
+            mock.patch.object(b, "model_memory_gb", return_value=weights_gib),
+            mock.patch.object(b, "disk_usage") as usage,
+        ):
+            usage.return_value.free = int(40e9)
+            self.assertTrue(b.model_fits_disk(SMOL))
+            usage.return_value.free = int(30e9)  # 10.7 GB weights + 20 GB headroom do not fit
+            self.assertFalse(b.model_fits_disk(SMOL))
+
+    def test_remove_model_cache_deletes_only_that_model(self) -> None:
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            mine = Path(tmp) / ("models--" + SMOL.model_id.replace("/", "--"))
+            other = Path(tmp) / "models--other--model"
+            for folder in (mine, other):
+                (folder / "blobs").mkdir(parents=True)
+            with mock.patch.object(b.cli_args, "models_dir", tmp):
+                b.remove_model_cache(SMOL)
+            self.assertFalse(mine.exists())
+            self.assertTrue(other.exists())
+
+
 if __name__ == "__main__":
     unittest.main()
