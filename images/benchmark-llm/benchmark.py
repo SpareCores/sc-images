@@ -64,6 +64,8 @@ cli_parser.add_argument(
 )
 cli_args = cli_parser.parse_args()
 
+DISK_HEADROOM_MB = 20 * 1024  # free disk left untouched next to a model download
+
 # #############################################################################
 
 # default command for llama-bench
@@ -106,6 +108,8 @@ BENCHMARKS = [
         "extra_params": ["-p", "0"],
     },
 ]
+
+DISK_HEADROOM_MB = 20 * 1024  # free disk left untouched next to a model download
 
 # #############################################################################
 
@@ -198,12 +202,14 @@ def download_models(
             logger.debug(f"Model {model_name} already exists, skipping download")
             skip_download = True
         else:
-            # make sure we have enough disk space for the model + 10% extra
-            model_size = float(get_model_url_size(model_url)) * 1.1
-            if disk_usage("/").free / 1024**2 < model_size:
+            # make sure we have enough disk space for the model + 10% extra + headroom for the node (the
+            # kubelet evicts pods when the disk is nearly full)
+            model_size = float(get_model_url_size(model_url)) * 1.1 + DISK_HEADROOM_MB
+            free = disk_usage(models_dir).free / 1024**2
+            if free < model_size:
                 logger.info(
                     f"Not enough free disk space for model {model_name} "
-                    f"({disk_usage('/').free / 1024**2:.2f} MB free, {model_size:.2f} MB needed), skipping download"
+                    f"({free:.2f} MB free, {model_size:.2f} MB needed), skipping download"
                 )
                 skip_download = True
         if not skip_download:
@@ -489,3 +495,6 @@ for model_url in cli_args.model_urls:
                         f"as it's unlikely to hit the expected {benchmark['expected_tps'][i + 1]} tokens/sec."
                     )
                     break
+
+    # free the disk for the next models: they are downloaded in the background ahead of the benchmarks
+    unlink(model_path)
