@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import atexit
 import re
 from argparse import ArgumentParser
 from functools import cache
@@ -63,8 +64,6 @@ cli_parser.add_argument(
     help="Timeout for downloading models in seconds.",
 )
 cli_args = cli_parser.parse_args()
-
-DISK_HEADROOM_MB = 20 * 1024  # free disk left untouched next to a model download
 
 # #############################################################################
 
@@ -251,6 +250,13 @@ def download_models_background(model_urls: list[str], models_dir: str):
     return process, model_events, download_speeds
 
 
+def remove_models(models_dir: str):
+    """Delete the downloaded models: the following benchmarks (vllm) need the disk space."""
+    for filename in listdir(models_dir):
+        if filename.endswith((".gguf", ".part")):
+            unlink(path.join(models_dir, filename))
+
+
 def cleanup_partially_downloaded_models(models_dir: str):
     """Remove all .part files in the models directory."""
     for filename in listdir(models_dir):
@@ -329,6 +335,8 @@ if cli_args.version:
     version = get_llama_cpp_version()
     print(version)
     sys_exit(0)
+
+atexit.register(remove_models, cli_args.models_dir)  # every exit path, including sys_exit and exceptions
 
 models_download_process, models_downloaded, download_speeds = (
     download_models_background(

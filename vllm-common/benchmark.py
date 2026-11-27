@@ -1922,7 +1922,7 @@ def model_fits_disk(spec: ModelSpec) -> bool:
 
     Without it a large-RAM host walks the ladder until the node disk is full and the kubelet evicts the pod.
     """
-    need = model_memory_gb(spec) * 1.07374  # GiB to GB, the unit of `free`
+    need = model_memory_gb(spec) * 1024**3 / 1e9  # GiB to GB, the unit of `free`
     free = disk_usage(cli_args.models_dir).free / 1e9
     fits = need + DISK_HEADROOM_GB <= free
     logger.info(
